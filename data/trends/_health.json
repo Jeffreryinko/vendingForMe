@@ -1,1 +1,1 @@
-{"CN/baidu":{"since":"2026-11-03T16:32:44+09:00","n":1,"err":"RuntimeError: 목록 못 찾음","last":"2026-11-03T16:32:44+09:00"},"TW/x":{"since":"2026-11-03T16:33:40+09:00","n":1,"err":"HTTPError: 404 Client Error: Not Found for url: https://trends24.in/taiwan/","last":"2026-11-03T16:33:40+09:00"}}
+{"TW/x":{"since":"2026-11-03T16:33:40+09:00","n":1,"err":"HTTPError: 404 Client Error: Not Found for url: https://trends24.in/taiwan/","last":"2026-11-03T16:33:40+09:00"}}
