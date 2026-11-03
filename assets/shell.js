@@ -1,6 +1,6 @@
-/* shell.js — 자판기 공통 껍데기 (시사·이야기·AI·첫 화면).
+/* shell.js — 자판기 공통 껍데기 (시사·이야기·AI·역사·첫 화면).
  *
- *  1) 앱 전환 막대: 화면 맨 위에 [홈] [시사 | 이야기 | AI] [⋯] — 크게, 애플식 분할 버튼
+ *  1) 앱 전환 막대: 화면 맨 위에 [홈] [시사 | 이야기 | AI | 역사] [⋯] — 크게, 애플식 분할 버튼
  *  2) 뒤로가기 한 가지 규칙 (모든 앱 공통)
  *       · 앱 안에서 화면을 옮겨도 브라우저 기록은 쌓지 않는다 (각 앱이 replaceState 로 이동)
  *       · 휴대폰 뒤로가기 = "한 단계 위로": 열린 창 닫기 → 앞 화면 → 그 앱의 첫 화면 → 자판기 첫 화면(홈)
@@ -15,8 +15,8 @@
   var APP = (window.vfm && window.vfm.app) || window.VFM_APP || "sisa";
   var HOME = APP === "home";
   var ROOT = HOME ? "./" : "../";
-  var APPS = [["sisa", "시사"], ["iyagi", "이야기"], ["ai", "AI"]];
-  var NAME = { home: "홈", sisa: "시사", iyagi: "이야기", ai: "AI" };
+  var APPS = [["sisa", "시사"], ["iyagi", "이야기"], ["ai", "AI"], ["history", "역사"]];
+  var NAME = { home: "홈", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사" };
   try { if (!HOME) localStorage.setItem("vfm:tab", APP); } catch (e) { }
 
   /* ── 모양 (애플식, apple.css 의 색 변수를 씀) ── */
@@ -27,8 +27,8 @@
     "font:600 15px/1 var(--ap-font);-webkit-user-select:none;user-select:none}" +
     ".vfm-bar .h{flex:none;width:40px;height:40px;border-radius:12px;border:0;background:var(--ap-fill);display:grid;place-items:center;color:var(--ap-label);cursor:pointer}" +
     ".vfm-bar .h svg{width:20px;height:20px}" +
-    ".vfm-seg{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:3px;border-radius:12px;background:var(--ap-fill);height:40px}" +
-    ".vfm-seg button{border:0;border-radius:9px;background:transparent;color:var(--ap-label);font:inherit;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;-webkit-tap-highlight-color:transparent}" +
+    ".vfm-seg{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:3px;border-radius:12px;background:var(--ap-fill);height:40px}" +
+    ".vfm-seg button{border:0;border-radius:9px;background:transparent;color:var(--ap-label);font:inherit;font-size:14.5px;letter-spacing:-.02em;white-space:nowrap;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;-webkit-tap-highlight-color:transparent}" +
     ".vfm-seg button i{width:8px;height:8px;border-radius:50%;display:inline-block}" +
     ".vfm-seg button[aria-current=page]{background:var(--ap-seg-on);box-shadow:0 3px 8px rgba(0,0,0,.12),0 1px 1px rgba(0,0,0,.04);font-weight:700}" +
     ".vfm-dot{width:7px;height:7px;border-radius:50%;background:var(--ap-green);display:inline-block}.vfm-dot.old{background:var(--ap-orange)}.vfm-dot.none{background:var(--ap-label3)}" +
@@ -176,9 +176,9 @@
     APPS.forEach(function (a) {
       getJ("data/" + a[0] + "/_meta.json").then(function (m) { var el = back.querySelector('[data-u="' + a[0] + '"] .v'); if (el) el.textContent = m && m.updatedAt ? ago(m.updatedAt) + (m.label ? " · " + m.label : "") : "기록 없음"; });
     });
-    Promise.all([getJ("data/trends/_index.json"), getJ("data/ai/_index.json")]).then(function (r) {
+    Promise.all([getJ("data/trends/_index.json"), getJ("data/ai/_index.json"), getJ("data/history/_index.json")]).then(function (r) {
       var el = back.querySelector("#vfmHealth"); if (!el) return;
-      var rows = [["트렌드", r[0]], ["AI", r[1]]].map(function (x) {
+      var rows = [["트렌드", r[0]], ["AI", r[1]], ["역사", r[2]]].map(function (x) {
         var ks = Object.keys((x[1] && x[1].broken) || {});
         return "<div><span>" + x[0] + '</span><span class="v">' + (x[1] ? (ks.length ? "고장 " + ks.length + "곳: " + ks.slice(0, 3).join(", ") : "모두 정상") : "자료 없음") + "</span></div>";
       });

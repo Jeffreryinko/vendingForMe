@@ -1,8 +1,8 @@
-/* apple.css — 자판기 세 앱(시사·이야기·AI)과 첫 화면의 공통 디자인 (애플 iOS 방식).
+/* apple.css — 자판기 네 앱(시사·이야기·AI·역사)과 첫 화면의 공통 디자인 (애플 iOS 방식).
  *
  * 원칙: 시스템 글꼴(아이폰은 SF·애플 SD 산돌고딕, 안드로이드는 Pretendard), iOS 시스템 색,
  *       회색 바탕 + 흰 카드, 0.5px 구분선, 반투명 아래 탭 막대, 큰 제목(굵게).
- *       앱마다 강조색 하나: 시사 = 파랑, 이야기 = 주황, AI = 보라.
+ *       앱마다 강조색 하나: 시사 = 파랑, 이야기 = 주황, AI = 보라, 역사 = 갈색.
  * 적용: <html class="ap ap-시사|이야기|ai"> 에서 각 앱의 원래 색 변수를 덮어씀 (앱 코드는 그대로).
  */
 
@@ -26,6 +26,9 @@ html.ap{
 html.ap.ap-sisa{--ap-tint:var(--ap-blue);--ap-tint-t:var(--ap-blue-t)}
 html.ap.ap-iyagi{--ap-tint:var(--ap-orange);--ap-tint-t:var(--ap-orange-t)}
 html.ap.ap-ai{--ap-tint:var(--ap-purple);--ap-tint-t:var(--ap-purple-t)}
+html.ap.ap-history{--ap-tint:#A2845E;--ap-tint-t:#7F6545}
+@media (prefers-color-scheme:dark){html.ap.ap-history:not([data-theme="light"]){--ap-tint:#AC8E68;--ap-tint-t:#C8A87E}}
+html.ap.ap-history[data-theme="dark"]{--ap-tint:#AC8E68;--ap-tint-t:#C8A87E}
 
 @media (prefers-color-scheme:dark){html.ap:not([data-theme="light"]){
   --ap-bg:#000000; --ap-surface:#1C1C1E; --ap-surface2:#2C2C2E; --ap-fill:rgba(118,118,128,.24); --ap-fill2:rgba(118,118,128,.16);
@@ -46,9 +49,9 @@ html.ap[data-theme="dark"]{
 
 /* ───────── 2. 앱별 원래 변수 → 공통 토큰 ───────── */
 /* 시사·AI (같은 이름의 변수를 씀) */
-html.ap.ap-sisa,html.ap.ap-ai,
-html.ap.ap-sisa:not([data-theme="light"]),html.ap.ap-ai:not([data-theme="light"]),
-html.ap.ap-sisa[data-theme="dark"],html.ap.ap-ai[data-theme="dark"]{
+html.ap.ap-sisa,html.ap.ap-ai,html.ap.ap-history,
+html.ap.ap-sisa:not([data-theme="light"]),html.ap.ap-ai:not([data-theme="light"]),html.ap.ap-history:not([data-theme="light"]),
+html.ap.ap-sisa[data-theme="dark"],html.ap.ap-ai[data-theme="dark"],html.ap.ap-history[data-theme="dark"]{
   --bg:var(--ap-bg); --surface:var(--ap-surface); --sunk:var(--ap-fill); --ink:var(--ap-label); --muted:var(--ap-label2); --line:var(--ap-line);
   --accent:var(--ap-tint-t); --accent-ink:#FFFFFF; --accent-soft:var(--ap-tint-soft);
   --coin:var(--ap-orange-t); --coin-soft:color-mix(in srgb,var(--ap-orange) 15%,transparent);
