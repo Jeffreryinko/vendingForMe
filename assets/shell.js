@@ -75,8 +75,14 @@
       "<p>읽은 기록은 이 폰 브라우저 안에만 저장돼요 (" + kb + "KB 사용 / 약 5,000KB). 폰을 바꾸거나 PC로 옮길 땐 아래 버튼으로 파일 하나로 내보내세요.</p>" +
       '<div class="row"><button class="pri" data-act="export">기록 내보내기</button><button data-act="import">기록 불러오기</button>' +
       '<button data-act="other">' + NAME[OTHER] + ' 탭으로</button><button data-act="reload">새로고침</button><button data-act="close">닫기</button></div>' +
+      '<p class="vfm-broken"></p>' +
       '<input type="file" accept="application/json" hidden></div>';
     document.body.appendChild(back);
+    if (APP === "sisa") fetch("../data/trends/_index.json", { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      var el = back.querySelector(".vfm-broken"); if (!el || !j) return;
+      var ks = Object.keys(j.broken || {});
+      el.textContent = ks.length ? "트렌드 고장 난 출처 (3일 넘게 실패): " + ks.join(", ") + " — 클로드에게 '트렌드 출처 고쳐줘'라고 하면 돼요." : "트렌드 출처: 모두 정상";
+    }).catch(function () {});
     var input = back.querySelector("input");
     back.addEventListener("click", function (e) {
       if (e.target === back) return back.remove();

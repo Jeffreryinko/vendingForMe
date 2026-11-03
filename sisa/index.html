@@ -328,7 +328,7 @@ h2.sec .n{font-family:var(--f-mono);font-weight:500}
 
 /* nav */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
-nav.tabs .in{max-width:720px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);height:var(--nav-h)}
+nav.tabs .in{max-width:720px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:var(--nav-h)}
 nav.tabs button{border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11.5px;color:var(--muted)}
 nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 nav.tabs button[aria-current="page"]{color:var(--accent);font-weight:600}
@@ -754,6 +754,7 @@ kbd{font-family:var(--f-mono,monospace);font-size:12px;background:var(--sunk);bo
   </section>
   <section class="view" id="v-flow" hidden></section>
   <section class="view" id="v-nation" hidden></section>
+  <section class="view" id="v-hot" hidden></section>
   <section class="view" id="v-library" hidden></section>
   <section class="view" id="v-src" hidden></section>
 </main>
@@ -763,6 +764,7 @@ kbd{font-family:var(--f-mono,monospace);font-size:12px;background:var(--sunk);bo
     <button type="button" data-v="today" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>오늘</span></button>
     <button type="button" data-v="flow"><svg viewBox="0 0 24 24"><path d="M4 7h11M4 12h16M4 17h8"/></svg><span>흐름</span></button>
     <button type="button" data-v="nation"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.8 2.6 14.2 0 17M12 3.5c-2.6 2.8-2.6 14.2 0 17"/></svg><span>나라</span></button>
+    <button type="button" data-v="hot"><svg viewBox="0 0 24 24"><path d="M4 17l5-6 4 4 7-9"/><path d="M15 6h5v5"/></svg><span>트렌드</span></button>
     <button type="button" data-v="library"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4-6 4z"/></svg><span>내 기록</span></button>
   </div>
 </nav>
@@ -2241,6 +2243,7 @@ function viewLibrary(){
     <div class="card stack"><h2 class="sec">하루 정리</h2>
       <p style="margin:0">${esc(simple)}</p>
       ${P.touched.length ? `<p class="note" style="color:var(--ink)">본 사건: ${P.touched.map(x=>esc(storyTitle(x.s, x.its))).join(" / ")}</p>` : ""}
+      ${window.HOT ? HOT.dayLine(day) : ""}
       ${saved ? `<div class="ai">${esc(saved.text)}</div><p class="note">${kstTime(saved.at)}에 Claude가 정리 · 제목·메모 기준</p>` : ""}
       ${S.sample && P.openedIds.length ? `<button type="button" class="btn ${saved?"":"pri"}" id="aiBtn" ${S.busy?"disabled":""}>${S.busy?"정리 중…":saved?"지금 기록으로 다시 정리":"Claude로 하루 정리하기"}</button>` : ""}
     </div>
@@ -2492,7 +2495,7 @@ document.addEventListener("touchend", dragEnd);
 document.addEventListener("touchcancel", dragEnd);
 
 // ───────── 좌우로 밀기: 목록에서는 탭 이동, 글 상세에서는 이전·다음 글 ─────────
-const TAB_ORDER = ["today","flow","nation","library"];
+const TAB_ORDER = ["today","flow","nation","hot","library"];
 function rememberList(t){
   const root = t.closest("section.view") || document;
   S.listIds = [...new Set([...root.querySelectorAll("[data-row],[data-open]")].map(e => e.dataset.row || e.dataset.open))].filter(id => S.byId[id]);
@@ -2545,7 +2548,7 @@ document.addEventListener("touchend", () => {
 });
 
 // ───────── 화면 이동 기록 (휴대폰 뒤로가기 = 페이지 안에서 이전 화면) ─────────
-const VIEW_HASH = {today:"today", flow:"flow", feed:"flow", trend:"flow", nation:"nation", library:"library", log:"library", report:"library", sources:"src"};
+const VIEW_HASH = {today:"today", flow:"flow", feed:"flow", trend:"flow", nation:"nation", hot:"hot", library:"library", log:"library", report:"library", sources:"src"};
 const navStack = [location.hash || "#today"];
 let navPush = false, navReplace = false, booting = false, homeBackAt = 0, skipEvents = 0, guardSet = false;
 function navTo(h){ h = "#" + h; if(location.hash === h) return route(); navPush = true; location.hash = h; }
@@ -2594,7 +2597,7 @@ function route(){
 }
 
 // ───────── 렌더 & 이벤트 ─────────
-const VIEWS = {today:viewHome, flow:viewFlow, nation:viewNation, library:viewLibrary, src:viewSrc};
+const VIEWS = {today:viewHome, flow:viewFlow, nation:viewNation, hot:()=>window.HOT?HOT.view():"", library:viewLibrary, src:viewSrc};
 function render(){
   const ed = S.ed ? "" : S.fail ? `<b>${esc(FAIL[S.fail.kind].title)}</b>&nbsp;` : "<b>불러오는 중</b>&nbsp;";
   $("#edchip").innerHTML = ed;
@@ -2691,9 +2694,11 @@ document.addEventListener("submit", e => {
 });
 
 boot();
+window.SISA = {S, render, esc, ago, toast};   // 트렌드 코너(assets/hot.js)가 쓰는 다리
 })();
 </script>
 
 
+<script src="../assets/hot.js"></script>
 <script src="../assets/shell.js"></script>
 </body></html>
