@@ -38,7 +38,7 @@
     try {
       if (!H.idx) { H.idx = await fetchJ("_index.json"); H.cc = H.cc || P.cc || "KR"; }
       const k = H.tab === "past" && H.day ? `hist/${H.cc}_${H.day}.json` : `${H.cc}.json`;
-      if (!H.data[k]) H.data[k] = await fetchJ(k);
+      if (!H.data[k]) { H.data[k] = await fetchJ(k); if (D) D.stale("sisa"); }
     } catch (e) { H.err = e.message; }
     H.loading = false;
     if (S.view === "hot") render();
@@ -65,7 +65,9 @@
       : `<span class="ht">${esc(it.ko || it.kw)}</span>${it.ko && it.ko !== it.kw ? `<span class="ho">${esc(it.kw)}</span>` : ""}`;
     const meta = [it.sub ? esc(it.sub) : "", tag, iss ? `<button type="button" class="pill coin" data-hotiss="${esc(iss.id)}">이슈 보기</button>` : ""].filter(Boolean).join("");
     const x = open && !hide ? `<div class="hot-x">
-        ${(it.news || []).map(n => `<a href="${esc(n.u)}" target="_blank" rel="noopener">${esc(n.t)} <small>· ${esc(n.s || "")}</small></a>`).join("")}
+        ${(it.news || []).map(n => `<a href="${esc(ku(n.u))}" target="_blank" rel="noopener">${esc(n.ko || n.t)} <small>· ${esc(n.s || "")}</small>${n.sn ? `<small style="display:block">${esc(n.sn)}</small>` : ""}</a>`).join("")}
+        ${src === "yt" && (it.dko || it.desc) ? `<p class="note" style="color:var(--ink);margin:0">${esc(it.dko || it.desc)}</p>` : ""}
+        ${src === "yt" && (it.capko || it.cap) ? `<p class="note" style="margin:0"><b>자막</b> ${esc((it.capko || it.cap).slice(0, 300))}…</p>` : ""}
         <div class="btnrow"><a class="btn" href="${esc(it.url)}" target="_blank" rel="noopener">${src === "yt" ? "유튜브에서 보기" : src === "wiki" ? "문서 열기" : "검색 결과"}</a>
           <button type="button" class="btn ${isStar(cc, src, it.kw) ? "on" : ""}" data-hotstar="${id}">${isStar(cc, src, it.kw) ? "★ 보관됨" : "☆ 보관"}</button>
           <button type="button" class="btn" data-hotshare="${id}">공유</button></div></div>` : "";
@@ -87,11 +89,78 @@
     const world = idx.world && idx.world.length && H.tab === "now" ? `<div class="stack"><h2 class="sec">세계가 같이 찾는 것</h2><div class="hot-world">${idx.world.map(w => `<a class="wchip" href="https://www.google.com/search?q=${encodeURIComponent(w.kw)}" target="_blank" rel="noopener">${esc(w.ko)}<small>${w.cc.map(flag).join("")}</small></a>`).join("")}</div></div>` : "";
     const flags = `<div class="hot-flags">${idx.countries.map(([cc, nm]) => `<button type="button" class="chip" data-hotcc="${cc}" aria-pressed="${cc === H.cc}">${flag(cc)} ${esc(nm)}</button>`).join("")}</div>`;
     const days = H.tab === "past" ? `<div class="chips">${(idx.days || []).slice().reverse().filter(x => x !== today()).map(x => `<button type="button" class="chip" data-hotday="${x}" aria-pressed="${x === H.day}">${x.slice(5).replace("-", "/")}</button>`).join("") || '<span class="note">아직 지난 날 자료가 없어요 (내일부터 쌓여요)</span>'}</div>` : "";
+    const msw = D && H.tab === "now" ? D.modeSwitch("sisa-hot", () => render()) : "";
+    if (D && H.tab === "now" && D.mode("sisa-hot") === "deck") {
+      const dk = deckOf(d.cc); const k0 = dk.curKey(), x0 = k0 && dk.map[k0];
+      if (x0 && x0.src === "wiki" && WK[x0.it.url] === undefined) wikiFor(x0.it.url).then(() => { if (dk.curKey() === k0) dk.paint(); });
+      return `<p class="lead">트렌드</p>${seg}${msw}${flags}<p class="note">${esc(d.name)} · ${ago(d.at)} 갱신 · 검색어·영상·문서를 한 장씩 · 본 것은 다시 안 나와요</p>${dk.html()}`;
+    }
     const srcs = Object.entries(d.src || {}).sort((a, b) => SRC_ORDER.indexOf(a[0]) - SRC_ORDER.indexOf(b[0]));
     const broken = Object.keys(idx.broken || {}).length ? `<p class="note">3일 넘게 못 가져오는 출처 ${Object.keys(idx.broken).length}곳 — 설정 시트에서 볼 수 있어요.</p>` : "";
-    return `<p class="lead">트렌드</p><p class="note">${d.name} · ${ago(d.at)} 갱신 · 3시간마다 로봇이 모아요 · 순위를 누르면 펼쳐져요</p>${seg}${world}${flags}${days}
+    return `<p class="lead">트렌드</p><p class="note">${d.name} · ${ago(d.at)} 갱신 · 3시간마다 로봇이 모아요 · 순위를 누르면 펼쳐져요</p>${seg}${msw}${world}${flags}${days}
       ${srcs.map(([k, b]) => srcCard(d.cc, k, b)).join("")}${broken}
       <p class="note">구글·위키백과·유튜브는 공식 자료, 나머지는 민간 집계 사이트(출처 ↗)에서 가져와요. 틱톡·페이스북·인스타그램은 순위를 공개하지 않아 없어요.</p>`;
+  }
+  /* ── 넘겨보기: 한 나라의 검색어·영상·문서를 한 장씩 (안 본 것만) ── */
+  const D = window.VfmDeck || null;
+  const tKey = (cc, src, it) => `t:${cc}:${src}:${it.kw}`;
+  const WK = {};                                                   // 위키백과 첫 문단 (누를 때·카드가 보일 때만 받음)
+  async function wikiFor(u) {
+    if (WK[u] !== undefined) return WK[u];
+    WK[u] = null;
+    try {
+      const m = u.match(/^https:\/\/([a-z-]+)\.wikipedia\.org\/wiki\/(.+)$/); if (!m) return null;
+      const lang = m[1], title = decodeURIComponent(m[2].replace(/\+/g, " "));
+      const q = (l, t, extra) => fetch(`https://${l}.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&prop=extracts${extra || ""}&exintro=1&explaintext=1&exsentences=4&titles=${encodeURIComponent(t)}`).then(r => r.json()).then(j => Object.values(j.query.pages || {})[0] || {});
+      let pg = await q(lang, title, lang === "ko" ? "" : "|langlinks&lllang=ko"), out = { lang, title: pg.title || title, text: pg.extract || "" };
+      const ko = (pg.langlinks || [])[0];
+      if (ko && ko["*"]) { const k = await q("ko", ko["*"]); if (k.extract) out = { lang: "ko", title: k.title, text: k.extract }; }
+      WK[u] = out.text ? out : null;
+    } catch (e) { WK[u] = null; }
+    return WK[u];
+  }
+  const ku = (u, l) => D ? D.koUrl(u, l) : u;
+  function deckCard(cc, src, b, it, i) {
+    const isNew = it.since && (Date.now() - Date.parse(it.since)) < 6 * 3600e3;
+    const iss = issueOf(it);
+    const head = `<div class="vdk-k"><span>${flag(cc)} ${esc((cur() || {}).name || cc)}</span><span>${esc(b.name)} ${i + 1}위</span>${it.n ? `<span>${esc(it.n)}</span>` : ""}${it.tag === "NEW" || isNew ? '<b class="new">NEW</b>' : it.tag ? `<span>${esc(it.tag)}</span>` : ""}</div>
+      <h2 class="vdk-t">${esc(it.ko || it.kw)}</h2>${it.ko && it.ko !== it.kw ? `<p class="note" style="margin:-6px 0 10px">${esc(it.kw)}</p>` : ""}`;
+    let body = "";
+    if (src === "google") {
+      const ns = it.news || [];
+      body = `<p class="vdk-h">왜 떴나 · 구글이 함께 보여 준 뉴스</p>${ns.length ? `<div class="vdk-links">${ns.map(n => `<a href="${esc(ku(n.u, cc === "KR" ? "ko" : undefined))}" target="_blank" rel="noopener">${esc(n.ko || n.t)}${n.sn ? `<small>${esc(n.sn)}</small>` : ""}<small>${esc(n.s || "")}${n.ko ? " · 제목 기계번역" : ""} · ${cc === "KR" ? "기사" : "원문(한국어 번역)"} ↗</small></a>`).join("")}</div>` : '<p class="note">이번에는 관련 뉴스가 같이 오지 않았어요.</p>'}`;
+    } else if (src === "yt") {
+      const desc = it.dko || it.desc, cap = it.capko || it.cap;
+      body = `<p class="vdk-h">영상 정보</p><p class="vdk-p">${esc(it.sub || "")} 채널${it.n ? " · 조회 " + esc(it.n) : ""}</p>
+        ${desc ? `<p class="vdk-h">설명란${it.dko ? " (기계번역)" : ""}</p><p class="vdk-p">${esc(desc)}</p>` : '<p class="note">설명란이 비어 있거나 아직 못 가져왔어요.</p>'}
+        ${cap ? `<p class="vdk-h">자막 앞부분${it.capko ? " (기계번역)" : ""}</p><p class="vdk-p">${esc(cap.slice(0, 700))}${cap.length > 700 ? "…" : ""}</p>` : ""}
+        <a class="vdk-more" href="${esc(it.url)}" target="_blank" rel="noopener">유튜브에서 영상 보기 ↗</a>`;
+    } else if (src === "wiki") {
+      const w = WK[it.url];
+      body = `<p class="vdk-h">어떤 문서인가 · 위키백과 첫 문단</p>${w ? `<p class="vdk-p">${esc(w.text)}</p><p class="note">위키백과(${w.lang === "ko" ? "한국어" : w.lang}) ‘${esc(w.title)}’</p>` : w === null ? '<p class="note">설명을 불러오지 못했어요.</p>' : '<p class="note">설명을 불러오는 중…</p>'}
+        ${it.sub ? `<p class="note">${esc(it.sub)}</p>` : ""}<a class="vdk-more" href="${esc(ku(it.url, w && w.lang === "ko" ? "ko" : undefined))}" target="_blank" rel="noopener">문서 열기 ↗</a>`;
+    } else {
+      const g = (((cur() || {}).src || {}).google || {}).items || [];
+      const k = (it.ko || it.kw).toLowerCase(), hit = g.find(x => (x.ko || x.kw).toLowerCase().includes(k) || k.includes((x.ko || x.kw).toLowerCase()));
+      body = `${it.sub ? `<p class="vdk-p">${esc(it.sub)}</p>` : ""}${hit && (hit.news || []).length ? `<p class="vdk-h">관련 뉴스 (구글 급상승)</p><div class="vdk-links">${hit.news.map(n => `<a href="${esc(ku(n.u))}" target="_blank" rel="noopener">${esc(n.ko || n.t)}<small>${esc(n.s || "")}</small></a>`).join("")}</div>` : '<p class="note">이 출처는 검색어만 알려 줘요. 이유는 검색 결과에서 확인해요.</p>'}
+        <a class="vdk-more" href="${esc(it.url)}" target="_blank" rel="noopener">검색 결과 보기 ↗</a>`;
+    }
+    return `<div class="vdk-body dk">${head}${iss ? `<button type="button" class="vdk-more" data-hotiss="${esc(iss.id)}">관련 이야기: ${esc(iss.title || "")} ›</button>` : ""}${body}</div>`;
+  }
+  function deckOf(cc) {
+    return D.create({ id: "sisa-hot-" + cc, app: "sisa", emptyTitle: "트렌드 자료가 없어요",
+      items: () => {
+        const d = H.data[`${cc}.json`]; if (!d) return [];
+        const srcs = Object.entries(d.src || {}).filter(([, b]) => (b.items || []).length).sort((a, b) => SRC_ORDER.indexOf(a[0]) - SRC_ORDER.indexOf(b[0]));
+        const out = [];
+        for (let r = 0; r < 20; r++) srcs.forEach(([src, b]) => {     // 출처마다 1위끼리, 2위끼리… 번갈아
+          const it = b.items[r]; if (!it || ADULT.test(it.kw + " " + (it.ko || ""))) return;
+          out.push({ key: tKey(cc, src, it), title: it.ko || it.kw, url: src === "yt" || src === "wiki" ? it.url : location.href.split("#")[0] + "#hot", shareText: `${flag(cc)} ${d.name} ${b.name} ${r + 1}위 · ${it.ko || it.kw}`, src, html: () => deckCard(cc, src, b, it, r), it });
+        });
+        return out;
+      },
+      onShow(x) { if (x.src === "wiki" && WK[x.it.url] === undefined) wikiFor(x.it.url).then(() => { const dk = D.get("sisa-hot-" + cc); if (dk && dk.curKey() === x.key) dk.paint(); }); if (x.it) logView(x.it, cc); },
+      onList() { try { localStorage.setItem("vfm:mode:sisa-hot", '"list"'); } catch (e) { } render(); } });
   }
   function itemOf(id) { const [src, i] = id.split("|"); const d = cur(); const b = d && d.src[src]; return b && { it: b.items[+i], src, b, cc: d.cc }; }
   document.addEventListener("click", e => {
@@ -103,7 +172,7 @@
     if (d.hotday) { H.day = d.hotday; H.open = null; render(); ensure(); return; }
     if (d.hotmore) { H.more[d.hotmore] = !H.more[d.hotmore]; render(); return; }
     if (d.hotreveal) { H.reveal[d.hotreveal] = true; render(); return; }
-    if (d.hotrow) { H.open = H.open === d.hotrow ? null : d.hotrow; const o = itemOf(d.hotrow); if (H.open && o) logView(o.it, o.cc); render(); return; }
+    if (d.hotrow) { H.open = H.open === d.hotrow ? null : d.hotrow; const o = itemOf(d.hotrow); if (H.open && o) { logView(o.it, o.cc); if (D) D.Seen.add("sisa", tKey(o.cc, o.src, o.it)); } render(); return; }
     if (d.hotstar) { const o = itemOf(d.hotstar); if (!o) return; const i = P.stars.findIndex(s => s.cc === o.cc && s.src === o.src && s.kw === o.it.kw);
       if (i >= 0) { P.stars.splice(i, 1); toast("보관함에서 뺐어요"); } else { P.stars.push({ cc: o.cc, src: o.src, srcName: o.b.name, kw: o.it.kw, ko: o.it.ko || "", url: o.it.url, at: new Date().toISOString() }); toast("영구 보관했어요 · 내 보관함"); }
       save(); render(); return; }
