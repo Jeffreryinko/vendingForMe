@@ -1,6 +1,7 @@
 <!doctype html><html lang="ko" class="ap ap-iyagi"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <script>window.VFM_APP="iyagi";</script>
 <script src="../assets/claude-shim.js"></script>
+<script src="../assets/deck.js"></script>
 <link rel="manifest" href="../manifest.webmanifest"><meta name="theme-color" content="#0C6E77"><link rel="apple-touch-icon" href="../assets/icon-192.png">
 
 <title>이야기 도서관</title>
@@ -676,6 +677,7 @@ function afterLibraryGrew(){
   }
   if(ui.view==="today"&&ui.plan&&!ui.feed.length&&Date.now()-ui.plan.at<20000&&scrollY<300){undoPlan(ui.plan);ui.plan=null;render()}
   robot.count=STORIES.filter(s=>s.robot).length;
+  if(window.VfmDeck){VfmDeck.stale("iyagi");const d=VfmDeck.get("iyagi-home");if(d&&ui.view==="home")d.paint()}
   if(ui.view==="home"&&scrollY<200&&!(document.activeElement&&document.activeElement.id==="hq"))renderHomeList();
   if(ui.waitingId&&byId[ui.waitingId]){ui.waitingId=null;route();return}
   if(ui.view==="explore"&&document.activeElement&&document.activeElement.id==="q")renderResults();
@@ -920,6 +922,7 @@ function after(s,k){
   <button class="check" data-act="done" data-id="${s.id}" data-d="${k}" aria-pressed="${done}"><span class="box">${done?"✓":""}</span>${done?`${LV_SENT[lvOf(k)]}까지 읽었다고 기록했어요`:"다 읽었어요"}</button>
   <div class="row">${deepLv?`<button class="btn primary" data-act="deepen" data-id="${s.id}" data-lv="${deepLv}">${deepLv===3?"더 깊이 읽기 · Claude가 이어 쓰기":"조금 더 자세히"}</button>`:""}${nx?`<button class="btn ${deepLv?"":"primary"}" data-act="open" data-id="${s.id}" data-d="${nx}" data-mark="${k}">${nxLabel}</button>`:""}
   <button class="btn" data-act="other" data-id="${s.id}">다른 이야기</button>
+  ${D?D.bar("iyagi",s.id,{title:s.title,url:appUrl("#read-"+s.id),text:s.title+(s.hook?"\n"+s.hook:"")}):""}
   <button class="btn ${isSaved(s.id)?"saved":""}" data-act="save" data-id="${s.id}">${isSaved(s.id)?"담아둠":"담아두기"}</button></div></div>`;
 }
 /* ───────── 그림: 이야기마다 자동으로 그리는 표지 + Claude가 그린 삽화 ───────── */
@@ -2503,6 +2506,50 @@ function purgeRead(){
 let hio=null;
 /* 원문 읽기: 크롤러가 모아 둔 공공 영역 원문(토큰 0). 게시 파일 orig/ 에서 불러옵니다 */
 let ORIG=[],ORIGBY={};
+/* ── 위키백과 원문 정리 (robot/iyagi_wiki.py, 토큰 0) + 넘겨보기 (assets/deck.js) ── */
+const D=window.VfmDeck||null;
+let WIKI=[],WIKIBY={};const WDOC={};
+fetch("../data/iyagi/wiki/_index.json").then(r=>r.ok?r.json():[]).then(a=>{if(Array.isArray(a)){WIKI=a;a.forEach(w=>WIKIBY[w.id]=w);if(D)D.stale("iyagi");if(ui.view==="home")renderHome();else if(ui.view==="catread")renderCatRead()}}).catch(()=>{});
+function wikiDoc(id){if(WDOC[id])return WDOC[id];WDOC[id]=fetch("../data/iyagi/wiki/"+id+".json").then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>(WDOC[id]=d)).catch(()=>{delete WDOC[id];return null});return WDOC[id]}
+const wdocNow=id=>WDOC[id]&&!WDOC[id].then?WDOC[id]:null;
+const seenAdd=k=>{if(D)D.Seen.add("iyagi",k)};
+const appUrl=h=>location.href.split("#")[0]+h;
+function wikiParas(d,max){const ko=d.ko_lead&&d.ko_lead.length?d.ko_lead:null;return (ko||d.lead||[]).slice(0,max||99)}
+function wikiNote(d){return `<p class="note">출처: <a href="${esc(d.u)}" target="_blank" rel="noopener">위키백과${d.l==="ko"?"":"(영어)"} ‘${esc(d.t)}’</a> · ${esc(d.lic||"CC BY-SA 4.0")} · AI 없이 문서를 기계적으로 정리했어요${d.ko_lead?" · 영어 첫 부분은 무료 번역 모델로 옮겼어요(어색할 수 있어요)":""}.</p>`}
+function deckKeys(){
+  const sh=store.homeShelf||"",q=(ui.homeQ||"").trim();
+  let ks;
+  if(!sh&&!q){
+    const unread=freshOrder(STORIES.filter(s=>lvl(s.id)===0)).map(s=>s.id);
+    const have=new Set(STORIES.map(s=>s.catId).filter(Boolean));
+    const wk=WIKI.filter(w=>!have.has(w.id)).sort((a,b)=>(b.pv||0)-(a.pv||0)).map(w=>w.id);
+    ks=unread.concat(wk);
+  }else ks=homeKeys(false);
+  return ks.filter(k=>byId[k]||WIKIBY[k]||ORIGBY[k]);
+}
+function deckCardHtml(k){
+  const s=byId[k],w=WIKIBY[k],o=ORIGBY[k];
+  if(s)return `<div class="vdk-body iy"><p class="eyebrow">${esc(shelfOf(s))}</p><h2 class="vdk-t title" style="font-size:24px">${esc(s.title)}</h2><p class="orig">${esc(s.orig)}</p>
+    <p class="kicker"><span>${esc(s.kind)}</span><span>·</span><span>${esc(s.region)}</span><span>·</span><span>한눈에 약 ${s.depths.d1.min}분</span></p>
+    ${s.warn?`<p class="warn">${esc(s.warn)}</p>`:""}${body(s,"d1")}
+    <button class="vdk-more" data-act="open" data-id="${s.id}" data-d="${s.depths.d2?"d2":"d1"}">${s.depths.d2?"조금 더 자세히 읽기 ›":"이야기 화면으로 ›"}</button></div>`;
+  if(w){const d=wdocNow(k),c=CAT[k]||{};
+    return `<div class="vdk-body iy"><p class="eyebrow">${esc(c.shelf||c.group||"")} · 위키백과 정리</p><h2 class="vdk-t title" style="font-size:24px">${esc(w.o)}</h2>
+    <p class="kicker"><span>${esc(c.region||"")}</span><span>·</span><span>${esc(c.era||"")}</span></p>
+    <div class="prose">${d?wikiParas(d,3).map(x=>`<p>${esc(x)}</p>`).join(""):`<p>${esc(w.h||"")}</p><p class="note">이어지는 글을 불러오는 중…</p>`}</div>
+    ${d?wikiNote(d):""}<button class="vdk-more" data-act="hopen" data-key="${k}">전체 읽기 (문단 ${d?d.lead.length+d.secs.length:"…"}) ›</button></div>`}
+  if(o)return `<div class="vdk-body iy"><p class="eyebrow">원문 읽기</p><h2 class="vdk-t title" style="font-size:24px">${esc(o.ko)}</h2><p class="orig">${esc(o.title)} · ${esc(o.author)}</p>
+    <p class="note">${o.tr?"한국어 번역 · 영어 원문":"영어 원문"} · 약 ${Math.max(1,Math.round(o.chars/10000))}만 자</p><button class="vdk-more" data-act="hopen" data-key="${k}">원문 읽기 ›</button></div>`;
+  return "";
+}
+function homeDeck(){
+  return D.create({id:"iyagi-home",app:"iyagi",emptyTitle:"이 서가에 넘겨 볼 이야기가 없어요",emptyNote:"위키백과 정리 로봇을 한 번 돌리면 목록 전체가 채워져요.",
+    items:()=>deckKeys().map(k=>{const s=byId[k],w=WIKIBY[k],o=ORIGBY[k];const t=s?s.title:w?w.o:o.ko;
+      return {key:k,title:t,url:appUrl(s?"#read-"+k:o?"#orig-"+k:"#cat-"+k),shareText:t+(s&&s.hook?"\n"+s.hook:w&&w.h?"\n"+w.h:""),html:()=>deckCardHtml(k),k}}),
+    onShow(x){if(WIKIBY[x.k]&&!wdocNow(x.k))wikiDoc(x.k).then(()=>{const d=D.get("iyagi-home");if(d&&d.curKey()===x.k)d.paint()})},
+    onList(){try{localStorage.setItem("vfm:mode:iyagi-home",'"list"')}catch(e){}renderHome()}});
+}
+
 fetch("../data/iyagi/orig/index.json").then(r=>r.ok?r.json():[]).then(a=>{if(Array.isArray(a)){ORIG=a;a.forEach(o=>ORIGBY[o.id]=o);if(ui.view==="home")renderHome()}}).catch(()=>{});
 const origDone=id=>!!(store.opos&&store.opos[id]&&store.opos[id].done);
 const isReadH=k=>ORIGBY[k]?origDone(k):(!!byId[k]&&lvl(k)>0);
@@ -2530,10 +2577,21 @@ function hrow(k){
 }
 function renderHome(){
   const cnt=shelfCounts(),sh=store.homeShelf||"",rd=ui.homeTab==="read";
+  const msw=D?D.modeSwitch("iyagi-home",()=>renderHome()):"";
+  if(D&&D.mode("iyagi-home")==="deck"){
+    const total=Object.entries(cnt).reduce((a,[k,b])=>a+(k==="@원문"?0:b),0);
+    const chips=[["",total-(cnt["@원문"]||0)]].concat(cnt["@원문"]?[["@원문",cnt["@원문"]]]:[]).concat(SHELVES.filter(x=>cnt[x]).map(x=>[x,cnt[x]]));
+    const dk=homeDeck();const k0=dk.curKey();if(k0&&WIKIBY[k0]&&!wdocNow(k0))wikiDoc(k0).then(()=>{if(dk.curKey()===k0)dk.paint()});
+    $view.innerHTML=`<h1 class="ph">이야기</h1>${msw}
+    <div class="shelves" role="group" aria-label="서가">${chips.map(([x,c])=>`<button class="chip" data-act="hshelf" data-v="${esc(x)}" aria-pressed="${x===sh}">${esc(shelfLabel(x)||"전체")} <small>${c}</small></button>`).join("")}</div>
+    ${dk.html()}`;
+    const a=document.querySelector('.shelves [aria-pressed="true"]');if(a)a.scrollIntoView({block:"nearest",inline:"center"});
+    return;
+  }
   const total=Object.entries(cnt).reduce((a,[k,b])=>a+(k==="@원문"?0:b),0);const nOrig=cnt["@원문"]||0;
   const chips=[["",total-(cnt["@원문"]||0)]].concat(cnt["@원문"]?[["@원문",cnt["@원문"]]]:[]).concat(SHELVES.filter(x=>cnt[x]).map(x=>[x,cnt[x]]));
   $view.innerHTML=`
-  <h1 class="ph">이야기 목록</h1>
+  <h1 class="ph">이야기 목록</h1>${msw}
   <p class="sub">서가를 고르고, 읽고 싶은 이야기를 누르면 전체 화면으로 펼쳐집니다. 아직 쓰지 않은 이야기는 로봇이 매일 새벽 5편씩 써서 채워요.</p>
   <div class="shelves" role="group" aria-label="서가">${chips.map(([x,c])=>`<button class="chip" data-act="hshelf" data-v="${esc(x)}" aria-pressed="${x===sh}">${esc(shelfLabel(x)||"전체")} <small>${c}</small></button>`).join("")}</div>
   <div class="hbar"><input id="hq" type="search" placeholder="제목·지역으로 찾기" value="${esc(ui.homeQ||"")}" aria-label="목록에서 찾기">
@@ -2590,6 +2648,26 @@ function renderOrig(){
 function osave(done){const o=ORIGBY[ui.oid];if(!o)return;if(!store.opos)store.opos={};store.opos[o.id]={n:ui.onum,y:Math.round(scrollY),done:!!done||undefined};persist()}
 function renderCatRead(){
   const c=CAT[ui.catKey];if(!c){go("home",true);return}
+  if(WIKIBY[c.id]){
+    seenAdd(c.id);
+    const d=wdocNow(c.id);
+    if(!d){$view.innerHTML=`<p class="sub" style="margin-top:40px">위키백과 정리를 불러오는 중이에요…</p>`;wikiDoc(c.id).then(x=>{if(ui.view==="catread"&&ui.catKey===c.id){if(x)renderCatRead();else{delete WIKIBY[c.id];renderCatRead()}}});return}
+    $view.innerHTML=`<article>
+    <div class="rtools"><button class="link quiet" data-act="back">← 목록으로</button><button class="link quiet" data-act="fullscreen">전체 화면</button></div>
+    <p class="eyebrow" style="margin-top:22px">${esc(c.shelf||c.group)} · 위키백과 정리</p>
+    <h1 class="title">${esc(c.orig)}</h1>
+    <p class="kicker"><span>${esc(c.region)}</span><span>·</span><span>${esc(c.era)}</span></p>
+    <div class="prose">${wikiParas(d).map(x=>`<p>${esc(x)}</p>`).join("")}</div>
+    ${d.ko_lead&&d.lead?`<details class="part"><summary>영어 원문 첫 부분</summary>${d.lead.map(x=>`<p>${esc(x)}</p>`).join("")}</details>`:""}
+    ${(d.secs||[]).map(x=>`<details class="part"><summary>${esc(x.h)}${d.l==="en"?" (영어)":""}</summary>${x.p.map(y=>`<p>${esc(y)}</p>`).join("")}</details>`).join("")}
+    ${D?D.bar("iyagi",c.id,{title:c.orig,url:appUrl("#cat-"+c.id),text:c.orig+(WIKIBY[c.id].h?"\n"+WIKIBY[c.id].h:"")}):""}
+    ${wikiNote(d)}
+    <div class="robotbox" style="margin-top:20px"><p style="margin:0">쉬운 말로 풀어 쓴 이야기는 많이 보는 이야기부터 차례로 만들어요(이야기 작가 루틴). 이 이야기를 먼저 보고 싶으면 요청해 주세요.</p>
+      <div><a class="btn" href="https://github.com/Jeffreryinko/vendingForMe/issues/new?title=${encodeURIComponent("[요청] iyagi "+c.id+" · "+c.orig)}&body=${encodeURIComponent("앱의 '풀어 써 주세요' 버튼으로 만든 요청이에요. 그대로 'Submit new issue'를 누르면 다음 작가 루틴 때 써서 올려요.")}" target="_blank" rel="noopener">쉽게 풀어 써 달라고 요청 ↗</a></div>
+      <p class="note" style="margin:6px 0 0">GitHub 요청 화면이 열려요. 한 번 쓴 이야기는 계속 다시 써요.</p></div>
+    ${d.l==="en"?`<p><a class="link" href="${esc(D?D.koUrl(d.u,"force"):d.u)}" target="_blank" rel="noopener">위키백과 문서를 한국어 번역으로 열기 ↗</a></p>`:""}</article>`;
+    return;
+  }
   const st=ui.cw&&ui.cw.key===c.id?ui.cw:null,ready=robot.state==="ready";
   $view.innerHTML=`<article>
     <div class="rtools"><button class="link quiet" data-act="back">← 목록으로</button><button class="link quiet" data-act="fullscreen">전체 화면</button></div>
@@ -2962,6 +3040,7 @@ function renderLibrary(){
   <p class="sub">내가 만난 이야기와, 어디까지 알게 됐는지를 기억합니다.</p>
   <div class="ledger"><div><b>${month.size}</b><span>이번 달 만난 이야기</span></div><div><b>${gMet.size}</b><span>만난 갈래</span></div><div><b>${rMet.size}</b><span>만난 문화권</span></div></div>
   ${resumeBlock()}
+  ${(()=>{const L=D?D.Like.list("iyagi"):[];return `<section class="block"><h2 class="sec">좋아요 ${L.length||""}</h2>${L.length?`<div class="vdk-links">${L.map(x=>`<button data-act="hopen" data-key="${esc(x.key)}">${esc(x.t)}<small>${new Date(x.at).toLocaleDateString("ko-KR")}</small></button>`).join("")}</div>`:`<div class="empty">넘겨보기 카드나 이야기 끝의 ♡ 좋아요를 누르면 여기에 모여요.</div>`}</section>`})()}
   <section class="block"><h2 class="sec">담아둔 이야기</h2>
     ${saved.length?`<div class="list">${saved.map(id=>card(byId[id])).join("")}</div>`:`<div class="empty">아직 담아둔 이야기가 없어요. 이야기를 읽고 ‘담아두기’를 누르면 여기에 모입니다.</div>`}</section>
   <section class="block"><h2 class="sec">만난 이야기</h2>
@@ -3038,7 +3117,7 @@ function route(){
   render();scrollTo(0,0);
 }
 function openStory(id,d){
-  markShown([id]);
+  markShown([id]);seenAdd(id);
   if(ui.view==="read"&&ui.id===id){
     ui.depth=d||"d1";render();
     const el=document.getElementById("depths");if(el)el.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
@@ -3101,7 +3180,7 @@ document.addEventListener("click",e=>{
     case"onext":ui.onum++;osave();scrollTo(0,0);renderOrig();break;
     case"oprev":ui.onum=Math.max(1,ui.onum-1);osave();scrollTo(0,0);renderOrig();break;
     case"odone":osave(true);toast("다 읽었어요. 읽은 것으로 옮겼어요");goBack();break;
-    case"hshelf":store.homeShelf=a.dataset.v||"";persist();ui.homeQ="";window.scrollTo(0,0);renderHome();break;
+    case"hshelf":store.homeShelf=a.dataset.v||"";persist();if(D){const d=D.get("iyagi-home");if(d)d.refresh()}ui.homeQ="";window.scrollTo(0,0);renderHome();break;
     case"htab":ui.homeTab=a.dataset.v==="read"?"read":"new";renderHomeList();document.querySelectorAll("[data-act=htab]").forEach(b=>b.setAttribute("aria-pressed",String(b===a)));break;
     case"hopen":{const k=a.dataset.key;if(ui.view!=="read"&&ui.view!=="catread")ui.from=ui.view;
       if(ORIGBY[k]){go("orig-"+k);break}

@@ -1,0 +1,63 @@
+name: 요청함 (앱의 "풀어 주세요" 버튼 → 다음 루틴 때 만들기, 토큰 0)
+
+# 앱에서 요청 버튼을 누르면 GitHub 이슈 쓰기 화면이 열려요. 저장소 주인이 이슈를 올리면
+# 이 작업이 data/requests.json 에 적어 두고, 루틴(편집장·작가)이 다음에 돌 때 만들어요.
+# 루틴이 다 만들어 '완료'로 표시하면 이 작업이 그 이슈를 닫아요.
+on:
+  issues:
+    types: [opened]
+  push:
+    branches: [main]
+    paths: ["data/requests.json"]
+
+concurrency:
+  group: data-requests
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  queue:
+    if: github.event_name == 'issues' && startsWith(github.event.issue.title, '[요청]') && github.event.issue.author_association == 'OWNER'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 요청함에 적기
+        env:
+          TITLE: ${{ github.event.issue.title }}
+          NUM: ${{ github.event.issue.number }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re
+          from datetime import datetime, timezone, timedelta
+          from pathlib import Path
+          t = os.environ["TITLE"]; m = re.match(r"^\[요청\]\s+(ai|iyagi)\s+(\S+)\s*[·:-]?\s*(.*)$", t)
+          if not m: raise SystemExit("모양이 안 맞는 요청: " + t)
+          p = Path("data/requests.json"); r = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {"items": []}
+          if not any(x["app"] == m[1] and x["id"] == m[2] and not x.get("done") for x in r["items"]):
+              r["items"].append({"app": m[1], "id": m[2], "title": m[3][:120], "issue": int(os.environ["NUM"]),
+                                 "at": datetime.now(timezone(timedelta(hours=9))).isoformat(timespec="seconds")})
+          p.write_text(json.dumps(r, ensure_ascii=False, indent=1), encoding="utf-8")
+          PY
+          git config user.name "request-robot"
+          git config user.email "robot@users.noreply.github.com"
+          git add data/requests.json
+          git diff --cached --quiet && exit 0
+          git commit -m "요청함: $TITLE"
+          for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 10; done
+
+  close:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 다 만든 요청의 이슈 닫기
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 -c "
+          import json; r = json.load(open('data/requests.json'))
+          print(' '.join(str(x['issue']) for x in r['items'] if x.get('done') and x.get('issue') and not x.get('closed')))" > /tmp/done.txt
+          for n in $(cat /tmp/done.txt); do gh issue close "$n" -c "만들어서 앱에 올렸어요. 앱에서 다시 열어 보세요." || true; done

@@ -8,10 +8,14 @@
 | 사이트 | `sisa/`, `iyagi/`, `ai/` | GitHub Pages |
 | 돼지코(shim) | `assets/claude-shim.js` — 아티팩트 전용 부품을 파일+폰 저장소로 대체 | 사이트 안 |
 | 껍데기 | `assets/shell.js` — 위쪽 앱 전환 막대(홈·시사·이야기·AI·설정), 공통 뒤로가기, 설정 시트, PWA | 사이트 안 |
+| 넘겨보기 | `assets/deck.js` — 세 앱 공통: 카드 한 장씩 옆으로 밀기, 본 것은 다시 안 나옴(폰 저장소), 좋아요·공유, 원문을 한국어 번역(`*.translate.goog`)으로 열기 | 사이트 안 |
 | 디자인 | `assets/apple.css` — 애플식 공통 디자인(시스템 글꼴·iOS 색·반투명 막대). 앱 강조색: 시사 파랑·이야기 주황·AI 보라 | 사이트 안 |
 | 시사 로봇 | `robot/sisa_run.py` — 수집·번역·댓글·사진 (3시간마다) | GitHub Actions `sisa.yml` |
 | 트렌드 로봇 | `robot/trends_run.py` — 22개국 구글·위키·유튜브·X·현지 검색 순위 (3시간마다) → `assets/hot.js` 화면 | GitHub Actions `trends.yml` |
 | AI 로봇 | `robot/ai_run.py` — HF 추천 논문·arXiv 신규·회사 발표·GitHub·국내 소식 (매일 04:30), NLLB 번역·용어 밑줄, 토큰 0 → `ai/` 화면. 용어 목록 `robot/ai_terms.py` | GitHub Actions `ai.yml` |
+| 이야기 위키 로봇 | `robot/iyagi_wiki.py` — 목록 약 1,500개를 위키백과에서 한 번에 모아 정리(토큰 0, 손으로 실행) | GitHub Actions `iyagi-wiki.yml` |
+| 요청함 | 앱의 "풀어 주세요" 버튼 → GitHub 이슈 → `data/requests.json` → 다음 루틴 때 만들기 | GitHub Actions `requests.yml` |
+| AI 쉬운 풀이 | `robot/AI_RUNBOOK.md`, `robot/easy_tools.py` — 하루 최대 3편, 요청 먼저 → `data/ai/easy/` | 편집장 루틴 07시 회차 |
 | 원문 번역 로봇 | `robot/iyagi_translate.py` — 토큰 0 기계번역 (주 2회) | GitHub Actions `iyagi-orig.yml` |
 | 시사 편집장 | `robot/EDITOR_RUNBOOK.md` — 이슈·해설·단신·이름 사전 (07·19시) | 클로드 예약 작업 |
 | 이야기 작가 | `robot/AUTHOR_RUNBOOK.md` — 매일 새벽 5편 | 클로드 예약 작업 |
