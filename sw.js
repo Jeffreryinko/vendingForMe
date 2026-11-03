@@ -1,5 +1,5 @@
 /* sw.js — 홈화면 앱(PWA)용. 앱 껍데기는 미리 저장, 데이터는 네트워크 우선 + 실패하면 마지막 저장본. */
-const VER = "vfm-v2";
+const VER = "vfm-v3";
 const SHELL = ["./", "./index.html", "./sisa/", "./sisa/index.html", "./iyagi/", "./iyagi/index.html",
   "./assets/claude-shim.js", "./assets/shell.js", "./manifest.webmanifest"];
 

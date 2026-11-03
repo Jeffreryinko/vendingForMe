@@ -227,3 +227,28 @@
   window.addEventListener("pagehide", wr);
   var tm; window.addEventListener("scroll", function () { clearTimeout(tm); tm = setTimeout(wr, 400); }, { passive: true });
 })();
+
+/* ── 바깥 링크 갔다 오면 그 자리로 ──
+ * 검색 결과·원문 같은 바깥 링크를 누르는 순간의 자리를 적어 두고, 돌아왔을 때 다른 화면(예: 내 기록)에 와 있으면 그 자리로 되돌립니다.
+ * (돌아온 뒤 한 번만, 10분 안쪽) */
+(function () {
+  var APP = window.VFM_APP || "app", KEY = "vfm:out:" + APP, MAX = 10 * 60e3;
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[href]"); if (!a) return;
+    var u; try { u = new URL(a.href, location.href); } catch (x) { return; }
+    if (u.origin === location.origin) return;
+    try { localStorage.setItem(KEY, JSON.stringify({ h: location.hash || "", y: Math.round(window.scrollY || 0), t: Date.now() })); } catch (x) { }
+  }, true);
+  function back() {
+    var o; try { o = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (x) { o = null; }
+    if (!o || Date.now() - o.t > MAX) return;
+    if (document.visibilityState !== "visible") return;
+    try { localStorage.removeItem(KEY); } catch (x) { }
+    if ((location.hash || "") !== o.h) {
+      if (o.h) location.hash = o.h; else { try { history.replaceState(history.state, "", location.pathname + location.search); } catch (x) { } location.reload(); return; }
+    }
+    setTimeout(function () { window.scrollTo(0, o.y); }, 500);
+  }
+  document.addEventListener("visibilitychange", function () { setTimeout(back, 300); });
+  window.addEventListener("pageshow", function () { setTimeout(back, 600); });
+})();
