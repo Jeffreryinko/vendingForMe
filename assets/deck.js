@@ -1,0 +1,322 @@
+/* deck.js — 자판기 공통 "넘겨보기" 부품 (시사·이야기·AI가 같이 씀).
+ *
+ *  · 카드 한 장씩 보여 주고, 옆으로 밀면 다음 카드. 위아래로는 그냥 화면이 움직임(카드 안 글을 끝까지 읽기).
+ *  · 이미 본 카드는 다시 안 나옴 — 본 기록은 이 폰 저장소(localStorage "vfm:seen:<앱>")에 남김.
+ *  · 덜 예민하게: 손가락이 18px 넘게 움직였을 때 방향을 정하고(가로가 세로의 2배 넘어야 가로),
+ *    화면 너비의 30%(최소 100px) 이상 밀거나, 빠르게 튕겼을 때(60px 이상 + 빠르기)만 넘어감.
+ *    화면 가장자리 28px 안에서 시작한 손가락은 폰 뒤로가기 제스처라서 무시.
+ *  · 카드마다 좋아요(♡)·공유 — 좋아요는 "vfm:likes" 하나에 모든 앱 것을 같이 저장.
+ *
+ * 앱 쪽 사용법:
+ *   const d = VfmDeck.create({ id:"sisa-today", app:"sisa", items:()=>[{key, title, url, html:()=>"…"}], onList(){…} });
+ *   화면 문자열 안에 d.html() 을 넣으면 됨. 화면을 다시 그려도 보던 카드가 그대로 나옴.
+ *   d.refresh() — 자료가 바뀌었을 때(새 판 등) 대기열을 다시 만듦.
+ */
+(function () {
+  "use strict";
+  var LS = {
+    g: function (k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    s: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
+  };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+
+  /* ── 본 기록 ── */
+  var seenCache = {};
+  function seenMap(app) {
+    if (!seenCache[app]) {
+      var m = LS.g("vfm:seen:" + app, {}), cut = Date.now() - 60 * 864e5, n = 0;
+      Object.keys(m).forEach(function (k) { if (m[k] < cut) delete m[k]; else n++; });
+      if (n > 6000) { Object.keys(m).sort(function (a, b) { return m[a] - m[b]; }).slice(0, n - 5000).forEach(function (k) { delete m[k]; }); }
+      seenCache[app] = m;
+    }
+    return seenCache[app];
+  }
+  var Seen = {
+    has: function (app, key) { return !!seenMap(app)[key]; },
+    add: function (app, key) { var m = seenMap(app); if (!m[key]) { m[key] = Date.now(); LS.s("vfm:seen:" + app, m); } },
+    remove: function (app, keys) { var m = seenMap(app); keys.forEach(function (k) { delete m[k]; }); LS.s("vfm:seen:" + app, m); },
+    count: function (app) { return Object.keys(seenMap(app)).length; }
+  };
+
+  /* ── 좋아요·공유 ── */
+  var likes = LS.g("vfm:likes", {});
+  var Like = {
+    has: function (app, key) { return !!likes[app + ":" + key]; },
+    toggle: function (app, key, info) {
+      var k = app + ":" + key;
+      if (likes[k]) delete likes[k];
+      else likes[k] = { app: app, key: key, t: (info && info.title) || key, u: (info && info.url) || "", h: (info && info.hash) || "", at: Date.now() };
+      LS.s("vfm:likes", likes);
+      return !!likes[k];
+    },
+    list: function (app) { return Object.keys(likes).map(function (k) { return likes[k]; }).filter(function (x) { return !app || x.app === app; }).sort(function (a, b) { return b.at - a.at; }); },
+    remove: function (app, key) { delete likes[app + ":" + key]; LS.s("vfm:likes", likes); }
+  };
+  function toast(m) { if (window.vfm && window.vfm.toast) return window.vfm.toast(m); }
+  function share(info) {
+    var url = info.url || location.href;
+    var text = info.text || info.title || "";
+    if (navigator.share) return navigator.share({ title: info.title || "", text: text, url: url }).catch(function () { });
+    var s = (text ? text + "\n" : "") + url;
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s).then(function () { toast("복사했어요 — 카톡 등에 붙여넣기"); }, function () { toast("공유하지 못했어요"); });
+    else toast("공유하지 못했어요");
+  }
+  // 좋아요·공유 단추 (카드 밖에서도 씀: 이슈 해설·이야기 읽기 화면 등)
+  function bar(app, key, info) {
+    var on = Like.has(app, key);
+    return '<div class="vdk-react"><button type="button" class="vdk-like' + (on ? " on" : "") + '" data-vdk-like="' + esc(app + "|" + key) + '" data-vdk-t="' + esc(info.title || "") + '" data-vdk-u="' + esc(info.url || "") + '" data-vdk-h="' + esc(info.hash || "") + '" aria-pressed="' + on + '">' +
+      '<span aria-hidden="true">' + (on ? "♥" : "♡") + "</span> 좋아요</button>" +
+      '<button type="button" class="vdk-share" data-vdk-share="1" data-vdk-t="' + esc(info.title || "") + '" data-vdk-u="' + esc(info.url || "") + '" data-vdk-x="' + esc(info.text || "") + '"><span aria-hidden="true">↗</span> 공유</button></div>';
+  }
+
+  /* ── 덱 ── */
+  var decks = {};
+  function Deck(o) {
+    this.o = o; this.id = o.id; this.app = o.app;
+    var st = LS.g("vfm:deck:" + o.id, {});
+    this.cur = st.cur || null;          // 보던 카드 (다시 열면 이 카드부터)
+    this.hist = [];                     // 이번에 넘겨 본 순서 (이전 카드로 돌아가기용)
+    this.pos = -1;
+    this.map = {};
+    this.queue = null;
+    decks[o.id] = this;
+  }
+  Deck.prototype.build = function () {
+    var self = this, all = this.o.items() || [];
+    this.map = {}; all.forEach(function (it) { self.map[it.key] = it; });
+    this.total = all.length;
+    this.queue = all.filter(function (it) { return !Seen.has(self.app, it.key); }).map(function (it) { return it.key; });
+    this.hist = this.hist.filter(function (k) { return self.map[k]; });
+    if (this.pos >= this.hist.length) this.pos = this.hist.length - 1;
+    if (this.pos < 0) {
+      var start = this.cur && this.map[this.cur] ? this.cur : this.queue[0];
+      if (start) { this.hist = [start]; this.pos = 0; }
+    }
+  };
+  Deck.prototype.refresh = function () { this.queue = null; this.hist = []; this.pos = -1; this.paint(); };
+  Deck.prototype.ensure = function () { if (!this.queue) this.build(); };
+  Deck.prototype.curKey = function () { this.ensure(); return this.pos >= 0 ? this.hist[this.pos] : null; };
+  Deck.prototype.left = function () {   // 아직 안 본 카드 수 (지금 카드 제외)
+    var self = this, k = this.curKey(), used = {};
+    this.hist.forEach(function (x) { used[x] = 1; });
+    return this.queue.filter(function (x) { return !used[x] && !Seen.has(self.app, x) && x !== k; }).length;
+  };
+  Deck.prototype.save = function () { LS.s("vfm:deck:" + this.id, { cur: this.curKey() }); };
+  Deck.prototype.markCur = function () { var k = this.curKey(); if (k) Seen.add(this.app, k); };
+  Deck.prototype.next = function () {
+    this.ensure();
+    var self = this, k = this.curKey();
+    if (!k && this.pos >= this.hist.length) return false;
+    this.markCur();
+    if (this.pos < this.hist.length - 1) { this.pos++; }
+    else {
+      var used = {}; this.hist.forEach(function (x) { used[x] = 1; });
+      var nx = this.queue.filter(function (x) { return !used[x] && !Seen.has(self.app, x); })[0];
+      if (!nx) { this.pos = this.hist.length; this.save(); return true; }   // 끝 카드
+      this.hist.push(nx); this.pos++;
+    }
+    this.save(); return true;
+  };
+  Deck.prototype.prev = function () {
+    this.ensure();
+    if (this.pos <= 0) { toast("첫 카드예요"); return false; }
+    if (this.pos < this.hist.length) this.markCur();
+    this.pos--; this.save(); return true;
+  };
+  Deck.prototype.resetSeen = function () {
+    Seen.remove(this.app, Object.keys(this.map));
+    this.cur = null; LS.s("vfm:deck:" + this.id, {});
+    this.refresh();
+  };
+  Deck.prototype.cardHtml = function () {
+    var k = this.curKey(), it = k && this.map[k];
+    if (!it) {
+      var n = this.total || 0;
+      return '<div class="vdk-card vdk-end"><p class="vdk-big">' + (n ? "다 봤어요" : esc(this.o.emptyTitle || "아직 카드가 없어요")) + "</p>" +
+        '<p class="vdk-note">' + (n ? "여기 있는 " + n + "장을 모두 봤어요. 새 자료가 들어오면 안 본 것만 다시 나와요." : esc(this.o.emptyNote || "")) + "</p>" +
+        '<div class="vdk-endbtn">' + (this.o.onList ? '<button type="button" class="vdk-btn" data-vdk-act="list" data-vdk="' + esc(this.id) + '">목록으로 보기</button>' : "") +
+        (n ? '<button type="button" class="vdk-btn ghost" data-vdk-act="reset" data-vdk="' + esc(this.id) + '">본 기록 지우고 처음부터</button>' : "") +
+        (this.pos > 0 ? '<button type="button" class="vdk-btn ghost" data-vdk-act="prev" data-vdk="' + esc(this.id) + '">‹ 방금 본 카드</button>' : "") + "</div></div>";
+    }
+    var body = ""; try { body = it.html(); } catch (e) { body = '<p class="vdk-note">이 카드를 그리지 못했어요.</p>'; }
+    var left = this.left();
+    return '<div class="vdk-card" data-vdk-card="' + esc(this.id) + '">' + body +
+      bar(this.app, k, { title: it.title, url: it.url, hash: it.hash, text: it.shareText }) +
+      '<div class="vdk-nav"><button type="button" data-vdk-act="prev" data-vdk="' + esc(this.id) + '" ' + (this.pos <= 0 ? "disabled" : "") + ' aria-label="이전 카드">‹</button>' +
+      '<span class="vdk-left">' + (left ? "안 본 카드 " + left + "장 남음" : "마지막 카드") + '<small>옆으로 밀면 다음</small></span>' +
+      '<button type="button" data-vdk-act="next" data-vdk="' + esc(this.id) + '" aria-label="다음 카드">›</button></div></div>';
+  };
+  Deck.prototype.html = function () {
+    this.ensure();
+    this.armDwell();
+    var head = this.o.head ? this.o.head() : "";
+    return '<div class="vdk" data-vdk-host="' + esc(this.id) + '">' + head + this.cardHtml() + "</div>";
+  };
+  Deck.prototype.el = function () {   // 숨겨진 옛 화면에 남은 같은 덱은 빼고, 지금 보이는 것
+    var all = document.querySelectorAll('[data-vdk-host="' + this.id + '"]');
+    for (var i = 0; i < all.length; i++) if (all[i].offsetParent !== null) return all[i];
+    return all[0] || null;
+  };
+  Deck.prototype.paint = function (dir) {
+    var host = this.el(); if (!host) return;
+    this.ensure();
+    var old = host.querySelector(".vdk-card");
+    var tmp = document.createElement("div"); tmp.innerHTML = this.cardHtml();
+    var card = tmp.firstChild;
+    if (old) old.replaceWith(card); else host.appendChild(card);
+    if (dir) { card.classList.add(dir > 0 ? "in-r" : "in-l"); requestAnimationFrame(function () { requestAnimationFrame(function () { card.classList.remove("in-r", "in-l"); }); }); }
+    var top = host.getBoundingClientRect().top;
+    if (top < 0 || top > window.innerHeight * 0.6) window.scrollTo({ top: Math.max(0, window.scrollY + top - 8), behavior: dir ? "auto" : "smooth" });
+    this.armDwell();
+    if (this.o.onShow) { var k = this.curKey(); if (k && this.map[k]) try { this.o.onShow(this.map[k]); } catch (e) { } }
+  };
+  // 한 카드를 4초 넘게 보고 있으면 본 것으로 (앱을 껐다 켜도 다시 안 나오게. 보던 카드는 cur 로 남아 그대로 보임)
+  Deck.prototype.armDwell = function () {
+    var self = this, k = this.curKey();
+    clearTimeout(this.dwellT);
+    if (!k) return;
+    this.dwellT = setTimeout(function () { if (self.curKey() === k && self.el()) { Seen.add(self.app, k); self.save(); } }, 4000);
+  };
+  Deck.prototype.step = function (dir) {
+    var ok = dir > 0 ? this.next() : this.prev();
+    if (ok) this.paint(dir);
+  };
+
+  /* ── 손가락 밀기 ── */
+  var g = null;
+  var EDGE = 28;
+  document.addEventListener("touchstart", function (e) {
+    g = null;
+    if (e.touches.length !== 1) return;
+    var card = e.target.closest && e.target.closest(".vdk-card[data-vdk-card]"); if (!card) return;
+    if (e.target.closest("input,textarea,select,.vdk-noswipe,details[open] .vdk-noswipe")) return;
+    var x = e.touches[0].clientX, W = window.innerWidth;
+    if (x < EDGE || x > W - EDGE) return;                              // 폰 뒤로가기 제스처 자리
+    // 가로로 스크롤되는 줄(칩 줄 등) 위에서는 카드를 넘기지 않음
+    for (var n = e.target; n && n !== card; n = n.parentElement) {
+      if (n.scrollWidth > n.clientWidth + 2) { var ox = getComputedStyle(n).overflowX; if (ox === "auto" || ox === "scroll") return; }
+    }
+    g = { card: card, id: card.getAttribute("data-vdk-card"), x0: x, y0: e.touches[0].clientY, t0: Date.now(), dx: 0, lock: null, lastX: x, lastT: Date.now(), v: 0 };
+  }, { passive: true });
+  document.addEventListener("touchmove", function (e) {
+    if (!g) return;
+    var x = e.touches[0].clientX, y = e.touches[0].clientY, dx = x - g.x0, dy = y - g.y0;
+    if (g.lock === null) {
+      if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
+      g.lock = Math.abs(dx) > Math.abs(dy) * 2 ? "h" : "v";
+      if (g.lock === "v") { g = null; return; }                          // 세로 = 그냥 스크롤
+    }
+    var now = Date.now(); if (now > g.lastT) { g.v = (x - g.lastX) / (now - g.lastT); g.lastX = x; g.lastT = now; }
+    g.dx = dx;
+    g.card.style.transition = "none";
+    g.card.style.transform = "translateX(" + (dx * 0.85) + "px) rotate(" + (dx / 60).toFixed(2) + "deg)";
+  }, { passive: true });
+  function settle(card) { card.style.transition = "transform .2s ease-out"; card.style.transform = ""; }
+  document.addEventListener("touchcancel", function () { if (g) settle(g.card); g = null; }, { passive: true });
+  document.addEventListener("touchend", function () {
+    if (!g) return; var s = g; g = null;
+    if (s.lock !== "h") return;
+    var W = window.innerWidth, need = Math.max(100, W * 0.3);
+    var fling = Math.abs(s.dx) >= 60 && Math.abs(s.v) >= 0.6 && (s.v < 0) === (s.dx < 0);
+    var d = decks[s.id];
+    if (!d || (Math.abs(s.dx) < need && !fling)) return settle(s.card);
+    var dir = s.dx < 0 ? 1 : -1;                                          // 왼쪽으로 밀면 다음
+    if (dir < 0 && d.pos <= 0) { toast("첫 카드예요"); return settle(s.card); }
+    s.card.style.transition = "transform .16s ease-in, opacity .16s";
+    s.card.style.transform = "translateX(" + (dir > 0 ? -W : W) + "px) rotate(" + (dir > 0 ? -6 : 6) + "deg)";
+    s.card.style.opacity = "0";
+    setTimeout(function () { d.step(dir); }, 150);
+  });
+  // 컴퓨터: ← → 키
+  document.addEventListener("keydown", function (e) {
+    if (e.target.closest && e.target.closest("input,textarea,select")) return;
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    var host = [].filter.call(document.querySelectorAll("[data-vdk-host]"), function (h) { return h.offsetParent !== null; })[0]; if (!host) return;
+    var d = decks[host.getAttribute("data-vdk-host")]; if (!d) return;
+    e.preventDefault(); d.step(e.key === "ArrowRight" ? 1 : -1);
+  });
+
+  /* ── 단추 ── */
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest && e.target.closest("[data-vdk-act],[data-vdk-like],[data-vdk-share],[data-vdk-mode]"); if (!t) return;
+    if (t.hasAttribute("data-vdk-like")) {
+      var p = t.getAttribute("data-vdk-like").split("|"), app = p[0], key = p.slice(1).join("|");
+      var on = Like.toggle(app, key, { title: t.getAttribute("data-vdk-t"), url: t.getAttribute("data-vdk-u"), hash: t.getAttribute("data-vdk-h") });
+      t.classList.toggle("on", on); t.setAttribute("aria-pressed", on); t.firstChild.textContent = on ? "♥" : "♡";
+      toast(on ? "좋아요 — 내 기록에 모아 둬요" : "좋아요를 취소했어요"); return;
+    }
+    if (t.hasAttribute("data-vdk-share")) { share({ title: t.getAttribute("data-vdk-t"), url: t.getAttribute("data-vdk-u"), text: t.getAttribute("data-vdk-x") }); return; }
+    if (t.hasAttribute("data-vdk-mode")) {
+      var pm = t.getAttribute("data-vdk-mode").split("|");
+      LS.s("vfm:mode:" + pm[0], pm[1]);
+      var cb = modeCb[pm[0]]; if (cb) cb(pm[1]); return;
+    }
+    var d = decks[t.getAttribute("data-vdk")]; if (!d) return;
+    var act = t.getAttribute("data-vdk-act");
+    if (act === "next") d.step(1);
+    else if (act === "prev") d.step(-1);
+    else if (act === "reset") { d.resetSeen(); toast("본 기록을 지웠어요"); }
+    else if (act === "list" && d.o.onList) d.o.onList();
+  });
+
+  /* ── 넘겨보기 / 목록 고르기 ── */
+  var modeCb = {};
+  function mode(id) { return LS.g("vfm:mode:" + id, "deck"); }
+  function modeSwitch(id, onChange) {
+    modeCb[id] = onChange;
+    var m = mode(id);
+    return '<div class="vdk-mode" role="group" aria-label="보기 방식"><button type="button" data-vdk-mode="' + esc(id) + '|deck" aria-pressed="' + (m === "deck") + '">넘겨보기</button>' +
+      '<button type="button" data-vdk-mode="' + esc(id) + '|list" aria-pressed="' + (m === "list") + '">목록</button></div>';
+  }
+
+  /* ── 원문을 한국어 번역 페이지로 (구글 번역 프록시 *.translate.goog) ── */
+  function koUrl(u, lang) {
+    if (!u) return u;
+    if (lang === "ko") return u;
+    try {
+      var x = new URL(u);
+      if (!/^https?:$/.test(x.protocol) || /\.translate\.goog$/.test(x.hostname)) return u;
+      if (/(^|\.)(youtube\.com|youtu\.be|x\.com|twitter\.com|naver\.com|daum\.net|google\.[a-z.]+)$/.test(x.hostname) && lang !== "force") return u;
+      if (/\.(kr)$/.test(x.hostname) && lang === undefined) return u;
+      var host = x.hostname.replace(/-/g, "--").replace(/\./g, "-") + ".translate.goog";
+      var q = x.search ? x.search + "&" : "?";
+      return "https://" + host + x.pathname + q + "_x_tr_sl=auto&_x_tr_tl=ko&_x_tr_hl=ko" + x.hash;
+    } catch (e) { return u; }
+  }
+
+  /* ── 모양 ── */
+  var css = document.createElement("style");
+  css.textContent =
+    ".vdk{margin:6px 0 18px}" +
+    ".vdk-card{position:relative;background:var(--surface,var(--ap-surface,#fff));color:var(--ink,var(--ap-label,#111));border-radius:18px;padding:18px 16px 12px;" +
+    "box-shadow:0 1px 2px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.06);touch-action:pan-y;transition:transform .2s ease-out,opacity .2s;will-change:transform;min-height:52vh;display:flex;flex-direction:column}" +
+    ".vdk-card.in-r{transform:translateX(40px);opacity:0}.vdk-card.in-l{transform:translateX(-40px);opacity:0}" +
+    ".vdk-card>.vdk-body{flex:1}" +
+    ".vdk-end{align-items:center;justify-content:center;text-align:center;gap:6px}" +
+    ".vdk-big{font-size:24px;font-weight:700;margin:0}.vdk-note{color:var(--muted,var(--ap-label2,#666));font-size:14px;line-height:1.5;margin:4px 0}" +
+    ".vdk-endbtn{display:flex;flex-direction:column;gap:8px;margin-top:12px;width:100%;max-width:300px}" +
+    ".vdk-btn{border:0;border-radius:12px;padding:12px 14px;font:inherit;font-weight:600;background:var(--ap-tint,#0A84FF);color:#fff;cursor:pointer}" +
+    ".vdk-btn.ghost{background:var(--ap-fill,rgba(118,118,128,.12));color:var(--ink,var(--ap-label,#111))}" +
+    ".vdk-react{display:flex;gap:8px;margin:14px 0 4px}" +
+    ".vdk-react button{flex:1;border:0;border-radius:12px;padding:10px 8px;font:inherit;font-size:14.5px;font-weight:600;background:var(--ap-fill,rgba(118,118,128,.12));color:var(--ink,var(--ap-label,#111));cursor:pointer}" +
+    ".vdk-like.on{color:var(--ap-pink,#FF2D55);background:color-mix(in srgb,var(--ap-pink,#FF2D55) 13%,transparent)}" +
+    ".vdk-nav{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:.5px solid var(--ap-sep,rgba(60,60,67,.29))}" +
+    ".vdk-nav button{flex:none;width:48px;height:44px;border:0;border-radius:12px;background:var(--ap-fill,rgba(118,118,128,.12));font-size:24px;line-height:1;color:var(--ink,var(--ap-label,#111));cursor:pointer}" +
+    ".vdk-nav button:disabled{opacity:.35}" +
+    ".vdk-left{flex:1;text-align:center;font-size:13px;color:var(--muted,var(--ap-label2,#666));display:flex;flex-direction:column;gap:1px}.vdk-left small{font-size:11.5px;opacity:.8}" +
+    ".vdk-mode{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:3px;border-radius:11px;background:var(--ap-fill,rgba(118,118,128,.12));margin:4px 0 10px}" +
+    ".vdk-mode button{border:0;border-radius:8px;padding:8px 0;font:inherit;font-size:14px;font-weight:600;background:transparent;color:var(--ink,var(--ap-label,#111));cursor:pointer}" +
+    ".vdk-mode button[aria-pressed=true]{background:var(--ap-seg-on,#fff);box-shadow:0 2px 6px rgba(0,0,0,.12)}" +
+    ".vdk-k{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px;color:var(--muted,var(--ap-label2,#666));margin-bottom:6px}" +
+    ".vdk-t{font-size:21px;line-height:1.35;font-weight:700;margin:2px 0 10px;letter-spacing:-.01em}" +
+    ".vdk-p{font-size:16px;line-height:1.65;margin:0 0 10px}" +
+    ".vdk-h{font-size:13px;font-weight:700;color:var(--muted,var(--ap-label2,#666));margin:16px 0 6px}" +
+    ".vdk-ol{margin:0;padding-left:20px;font-size:15px;line-height:1.6}.vdk-ol li{margin-bottom:4px}" +
+    ".vdk-links{display:flex;flex-direction:column;gap:2px}" +
+    ".vdk-links a,.vdk-links button{display:block;text-align:left;width:100%;border:0;background:none;padding:9px 0;font:inherit;font-size:14.5px;line-height:1.45;color:inherit;text-decoration:none;border-top:.5px solid var(--ap-sep,rgba(60,60,67,.2));cursor:pointer}" +
+    ".vdk-links small{display:block;color:var(--muted,var(--ap-label2,#666));font-size:12px}" +
+    ".vdk-more{display:block;text-align:left;margin-top:6px;font-weight:600;color:var(--ap-tint-t,var(--accent,#0066D6));background:none;border:0;padding:6px 0;font:inherit;cursor:pointer;text-decoration:none}";
+  document.head.appendChild(css);
+
+  window.VfmDeck = { stale: function (app) { Object.keys(decks).forEach(function (k) { if (decks[k].app === app) decks[k].queue = null; }); }, create: function (o) { if (decks[o.id]) { decks[o.id].o = o; return decks[o.id]; } return new Deck(o); }, get: function (id) { return decks[id]; }, mode: mode, modeSwitch: modeSwitch, bar: bar, share: share, koUrl: koUrl, Seen: Seen, Like: Like, esc: esc };
+})();

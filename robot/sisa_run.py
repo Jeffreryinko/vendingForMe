@@ -227,7 +227,7 @@ def publish(ed, prev, label):
     cut = (datetime.now(KST) - timedelta(days=KEEP_DAYS)).strftime("%Y-%m-%d")
     removed = 0
     for f in list((DATA / "editions").glob("*.json")) + list((DATA / "feed").glob("*.json")) + list((DATA / "brief").glob("*.json")):
-        if f.name.startswith("_") or f.stem in ("ents", "entpics"): continue
+        if f.name.startswith("_") or f.stem in ("ents", "entpics", "entnames"): continue
         if f.name[:10] < cut:
             f.unlink(); removed += 1
     reindex()
@@ -237,7 +237,17 @@ def publish(ed, prev, label):
     log(f"저장 완료: {ed} ({label}), 오래된 파일 {removed}개 정리")
 
 
+def ent_names():
+    """이름 사전에서 '밑줄 칠 이름'만 뽑은 작은 파일 (앱은 처음에 이것만 받고, 설명은 이름을 누를 때 받음)."""
+    src = DATA / "brief/ents.json"
+    if not src.exists(): return
+    m = (rj(src, {}) or {}).get("map", {})
+    out = {n: [e.get("t", "term"), e.get("c", "")] + [a for a in (e.get("a") or []) if a] for n, e in m.items()}
+    wj(DATA / "brief/entnames.json", {"map": out, "updatedAt": (rj(src, {}) or {}).get("updatedAt", "")})
+
+
 def reindex():
+    ent_names()
     eds = []
     for f in sorted((DATA / "editions").glob("*.json")):
         if f.name.startswith("_"): continue
@@ -269,7 +279,7 @@ def main():
     wj(WORK / "ko.json", ko)
     run(H, "build", ed, prev, WORK / "ko.json", label)
     collect_comments(ed, tr, lang_of_source)
-    if not DRY: photos()
+    # 이름 사진은 미리 찾지 않음 — 앱이 이름을 누를 때 위키백과(자유 이용 사진만)에서 바로 받아 옴
     save_usage(tr, mk)
     publish(ed, prev, label)
     log(f"끝: {round(time.time() - t0)}초")
