@@ -1,0 +1,387 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>window.VFM_APP="ai";</script>
+<script src="../assets/claude-shim.js"></script>
+<link rel="manifest" href="../manifest.webmanifest"><meta name="theme-color" content="#0C6E77"><link rel="apple-touch-icon" href="../assets/icon-192.png">
+<title>AI 자판기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* AI 탭 — 논문·발표·코드를 하루 한 판으로. 시사 탭과 같은 색·글꼴 체계, 읽기 화면은 이야기 탭처럼 전체 화면 */
+:root{--bg:#EEF2F3;--surface:#fff;--sunk:#E3E9EB;--ink:#13232B;--muted:#5A6B73;--line:#D3DCDF;--accent:#0C6E77;--accent-ink:#fff;--accent-soft:#D5ECEE;
+  --coin:#B7791F;--coin-soft:#F6EBD6;--ok:#2F7D4F;--warn:#A8621A;--bad:#B23A3A;--term:#1F6FB8;--term-soft:#DCEBFA;--mine:#7A3DB8;--mine-soft:#EADDF7;
+  --f:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--fs:1;--r:14px;--nav-h:62px;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#142126;--surface:#182A30;--sunk:#1D2D32;--ink:#EAF1F2;--muted:#A5B7BC;--line:#31454B;--accent:#45C4C6;--accent-ink:#0B1A1D;--accent-soft:#1C3D40;
+  --coin:#E0A84A;--coin-soft:#3A2E17;--ok:#6CC58F;--warn:#E3A35C;--bad:#EE8080;--term:#6FB2F0;--term-soft:#1C3350;--mine:#C49BEA;--mine-soft:#33264A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#142126;--surface:#182A30;--sunk:#1D2D32;--ink:#EAF1F2;--muted:#A5B7BC;--line:#31454B;--accent:#45C4C6;--accent-ink:#0B1A1D;--accent-soft:#1C3D40;
+  --coin:#E0A84A;--coin-soft:#3A2E17;--ok:#6CC58F;--warn:#E3A35C;--bad:#EE8080;--term:#6FB2F0;--term-soft:#1C3350;--mine:#C49BEA;--mine-soft:#33264A;color-scheme:dark}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:calc(15px*var(--fs));line-height:1.6;word-break:keep-all;overflow-wrap:break-word;
+  padding:0 max(14px,env(safe-area-inset-right,0px)) calc(var(--nav-h) + 24px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
+[hidden]{display:none!important}button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}a{color:var(--accent)}
+.wrap{max-width:640px;margin:0 auto}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+/* 머리 */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(14px + env(safe-area-inset-top,0px)) 0 8px}
+.logo{display:flex;align-items:center;gap:8px;background:none;border:0;padding:0;font-weight:700;font-size:21px;color:var(--ink)}
+.logo i{width:30px;height:30px;border-radius:9px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-style:normal;font-size:13px;font-weight:700}
+.top .r{display:flex;gap:6px}
+.ib{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;font-size:17px}
+.date{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0 10px;margin:0 -14px;padding-left:14px}.date::-webkit-scrollbar{display:none}
+.date button{flex:0 0 auto;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13px;color:var(--muted)}
+.date button[aria-current="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+h2.sec{font-size:13px;letter-spacing:.05em;color:var(--muted);font-weight:600;margin:22px 0 8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+h2.sec small{font-weight:400;letter-spacing:0}
+.note{font-size:13px;color:var(--muted);margin:0 0 8px}
+/* 카드 */
+.card{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:13px 14px;margin:0 0 8px;position:relative}
+.card.read{opacity:.5}.card.star{border-color:var(--coin)}
+.card .t{font-weight:600;font-size:calc(15.5px*var(--fs));line-height:1.45;margin:0 0 4px}
+.card .en{font-size:12.5px;color:var(--muted);line-height:1.4;margin:0 0 6px;font-family:var(--mono)}
+.card .one{font-size:calc(13.5px*var(--fs));color:var(--muted);margin:0 0 8px}
+.meta{display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;font-size:12px;color:var(--muted)}
+.bd{display:inline-block;padding:1px 7px;border-radius:6px;font-weight:600;font-size:11.5px;background:var(--sunk)}
+.bd.hf{background:#FFE8B3;color:#7A4B00}.bd.ax{background:var(--accent-soft);color:var(--accent)}.bd.gh{background:#E6E6E6;color:#333}.bd.kr{background:#DDF0E4;color:#1F5A36}.bd.yt{background:#FADADA;color:#8A1E1E}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .bd.hf{background:#4A3A14;color:#F0C66B}:root:not([data-theme="light"]) .bd.gh{background:#333;color:#ddd}:root:not([data-theme="light"]) .bd.kr{background:#173527;color:#8ED8A8}:root:not([data-theme="light"]) .bd.yt{background:#4A1F1F;color:#F08A8A}}
+.up{font-weight:700;color:var(--coin)}.mine{background:var(--mine-soft);color:var(--mine);padding:1px 7px;border-radius:6px;font-weight:600;font-size:11.5px}
+.tag{background:var(--sunk);padding:1px 7px;border-radius:6px;font-size:11.5px}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.btn{font-size:14px;font-weight:600;padding:10px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}.btn.on{border-color:var(--coin);color:var(--coin)}.btn.sm{padding:7px 12px;font-size:13px}
+.more{width:100%;margin:6px 0 0}
+.list a.li{display:block;padding:11px 0;border-bottom:1px solid var(--line);color:inherit;text-decoration:none}
+.list .li .t{font-weight:500;margin:0 0 3px;font-size:calc(14.5px*var(--fs))}.list .li .s{font-size:12.5px;color:var(--muted)}
+details.fold{border-top:1px solid var(--line)}details.fold summary{list-style:none;cursor:pointer;padding:12px 0;font-weight:600;display:flex;justify-content:space-between}details.fold summary::-webkit-details-marker{display:none}
+details.fold summary::after{content:"＋";color:var(--muted)}details.fold[open] summary::after{content:"－"}
+/* 읽기 */
+.read-top{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top,0px)) 0 6px;position:sticky;top:0;background:var(--bg);z-index:5}
+.read-top .sp{flex:1}
+h1.title{font-size:calc(22px*var(--fs));line-height:1.35;margin:10px 0 6px;font-weight:700}
+.title-en{font-size:13.5px;color:var(--muted);font-family:var(--mono);line-height:1.45;margin:0 0 10px}
+.abs{font-size:calc(16.5px*var(--fs));line-height:1.85;margin:14px 0;white-space:pre-wrap}
+.abs.en{font-size:calc(14.5px*var(--fs));line-height:1.7;color:var(--muted)}
+u.tm{text-decoration:none;border-bottom:1.5px dotted var(--term);color:inherit;cursor:pointer}u.tm.my{background:var(--mine-soft);border-bottom-color:var(--mine)}
+.nou u.tm{border:0;background:none}
+.links{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.links a{font-size:13px;font-weight:600;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);text-decoration:none;color:var(--ink)}
+.memo{width:100%;min-height:80px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:inherit;font:inherit;padding:10px;resize:vertical}
+.yt{margin:6px 0}.yt a{display:block;padding:8px 0;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;font-size:14px}
+.yt a small{display:block;color:var(--muted);font-size:12px}
+.rbar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));display:flex;gap:6px;justify-content:space-around;z-index:6}
+.rbar button{flex:1;border:0;background:none;display:grid;justify-items:center;gap:2px;font-size:11.5px;color:var(--muted);padding:4px 0}.rbar button b{font-size:19px;font-weight:400}.rbar button.on{color:var(--coin)}
+/* 하단 탭 */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);background:var(--surface);border-top:1px solid var(--line);display:flex;z-index:6}
+nav.tabs button{flex:1;border:0;background:none;display:grid;justify-items:center;align-content:center;gap:2px;font-size:11.5px;color:var(--muted)}
+nav.tabs button b{font-size:19px;font-weight:400}nav.tabs button[aria-current="page"]{color:var(--accent);font-weight:600}
+/* 시트·팝업 */
+.back{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9500;display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:560px;max-height:82vh;overflow:auto;background:var(--surface);border-radius:18px 18px 0 0;padding:14px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.sheet h3{margin:0 0 4px;font-size:17px}.sheet .k{font-size:13px;color:var(--muted);margin:0 0 10px}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.acts button{padding:11px 10px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:14px;font-weight:600;text-align:left}
+.acts button small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.wiki{background:var(--bg);border-radius:12px;padding:10px 12px;font-size:14px;margin:8px 0}
+.selbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;z-index:9400;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#222;color:#fff;padding:8px 14px;border-radius:10px;font-size:13px;z-index:9600}
+.search{width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:inherit;font:inherit;margin:8px 0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.chips button{padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13px}.chips button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.empty{text-align:center;color:var(--muted);padding:40px 0;font-size:14px}
+.termcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin:0 0 8px;text-align:left;width:100%}
+.termcard b{font-size:16px}.termcard .en{font-family:var(--mono);font-size:12.5px;color:var(--muted)}.termcard p{margin:4px 0 0;font-size:14px}
+.sub{font-size:13px;color:var(--muted)}
+.health{font-size:12.5px;color:var(--warn);margin:6px 0}
+</style></head><body>
+<div class="wrap" id="app"></div>
+<nav class="tabs" id="tabs">
+  <button data-v="today" aria-current="page"><b>☀︎</b>오늘</button>
+  <button data-v="terms"><b>ⓣ</b>용어장</button>
+  <button data-v="box"><b>☆</b>보관함</button>
+</nav>
+<script>
+"use strict";
+/* ───── 저장 (폰 브라우저). 키는 vfm:ai:* → 껍데기의 내보내기에 포함됨 ───── */
+const LS = { g(k, d) { try { const v = localStorage.getItem("vfm:ai:" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+             s(k, v) { try { localStorage.setItem("vfm:ai:" + k, JSON.stringify(v)); } catch (e) { toast("저장 공간이 꽉 찼어요"); } } };
+const DEF_TAGS = ["LLM", "에이전트", "RAG", "영상", "음성", "로봇", "의료", "데이터", "학습법", "하드웨어"];
+const S = { view: "today", day: null, idx: null, days: {}, more: {}, moreShown: 0, terms: [], termById: {}, paper: null, cfg: LS.g("cfg", { underline: true, fs: 1 }),
+  star: LS.g("star", {}), hide: LS.g("hide", {}), tags: LS.g("tags", {}), tagdefs: LS.g("tagdefs", DEF_TAGS), memo: LS.g("memo", {}), tmemo: LS.g("tmemo", {}), myterms: LS.g("myterms", {}), read: LS.g("read", {}) };
+function save(k) { LS.s(k, S[k]); }
+document.documentElement.style.setProperty("--fs", S.cfg.fs || 1);
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function toast(m) { const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); }
+async function getJ(p) { const r = await fetch("../data/ai/" + p, { cache: "no-cache" }); if (!r.ok) throw new Error(p); return r.json(); }
+const fmtDay = d => d ? `${+d.slice(5, 7)}월 ${+d.slice(8, 10)}일` : "";
+
+/* ───── 데이터 ───── */
+async function loadIndex() { S.idx = await getJ("_index.json"); S.terms = await getJ("terms.json"); S.terms.forEach(t => S.termById[t.id] = t); if (!S.day) S.day = S.idx.today || S.idx.days.at(-1); }
+async function loadDay(d) { if (!S.days[d]) S.days[d] = await getJ("days/" + d + ".json"); return S.days[d]; }
+async function loadMore(d) { if (!S.more[d]) S.more[d] = (await getJ("days/" + d + "_more.json")).papers || []; return S.more[d]; }
+function allLoadedPapers() { const out = []; Object.values(S.days).forEach(x => out.push(...(x.papers || []))); Object.values(S.more).forEach(x => out.push(...x)); Object.values(S.star).forEach(s => { if (s.item && !out.find(p => p.id === s.item.id)) out.push(s.item); }); return out; }
+function findPaper(id) { return allLoadedPapers().find(p => p.id === id) || (S.star[id] && S.star[id].item); }
+
+/* ───── 용어 밑줄 ───── */
+let termRx = null;
+function buildRx() {
+  const parts = [];
+  S.terms.forEach(t => t.aliases.forEach(a => parts.push(a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\ /g, "[\\s-]"))));
+  parts.sort((a, b) => b.length - a.length);
+  termRx = new RegExp("(?<![\\w-])(" + parts.join("|") + ")(?![\\w-])", "gi");
+}
+function aliasToId(a) { const k = a.toLowerCase().replace(/[\s-]+/g, " "); for (const t of S.terms) if (t.aliases.some(x => x.toLowerCase().replace(/[\s-]+/g, " ") === k)) return t.id; return null; }
+function underline(text) {   // 영문 글에서 용어 찾기 (한글 번역문은 영문 용어가 섞여 있을 때만 잡힘)
+  if (!termRx) buildRx();
+  return esc(text).replace(termRx, m => { const id = aliasToId(m); if (!id) return m; const t = S.termById[id]; if (/^[A-Z][A-Za-z0-9.\-]{0,5}$/.test(t.aliases.find(x => x.toLowerCase() === m.toLowerCase()) || "") && !t.aliases.includes(m)) return m; return `<u class="tm${S.myterms[id] ? " my" : ""}" data-t="${id}">${m}</u>`; });
+}
+function myCount(p) { return (p.terms || []).filter(([id]) => S.myterms[id]).length; }
+
+/* ───── 화면: 오늘 ───── */
+function srcBadge(p) { return p.src === "hf" ? '<span class="bd hf">HF 추천</span>' : p.src === "arxiv" ? '<span class="bd ax">arXiv</span>' : ""; }
+function card(p) {
+  const my = myCount(p), tags = S.tags[p.id] || [];
+  return `<button type="button" class="card${S.read[p.id] ? " read" : ""}${S.star[p.id] ? " star" : ""}" data-open="${esc(p.id)}">
+    <p class="t">${esc(p.ko || p.title)}</p>${p.ko ? `<p class="en">${esc(p.title)}</p>` : ""}
+    ${p.one ? `<p class="one">${esc(p.one)}</p>` : ""}
+    <div class="meta">${srcBadge(p)}${p.up ? `<span class="up">▲ ${p.up}</span>` : ""}${p.code ? '<span class="bd gh">코드</span>' : ""}${p.yt && p.yt.length ? '<span class="bd yt">영상</span>' : ""}
+      ${my ? `<span class="mine">내 용어 ${my}</span>` : ""}${tags.map(t => `<span class="tag">${esc(t)}</span>`).join("")}<span>${fmtDay(p.daily || p.day || S.day)}</span>${S.star[p.id] ? '<span class="up">★</span>' : ""}</div></button>`;
+}
+function liRow(p, kind) {
+  const my = myCount(p);
+  return `<a class="li" href="${esc(p.url)}" target="_blank" rel="noopener" data-visit="${esc(p.id)}"><p class="t">${esc(p.ko || p.title || p.name)}${p.new ? ' <span class="bd kr">NEW</span>' : ""}</p>
+    <p class="s">${kind === "repo" ? `★ ${p.stars.toLocaleString()} · ${esc(p.lang || "")} · ${esc(p.ksum || p.sum || "")}` : `${esc(p.name)} · ${fmtDay(p.date)}${p.ko && p.title ? " · " + esc(p.title) : ""}`}${my ? ` · <span class="mine">내 용어 ${my}</span>` : ""}</p></a>`;
+}
+async function renderToday() {
+  const app = document.getElementById("app");
+  app.innerHTML = `<div class="top"><button class="logo" data-v="today"><i>AI</i>AI 자판기</button><div class="r"><button class="ib" data-act="search" title="찾기">⌕</button><button class="ib" data-act="cfg" title="설정">⚙</button></div></div>
+    <div class="date">${(S.idx.days || []).slice().reverse().map(d => `<button data-day="${d}" aria-current="${d === S.day}">${d === S.idx.today ? "오늘 " : ""}${fmtDay(d)}</button>`).join("")}</div><div id="body"><p class="empty">불러오는 중…</p></div>`;
+  let d; try { d = await loadDay(S.day); } catch (e) { document.getElementById("body").innerHTML = `<p class="empty">이 날 자료가 없어요. 로봇이 새벽 4시 30분에 처음 돌고 나면 채워집니다.</p>`; return; }
+  const broken = Object.keys(S.idx.broken || {});
+  const papers = (d.papers || []).filter(p => !S.hide[p.id]);
+  const hf = papers.filter(p => p.src === "hf"), ax = papers.filter(p => p.src === "arxiv");
+  const posts = (d.posts || []), repos = d.repos || [], news = d.news || [];
+  document.getElementById("body").innerHTML = `
+    ${!d.translated ? '<p class="health">이 판은 번역 없이 모였어요 (영문 그대로)</p>' : ""}${broken.length ? `<p class="health">3일 넘게 안 되는 출처: ${broken.join(", ")} — 클로드에게 'AI 출처 고쳐줘'</p>` : ""}
+    <h2 class="sec">추천 논문 <small>Hugging Face 추천순 · ${hf.length}편</small></h2>${hf.map(card).join("") || '<p class="empty">없음</p>'}
+    <h2 class="sec">발표 <small>회사 블로그 · ${posts.length}건</small></h2><div class="list">${posts.slice(0, 12).map(p => liRow(p, "post")).join("")}</div>
+    ${posts.length > 12 ? `<details class="fold"><summary>발표 ${posts.length - 12}건 더</summary><div class="list">${posts.slice(12).map(p => liRow(p, "post")).join("")}</div></details>` : ""}
+    <h2 class="sec">코드 <small>GitHub 최근 2주 · 별 순</small></h2><details class="fold" open><summary>저장소 ${repos.length}개</summary><div class="list">${repos.slice(0, 20).map(p => liRow(p, "repo")).join("")}</div></details>
+    <h2 class="sec">국내 소식 <small>AI타임스 등 · ${news.length}건</small></h2><details class="fold"><summary>기사 ${news.length}건</summary><div class="list">${news.map(p => liRow(p, "news")).join("")}</div></details>
+    <h2 class="sec">arXiv 신규 <small>${ax.length}편 번역됨 + ${(d.counts || {}).more || 0}편 더</small></h2>${ax.map(card).join("")}
+    <div id="moreBox"></div><button class="btn more" data-act="more">arXiv 더 보기 (50편씩)</button>`;
+  S.moreShown = 0;
+}
+async function showMore() {
+  const list = (await loadMore(S.day)).filter(p => !S.hide[p.id]);
+  const box = document.getElementById("moreBox"); if (!box) return;
+  const chunk = list.slice(S.moreShown, S.moreShown + 50); S.moreShown += chunk.length;
+  box.insertAdjacentHTML("beforeend", chunk.map(card).join(""));
+  const b = document.querySelector("[data-act=more]"); if (b) b.textContent = S.moreShown >= list.length ? "끝 (전부 " + list.length + "편)" : `arXiv 더 보기 (${S.moreShown}/${list.length})`;
+}
+
+/* ───── 화면: 읽기 ───── */
+function openPaper(id) { const p = findPaper(id); if (!p) { toast("이 논문 자료를 찾지 못했어요"); return; } S.paper = p; S.read[id] = Date.now(); save("read"); location.hash = "#p=" + id; }
+function renderPaper() {
+  const p = S.paper; const app = document.getElementById("app"); const sv = S.star[p.id];
+  const absKo = p.kabs, body = absKo ? underline(absKo) : (p.abs ? underline(p.abs) : "(초록 없음)");
+  app.innerHTML = `<div class="read-top"><button class="ib" data-act="back">←</button><span class="sp"></span>${srcBadge(p)}${p.up ? `<span class="up">▲ ${p.up}</span>` : ""}</div>
+    <h1 class="title">${esc(p.ko || p.title)}</h1>${p.ko ? `<p class="title-en">${esc(p.title)}</p>` : ""}
+    <div class="meta">${(p.authors || []).map(esc).join(", ")}${p.authors && p.authors.length >= 4 ? " 외" : ""} · ${fmtDay(p.pub || p.daily || p.day || S.day)}${(p.cats || []).length ? " · " + p.cats.join(" ") : ""}${(S.tags[p.id] || []).map(t => ` <span class="tag">${esc(t)}</span>`).join("")}</div>
+    ${p.ksum ? `<p class="note" style="margin-top:10px"><b>한 줄:</b> ${esc(p.ksum)}</p>` : ""}
+    <div class="abs${S.cfg.underline ? "" : " nou"}${absKo ? "" : " en"}" id="abs">${body}</div>
+    ${absKo ? `<details class="fold"><summary>원문 보기</summary><div class="abs en">${underline(p.abs || "")}</div></details>` : `<p class="note">이 편은 번역 안 됨 — <a href="https://translate.google.com/translate?sl=en&tl=ko&u=${encodeURIComponent(p.url)}" target="_blank" rel="noopener">구글 번역으로 보기</a></p>`}
+    <div class="links"><a href="${esc(p.url)}" target="_blank" rel="noopener">arXiv</a>${p.pdf ? `<a href="${esc(p.pdf)}" target="_blank" rel="noopener">PDF</a>` : ""}${p.hf ? `<a href="${esc(p.hf)}" target="_blank" rel="noopener">HF 토론 ${p.cm ? p.cm : ""}</a>` : ""}${p.code ? `<a href="${esc(p.code)}" target="_blank" rel="noopener">코드${p.stars ? " ★" + p.stars : ""}</a>` : ""}${p.page ? `<a href="${esc(p.page)}" target="_blank" rel="noopener">프로젝트</a>` : ""}</div>
+    ${p.yt && p.yt.length ? `<h2 class="sec">유튜브 해설</h2><div class="yt">${p.yt.map(v => `<a href="${esc(v.u)}" target="_blank" rel="noopener">${esc(v.t)}<small>${esc(v.ch)}</small></a>`).join("")}</div>` : ""}
+    ${(p.terms || []).length ? `<h2 class="sec">이 글의 용어 <small>${p.terms.length}개</small></h2><div class="chips">${p.terms.map(([id, n]) => { const t = S.termById[id]; return t ? `<button data-term="${id}" class="${S.myterms[id] ? "on" : ""}">${esc(t.ko)} <small>${n}</small></button>` : ""; }).join("")}</div>` : ""}
+    <h2 class="sec">내 메모</h2><textarea class="memo" id="memo" placeholder="내 말로 적어 두기">${esc(S.memo[p.id] || "")}</textarea>
+    <div style="height:70px"></div>
+    <div class="rbar"><button data-act="star" class="${sv ? "on" : ""}"><b>${sv ? "★" : "☆"}</b>별표</button><button data-act="hide"><b>⊘</b>숨기기</button><button data-act="tag"><b>#</b>태그</button><button data-act="share"><b>↗</b>공유</button></div>`;
+  window.scrollTo(0, 0);
+  document.getElementById("memo").addEventListener("change", e => { const v = e.target.value.trim(); if (v) S.memo[p.id] = v; else delete S.memo[p.id]; save("memo"); if (S.star[p.id]) { S.star[p.id].memo = v; save("star"); } toast("메모 저장"); });
+}
+
+/* ───── 용어 시트 (밑줄 단어·선택 단어 공통) ───── */
+function openWord(word, termId) {
+  const t = termId ? S.termById[termId] : null;
+  const w = t ? t.en : word.trim(); const title = t ? `${t.ko} <small class="sub">${esc(t.en)}</small>` : esc(w);
+  const saved = t ? S.myterms[t.id] : S.myterms["w:" + w.toLowerCase()];
+  const key = t ? t.id : "w:" + w.toLowerCase();
+  const back = document.createElement("div"); back.className = "back";
+  back.innerHTML = `<div class="sheet"><h3>${title}</h3><p class="k">${t ? esc(t.short) : "용어 목록에 없는 말이에요. 아래에서 찾아보거나 용어카드로 저장할 수 있어요."}</p>
+    <div class="acts">
+      <button data-a="memo">메모<small>이 말에 내 메모</small></button>
+      <button data-a="save" class="${saved ? "on" : ""}">${saved ? "용어카드에 있음 ✓" : "용어카드 저장"}<small>용어장에 쌓임</small></button>
+      <button data-a="wiki">위키 미리보기<small>첫 문단만</small></button>
+      <button data-a="papers">이 말 나온 다른 글<small>불러온 날짜 안에서</small></button>
+      <button data-a="tag">태그로 추가<small>${S.paper ? "이 논문에 #" + esc(t ? t.ko : w) : "(읽기 화면에서)"}</small></button>
+      <button data-a="copy">복사</button>
+    </div>
+    <div class="row"><a class="btn sm" href="https://ko.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(t && t.wiki_ko ? t.wiki_ko : w)}" target="_blank" rel="noopener">위키백과</a>
+      <a class="btn sm" href="https://www.google.com/search?q=${encodeURIComponent(w + (t ? " AI" : ""))}" target="_blank" rel="noopener">구글</a>
+      <a class="btn sm" href="https://arxiv.org/search/?query=${encodeURIComponent(w)}&searchtype=all" target="_blank" rel="noopener">arXiv</a>
+      ${t && t.wiki_en ? `<a class="btn sm" href="https://en.wikipedia.org/wiki/${encodeURIComponent(t.wiki_en)}" target="_blank" rel="noopener">영문 위키</a>` : ""}</div>
+    <div id="wsub"></div></div>`;
+  document.body.appendChild(back);
+  const sub = back.querySelector("#wsub");
+  back.addEventListener("click", async e => {
+    if (e.target === back) return back.remove();
+    const a = e.target.closest("[data-a]"); if (!a) return;
+    const act = a.dataset.a;
+    if (act === "copy") { try { await navigator.clipboard.writeText(w); toast("복사했어요"); } catch (x) { toast("복사 실패"); } }
+    else if (act === "save") { saveTerm(key, t, w); a.classList.add("on"); a.firstChild.textContent = "용어카드에 있음 ✓"; toast("용어장에 저장"); if (S.paper) renderPaper(); }
+    else if (act === "memo") { sub.innerHTML = `<textarea class="memo" id="tmemo" placeholder="이 말에 대한 내 메모">${esc(S.tmemo[key] || "")}</textarea><div class="row" style="margin-top:6px"><button class="btn sm pri" data-a="memosave">저장</button></div>`; }
+    else if (act === "memosave") { const v = back.querySelector("#tmemo").value.trim(); if (v) { S.tmemo[key] = v; saveTerm(key, t, w); } else delete S.tmemo[key]; save("tmemo"); toast("메모 저장"); }
+    else if (act === "wiki") { sub.innerHTML = '<div class="wiki">위키백과 읽는 중…</div>'; sub.querySelector(".wiki").innerHTML = await wikiSummary(t, w); }
+    else if (act === "papers") { const hits = allLoadedPapers().filter(p => (t ? (p.terms || []).some(([id]) => id === t.id) : (p.title + " " + (p.abs || "")).toLowerCase().includes(w.toLowerCase())) && p.id !== (S.paper || {}).id).slice(0, 30); sub.innerHTML = hits.length ? hits.map(card).join("") : '<p class="empty">불러온 날짜 안에는 없어요. 보관함에서 다른 날짜를 열면 더 찾아요.</p>'; }
+    else if (act === "tag") { if (!S.paper) return toast("읽기 화면에서 쓸 수 있어요"); addTag(S.paper.id, t ? t.ko : w); back.remove(); renderPaper(); }
+  });
+}
+function saveTerm(key, t, w) {
+  const e = S.myterms[key] || { at: Date.now(), en: t ? t.en : w, ko: t ? t.ko : w, short: t ? t.short : "", papers: {} };
+  if (S.paper) e.papers[S.paper.id] = S.paper.ko || S.paper.title;
+  S.myterms[key] = e; save("myterms");
+}
+async function wikiSummary(t, w) {
+  const tries = [];
+  if (t && t.wiki_ko) tries.push(["ko", t.wiki_ko]); if (t && t.wiki_en) tries.push(["en", t.wiki_en]); tries.push(["ko", w]); tries.push(["en", w]);
+  for (const [lang, title] of tries) {
+    try { const r = await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, "_"))}`); if (!r.ok) continue; const j = await r.json(); if (!j.extract) continue;
+      const key = t ? t.id : "w:" + w.toLowerCase(); if (S.myterms[key]) { S.myterms[key].wiki = j.extract; save("myterms"); }
+      return `<b>${esc(j.title)}</b>${lang === "en" ? ' <span class="sub">(영문판 — 한국어 문서 없음)</span>' : ""}<br>${esc(j.extract)} <a href="${esc(j.content_urls.desktop.page)}" target="_blank" rel="noopener">더 →</a>`; } catch (e) { }
+  }
+  return "위키백과에 없어요.";
+}
+function addTag(id, tag) { const l = S.tags[id] || []; if (!l.includes(tag)) l.push(tag); S.tags[id] = l; save("tags"); if (!S.tagdefs.includes(tag)) { S.tagdefs.push(tag); save("tagdefs"); } if (S.star[id]) { S.star[id].tags = l; save("star"); } }
+function tagSheet(p) {
+  const back = document.createElement("div"); back.className = "back"; const cur = S.tags[p.id] || [];
+  back.innerHTML = `<div class="sheet"><h3>태그</h3><div class="chips">${S.tagdefs.map(t => `<button data-t="${esc(t)}" class="${cur.includes(t) ? "on" : ""}">${esc(t)}</button>`).join("")}</div>
+    <div class="row"><input class="search" id="newtag" placeholder="새 태그" style="flex:1;margin:0"><button class="btn" data-a="add">추가</button><button class="btn" data-a="close">닫기</button></div></div>`;
+  document.body.appendChild(back);
+  back.addEventListener("click", e => {
+    if (e.target === back) return back.remove();
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.t) { const l = S.tags[p.id] || []; const i = l.indexOf(b.dataset.t); if (i >= 0) l.splice(i, 1); else l.push(b.dataset.t); S.tags[p.id] = l; save("tags"); b.classList.toggle("on"); if (S.star[p.id]) { S.star[p.id].tags = l; save("star"); } }
+    else if (b.dataset.a === "add") { const v = back.querySelector("#newtag").value.trim(); if (v) { addTag(p.id, v); back.remove(); tagSheet(p); } }
+    else if (b.dataset.a === "close") { back.remove(); renderPaper(); }
+  });
+}
+
+/* ───── 화면: 용어장 ───── */
+function renderTerms() {
+  const app = document.getElementById("app"); const mine = Object.entries(S.myterms).sort((a, b) => b[1].at - a[1].at);
+  app.innerHTML = `<div class="top"><button class="logo" data-v="today"><i>AI</i>용어장</button><div class="r"><button class="ib" data-act="cfg">⚙</button></div></div>
+    <input class="search" id="tq" placeholder="용어 찾기 (전체 ${S.terms.length}개 + 내 카드 ${mine.length}개)">
+    <h2 class="sec">내 용어카드 <small>${mine.length}개</small></h2><div id="tlist">${mine.length ? mine.map(([k, e]) => termCard(k, e)).join("") : '<p class="empty">아직 없어요. 글을 읽다가 밑줄 친 말이나 아무 단어나 길게 눌러 저장하세요.</p>'}</div>`;
+  document.getElementById("tq").addEventListener("input", e => {
+    const q = e.target.value.trim().toLowerCase(); const box = document.getElementById("tlist");
+    if (!q) { box.innerHTML = mine.map(([k, e]) => termCard(k, e)).join(""); return; }
+    const hits = S.terms.filter(t => t.en.toLowerCase().includes(q) || t.ko.includes(q) || t.aliases.some(a => a.toLowerCase().includes(q)) || t.short.includes(q)).slice(0, 40);
+    box.innerHTML = hits.map(t => `<button class="termcard" data-term="${t.id}"><b>${esc(t.ko)}</b> <span class="en">${esc(t.en)}</span>${S.myterms[t.id] ? ' <span class="mine">내 카드</span>' : ""}<p>${esc(t.short)}</p></button>`).join("") || '<p class="empty">없어요 — 길게 눌러 새 용어카드로 저장할 수 있어요.</p>';
+  });
+}
+function termCard(k, e) {
+  const n = Object.keys(e.papers || {}).length;
+  return `<button class="termcard" data-term="${esc(k)}"><b>${esc(e.ko)}</b> <span class="en">${esc(e.en)}</span><p>${esc(e.short || "")}</p>${e.wiki ? `<p class="sub">${esc(e.wiki.slice(0, 140))}…</p>` : ""}${S.tmemo[k] ? `<p><b>메모:</b> ${esc(S.tmemo[k])}</p>` : ""}${n ? `<p class="sub">나온 글 ${n}편</p>` : ""}</button>`;
+}
+
+/* ───── 화면: 보관함 (별표·메모·태그·날짜별·찾기) ───── */
+let boxMode = "star", boxQ = "", boxTag = "";
+async function renderBox() {
+  const app = document.getElementById("app");
+  app.innerHTML = `<div class="top"><button class="logo" data-v="today"><i>AI</i>보관함</button><div class="r"><button class="ib" data-act="export">⤓</button></div></div>
+    <div class="chips">${[["star", "별표"], ["memo", "메모"], ["tag", "태그"], ["days", "날짜별"], ["find", "찾기"]].map(([k, n]) => `<button data-mode="${k}" class="${boxMode === k ? "on" : ""}">${n}</button>`).join("")}</div><div id="bbody"></div>`;
+  const b = document.getElementById("bbody");
+  if (boxMode === "star") { const l = Object.values(S.star).sort((a, b) => b.at - a.at); b.innerHTML = l.length ? l.map(s => card(s.item)).join("") : '<p class="empty">별표한 글이 없어요. 별표는 7일이 지나도 영구 보관돼요.</p>'; }
+  else if (boxMode === "memo") { const ids = Object.keys(S.memo); b.innerHTML = ids.length ? ids.map(id => { const p = findPaper(id); return `<div class="card"><p class="t">${esc(p ? (p.ko || p.title) : id)}</p><p class="one">${esc(S.memo[id])}</p>${p ? `<div class="row"><button class="btn sm" data-open="${esc(id)}">열기</button></div>` : ""}</div>`; }).join("") : '<p class="empty">메모가 없어요.</p>'; }
+  else if (boxMode === "tag") { const cnt = {}; Object.values(S.tags).flat().forEach(t => cnt[t] = (cnt[t] || 0) + 1);
+    b.innerHTML = `<div class="chips">${S.tagdefs.map(t => `<button data-tag="${esc(t)}" class="${boxTag === t ? "on" : ""}">${esc(t)} ${cnt[t] || 0}</button>`).join("")}</div><div id="tagl">${boxTag ? Object.entries(S.tags).filter(([, l]) => l.includes(boxTag)).map(([id]) => { const p = findPaper(id); return p ? card(p) : ""; }).join("") || '<p class="empty">이 태그의 글이 불러온 날짜·별표 안에 없어요.</p>' : '<p class="note">태그를 고르세요.</p>'}</div>`; }
+  else if (boxMode === "days") { const days = (S.idx.days || []).slice().reverse(), arch = (S.idx.archive || []).slice().reverse();
+    b.innerHTML = `<p class="note">최근 7일은 전부, 그 전은 제목·링크만 남아 있어요.</p><div class="list">${days.map(d => `<a class="li" href="#today" data-godate="${d}"><p class="t">${fmtDay(d)}${d === S.idx.today ? " (오늘)" : ""}</p><p class="s">전체</p></a>`).join("")}${arch.map(d => `<a class="li" href="#" data-arch="${d}"><p class="t">${fmtDay(d)}</p><p class="s">제목·링크만</p></a>`).join("")}</div><div id="archbox"></div>`; }
+  else if (boxMode === "find") { b.innerHTML = `<input class="search" id="fq" value="${esc(boxQ)}" placeholder="제목·초록·내 메모에서 찾기"><p class="note">불러온 날짜 안에서 찾아요. 날짜별에서 다른 날을 열면 범위가 늘어나요.</p><div id="fres"></div>`;
+    const run = () => { boxQ = document.getElementById("fq").value.trim().toLowerCase(); const res = document.getElementById("fres"); if (boxQ.length < 2) { res.innerHTML = ""; return; }
+      const hits = allLoadedPapers().filter(p => [p.title, p.ko, p.abs, p.kabs, S.memo[p.id]].some(x => x && x.toLowerCase().includes(boxQ))).slice(0, 60); res.innerHTML = hits.length ? hits.map(card).join("") : '<p class="empty">없어요</p>'; };
+    document.getElementById("fq").addEventListener("input", run); if (boxQ) run(); }
+}
+
+/* ───── 설정 ───── */
+function cfgSheet() {
+  const back = document.createElement("div"); back.className = "back";
+  back.innerHTML = `<div class="sheet"><h3>AI 탭 설정</h3>
+    <div class="acts"><button data-a="ul">용어 밑줄: ${S.cfg.underline ? "켬" : "끔"}<small>초록 안 용어에 점선</small></button>
+    <button data-a="fs">글자 크기: ${Math.round((S.cfg.fs || 1) * 100)}%<small>누를 때마다 커짐 (90→100→110→125)</small></button>
+    <button data-a="export">내 기록 내보내기<small>별표·메모·용어장·태그 (파일)</small></button>
+    <button data-a="hidden">숨긴 글 ${Object.keys(S.hide).length}개 되살리기</button></div>
+    <p class="k">다크모드·기록 불러오기는 오른쪽 아래 알약을 길게 눌러 자판기 공통 설정에서. 마지막 갱신: ${S.idx && S.idx.at ? esc(S.idx.at.slice(0, 16).replace("T", " ")) : "-"}</p>
+    <div class="row"><button class="btn" data-a="close">닫기</button></div></div>`;
+  document.body.appendChild(back);
+  back.addEventListener("click", e => {
+    if (e.target === back) return back.remove(); const a = e.target.closest("[data-a]"); if (!a) return;
+    if (a.dataset.a === "ul") { S.cfg.underline = !S.cfg.underline; save("cfg"); back.remove(); route(); }
+    else if (a.dataset.a === "fs") { const st = [0.9, 1, 1.1, 1.25]; S.cfg.fs = st[(st.indexOf(S.cfg.fs || 1) + 1) % st.length]; save("cfg"); document.documentElement.style.setProperty("--fs", S.cfg.fs); a.firstChild.textContent = `글자 크기: ${Math.round(S.cfg.fs * 100)}%`; }
+    else if (a.dataset.a === "export") exportMine();
+    else if (a.dataset.a === "hidden") { S.hide = {}; save("hide"); toast("숨긴 글을 되살렸어요"); back.remove(); route(); }
+    else if (a.dataset.a === "close") back.remove();
+  });
+}
+function exportMine() {
+  const out = { app: "vendingForMe", part: "ai", exportedAt: new Date().toISOString(), star: S.star, memo: S.memo, tags: S.tags, tagdefs: S.tagdefs, myterms: S.myterms, tmemo: S.tmemo };
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: "application/json" })); a.download = "자판기-AI-기록-" + new Date().toISOString().slice(0, 10) + ".json"; a.click(); toast("내보냈어요");
+}
+
+/* ───── 단어 선택 → 떠 있는 막대 ───── */
+let selBar = null, selTimer = null;
+document.addEventListener("selectionchange", () => {
+  const sel = document.getSelection(); const txt = sel ? sel.toString().trim() : "";
+  clearTimeout(selTimer);
+  if (!txt || txt.length > 60 || !S.paper) { selTimer = setTimeout(() => { if (selBar) { selBar.remove(); selBar = null; } }, 500); return; }   // 막대를 누를 틈을 줌
+  if (selBar) { selBar.remove(); selBar = null; }
+  const n = sel.anchorNode && sel.anchorNode.parentElement; if (!n || !n.closest("#abs, .abs, .title, .title-en")) return;
+  selBar = document.createElement("button"); selBar.className = "selbar"; selBar.textContent = "“" + txt + "” 메모·검색·저장";
+  selBar.addEventListener("click", () => { clearTimeout(selTimer); const t = txt; try { document.getSelection().removeAllRanges(); } catch (x) { } if (selBar) selBar.remove(); selBar = null; openWord(t, aliasToId(t)); });
+  document.body.appendChild(selBar);
+});
+
+/* ───── 라우팅·클릭 ───── */
+function setTab(v) { document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-current", b.dataset.v === v ? "page" : "false")); }
+async function route() {
+  const h = location.hash || "#today"; document.querySelector(".rbar")?.remove();
+  if (h.startsWith("#p=")) { const id = decodeURIComponent(h.slice(3)); if (!S.paper || S.paper.id !== id) { await loadDay(S.day).catch(() => { }); S.paper = findPaper(id); } if (S.paper) { setTab(""); document.getElementById("tabs").hidden = true; return renderPaper(); } location.hash = "#today"; return; }
+  document.getElementById("tabs").hidden = false; S.paper = null;
+  const v = h.slice(1).split("?")[0]; S.view = v; setTab(v);
+  if (v === "terms") renderTerms(); else if (v === "box") renderBox(); else renderToday();
+}
+window.addEventListener("hashchange", route);
+document.addEventListener("click", async e => {
+  const t = e.target.closest("[data-v],[data-open],[data-act],[data-day],[data-t],[data-term],[data-mode],[data-tag],[data-godate],[data-arch],[data-visit]"); if (!t) return;
+  const d = t.dataset;
+  if (d.visit) { S.read[d.visit] = Date.now(); save("read"); return; }
+  if (d.v) { if (location.hash === "#" + d.v) route(); else location.hash = "#" + d.v; return; }
+  if (d.open) return openPaper(d.open);
+  if (d.day) { S.day = d.day; renderToday(); return; }
+  if (d.t) { e.preventDefault(); return openWord(t.textContent, d.t); }
+  if (d.term) { const k = d.term; const tt = S.termById[k]; return openWord(tt ? tt.en : (S.myterms[k] || {}).en || k, tt ? k : null); }
+  if (d.mode) { boxMode = d.mode; return renderBox(); }
+  if (d.tag) { boxTag = boxTag === d.tag ? "" : d.tag; return renderBox(); }
+  if (d.godate) { e.preventDefault(); S.day = d.godate; location.hash = "#today"; return; }
+  if (d.arch) { e.preventDefault(); const j = await getJ("archive/" + d.arch + ".json").catch(() => null); const box = document.getElementById("archbox"); if (!j) return toast("못 읽었어요");
+    box.innerHTML = `<h2 class="sec">${fmtDay(d.arch)} <small>제목·링크만</small></h2><div class="list">${(j.papers || []).map(p => `<a class="li" href="${esc(p.url)}" target="_blank" rel="noopener"><p class="t">${esc(p.ko || p.title)}</p><p class="s">${p.src === "hf" ? "HF ▲" + (p.up || 0) : "arXiv"}</p></a>`).join("")}${(j.posts || []).map(p => `<a class="li" href="${esc(p.url)}" target="_blank" rel="noopener"><p class="t">${esc(p.ko || p.title)}</p><p class="s">${esc(p.name || "")}</p></a>`).join("")}</div>`; box.scrollIntoView({ behavior: "smooth" }); return; }
+  if (d.act === "back") { history.length > 1 ? history.back() : (location.hash = "#today"); return; }
+  if (d.act === "more") return showMore();
+  if (d.act === "cfg") return cfgSheet();
+  if (d.act === "search") { boxMode = "find"; location.hash = "#box"; return; }
+  if (d.act === "export") return exportMine();
+  const p = S.paper; if (!p) return;
+  if (d.act === "star") { if (S.star[p.id]) { delete S.star[p.id]; toast("별표 해제"); } else { S.star[p.id] = { at: Date.now(), item: p, memo: S.memo[p.id] || "", tags: S.tags[p.id] || [] }; toast("별표 — 영구 보관"); } save("star"); renderPaper(); }
+  else if (d.act === "hide") { S.hide[p.id] = 1; save("hide"); toast("오늘 목록에서 숨겼어요 (설정에서 되살리기)"); location.hash = "#today"; }
+  else if (d.act === "tag") tagSheet(p);
+  else if (d.act === "share") { const text = `${p.ko || p.title}\n${p.title}\n${p.url}${S.memo[p.id] ? "\n메모: " + S.memo[p.id] : ""}`; if (navigator.share) navigator.share({ title: p.ko || p.title, text, url: p.url }).catch(() => { }); else { try { await navigator.clipboard.writeText(text); toast("복사했어요"); } catch (x) { } } }
+});
+
+/* ───── 시작 ───── */
+(async () => {
+  try { await loadIndex(); } catch (e) { document.getElementById("app").innerHTML = `<div class="top"><button class="logo"><i>AI</i>AI 자판기</button></div><p class="empty">아직 자료가 없어요. 로봇이 처음 돌고 나면(새벽 4시 30분) 채워집니다.<br><small>${esc(e.message)}</small></p>`; return; }
+  const h = location.hash; if (h.startsWith("#p=")) { const id = decodeURIComponent(h.slice(3)); for (const d of (S.idx.days || []).slice().reverse()) { await loadDay(d).catch(() => { }); if (findPaper(id)) { S.day = d; break; } } }
+  route();
+  window.vfm = window.vfm || {}; window.vfm.aiExport = exportMine;
+})();
+</script>
+<script src="../assets/shell.js"></script>
+</body></html>

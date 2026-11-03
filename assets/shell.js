@@ -6,8 +6,10 @@
 (function () {
   "use strict";
   var APP = (window.vfm && window.vfm.app) || "sisa";
-  var OTHER = APP === "sisa" ? "iyagi" : "sisa";
-  var NAME = { sisa: "시사", iyagi: "이야기" };
+  var ALL = ["sisa", "iyagi", "ai"];
+  var OTHERS = ALL.filter(function (a) { return a !== APP; });
+  var OTHER = OTHERS[0];
+  var NAME = { sisa: "시사", iyagi: "이야기", ai: "AI" };
   try { localStorage.setItem("vfm:tab", APP); } catch (e) { }
 
   /* ── 스타일 ── */
@@ -53,10 +55,10 @@
   /* ── 알약 버튼 ── */
   var pill = document.createElement("button");
   pill.className = "vfm-pill"; pill.type = "button";
-  pill.innerHTML = "<i></i><span>" + NAME[OTHER] + "로 →</span>";
+  pill.innerHTML = "<i></i>" + OTHERS.map(function (a) { return '<span data-go="' + a + '">' + NAME[a] + "</span>"; }).join('<em style="opacity:.4;font-style:normal">·</em>');
   var pressTimer = null, longPressed = false;
-  function go() { location.href = "../" + OTHER + "/"; }
-  pill.addEventListener("click", function () { if (longPressed) { longPressed = false; return; } go(); });
+  function go(a) { location.href = "../" + (a || OTHER) + "/"; }
+  pill.addEventListener("click", function (e) { if (longPressed) { longPressed = false; return; } var t = e.target.getAttribute && e.target.getAttribute("data-go"); go(t || OTHER); });
   pill.addEventListener("touchstart", function () { pressTimer = setTimeout(function () { longPressed = true; openSheet(); }, 550); }, { passive: true });
   pill.addEventListener("touchend", function () { clearTimeout(pressTimer); }, { passive: true });
   pill.addEventListener("touchmove", function () { clearTimeout(pressTimer); }, { passive: true });
@@ -74,10 +76,15 @@
       "<p>지금 보는 탭: <b>" + NAME[APP] + "</b> · 마지막 갱신: <b>" + (meta && meta.updatedAt ? ago(meta.updatedAt) : "기록 없음") + "</b>" + (meta && meta.label ? " (" + meta.label + ")" : "") + "</p>" +
       "<p>읽은 기록은 이 폰 브라우저 안에만 저장돼요 (" + kb + "KB 사용 / 약 5,000KB). 폰을 바꾸거나 PC로 옮길 땐 아래 버튼으로 파일 하나로 내보내세요.</p>" +
       '<div class="row"><button class="pri" data-act="export">기록 내보내기</button><button data-act="import">기록 불러오기</button>' +
-      '<button data-act="other">' + NAME[OTHER] + ' 탭으로</button><button data-act="reload">새로고침</button><button data-act="close">닫기</button></div>' +
+      OTHERS.map(function (a) { return '<button data-act="go" data-go="' + a + '">' + NAME[a] + ' 탭으로</button>'; }).join("") + '<button data-act="reload">새로고침</button><button data-act="close">닫기</button></div>' +
       '<p class="vfm-broken"></p>' +
       '<input type="file" accept="application/json" hidden></div>';
     document.body.appendChild(back);
+    if (APP === "ai") fetch("../data/ai/_index.json", { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      var el = back.querySelector(".vfm-broken"); if (!el || !j) return;
+      var ks = Object.keys(j.broken || {});
+      el.textContent = ks.length ? "AI 고장 난 출처 (3일 넘게 실패): " + ks.join(", ") + " — 클로드에게 'AI 출처 고쳐줘'라고 하면 돼요." : "AI 출처: 모두 정상";
+    }).catch(function () {});
     if (APP === "sisa") fetch("../data/trends/_index.json", { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
       var el = back.querySelector(".vfm-broken"); if (!el || !j) return;
       var ks = Object.keys(j.broken || {});
@@ -88,7 +95,7 @@
       if (e.target === back) return back.remove();
       var act = e.target.getAttribute && e.target.getAttribute("data-act"); if (!act) return;
       if (act === "close") back.remove();
-      else if (act === "other") go();
+      else if (act === "go") go(e.target.getAttribute("data-go"));
       else if (act === "reload") location.reload();
       else if (act === "export") {
         var data = JSON.stringify(window.vfm.exportAll());

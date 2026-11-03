@@ -1,6 +1,6 @@
 /* sw.js — 홈화면 앱(PWA)용. 앱 껍데기는 미리 저장, 데이터는 네트워크 우선 + 실패하면 마지막 저장본. */
-const VER = "vfm-v4";
-const SHELL = ["./", "./index.html", "./sisa/", "./sisa/index.html", "./iyagi/", "./iyagi/index.html",
+const VER = "vfm-v5";
+const SHELL = ["./", "./index.html", "./sisa/", "./sisa/index.html", "./iyagi/", "./iyagi/index.html", "./ai/", "./ai/index.html",
   "./assets/claude-shim.js", "./assets/shell.js", "./manifest.webmanifest"];
 
 self.addEventListener("install", e => {
@@ -13,7 +13,7 @@ self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET" || new URL(req.url).origin !== location.origin) return;
   // 원문(orig)은 크니까 저장하지 않고 그대로
-  if (req.url.includes("/data/iyagi/orig/")) return;
+  if (req.url.includes("/data/iyagi/orig/") || req.url.includes("_more.json")) return;
   e.respondWith(
     fetch(req).then(res => {
       if (res.ok) caches.open(VER).then(c => c.put(req, res.clone()));

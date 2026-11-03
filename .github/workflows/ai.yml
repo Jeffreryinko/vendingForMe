@@ -1,0 +1,59 @@
+name: AI 로봇 (매일 새벽 4시 30분, 토큰 0)
+
+on:
+  schedule:
+    - cron: "30 19 * * *"       # 한국시간 04:30 (UTC 19:30 전날). 이야기 작가(04:00)와 겹치지 않게
+  workflow_dispatch:
+    inputs:
+      no_translate:
+        description: "번역 건너뛰기 (빠른 확인용) — yes 라고 쓰면 건너뜀"
+        required: false
+
+concurrency:
+  group: data-ai
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  ai:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 번역 모델 캐시 (이야기 로봇과 공유)
+        if: inputs.no_translate != 'yes'
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/nllb-600m-ct2
+            ~/.cache/huggingface
+          key: nllb-600m-ct2-v1
+      - name: 라이브러리 설치
+        run: |
+          pip install -q requests
+          if [ "${{ inputs.no_translate }}" != "yes" ]; then
+            pip install -q "ctranslate2>=4" "transformers>=4.40" sentencepiece "torch>=2.2" --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+          fi
+      - name: 용어 목록 만들기
+        run: python robot/ai_terms.py
+      - name: 논문·발표·코드·소식 모으기
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AI_MAX_MINUTES: "150"
+          AI_TOP_ABSTRACTS: "100"
+          AI_YT_BUDGET: "60"
+        run: python robot/ai_run.py ${{ inputs.no_translate == 'yes' && '--no-translate' || '' }}
+      - name: 저장소에 올리기
+        run: |
+          git config user.name "ai-robot"
+          git config user.email "robot@users.noreply.github.com"
+          git add data/ai
+          git diff --cached --quiet && echo "변경 없음" && exit 0
+          git commit -m "AI: $(TZ=Asia/Seoul date '+%m월 %d일') 새벽판 자동 수집"
+          for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 10; done

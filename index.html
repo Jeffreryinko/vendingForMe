@@ -17,11 +17,11 @@
 <body>
 <div class="box">
   <p>자판기</p>
-  <a href="sisa/">시사</a><a href="iyagi/">이야기</a>
+  <a href="sisa/">시사</a><a href="iyagi/">이야기</a><a href="ai/">AI</a>
 </div>
 <script>
   // 마지막에 보던 탭으로 바로 이동 (처음이면 시사)
-  try{var t=localStorage.getItem("vfm:tab")||"sisa";if(t==="sisa"||t==="iyagi")location.replace(t+"/");}catch(e){location.replace("sisa/");}
+  try{var t=localStorage.getItem("vfm:tab")||"sisa";if(t==="sisa"||t==="iyagi"||t==="ai")location.replace(t+"/");}catch(e){location.replace("sisa/");}
 </script>
 </body>
 </html>
