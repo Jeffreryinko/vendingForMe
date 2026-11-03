@@ -243,7 +243,8 @@ def youtube_links(papers, cache):
             sw = sig_words(p["title"]); vids = []
             for it in r.json().get("items", []):
                 t = clean(it["snippet"]["title"], 120)
-                if len(sig_words(t) & sw) >= 2 or (len(sw) <= 3 and sig_words(t) & sw):
+                need = max(2, -(-len(sw) * 2 // 5))                                    # 제목 핵심어의 40% 이상 겹쳐야 (엉뚱한 영상 거름)
+                if len(sig_words(t) & sw) >= need or (len(sw) <= 2 and sig_words(t) & sw):
                     vids.append({"t": t, "u": f"https://www.youtube.com/watch?v={it['id']['videoId']}", "ch": clean(it["snippet"]["channelTitle"], 40)})
             cache[p["id"]] = vids[:2]; p["yt"] = vids[:2]
         except Exception as e:
