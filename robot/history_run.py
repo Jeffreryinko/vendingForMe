@@ -771,6 +771,21 @@ def retheme_people(st):
     st.seeds["retheme"] = "v2"; log(f"사람 테마 다시 매김: {n:,}편")
 
 
+def upgrade_lite(st):
+    """용량이 남았는데 요약판으로 저장된 글(예전 버그 등) → 유명한 순으로 다시 받을 차례에 (전문으로)."""
+    room = BUDGET_MB * 1024 * 1024 * 0.97 - st.bytes_used()
+    if room <= 0: return
+    lite = sorted([(k, v) for k, v in st.pages.items() if not v.get("full")], key=lambda kv: -((kv[1].get("e") or [0] * 11)[10] or 0))
+    n = 0
+    for k, v in lite:
+        if room <= 0: break
+        if v["t"] in st.queue: continue
+        e = v.get("e") or [0] * 11
+        st.queue[v["t"]] = {"q": None, "n": e[10] or 0, "y": None, "th": "", "kd": "", "s": "upgrade", "p": 900 + (e[10] or 0), "tr": 0}
+        room -= 9000; n += 1
+    if n: log(f"용량이 남아 요약판 {n:,}편을 전문으로 다시 받을 차례에")
+
+
 def relations(ent, L):
     out = {}
     for key, p in REL_PROPS:
@@ -810,8 +825,9 @@ def process_batch(batch, st, C, L, CL, budget_left):
     try: pages, back = fetch_batch(titles); good(st, "fetch/kowiki")
     except Exception as e:
         bad(st, "fetch/kowiki", e)
-        for t in titles: st.queue[t]["tr"] = st.queue[t].get("tr", 0) + 1
-        time.sleep(10); return 0, 0
+        for t in titles:
+            if t in st.queue: st.queue[t]["tr"] = st.queue[t].get("tr", 0) + 1
+        time.sleep(10); return 0, budget_left
     handled, rows = set(), []
     def done(asked, why=None):
         handled.add(asked)
@@ -828,7 +844,7 @@ def process_batch(batch, st, C, L, CL, budget_left):
             if not h or h["tr"] >= 3: done(asked, "본문 못 받음")
             continue
         pid = str(p["pageid"]); rev = p["revisions"][0]["revid"]; hint = hints.get(asked) or {}
-        if pid in st.pages and st.pages[pid]["rev"] == rev and hint.get("s") != "update": done(asked); st.queue.pop(t, None); continue   # 넘겨주기로 이미 받은 글
+        if pid in st.pages and st.pages[pid]["rev"] == rev and hint.get("s") not in ("update", "upgrade"): done(asked); st.queue.pop(t, None); continue   # 넘겨주기로 이미 받은 글
         if "disambiguation" in (p.get("pageprops") or {}): done(asked, "동음이의"); continue
         wt = p["revisions"][0]["slots"]["main"]["content"]
         if re.match(r"\s*#(REDIRECT|넘겨주기)", wt, re.I): done(asked, "넘겨주기"); continue
@@ -856,7 +872,7 @@ def process_batch(batch, st, C, L, CL, budget_left):
         r["kind"] = kind; r["ent"] = e; keep.append(r)
     if not keep:
         for t in handled: st.queue.pop(t, None)
-        return 0, 0
+        return 0, budget_left
     leads = fetch_leads([r["title"] for r in keep])
     where, lab = [], []
     for r in keep:
@@ -876,7 +892,7 @@ def process_batch(batch, st, C, L, CL, budget_left):
         nlinks = len(e.get("sitelinks") or {}) or hint.get("n") or 0
         en = ((e.get("sitelinks") or {}).get("enwiki") or {}).get("title")
         pid = r["pid"]; old = st.pages.get(pid) or {}
-        full = budget_left > 0 or old.get("full", False)
+        full = budget_left > 0 or (old.get("full", False) and hint.get("s") != "upgrade")
         secs, cut = cap_sections(lead, r["secs"], FULL_CHARS) if full else ([], bool(r["secs"]))
         one = first_sentence(lead)
         doc = {"id": "k" + pid, "qid": r["qid"], "title": r["title"], "en": en, "desc": info["desc"], "k": info["k"], "y": info["y"], "y2": info["y2"], "ya": info["ya"], "md": info["md"],
@@ -1133,6 +1149,7 @@ def main():
     if gone: log(f"표에서 뺀 종류의 받을 차례 {len(gone):,}편 버림")
     cp = Checkpoint(st, C, L)
     retheme_people(st)
+    upgrade_lite(st)
     if INDEX_ONLY: build_index(st, C, rj(ST / "days_raw.json", {})); return
     try:
         CL = closure(st)
