@@ -240,8 +240,9 @@ def seed_due(st, key, days=None):
 
 def closure(st):
     """종류의 하위 종류 전부 (P279*) → {하위종류: 뿌리} · 막을 종류 · 뺄 직업. 30일에 한 번 새로."""
+    sig = __import__("hashlib").md5(repr([(q, d) for q, _, _, _, d in T.SEED_CLASSES] + sorted(T.CLASS_BLOCK)).encode()).hexdigest()[:12]
     c = rj(ST / "closure.json", None)
-    if c and not seed_due(st, "closure", 30) and c.get("cls"): return c
+    if c and c.get("sig") == sig and not seed_due(st, "closure", 30) and c.get("cls"): return c
     log("하위 종류 표 만들기 (P279*)…")
     cls, sizes = {}, {}
     for qid, memo, th, kd, deep in T.SEED_CLASSES:
@@ -263,7 +264,7 @@ def closure(st):
         return sorted(out)
     block = clos(sorted(T.CLASS_BLOCK)); occ = clos(sorted(T.OCC_SKIP_ROOTS)); keep = clos(sorted(T.OCC_KEEP))
     for b in block: cls.pop(b, None)
-    c = {"cls": cls, "block": block, "occ_skip": [o for o in occ if o not in set(keep)], "occ_keep": keep}
+    c = {"sig": sig, "cls": cls, "block": block, "occ_skip": [o for o in occ if o not in set(keep)], "occ_keep": keep}
     wj(ST / "closure.json", c); st.seeds["closure"] = now_iso()
     log(f"  하위 종류 {len(cls):,}개 · 막을 종류 {len(block):,} · 뺄 직업 {len(c['occ_skip']):,}")
     return c
@@ -659,6 +660,7 @@ REL_PROPS = (("prev", "P155"), ("next", "P156"), ("part", "P361"), ("people", "P
 def judge(page, ent, hint, CL):
     """이 글이 역사 글인가? → (kind 또는 None, 뺀 이유)"""
     p31 = cv(ent, "P31") if ent else []
+    if any(x in T.PLACE_CLASSES for x in p31) and not any(x in CL["cls"] for x in p31): return None, "도시·마을·지금 나라"
     blk = set(CL["block"])
     if p31 and any(x in blk for x in p31) and not any(x in CL["cls"] for x in p31): return None, "운동경기·선거·행사"
     if "Q5" in p31:
@@ -1100,6 +1102,10 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True); ST.mkdir(parents=True, exist_ok=True); PAGES.mkdir(exist_ok=True)
     st = State(); C, L = Countries(), Labels()
     log(f"시작: 받은 글 {len(st.pages):,} · 받을 차례 {len(st.queue):,} · 뺀 글 {len(st.skip):,} · 글 용량 {st.bytes_used() / 1048576:.0f}/{BUDGET_MB:.0f}MB · 한도 {MAX_PAGES:,}편/{MAX_MIN:.0f}분")
+    memos = {"class:" + m for _, m, _, _, _ in T.SEED_CLASSES}            # 표에서 뺀 종류로 들어온 받을 차례는 버림
+    gone = [t for t, h in st.queue.items() if h.get("s", "").startswith("class:") and h["s"] not in memos]
+    for t in gone: st.queue.pop(t, None)
+    if gone: log(f"표에서 뺀 종류의 받을 차례 {len(gone):,}편 버림")
     cp = Checkpoint(st, C, L)
     if INDEX_ONLY: build_index(st, C, rj(ST / "days_raw.json", {})); return
     try:
