@@ -1,0 +1,41 @@
+name: 시사 자판기 로봇 (3시간마다)
+
+on:
+  schedule:
+    - cron: "10 */3 * * *"      # UTC 기준 3시간마다 → 한국시간 00·03·06·09·12·15·18·21시 10분쯤
+  workflow_dispatch:            # Actions 탭에서 "Run workflow" 버튼으로 수동 실행
+
+concurrency:
+  group: data-sisa
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 라이브러리 설치
+        run: pip install -q feedparser pyyaml requests
+      - name: 수집·번역·판 만들기
+        env:
+          DEEPL_API_KEY: ${{ secrets.DEEPL_API_KEY }}
+          GOOGLE_TRANSLATE_API_KEY: ${{ secrets.GOOGLE_TRANSLATE_API_KEY }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
+        run: python robot/sisa_run.py
+      - name: 저장소에 올리기
+        run: |
+          git config user.name "sisa-robot"
+          git config user.email "robot@users.noreply.github.com"
+          git add data/sisa
+          git diff --cached --quiet && echo "변경 없음" && exit 0
+          git commit -m "시사: $(TZ=Asia/Seoul date '+%m월 %d일 %H시판') 자동 수집"
+          for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 10; done
