@@ -1,0 +1,518 @@
+<!doctype html><html lang="ko" class="ap ap-history"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>window.VFM_APP="history";</script>
+<script src="../assets/claude-shim.js"></script>
+<link rel="manifest" href="../manifest.webmanifest"><meta name="theme-color" content="#F2F2F7"><link rel="apple-touch-icon" href="../assets/icon-192.png">
+<title>역사 자판기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../assets/apple.css">
+<style>
+/* 역사 탭 — 로봇이 위키백과에서 긁어 온 역사 글 수만 편. 오늘 · 탐색 · 뒤편 · 서재. 읽기는 짧게 → 자세히 → 깊게.
+   자료는 조각으로 나뉘어 있어 필요한 것만 불러옴 (data/history/_index.json 의 설명 참고). */
+:root{--bg:#F2F2F7;--surface:#fff;--sunk:#E9E9EE;--ink:#000;--muted:#6E6E73;--line:#E5E5EA;--accent:#7F6545;--accent-ink:#fff;--accent-soft:#EFE7DC;
+  --coin:#C24E00;--coin-soft:#FBE9D6;--back:#5856D6;--back-soft:#E7E6FA;--fs:1;--r:14px;--nav-h:58px;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--surface:#1C1C1E;--sunk:#2C2C2E;--ink:#fff;--muted:#98989F;--line:#38383A;--accent:#C8A87E;--accent-ink:#1C1C1E;--accent-soft:#3A3024;
+  --coin:#FFB340;--coin-soft:#3A2E17;--back:#A5A4F5;--back-soft:#2B2A4A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#000;--surface:#1C1C1E;--sunk:#2C2C2E;--ink:#fff;--muted:#98989F;--line:#38383A;--accent:#C8A87E;--accent-ink:#1C1C1E;--accent-soft:#3A3024;--coin:#FFB340;--coin-soft:#3A2E17;--back:#A5A4F5;--back-soft:#2B2A4A;color-scheme:dark}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--ap-font,system-ui);font-size:calc(15px*var(--fs));line-height:1.6;word-break:keep-all;overflow-wrap:break-word;
+  padding:0 max(14px,env(safe-area-inset-right,0px)) calc(var(--nav-h) + 24px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
+[hidden]{display:none!important}button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}a{color:var(--accent)}
+.wrap{max-width:660px;margin:0 auto}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding:14px 2px 6px}
+.lt{margin:0;font:800 34px/1.15 var(--ap-display);letter-spacing:-.03em}
+.top .r{display:flex;gap:6px}
+.ib{width:36px;height:36px;border-radius:50%;border:0;background:var(--ap-fill);color:var(--accent);display:grid;place-items:center;font-size:17px;font-weight:600}
+h2.sec{font:700 20px/1.25 var(--ap-display);letter-spacing:-.02em;margin:26px 2px 10px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+h2.sec small{font:400 13px var(--ap-font);color:var(--muted);letter-spacing:0;flex:1}h2.sec button{background:none;border:0;color:var(--accent);font:600 14px var(--ap-font);padding:0;flex:none}
+.note{font-size:13px;color:var(--muted);margin:0 2px 8px}.health{font-size:13px;color:var(--coin);margin:6px 2px}
+.card{display:block;width:100%;text-align:left;background:var(--surface);border:0;border-radius:var(--r);padding:14px 16px;margin:0 0 10px;position:relative;transition:transform .12s}.card:active{transform:scale(.985)}
+.card.read{opacity:.5}.card.star{box-shadow:inset 0 0 0 1.5px var(--ap-orange)}
+.card .t{font-weight:650;letter-spacing:-.015em;font-size:calc(15.5px*var(--fs));line-height:1.45;margin:0 0 4px}
+.card .one{font-size:calc(13.5px*var(--fs));color:var(--muted);margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.meta{display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;font-size:12px;color:var(--muted)}
+.bd{display:inline-block;padding:2px 7px;border-radius:6px;font-weight:600;font-size:11.5px;background:var(--sunk)}
+.bd.th{background:var(--accent-soft);color:var(--accent)}.bd.yr{background:transparent;padding:0;color:var(--ink);font-variant-numeric:tabular-nums}.bd.bk{background:var(--back-soft);color:var(--back)}.bd.pr{background:var(--coin-soft);color:var(--coin)}.bd.kd{background:transparent;padding:0}
+.tag{background:var(--sunk);padding:1px 7px;border-radius:6px;font-size:11.5px}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.btn{font-size:15px;font-weight:600;padding:11px 18px;border-radius:12px;border:0;background:var(--ap-fill);color:var(--accent);text-decoration:none;display:inline-block}
+.btn.pri{background:var(--accent);color:var(--accent-ink)}.btn.sm{padding:8px 13px;font-size:14px;border-radius:10px}.more{width:100%;margin:6px 0 0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.chips.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:6px -14px;padding:0 14px}.chips.scroll::-webkit-scrollbar{display:none}
+.chips button{flex:0 0 auto;padding:7px 13px;border-radius:999px;border:0;background:var(--ap-fill);font-size:14px;color:var(--ink)}.chips button small{color:var(--muted);font-size:12px}
+.chips button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}.chips button.on small{color:inherit;opacity:.8}
+.lbl{font-size:13px;color:var(--muted);margin:14px 2px 0;font-weight:600}
+.today{background:var(--surface);border-radius:var(--r);padding:14px 16px;margin:0 0 10px}
+.today .d{font-size:13px;color:var(--accent);font-weight:700;margin:0}
+.today ul{list-style:none;margin:6px 0 0;padding:0}.today li{padding:8px 0;border-top:.5px solid var(--ap-sep);font-size:calc(14.5px*var(--fs));display:flex;gap:10px}.today li:first-child{border:0}
+.today li b{font-weight:600;color:var(--muted);font-size:13px;min-width:56px;font-variant-numeric:tabular-nums}.today li a,.today li button{background:none;border:0;padding:0;text-align:left;color:var(--ink);text-decoration:none;font:inherit}
+.today li button.has{color:var(--accent);font-weight:600}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0}.tiles button{border:0;background:var(--surface);border-radius:12px;padding:10px 4px;display:grid;gap:2px;font-size:13px;font-weight:600;line-height:1.25}
+.tiles button small{font-weight:400;color:var(--muted);font-size:11px}.tiles button.on{background:var(--accent);color:var(--accent-ink)}.tiles button.on small{color:inherit}
+.list{background:var(--surface);border-radius:var(--r);padding:0 16px}
+.list .li{display:block;width:100%;text-align:left;padding:11px 0;border:0;border-bottom:.5px solid var(--ap-sep);background:none;color:inherit;text-decoration:none}.list .li:last-child{border-bottom:0}
+.list .li .t{font-weight:500;margin:0 0 2px;font-size:calc(14.5px*var(--fs))}.list .li .s{font-size:12.5px;color:var(--muted)}.list .li.read{opacity:.5}
+.yrhead{font-size:13px;color:var(--accent);font-weight:700;margin:14px 2px 4px}
+.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0}.stat div{background:var(--surface);border-radius:12px;padding:10px;text-align:center}.stat b{display:block;font:700 20px var(--ap-display);font-variant-numeric:tabular-nums}.stat small{color:var(--muted);font-size:12px}
+.search{width:100%;padding:11px 14px;border-radius:10px;border:0;background:var(--ap-fill);color:inherit;font:inherit;font-size:16px;margin:8px 0}
+.empty{text-align:center;color:var(--muted);padding:40px 0;font-size:14px}.sub{font-size:13px;color:var(--muted)}
+.bar{height:6px;background:var(--sunk);border-radius:3px;overflow:hidden;margin:4px 0 10px}.bar i{display:block;height:100%;background:var(--accent)}
+/* 읽기 */
+.read-top{display:flex;align-items:center;gap:8px;padding:8px 14px 6px;position:sticky;top:0;background:var(--ap-bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);z-index:5;margin:0 -14px}
+.read-top .sp{flex:1}
+h1.title{font:800 calc(26px*var(--fs))/1.25 var(--ap-display);letter-spacing:-.025em;margin:12px 0 4px}
+.title-en{font-size:13.5px;color:var(--muted);margin:0 0 8px}
+.hero{width:100%;max-height:280px;object-fit:cover;border-radius:12px;margin:10px 0 4px;background:var(--sunk)}
+.depth{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--ap-fill);border-radius:10px;padding:2px;margin:14px 0}
+.depth button{border:0;background:none;padding:7px;border-radius:8px;font-size:14px;font-weight:500}.depth button.on{background:var(--ap-seg-on);font-weight:600;box-shadow:0 3px 8px rgba(0,0,0,.12),0 1px 1px rgba(0,0,0,.04)}
+.lead{font-size:calc(17px*var(--fs));line-height:1.9;margin:12px 0;white-space:pre-wrap}
+.one{font-size:calc(16px*var(--fs));line-height:1.7;background:var(--accent-soft);border-radius:12px;padding:12px 14px;margin:10px 0}
+.secs h3{font:700 calc(18px*var(--fs))/1.35 var(--ap-display);margin:22px 0 6px}.secs h4{font-size:calc(15.5px*var(--fs));margin:16px 0 4px;color:var(--muted)}.secs p{font-size:calc(16.5px*var(--fs));line-height:1.85;margin:0 0 10px;white-space:pre-wrap}
+.secs details{background:var(--surface);border-radius:12px;margin:0 0 8px;padding:0 14px}.secs details summary{list-style:none;cursor:pointer;padding:12px 0;font-weight:600;font-size:calc(15.5px*var(--fs));display:flex;justify-content:space-between;gap:8px}
+.secs details summary::-webkit-details-marker{display:none}.secs details summary::after{content:"›";color:var(--ap-label3);font-size:20px;transform:rotate(90deg);flex:none}.secs details[open] summary::after{transform:rotate(-90deg)}.secs details summary small{color:var(--muted);font-weight:400;font-size:12px;margin-left:auto;padding-right:8px}
+.secs details p{padding-bottom:4px}
+.rel{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}.rel button{text-align:left;padding:12px 14px;border-radius:12px;border:0;background:var(--surface);font-size:14px;font-weight:600}
+.rel button small{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rel button[disabled]{opacity:.45}
+.src{font-size:12.5px;color:var(--muted);border-top:.5px solid var(--ap-sep);padding:12px 0;margin-top:18px}
+.memo{width:100%;min-height:90px;border:0;border-radius:12px;background:var(--surface);color:inherit;font:inherit;padding:10px;resize:vertical}
+.rbar{position:fixed;left:0;right:0;bottom:0;background:var(--ap-bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--ap-sep);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));display:flex;gap:6px;justify-content:space-around;z-index:6}
+.rbar button{flex:1;border:0;background:none;display:grid;justify-items:center;gap:2px;font-size:10.5px;font-weight:500;color:var(--accent);padding:4px 0}.rbar button b{font-size:21px;font-weight:400}.rbar button.on{color:var(--ap-orange)}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);display:flex;z-index:6}
+nav.tabs button{flex:1;border:0;background:none;display:grid;justify-items:center;align-content:center;gap:1px}
+nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
+.back{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9500;display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:560px;max-height:84vh;overflow:auto;background:var(--bg);border-radius:14px 14px 0 0;padding:14px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.sheet h3{margin:0 0 4px;font:700 20px var(--ap-display)}.sheet .k{font-size:13px;color:var(--muted);margin:0 0 10px}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.acts button{padding:12px;border-radius:12px;border:0;background:var(--surface);font-size:14px;font-weight:600;text-align:left}.acts button small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.wiki{background:var(--surface);border-radius:12px;padding:10px 12px;font-size:14px;margin:8px 0}
+.selbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);border:0;border-radius:999px;padding:9px 16px;font-size:14px;font-weight:600;z-index:9400;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(30,30,30,.92);color:#fff;padding:9px 15px;border-radius:14px;font-size:13.5px;z-index:9600}
+.live{font-size:13px;color:var(--muted);background:var(--surface);border-radius:12px;padding:10px 14px;margin:8px 0}
+</style></head><body>
+<div class="wrap" id="app"></div>
+<nav class="tabs" id="tabs">
+  <button data-v="today" aria-current="page"><b>☀︎</b>오늘</button>
+  <button data-v="explore"><b>◎</b>탐색</button>
+  <button data-v="back"><b>◑</b>뒤편</button>
+  <button data-v="shelf"><b>☆</b>서재</button>
+</nav>
+<script>
+"use strict";
+/* ───── 저장 (폰 브라우저). 키 vfm:history:* → 자판기 공통 내보내기에 포함 ───── */
+const LS = { g(k, d) { try { const v = localStorage.getItem("vfm:history:" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+             s(k, v) { try { localStorage.setItem("vfm:history:" + k, JSON.stringify(v)); } catch (e) { toast("저장 공간이 꽉 찼어요"); } } };
+const S = { idx: null, top: null, cache: {}, buckets: {}, page: null, depth: LS.g("depth", "short"), recent: LS.g("recent", []),
+  cfg: LS.g("cfg", { fs: 1, pics: true, hideRead: false }), star: LS.g("star", {}), memo: LS.g("memo", {}), tags: LS.g("tags", {}), tagdefs: LS.g("tagdefs", ["다시 읽기", "상식", "아이들에게", "재밌음"]),
+  read: LS.g("read", {}), hide: LS.g("hide", {}), tmemo: LS.g("tmemo", {}), words: LS.g("words", {}), live: {} };
+function save(k) { LS.s(k, S[k]); }
+document.documentElement.style.setProperty("--fs", S.cfg.fs || 1);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function toast(m) { const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); }
+async function getJ(p) { if (S.cache[p]) return S.cache[p]; const r = await fetch("../data/history/" + p, { cache: "no-cache" }); if (!r.ok) throw new Error(p); const j = await r.json(); if (!p.startsWith("pages/")) S.cache[p] = j; return j; }
+const KIND = { p: "인물", e: "사건", s: "나라·왕조", t: "시대", l: "전설·설", o: "기타" };
+const yr = y => y == null ? "" : y < 0 ? `기원전 ${-y}` : `${y}`;
+const span = e => e.y == null ? "연도 미상" : e.y2 != null && e.y2 !== e.y ? `${yr(e.y)}~${yr(e.y2)}` : yr(e.y);
+const cko = c => ((S.idx || {}).countryKo || {})[c] || c;
+const regName = rc => (S.regMap || {})[rc] || "";
+const themeName = h => h >= 0 ? (S.idx.themes || [])[h] || "" : "";
+const eraName = e => e >= 0 ? (S.idx.eras || [])[e] || "" : "";
+const eraShort = e => e >= 0 ? (S.idx.eraShort || [])[e] || "" : "";
+const todayKey = () => { const d = new Date(); return String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+const seed = () => Math.floor(Date.now() / 864e5);
+function pick(list, n, salt) { if (!list.length) return []; const s = seed() + (salt || 0); const out = []; for (let i = 0; i < Math.min(n, list.length); i++) out.push(list[(s * 7 + i * 13) % list.length]); return [...new Set(out)]; }
+/* 색인 한 줄(배열) → 글 정보. 칸 순서는 _index.json 의 cols */
+const E = a => ({ i: a[0], t: a[1], y: a[2], y2: a[3], e: a[4], r: a[5], c: a[6] || [], h: a[7], k: a[8], g: a[9] || "", n: a[10] || 0, v: a[11] || 0, m: a[12], md: a[13], o: a[14] || "", ya: a[15] });
+const pagePath = id => { const pid = id.slice(1); return `pages/${pid.slice(0, 2).padStart(2, "0")}/${id}.json`; };
+
+/* ───── 자료 불러오기 (조각) ───── */
+async function loadIndex() { S.idx = await getJ("_index.json"); S.top = await getJ("top.json"); S.regMap = Object.fromEntries(S.idx.regions || []); }
+async function rows(p) { try { return (await getJ(p)).map(E); } catch (e) { return []; } }
+const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ", CHO_M = { "ㄲ": "ㄱ", "ㄸ": "ㄷ", "ㅃ": "ㅂ", "ㅆ": "ㅅ", "ㅉ": "ㅈ" }, CHO14 = "ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎ";
+function sbucket(t) { const ch = (t || "?")[0]; const code = ch.charCodeAt(0);
+  if (code >= 0xAC00 && code <= 0xD7A3) { const c = CHO[Math.floor((code - 0xAC00) / 588)]; return "h" + CHO14.indexOf(CHO_M[c] || c); }
+  if (/[A-Za-z]/.test(ch)) return "a" + ch.toLowerCase(); if (/[0-9]/.test(ch)) return "d"; return "x"; }
+async function bucket(b) { if (!S.buckets[b]) { try { const l = await getJ("s/" + b + ".json"); S.buckets[b] = { list: l, map: new Map(l.map(x => [x[0], x])) }; } catch (e) { S.buckets[b] = { list: [], map: new Map() }; } } return S.buckets[b]; }
+async function idOf(title) { if (!title) return null; const b = await bucket(sbucket(title)); const x = b.map.get(title); return x ? x[1] : null; }
+const sRow = x => ({ i: x[1], t: x[0], y: x[2], k: x[3], r: x[4], c: [], g: "", h: -1, e: -1, n: 0 });
+function dbucket(y) { if (y == null) return null; if (y >= 1500) return String(Math.floor(y / 10) * 10); if (y >= 0) return String(Math.floor(y / 50) * 50); return String(-Math.ceil(-y / 100) * 100); }
+function findLocal(id) { for (const l of [S.top.all, S.top.recent, S.top.back, S.top.pron, S.top.korea, ...Object.values(S.top.region || {})]) { const x = (l || []).find(a => a[0] === id); if (x) return E(x); } const r = S.recent.find(e => e.i === id); return r || (S.star[id] || {}).item || null; }
+
+/* ───── 카드·줄 ───── */
+function badges(e) {
+  return `${e.y != null ? `<span class="bd yr">${span(e)}</span>` : ""}${e.e >= 0 ? `<span class="bd">${esc(eraShort(e.e))}</span>` : ""}${e.r && e.r !== "xx" ? `<span class="bd">${esc(regName(e.r))}${e.c && e.c.length ? " · " + esc(cko(e.c[0])) : ""}</span>` : ""}${e.h >= 0 ? `<span class="bd th">${esc(themeName(e.h))}</span>` : ""}
+    ${e.g.includes("B") ? '<span class="bd bk">야사</span>' : ""}${e.g.includes("P") ? '<span class="bd pr">대명사</span>' : ""}<span class="bd kd">${KIND[e.k] || ""}</span>${(S.tags[e.i] || []).map(t => `<span class="tag">${esc(t)}</span>`).join("")}${S.star[e.i] ? '<span class="bd pr">★</span>' : ""}`;
+}
+function card(e) { return `<button type="button" class="card${S.read[e.i] ? " read" : ""}${S.star[e.i] ? " star" : ""}" data-open="${esc(e.i)}"><p class="t">${esc(e.t)}</p>${e.o ? `<p class="one">${esc(e.o)}</p>` : ""}<div class="meta">${badges(e)}</div></button>`; }
+function liRow(e) { return `<button class="li${S.read[e.i] ? " read" : ""}" data-open="${esc(e.i)}"><p class="t">${esc(e.t)}${S.star[e.i] ? " ★" : ""}</p><p class="s">${[e.y != null ? span(e) : "", e.r && e.r !== "xx" ? regName(e.r) : "", e.c && e.c[0] ? cko(e.c[0]) : "", e.h >= 0 ? themeName(e.h) : "", KIND[e.k] || ""].filter(Boolean).map(esc).join(" · ")}</p></button>`; }
+const notHidden = l => l.filter(e => !S.hide[e.i]);
+const notRead = l => l.filter(e => !S.read[e.i] && !S.hide[e.i]);
+const ICON = { search: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></svg>',
+  cfg: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>' };
+function head(title, extra) { return `<div class="top"><h1 class="lt">${title}</h1><div class="r">${extra || ""}<button class="ib" data-act="search" aria-label="찾기">${ICON.search}</button><button class="ib" data-act="cfg" aria-label="역사 탭 설정">${ICON.cfg}</button></div></div>`; }
+
+/* ───── 화면: 오늘 ───── */
+async function renderToday() {
+  const app = document.getElementById("app"); const c = S.idx.counts || {}; const key = todayKey(); const now = new Date().getFullYear();
+  let days = []; try { days = await getJ("days/" + key + ".json"); } catch (e) { }
+  const rowsD = days.slice().sort((a, b) => (b.id ? 1 : 0) - (a.id ? 1 : 0) || Math.abs(now - 100 - a.y) - Math.abs(now - 100 - b.y));
+  const hundred = days.find(r => r.y === now - 100);
+  const li = r => `<li><b>${yr(r.y)}</b>${r.id ? `<button class="has" data-open="${r.id}">${esc(r.t)}</button>` : `<span>${esc(r.t)}</span>`}</li>`;
+  const todayHtml = days.length ? `<div class="today"><p class="d">${+key.slice(0, 2)}월 ${+key.slice(3)}일, 역사 속 오늘${hundred ? ` · 100년 전 오늘: ${esc(hundred.t.slice(0, 30))}` : ""}</p><ul>${rowsD.slice(0, 7).map(li).join("")}</ul>${days.length > 7 ? `<details><summary class="sub" style="cursor:pointer;padding:8px 0;color:var(--accent);font-weight:600">${days.length - 7}건 더 (연도순)</summary><ul>${days.map(li).join("")}</ul></details>` : ""}</div>` : "";
+  const all = (S.top.all || []).map(E);
+  const rec = pick(notRead(all).slice(0, 200), 8, 1);
+  const world = Object.entries(S.top.region || {}).filter(([r]) => r !== "xx").map(([r, l], i) => { const cand = notRead(l.map(E)); return cand.length ? cand[(seed() + i) % cand.length] : null; }).filter(Boolean);
+  const korea = pick(notRead((S.top.korea || []).map(E)), 3, 4);
+  const back = pick(notRead((S.top.back || []).map(E)), 4, 2), pron = pick((S.top.pron || []).map(E), 12, 3);
+  const broken = Object.keys(S.idx.broken || {});
+  app.innerHTML = head("역사") + `
+    ${broken.length ? `<p class="health">3번 넘게 실패한 출처: ${esc(broken.slice(0, 4).join(", "))} — 클로드에게 '역사 출처 고쳐줘'</p>` : ""}
+    ${todayHtml}
+    <div class="stat"><div><b>${(c.total || 0).toLocaleString()}</b><small>편</small></div><div><b>${Object.keys(c.country || {}).length.toLocaleString()}</b><small>나라</small></div><div><b>${Object.keys(S.read).length.toLocaleString()}</b><small>읽음</small></div></div>
+    ${S.recent.length ? `<h2 class="sec">이어서 읽기 <small>마지막에 읽은 글과 같은 시기, 다른 나라</small></h2><div id="nearBox"><p class="note">찾는 중…</p></div>` : ""}
+    <h2 class="sec">추천 <small>여러 나라 말로 많이 쓰인 글 · 날마다 바뀜</small></h2>${rec.map(card).join("") || '<p class="empty">아직 없어요</p>'}
+    <h2 class="sec">세계 한 바퀴 <small>권역마다 하나씩</small></h2>${world.map(card).join("")}
+    ${korea.length ? `<h2 class="sec">우리 역사 <small>한국사</small><button data-goc="KR">모두</button></h2>${korea.map(card).join("")}` : ""}
+    <h2 class="sec">역사 뒤편 <small>전설·설·미스터리가 섞인 글</small><button data-v="back">모두</button></h2>${back.map(card).join("") || '<p class="note">아직 없어요.</p>'}
+    <h2 class="sec">대명사 역사 <small>말로 쓰이는 사건·인물</small></h2><div class="chips">${pron.map(e => `<button data-open="${e.i}" class="${S.read[e.i] ? "" : "on"}">${esc(e.t)}</button>`).join("")}</div>
+    <h2 class="sec">새로 들어온 글 <small>로봇이 최근에 받은 것</small></h2><div class="list">${(S.top.recent || []).slice(0, 8).map(E).map(liRow).join("")}</div>
+    <p class="note" style="margin-top:16px">${esc(S.idx.license || "")} · 마지막 갱신 ${esc((S.idx.at || "").slice(0, 16).replace("T", " "))}${S.idx.queue ? ` · 받을 차례 ${S.idx.queue.toLocaleString()}편` : ""}</p>`;
+  if (S.recent.length) { const e = S.recent[0]; const near = await sameTime(e, 5); const box = document.getElementById("nearBox"); if (box) box.innerHTML = near.length ? `<p class="lbl" style="margin-top:0">${esc(e.t)} (${span(e)}) 무렵</p>${near.map(card).join("")}` : `<p class="note">${esc(e.t)}와 같은 시기의 다른 나라 글이 아직 없어요.</p>`; }
+}
+async function sameTime(e, n) {
+  const y = e.ya != null ? e.ya : e.y; if (y == null) return [];
+  const b = dbucket(y); if (!b) return [];
+  const decs = S.idx.decades || []; const i = decs.indexOf(b); const bs = [b, decs[i - 1], decs[i + 1]].filter(Boolean);
+  let l = []; for (const x of bs) l = l.concat(await rows("dec/" + x + ".json"));
+  const w = Math.abs(y) > 1500 ? 6 : Math.abs(y) > 500 ? 30 : 80;
+  l = l.filter(x => x.i !== e.i && (x.ya ?? x.y) != null && Math.abs((x.ya ?? x.y) - y) <= w && (x.c[0] !== (e.c || [])[0]) && !S.hide[x.i]).sort((a, b) => b.n - a.n);
+  const seen = new Set(), res = [];
+  for (const x of l) { const k = x.r + (x.c[0] || ""); if (seen.has(k) && res.length < n - 1) continue; seen.add(k); res.push(x); if (res.length >= n) break; }
+  return res;
+}
+
+/* ───── 화면: 탐색 ───── */
+const F = { region: "", country: "", era: -2, theme: -2, kind: "", tag: "", sort: "fame", q: "", shown: 0, timeline: false, all: false };
+let exploreList = [], exploreKey = "";
+async function sourceList() {
+  const key = [F.region, F.country, F.era, F.theme, F.tag].join("|"); if (key === exploreKey) return exploreList;
+  const sh = S.idx.shards || {}; let l = [];
+  if (F.country) l = await rows("cty/" + F.country + ".json");
+  else if (F.region || F.era >= -1) {
+    const ks = Object.keys(sh).filter(k => { const [r, e] = k.split("-"); return (!F.region || r === F.region) && (F.era < -1 || e === (F.era === -1 ? "n" : String(F.era))); });
+    for (const k of ks) l = l.concat(await rows("idx/" + k + ".json"));
+  } else if (F.theme >= 0) l = await rows("th/" + F.theme + ".json");
+  else if (F.tag) l = await rows("tag/" + F.tag + ".json");
+  else l = (S.top.all || []).map(E);
+  exploreKey = key; exploreList = l; return l;
+}
+async function renderExplore() {
+  const app = document.getElementById("app"); const c = S.idx.counts || {};
+  const regs = (S.idx.regions || []).filter(([k]) => (c.region || {})[k]);
+  app.innerHTML = head("탐색") + `<input class="search" id="xq" type="search" value="${esc(F.q)}" placeholder="제목으로 찾기 (전체 ${(c.total || 0).toLocaleString()}편)">
+    <div id="qres"></div>
+    <p class="lbl">어디</p><div class="tiles">${regs.map(([k, n]) => `<button data-f="region" data-val="${k}" class="${F.region === k ? "on" : ""}">${esc(n)}<small>${(c.region[k] || 0).toLocaleString()}</small></button>`).join("")}</div>
+    <div class="chips scroll" id="cbox"></div>
+    <p class="lbl">언제</p><div class="chips scroll">${(S.idx.eras || []).map((n, i) => `<button data-f="era" data-val="${i}" class="${F.era === i ? "on" : ""}">${esc(n)} <small>${((c.era || {})[i] || 0).toLocaleString()}</small></button>`).join("")}<button data-f="era" data-val="-1" class="${F.era === -1 ? "on" : ""}">연도 미상</button></div>
+    <p class="lbl">무슨 이야기</p><div class="chips scroll">${(S.idx.themes || []).map((t, i) => `<button data-f="theme" data-val="${i}" class="${F.theme === i ? "on" : ""}">${esc(t)} <small>${((c.theme || {})[i] || 0).toLocaleString()}</small></button>`).join("")}</div>
+    <div class="chips scroll">${Object.entries(KIND).map(([k, n]) => `<button data-f="kind" data-val="${k}" class="${F.kind === k ? "on" : ""}">${n}</button>`).join("")}<button data-f="tag" data-val="B" class="${F.tag === "B" ? "on" : ""}">야사만</button><button data-f="tag" data-val="P" class="${F.tag === "P" ? "on" : ""}">대명사만</button></div>
+    <div class="chips scroll"><button data-f="sort" data-val="fame" class="${F.sort === "fame" ? "on" : ""}">유명순</button><button data-f="sort" data-val="year" class="${F.sort === "year" ? "on" : ""}">연도순</button><button data-f="sort" data-val="views" class="${F.sort === "views" ? "on" : ""}">많이 읽힌 순</button><button data-f="timeline" data-val="1" class="${F.timeline ? "on" : ""}">연표로</button><button data-f="reset" data-val="1">지우기</button></div>
+    <div id="xres"><p class="empty">불러오는 중…</p></div>`;
+  const q = document.getElementById("xq"); let tm = null;
+  q.addEventListener("input", ev => { clearTimeout(tm); tm = setTimeout(() => { F.q = ev.target.value.trim(); F.all = false; runSearch(); }, 250); });
+  if (F.q) runSearch();
+  await runExplore();
+}
+async function runSearch() {
+  const box = document.getElementById("qres"); if (!box) return; const q = F.q;
+  if (!q) { box.innerHTML = ""; return; }
+  box.innerHTML = '<p class="note">찾는 중…</p>';
+  let hits = [];
+  const b = await bucket(sbucket(q)); hits = b.list.filter(x => x[0].includes(q));
+  if (F.all) { for (const k of S.idx.searchBuckets || []) { const bb = await bucket(k); if (k !== sbucket(q)) hits = hits.concat(bb.list.filter(x => x[0].includes(q))); } }
+  if (q !== F.q) return;
+  hits.sort((a, b2) => (a[0].startsWith(q) ? 0 : 1) - (b2[0].startsWith(q) ? 0 : 1) || a[0].length - b2[0].length);
+  box.innerHTML = `<p class="note">‘${esc(q)}’ ${F.all ? "전체에서" : `‘${esc(q[0])}’로 시작하는 제목 쪽에서`} ${hits.length.toLocaleString()}편${F.all ? "" : ' · <a href="#" data-act="searchall">제목 가운데에 든 것까지 전부 찾기</a>'}</p>${hits.length ? `<div class="list">${hits.slice(0, 60).map(x => liRow(sRow(x))).join("")}</div>` : ""}`;
+}
+function filtered(l) {
+  if (F.country && F.region) l = l.filter(e => e.r === F.region);
+  if (F.era >= -1 && F.country) l = l.filter(e => e.e === F.era);
+  if (F.theme >= 0) l = l.filter(e => e.h === F.theme);
+  if (F.kind) l = l.filter(e => e.k === F.kind);
+  if (F.tag) l = l.filter(e => e.g.includes(F.tag));
+  if (S.cfg.hideRead) l = l.filter(e => !S.read[e.i]);
+  l = notHidden(l);
+  if (F.sort === "year" || F.timeline) l = l.slice().sort((a, b) => ((a.ya ?? a.y) ?? 99999) - ((b.ya ?? b.y) ?? 99999) || b.n - a.n);
+  else if (F.sort === "views") l = l.slice().sort((a, b) => b.v - a.v || b.n - a.n);
+  else l = l.slice().sort((a, b) => b.n - a.n);
+  return l;
+}
+async function runExplore() {
+  const res = document.getElementById("xres"); if (!res) return;
+  const base = await sourceList(); if (!document.getElementById("xres")) return;
+  const cnt = {}; base.forEach(e => (e.c || []).slice(0, 1).forEach(x => cnt[x] = (cnt[x] || 0) + 1));
+  let cs = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 40);
+  if (!F.region && !F.country) cs = Object.entries((S.idx.counts || {}).country || {}).sort((a, b) => b[1] - a[1]).slice(0, 40);
+  const cbox = document.getElementById("cbox"); if (cbox) cbox.innerHTML = cs.length ? `<button data-f="country" data-val="" class="${F.country ? "" : "on"}">모든 나라</button>` + cs.map(([k, n]) => `<button data-f="country" data-val="${k}" class="${F.country === k ? "on" : ""}">${esc(cko(k))} <small>${n.toLocaleString()}</small></button>`).join("") : "";
+  const l = filtered(base); const chunk = l.slice(0, Math.max(F.shown, 0) + 50); F.shown = chunk.length;
+  let html = "";
+  if (F.timeline) { let last = null; for (const e of chunk) { const y = e.ya ?? e.y; const b = y == null ? "연도 미상" : y < 0 ? `기원전 ${Math.ceil(-y / 100) * 100}년대` : y < 1500 ? `${Math.floor(y / 100)}00년대` : `${Math.floor(y / 10)}0년대`; if (b !== last) { html += `${last !== null ? "</div>" : ""}<p class="yrhead">${b}</p><div class="list">`; last = b; } html += liRow(e); } if (last !== null) html += "</div>"; }
+  else html = chunk.map(card).join("");
+  const scope = !F.region && !F.country && F.era < -1 && F.theme < 0 && !F.tag ? "가장 유명한 400편 중" : F.theme >= 0 && !F.region && !F.country && F.era < -1 ? "이 테마의 상위 2,000편 중" : F.tag && !F.region && !F.country && F.era < -1 ? "상위 3,000편 중" : "";
+  res.innerHTML = `<p class="note" style="margin-top:12px">${scope ? scope + " " : ""}${l.length.toLocaleString()}편${scope ? " — 권역이나 시대를 고르면 전부 볼 수 있어요" : ""}</p>` + (html || '<p class="empty">없어요</p>') + (l.length > chunk.length ? `<button class="btn more" data-act="morex">더 보기 (${chunk.length.toLocaleString()}/${l.length.toLocaleString()})</button>` : "");
+}
+
+/* ───── 화면: 역사 뒤편 ───── */
+let backMode = "B";
+async function renderBack() {
+  const app = document.getElementById("app"); const th = S.idx.themes || [];
+  const modes = [["B", "야사"], ["P", "대명사 역사"], ...["기묘한 사건록", "그림자 전쟁", "사랑과 배신", "믿음과 금기"].map(n => ["t" + th.indexOf(n), n])];
+  app.innerHTML = head("역사 뒤편") + `<p class="note">전설·설·미스터리가 섞인 글(야사), 말로 쓰이는 사건(대명사), 그리고 기묘한 사건·그림자 전쟁·사랑과 배신·믿음과 금기. 야사 꼬리표는 로봇이 분류 이름으로 붙인 것이라 참고용이에요.</p>
+    <div class="chips">${modes.map(([k, n]) => `<button data-bm="${esc(k)}" class="${backMode === k ? "on" : ""}">${n}</button>`).join("")}</div><div id="bres"><p class="empty">불러오는 중…</p></div>`;
+  const l = notHidden(backMode.startsWith("t") ? await rows("th/" + backMode.slice(1) + ".json") : await rows("tag/" + backMode + ".json"));
+  const box = document.getElementById("bres"); if (!box) return;
+  box.innerHTML = `<p class="note">${l.length.toLocaleString()}편 (유명순)</p>` + l.slice(0, 100).map(card).join("") + (l.length > 100 ? `<p class="note">더 보려면 탐색에서 ‘무슨 이야기’나 ‘야사만’을 고르세요.</p>` : "");
+}
+
+/* ───── 화면: 내 서재 ───── */
+let shelfMode = "star";
+function renderShelf() {
+  const app = document.getElementById("app");
+  app.innerHTML = head("서재", '<button class="ib" data-act="export" aria-label="내 기록 내보내기">⤓</button>') + `<div class="chips">${[["star", "별표"], ["memo", "메모"], ["read", "읽은 글"], ["tag", "태그"], ["book", "도감"], ["words", "낱말"]].map(([k, n]) => `<button data-sm="${k}" class="${shelfMode === k ? "on" : ""}">${n}</button>`).join("")}</div><div id="sres"></div>`;
+  const b = document.getElementById("sres");
+  const entry = id => (S.read[id] && S.read[id].e) || (S.star[id] || {}).item || S.recent.find(e => e.i === id) || null;
+  if (shelfMode === "star") { const l = Object.values(S.star).sort((a, b) => b.at - a.at); b.innerHTML = l.length ? l.map(s => card(s.item)).join("") : '<p class="empty">별표한 글이 없어요.</p>'; }
+  else if (shelfMode === "memo") { const ids = Object.keys(S.memo); b.innerHTML = ids.length ? ids.map(id => { const e = entry(id); return `<div class="card"><p class="t">${esc(e ? e.t : id)}</p><p class="one" style="-webkit-line-clamp:6">${esc(S.memo[id])}</p><div class="row"><button class="btn sm" data-open="${esc(id)}">열기</button></div></div>`; }).join("") : '<p class="empty">메모가 없어요.</p>'; }
+  else if (shelfMode === "read") { const ids = Object.entries(S.read).sort((a, b) => (b[1].at || 0) - (a[1].at || 0)).slice(0, 300); b.innerHTML = ids.length ? `<div class="list">${ids.map(([id]) => { const e = entry(id); return e ? liRow(e) : ""; }).join("")}</div>` : '<p class="empty">아직 읽은 글이 없어요.</p>'; }
+  else if (shelfMode === "tag") { const cnt = {}; Object.values(S.tags).flat().forEach(t => cnt[t] = (cnt[t] || 0) + 1); b.innerHTML = `<div class="chips">${S.tagdefs.map(t => `<button data-stag="${esc(t)}" class="${F.stag === t ? "on" : ""}">${esc(t)} ${cnt[t] || 0}</button>`).join("")}</div><div>${F.stag ? Object.entries(S.tags).filter(([, l]) => l.includes(F.stag)).map(([id]) => { const e = entry(id); return e ? card(e) : ""; }).join("") || '<p class="empty">없어요</p>' : '<p class="note">태그를 고르세요.</p>'}</div>`; }
+  else if (shelfMode === "book") { const c = S.idx.counts || {}; const readReg = {}, readC = {}; Object.keys(S.read).forEach(id => { const e = entry(id); if (!e) return; readReg[e.r || "xx"] = (readReg[e.r || "xx"] || 0) + 1; (e.c || []).slice(0, 1).forEach(x => readC[x] = (readC[x] || 0) + 1); });
+    const regs = (S.idx.regions || []).filter(([k]) => (c.region || {})[k]);
+    b.innerHTML = `<p class="note">권역·나라별로 얼마나 읽었는지. 권역마다 50편이 목표예요.</p>${regs.map(([k, n]) => `<div><div style="display:flex;justify-content:space-between;font-size:14px;margin:0 2px"><b>${esc(n)}</b><span class="sub">${readReg[k] || 0} / ${(c.region[k] || 0).toLocaleString()}</span></div><div class="bar"><i style="width:${Math.min(100, 100 * (readReg[k] || 0) / 50)}%"></i></div></div>`).join("")}
+      <p class="lbl">나라별 읽은 수</p><div class="chips">${Object.entries(readC).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<button data-goc="${k}">${esc(cko(k))} ${n}</button>`).join("") || '<span class="sub">아직 없음</span>'}</div>`; }
+  else if (shelfMode === "words") { const l = Object.entries(S.words).sort((a, b) => b[1].at - a[1].at); b.innerHTML = l.length ? l.map(([k, w]) => `<button class="card" data-word="${esc(k)}"><p class="t">${esc(w.w)}</p>${w.wiki ? `<p class="one">${esc(w.wiki.slice(0, 140))}</p>` : ""}${S.tmemo[k] ? `<p class="one"><b>메모:</b> ${esc(S.tmemo[k])}</p>` : ""}<div class="meta"><span>나온 글 ${Object.keys(w.pages || {}).length}편</span></div></button>`).join("") : '<p class="empty">글을 읽다가 낱말을 길게 눌러 저장하면 여기 쌓여요.</p>'; }
+}
+
+/* ───── 위키백과에서 바로 불러오기 (요약판 글·잘린 글의 나머지) ───── */
+async function liveSections(title) {
+  if (S.live[title]) return S.live[title];
+  const u = `https://ko.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&exsectionformat=wiki&redirects=1&format=json&formatversion=2&origin=*&titles=${encodeURIComponent(title)}`;
+  const j = await (await fetch(u)).json(); const txt = (((j.query || {}).pages || [])[0] || {}).extract || "";
+  const parts = txt.split(/\n(={2,})\s*(.+?)\s*\1\n/); const out = [];
+  for (let i = 1; i < parts.length; i += 3) { const h = parts[i + 1], body = (parts[i + 2] || "").trim(); if (/^(각주|외부 링크|같이 보기|참고 문헌|참고 자료|출처|주석)$/.test(h)) continue; if (body.length > 15) out.push({ h, l: parts[i].length, t: body.replace(/\n{2,}/g, "\n") }); }
+  S.live[title] = out; return out;
+}
+
+/* ───── 화면: 읽기 (짧게 → 자세히 → 깊게) ───── */
+const navStack = [];
+function nav(h, isBack) {
+  const cur = location.hash || "#today"; if (h === cur) return route();
+  if (!isBack) { if (h.startsWith("#p=")) { navStack.push({ h: cur, y: scrollY }); if (navStack.length > 40) navStack.shift(); } else navStack.length = 0; }
+  try { history.replaceState(history.state, "", location.pathname + location.search + h); } catch (e) { location.hash = h; return; }
+  route();
+}
+function histBack() {
+  const sh = document.querySelector(".back"); if (sh) { sh.remove(); return true; }
+  if (navStack.length) { const o = navStack.pop(); nav(o.h, true); setTimeout(() => scrollTo(0, o.y), 80); return true; }
+  const h = location.hash || "#today"; if (h !== "#today") { nav("#today", true); return true; }
+  return false;
+}
+function openPage(id) { nav("#p=" + id); }
+function entryOf(p) { return { i: p.id, t: p.title, y: p.y, y2: p.y2, ya: p.ya, e: p.e, r: ({ "동아시아": "ea", "남·동남아시아": "sa", "중동·중앙아시아": "me", "유럽": "eu", "아프리카": "af", "북미": "na", "중남미": "la", "오세아니아": "oc" })[p.r] || "xx", c: p.c || [], h: (S.idx.themes || []).indexOf(p.h), k: ({ person: "p", event: "e", state: "s", period: "t", lore: "l" })[p.k] || "o", g: p.g || "", n: p.n || 0, o: p.one }; }
+async function renderPage(id) {
+  const app = document.getElementById("app"); app.innerHTML = `<div class="read-top"><button class="ib" data-act="back" aria-label="뒤로">‹</button></div><p class="empty">불러오는 중…</p>`;
+  let p; try { p = S.page && S.page.id === id ? S.page : await getJ(pagePath(id)); } catch (e) { app.innerHTML += '<p class="empty">이 글을 못 찾았어요.</p>'; return; }
+  S.page = p; const e = entryOf(p);
+  if (!S.read[id]) { S.read[id] = { at: Date.now(), e }; save("read"); }
+  S.recent = [e].concat(S.recent.filter(x => x.i !== id)).slice(0, 12); save("recent");
+  const sv = S.star[id]; const paras = (p.lead || "").split("\n").filter(x => x.trim());
+  const needLive = !p.full || p.cut;
+  const secHtml = (secs, open) => secs.map((s, i) => open ? `${s.l <= 2 ? `<h3>${esc(s.h)}</h3>` : `<h4>${esc(s.h)}</h4>`}<p>${esc(s.t)}</p>` : `<details${i < 1 ? " open" : ""}><summary>${esc(s.h)}<small>${Math.max(1, Math.round(s.t.length / 600))}분</small></summary><p>${esc(s.t)}</p></details>`).join("");
+  const liveNote = !p.full ? `<div class="live" id="liveBox">이 글은 ‘요약판’이에요 (저장 공간 아끼려고). 본문 ${(p.heads || []).length}개 단락은 위키백과에서 바로 불러와요… </div>` : p.cut ? `<div class="live" id="liveBox"><button class="btn sm" data-act="live">긴 글이라 뒷부분은 잘렸어요 — 위키백과에서 전부 불러오기</button></div>` : "";
+  const depthHtml = {
+    short: `<div class="one">${esc(p.one)}</div><div class="lead">${esc(paras.slice(0, 2).join("\n"))}</div>${paras.length > 2 || (p.secs || []).length || !p.full ? `<button class="btn more" data-depth="more">더 자세히 →</button>` : ""}`,
+    more: `<div class="lead">${esc(p.lead)}</div><div class="secs" id="secs">${secHtml(p.secs || [], false)}</div>${liveNote}${(p.secs || []).length || !p.full ? '<button class="btn more" data-depth="deep">깊게 — 전부 펼치기 →</button>' : ""}`,
+    deep: `<div class="lead">${esc(p.lead)}</div><div class="secs" id="secs">${secHtml(p.secs || [], true)}</div>${liveNote}`,
+  };
+  const d = S.depth in depthHtml ? S.depth : "short";
+  const occ = (p.occ || []).concat(p.cls || []).filter((x, i, a) => a.indexOf(x) === i).slice(0, 5);
+  document.body.classList.add("reading");
+  app.innerHTML = `<div class="read-top"><button class="ib" data-act="back" aria-label="뒤로">‹</button><span class="sp"></span><span class="bd kd">${KIND[e.k] || ""}</span>${p.n ? `<span class="bd" title="이 글이 있는 위키백과 언어판 수">${p.n}개 언어</span>` : ""}</div>
+    <h1 class="title">${esc(p.title)}</h1>${p.en ? `<p class="title-en">${esc(p.en)}</p>` : ""}
+    <div class="meta">${badges(e)}${(p.s || []).length ? `<span class="bd">당시: ${esc(p.s.join(" · "))}</span>` : ""}${(p.c || []).slice(1).map(c => `<span class="bd">${esc(cko(c))}</span>`).join("")}${occ.map(o => `<span class="tag">${esc(o)}</span>`).join("")}</div>
+    ${p.desc ? `<p class="note" style="margin-top:6px">${esc(p.desc)}</p>` : ""}
+    ${S.cfg.pics && p.img ? `<img class="hero" src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}
+    <div class="depth">${[["short", "짧게"], ["more", "자세히"], ["deep", "깊게"]].map(([k, n]) => `<button data-depth="${k}" class="${d === k ? "on" : ""}">${n}</button>`).join("")}</div>
+    <div id="body">${depthHtml[d]}</div>
+    <h2 class="sec">이어 읽기 <small>역사는 선으로</small></h2><div class="rel" id="rel"></div><div id="relBox"></div>
+    ${(p.links || []).length ? `<h2 class="sec">이 글에 나오는 다른 글</h2><div class="chips" id="lnk"><span class="sub">찾는 중…</span></div>` : ""}
+    <h2 class="sec">내 메모</h2><textarea class="memo" id="memo" placeholder="내 말로 적어 두기 (별표하면 같이 보관)">${esc(S.memo[id] || "")}</textarea>
+    <div class="src">출처: <a href="${esc(p.src.url)}" target="_blank" rel="noopener">한국어 위키백과 ‘${esc(p.title)}’</a> (${esc(p.src.license)}) · 위키백과 글 고친 날 ${esc(p.src.edited || "")} · 로봇이 받은 날 ${esc(p.at || "")}${p.qid ? ` · <a href="https://www.wikidata.org/wiki/${esc(p.qid)}" target="_blank" rel="noopener">위키데이터</a>` : ""}${p.en ? ` · <a href="https://en.wikipedia.org/wiki/${encodeURIComponent(p.en.replace(/ /g, "_"))}" target="_blank" rel="noopener">영문판</a>` : ""}<br>
+      <span class="sub">분류: ${esc((p.cats || []).slice(0, 8).join(" · "))}</span><br><span class="sub">위키백과 글을 로봇이 토큰 없이 잘라 둔 것이에요. 연도·나라·테마는 위키데이터 속성으로 자동으로 붙여 틀릴 수 있어요.</span></div>
+    <div style="height:70px"></div>
+    <div class="rbar"><button data-act="star" class="${sv ? "on" : ""}"><b>${sv ? "★" : "☆"}</b>별표</button><button data-act="hide"><b>⊘</b>숨기기</button><button data-act="tag"><b>#</b>태그</button><button data-act="share"><b>↗</b>공유</button></div>`;
+  window.scrollTo(0, 0);
+  document.getElementById("memo").addEventListener("change", ev => { const v = ev.target.value.trim(); if (v) S.memo[id] = v; else delete S.memo[id]; save("memo"); if (S.star[id]) { S.star[id].memo = v; save("star"); } toast("메모 저장"); });
+  if (!p.full && d !== "short") loadLive(p, d === "deep");
+  renderRelations(p, e);
+}
+async function loadLive(p, open) {
+  const box = document.getElementById("liveBox"); if (box) box.textContent = "위키백과에서 불러오는 중…";
+  try { const secs = await liveSections(p.title); if (S.page !== p) return; const el = document.getElementById("secs"); if (!el) return;
+    const have = new Set((p.secs || []).map(s => s.h)); const add = p.cut ? secs.filter(s => !have.has(s.h) || true) : secs;
+    if (p.cut) el.innerHTML = ""; const html = add.map((s, i) => open ? `${s.l <= 2 ? `<h3>${esc(s.h)}</h3>` : `<h4>${esc(s.h)}</h4>`}<p>${esc(s.t)}</p>` : `<details${i < 1 ? " open" : ""}><summary>${esc(s.h)}<small>${Math.max(1, Math.round(s.t.length / 600))}분</small></summary><p>${esc(s.t)}</p></details>`).join("");
+    el.insertAdjacentHTML("beforeend", html); if (box) box.textContent = `위키백과에서 ${secs.length}개 단락을 불러왔어요 (지금 판).`;
+  } catch (e) { if (box) box.innerHTML = `못 불러왔어요 — <a href="${esc(p.src.url)}" target="_blank" rel="noopener">위키백과에서 읽기</a>`; }
+}
+async function renderRelations(p, e) {
+  const rel = document.getElementById("rel"); if (!rel) return;
+  const r = p.rel || {};
+  const resolve = async list => { const out = []; for (const [name, ko] of list || []) { const id = ko ? await idOf(ko) : null; out.push({ i: id, t: ko || name, wiki: ko && !id ? ko : null, plain: !ko }); } return out; };
+  const prev = await resolve((r.prev || []).concat(r.cause || [], r.follows || [])), next = await resolve((r.next || []).concat(r.effect || [], r.followed || []));
+  const people = await resolve((r.people || []).concat(r.conf || [], r.evt || [], r.part || []));
+  if (S.page !== p) return;
+  let before = [], after = [];
+  const c0 = (e.c || [])[0], y = e.ya ?? e.y;
+  if (c0 && y != null) { const l = (await rows("cty/" + c0 + ".json")).filter(x => x.i !== e.i && (x.ya ?? x.y) != null); after = l.filter(x => (x.ya ?? x.y) > y).sort((a, b) => (a.ya ?? a.y) - (b.ya ?? b.y)).slice(0, 6); before = l.filter(x => (x.ya ?? x.y) < y).sort((a, b) => (b.ya ?? b.y) - (a.ya ?? a.y)).slice(0, 6); }
+  const near = await sameTime(e, 6);
+  if (S.page !== p || !document.getElementById("rel")) return;
+  const lists = { prev: prev.length ? prev : before, next: next.length ? next : after, people, near };
+  const b = (key, title, list, sub) => `<button data-rel="${key}" ${list.length ? "" : "disabled"}>${title}<small>${list.length ? esc(list.slice(0, 3).map(x => x.t).join(" · ")) : sub}</small></button>`;
+  rel.innerHTML = b("prev", "◀ 그 이전", lists.prev, `같은 나라의 앞선 일`) + b("next", "그 이후 ▶", lists.next, "같은 나라의 뒤이은 일") + b("people", e.k === "p" ? "관련 사건·사람" : "관련 인물·사건", people, "연결 없음") + b("near", "같은 시기 다른 나라", near, "연도가 없어 못 찾음");
+  rel._lists = lists;
+  const lnk = document.getElementById("lnk");
+  if (lnk) { const hits = []; for (const t of (p.links || []).slice(0, 30)) { const id = await idOf(t); if (id && id !== p.id) hits.push({ i: id, t }); if (hits.length >= 16) break; } if (S.page !== p) return;
+    lnk.innerHTML = hits.map(x => `<button data-open="${x.i}" class="${S.read[x.i] ? "" : "on"}">${esc(x.t)}</button>`).join("") || '<span class="sub">아직 받은 글 중엔 없어요 (로봇이 더 받으면 생겨요)</span>'; }
+}
+function relList(l) { return l.map(x => x.i ? (x.n != null || x.y !== undefined ? card(x) : `<button class="card" data-open="${x.i}"><p class="t">${esc(x.t)}</p></button>`) : x.wiki ? `<a class="card" href="https://ko.wikipedia.org/wiki/${encodeURIComponent(x.wiki.replace(/ /g, "_"))}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><p class="t">${esc(x.t)} ↗</p><p class="one">아직 안 받은 글 — 위키백과에서 열기</p></a>` : `<div class="card"><p class="t">${esc(x.t)}</p></div>`).join(""); }
+
+/* ───── 낱말 길게 누르기 ───── */
+function openWord(word) {
+  const w = word.trim(); const key = "w:" + w.toLowerCase(); const saved = S.words[key];
+  const back = document.createElement("div"); back.className = "back";
+  back.innerHTML = `<div class="sheet"><h3>${esc(w)}</h3><p class="k">${saved ? "낱말장에 있어요." : "이 말을 메모하거나, 찾아보거나, 낱말장에 저장할 수 있어요."}</p>
+    <div class="acts"><button data-a="memo">메모<small>이 말에 내 메모</small></button><button data-a="save">${saved ? "낱말장에 있음 ✓" : "낱말장 저장"}<small>서재 › 낱말</small></button>
+      <button data-a="wiki">위키 미리보기<small>첫 문단만</small></button><button data-a="pages">이 말이 든 글<small>역사 자판기 안에서</small></button><button data-a="tag">태그로 추가<small>${S.page ? "이 글에 #" + esc(w) : "(읽기 화면에서)"}</small></button><button data-a="copy">복사</button></div>
+    <div class="row"><a class="btn sm" href="https://ko.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(w)}" target="_blank" rel="noopener">위키백과</a><a class="btn sm" href="https://www.google.com/search?q=${encodeURIComponent(w + " 역사")}" target="_blank" rel="noopener">구글</a><a class="btn sm" href="https://encykorea.aks.ac.kr/Article/Search/${encodeURIComponent(w)}" target="_blank" rel="noopener">민족문화대백과</a></div><div id="wsub"></div></div>`;
+  document.body.appendChild(back); const sub = back.querySelector("#wsub");
+  const saveWord = () => { const e = S.words[key] || { at: Date.now(), w, pages: {} }; if (S.page) e.pages[S.page.id] = S.page.title; S.words[key] = e; save("words"); };
+  back.addEventListener("click", async ev => {
+    if (ev.target === back) return back.remove(); const a = ev.target.closest("[data-a]"); if (!a) return; const act = a.dataset.a;
+    if (act === "copy") { try { await navigator.clipboard.writeText(w); toast("복사했어요"); } catch (x) { toast("복사 실패"); } }
+    else if (act === "save") { saveWord(); a.firstChild.textContent = "낱말장에 있음 ✓"; toast("낱말장에 저장"); }
+    else if (act === "memo") { sub.innerHTML = `<textarea class="memo" id="tmemo" placeholder="이 말에 대한 내 메모">${esc(S.tmemo[key] || "")}</textarea><div class="row" style="margin-top:6px"><button class="btn sm pri" data-a="memosave">저장</button></div>`; }
+    else if (act === "memosave") { const v = back.querySelector("#tmemo").value.trim(); if (v) { S.tmemo[key] = v; saveWord(); } else delete S.tmemo[key]; save("tmemo"); toast("메모 저장"); }
+    else if (act === "wiki") { sub.innerHTML = '<div class="wiki">위키백과 읽는 중…</div>'; sub.querySelector(".wiki").innerHTML = await wikiSummary(w, key); }
+    else if (act === "pages") { sub.innerHTML = '<p class="note">찾는 중…</p>'; const bk = await bucket(sbucket(w)); const hits = bk.list.filter(x => x[0].includes(w)).slice(0, 20); sub.innerHTML = hits.length ? `<div class="list">${hits.map(x => liRow(sRow(x))).join("")}</div>` : '<p class="empty">이 말로 시작하는 제목이 없어요. 탐색에서 ‘전부 찾기’를 써 보세요.</p>'; }
+    else if (act === "tag") { if (!S.page) return toast("읽기 화면에서 쓸 수 있어요"); addTag(S.page.id, w); back.remove(); toast("태그 추가"); }
+  });
+}
+async function wikiSummary(w, key) {
+  for (const lang of ["ko", "en"]) {
+    try { const r = await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(w.replace(/ /g, "_"))}`); if (!r.ok) continue; const j = await r.json(); if (!j.extract) continue;
+      if (S.words[key]) { S.words[key].wiki = j.extract; save("words"); }
+      return `<b>${esc(j.title)}</b>${lang === "en" ? ' <span class="sub">(영문판)</span>' : ""}<br>${esc(j.extract)} <a href="${esc(j.content_urls.desktop.page)}" target="_blank" rel="noopener">더 →</a>`; } catch (e) { }
+  }
+  return "위키백과에 없어요.";
+}
+function addTag(id, tag) { const l = S.tags[id] || []; if (!l.includes(tag)) l.push(tag); S.tags[id] = l; save("tags"); if (!S.tagdefs.includes(tag)) { S.tagdefs.push(tag); save("tagdefs"); } if (S.star[id]) { S.star[id].tags = l; save("star"); } }
+function tagSheet(id) {
+  const back = document.createElement("div"); back.className = "back"; const cur = S.tags[id] || [];
+  back.innerHTML = `<div class="sheet"><h3>태그</h3><div class="chips">${S.tagdefs.map(t => `<button data-t="${esc(t)}" class="${cur.includes(t) ? "on" : ""}">${esc(t)}</button>`).join("")}</div><div class="row"><input class="search" id="newtag" placeholder="새 태그" style="flex:1;margin:0"><button class="btn" data-a="add">추가</button><button class="btn" data-a="close">닫기</button></div></div>`;
+  document.body.appendChild(back);
+  back.addEventListener("click", e => {
+    if (e.target === back) return back.remove(); const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.t) { const l = S.tags[id] || []; const i = l.indexOf(b.dataset.t); if (i >= 0) l.splice(i, 1); else l.push(b.dataset.t); S.tags[id] = l; save("tags"); b.classList.toggle("on"); if (S.star[id]) { S.star[id].tags = l; save("star"); } }
+    else if (b.dataset.a === "add") { const v = back.querySelector("#newtag").value.trim(); if (v) { addTag(id, v); back.remove(); tagSheet(id); } }
+    else if (b.dataset.a === "close") { back.remove(); route(); }
+  });
+}
+
+/* ───── 설정 ───── */
+function cfgSheet() {
+  const back = document.createElement("div"); back.className = "back"; const bu = S.idx.budget || {};
+  back.innerHTML = `<div class="sheet"><h3>역사 탭 설정</h3><div class="acts">
+    <button data-a="fs">글자 크기: ${Math.round((S.cfg.fs || 1) * 100)}%<small>누를 때마다 (90→100→110→125)</small></button><button data-a="pics">사진: ${S.cfg.pics ? "보임" : "숨김"}<small>위키백과 대표 사진</small></button>
+    <button data-a="hr">읽은 글: ${S.cfg.hideRead ? "탐색에서 숨김" : "흐리게만"}</button><button data-a="depth">기본 읽기: ${{ short: "짧게", more: "자세히", deep: "깊게" }[S.depth] || "짧게"}<small>글을 열 때 처음 보이는 깊이</small></button>
+    <button data-a="export">내 기록 내보내기<small>별표·메모·태그·낱말·읽음</small></button><button data-a="hidden">숨긴 글 ${Object.keys(S.hide).length}개 되살리기</button></div>
+    <p class="k">로봇: 매일 새벽 5시 (남은 게 있으면 이어서) · 마지막 갱신 ${esc((S.idx.at || "").slice(0, 16).replace("T", " "))}<br>받은 글 ${((S.idx.counts || {}).total || 0).toLocaleString()}편 (전문 ${((S.idx.counts || {}).full || 0).toLocaleString()}) · 받을 차례 ${(S.idx.queue || 0).toLocaleString()}편 · 역사 글 아니라서 뺀 것 ${(S.idx.skipped || 0).toLocaleString()}편 · 저장 용량 ${bu.usedMB || 0} / ${bu.limitMB || 0} MB</p>
+    <div class="row"><button class="btn" data-a="close">닫기</button></div></div>`;
+  document.body.appendChild(back);
+  back.addEventListener("click", e => {
+    if (e.target === back) return back.remove(); const a = e.target.closest("[data-a]"); if (!a) return;
+    if (a.dataset.a === "fs") { const st = [0.9, 1, 1.1, 1.25]; S.cfg.fs = st[(st.indexOf(S.cfg.fs || 1) + 1) % st.length]; save("cfg"); document.documentElement.style.setProperty("--fs", S.cfg.fs); a.firstChild.textContent = `글자 크기: ${Math.round(S.cfg.fs * 100)}%`; }
+    else if (a.dataset.a === "pics") { S.cfg.pics = !S.cfg.pics; save("cfg"); back.remove(); route(); }
+    else if (a.dataset.a === "hr") { S.cfg.hideRead = !S.cfg.hideRead; save("cfg"); back.remove(); route(); }
+    else if (a.dataset.a === "depth") { const st = ["short", "more", "deep"]; S.depth = st[(st.indexOf(S.depth) + 1) % 3]; save("depth"); a.firstChild.textContent = `기본 읽기: ${{ short: "짧게", more: "자세히", deep: "깊게" }[S.depth]}`; }
+    else if (a.dataset.a === "export") exportMine();
+    else if (a.dataset.a === "hidden") { S.hide = {}; save("hide"); toast("숨긴 글을 되살렸어요"); back.remove(); route(); }
+    else if (a.dataset.a === "close") back.remove();
+  });
+}
+function exportMine() {
+  const out = { app: "vendingForMe", part: "history", exportedAt: new Date().toISOString(), star: S.star, memo: S.memo, tags: S.tags, tagdefs: S.tagdefs, read: S.read, recent: S.recent, words: S.words, tmemo: S.tmemo };
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: "application/json" })); a.download = "자판기-역사-기록-" + new Date().toISOString().slice(0, 10) + ".json"; a.click(); toast("내보냈어요");
+}
+
+/* ───── 낱말 선택 → 떠 있는 막대 ───── */
+let selBar = null, selTimer = null;
+document.addEventListener("selectionchange", () => {
+  const sel = document.getSelection(); const txt = sel ? sel.toString().trim() : ""; clearTimeout(selTimer);
+  if (!txt || txt.length > 40 || !S.page) { selTimer = setTimeout(() => { if (selBar) { selBar.remove(); selBar = null; } }, 500); return; }
+  if (selBar) { selBar.remove(); selBar = null; }
+  const n = sel.anchorNode && sel.anchorNode.parentElement; if (!n || !n.closest("#body, .title, .one, .lead")) return;
+  selBar = document.createElement("button"); selBar.className = "selbar"; selBar.textContent = "“" + txt + "” 메모·검색·저장";
+  selBar.addEventListener("click", () => { clearTimeout(selTimer); const t = txt; try { document.getSelection().removeAllRanges(); } catch (x) { } if (selBar) selBar.remove(); selBar = null; openWord(t); });
+  document.body.appendChild(selBar);
+});
+
+/* ───── 라우팅·클릭 ───── */
+function setTab(v) { document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-current", b.dataset.v === v ? "page" : "false")); }
+async function route() {
+  const h = location.hash || "#today"; document.querySelector(".rbar")?.remove();
+  if (h.startsWith("#p=")) { setTab(""); document.getElementById("tabs").hidden = true; return renderPage(decodeURIComponent(h.slice(3))); }
+  document.getElementById("tabs").hidden = false; document.body.classList.remove("reading"); S.page = null;
+  const v = h.slice(1).split("?")[0]; setTab(v);
+  if (v === "explore") renderExplore(); else if (v === "back") renderBack(); else if (v === "shelf") renderShelf(); else renderToday();
+}
+window.vfmApp = { back: histBack, go: h => nav(h, true), route, top: () => nav("#today") };
+window.addEventListener("hashchange", route);
+document.addEventListener("click", async e => {
+  const t = e.target.closest("[data-v],[data-open],[data-act],[data-f],[data-bm],[data-sm],[data-stag],[data-depth],[data-rel],[data-word],[data-goc]"); if (!t) return;
+  const d = t.dataset;
+  if (d.v) { nav("#" + d.v); return; }
+  if (d.open) return openPage(d.open);
+  if (d.word) return openWord((S.words[d.word] || {}).w || d.word.slice(2));
+  if (d.goc) { Object.assign(F, { region: "", country: d.goc, era: -2, theme: -2, kind: "", tag: "", shown: 0 }); nav("#explore"); return; }
+  if (d.f) { F.shown = 0;
+    if (d.f === "reset") { Object.assign(F, { region: "", country: "", era: -2, theme: -2, kind: "", tag: "", q: "", timeline: false }); return renderExplore(); }
+    if (d.f === "timeline") { F.timeline = !F.timeline; return renderExplore(); }
+    if (d.f === "region") { F.region = F.region === d.val ? "" : d.val; F.country = ""; return renderExplore(); }
+    if (d.f === "era" || d.f === "theme") { const v = +d.val; F[d.f] = F[d.f] === v ? -2 : v; return renderExplore(); }
+    if (d.f === "sort") F.sort = d.val; else F[d.f] = F[d.f] === d.val ? "" : d.val;
+    return renderExplore(); }
+  if (d.bm) { backMode = d.bm; return renderBack(); }
+  if (d.sm) { shelfMode = d.sm; return renderShelf(); }
+  if (d.stag) { F.stag = F.stag === d.stag ? "" : d.stag; return renderShelf(); }
+  if (d.depth) { S.depth = d.depth; save("depth"); return renderPage(S.page.id); }
+  if (d.rel) { const lists = (document.getElementById("rel") || {})._lists || {}; const l = lists[d.rel] || []; const box = document.getElementById("relBox"); if (!box) return;
+    box.innerHTML = l.length ? `<p class="lbl">${{ prev: "그 이전", next: "그 이후", people: "관련 인물·사건", near: "같은 시기 다른 나라" }[d.rel]}</p>${relList(l)}` : '<p class="note">없어요</p>'; return; }
+  if (d.act === "back") { if (!histBack()) nav("#today"); return; }
+  if (d.act === "morex") return runExplore();
+  if (d.act === "searchall") { e.preventDefault(); F.all = true; return runSearch(); }
+  if (d.act === "cfg") return cfgSheet();
+  if (d.act === "search") { nav("#explore"); setTimeout(() => document.getElementById("xq")?.focus(), 300); return; }
+  if (d.act === "export") return exportMine();
+  const p = S.page; if (!p) return; const id = p.id;
+  if (d.act === "live") return loadLive(p, S.depth === "deep");
+  if (d.act === "star") { if (S.star[id]) { delete S.star[id]; toast("별표 해제"); } else { S.star[id] = { at: Date.now(), item: entryOf(p), memo: S.memo[id] || "", tags: S.tags[id] || [] }; toast("별표"); } save("star"); renderPage(id); }
+  else if (d.act === "hide") { S.hide[id] = 1; save("hide"); toast("목록에서 숨겼어요 (설정에서 되살리기)"); histBack() || nav("#today"); }
+  else if (d.act === "tag") tagSheet(id);
+  else if (d.act === "share") { const text = `${p.title} (${span(entryOf(p))})\n${p.one}\n${p.src.url}${S.memo[id] ? "\n메모: " + S.memo[id] : ""}`; if (navigator.share) navigator.share({ title: p.title, text, url: p.src.url }).catch(() => { }); else { try { await navigator.clipboard.writeText(text); toast("복사했어요"); } catch (x) { } } }
+});
+
+/* ───── 시작 ───── */
+(async () => {
+  try { await loadIndex(); } catch (e) { document.getElementById("app").innerHTML = `<div class="top"><h1 class="lt">역사</h1></div><p class="empty">아직 자료가 없어요. 로봇이 처음 돌고 나면 채워집니다.<br><small>${esc(e.message)}</small></p>`; return; }
+  route();
+  window.vfm = window.vfm || {}; window.vfm.historyExport = exportMine;
+})();
+</script>
+<script src="../assets/shell.js"></script>
+</body></html>

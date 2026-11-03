@@ -87,4 +87,6 @@ jobs:
           LEFT=${{ inputs.chain_left || '30' }}
           if [ "$LEFT" -le 0 ]; then echo "이어갈 회차 없음"; exit 0; fi
           echo "받을 차례 ${{ steps.run.outputs.queue }}편 남음 → 다음 회차 시작 (남은 회차 $((LEFT-1)))"
-          gh workflow run history.yml --ref "${{ github.ref_name }}" -f chain_left=$((LEFT-1)) -f max_pages="${{ inputs.max_pages || '100000' }}" -f max_minutes="${{ inputs.max_minutes || '300' }}" -f seeds=normal
+          printf '{"ref":"%s","inputs":{"chain_left":"%s","max_pages":"%s","max_minutes":"%s","seeds":"normal"}}' \
+            "${{ github.ref_name }}" "$((LEFT-1))" "${{ inputs.max_pages || '100000' }}" "${{ inputs.max_minutes || '300' }}" \
+            | gh api -X POST "repos/${{ github.repository }}/actions/workflows/history.yml/dispatches" --input -

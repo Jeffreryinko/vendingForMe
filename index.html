@@ -25,6 +25,7 @@
   .ic.sisa{background:linear-gradient(160deg,#4FA3FF 0%,#0A6CFF 55%,#0050C8 100%)}
   .ic.iyagi{background:linear-gradient(160deg,#FFC24D 0%,#FF9500 55%,#F26B00 100%)}
   .ic.ai{background:linear-gradient(160deg,#D68CFF 0%,#A346F0 55%,#6E2BD9 100%)}
+  .ic.history{background:linear-gradient(160deg,#C9A57A 0%,#A2845E 55%,#7A5F3E 100%)}
   .nm{font:700 20px/1.2 var(--ap-display);letter-spacing:-.02em;margin:0}
   .ds{font-size:14px;color:var(--ap-label2);margin:3px 0 0;line-height:1.35}
   .st{display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;font-size:13px;color:var(--ap-label2);margin:7px 0 0}
@@ -62,6 +63,11 @@
       <span><p class="nm">AI</p><p class="ds">새 논문·발표·코드</p><p class="st" id="st-ai"><i></i><span>불러오는 중</span></p></span>
       <span class="chev">›</span>
     </button>
+    <button class="app" data-app="history">
+      <span class="ic history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 4l9 5.5"/><path d="M4.5 9.5h15"/><path d="M6.5 10v7M10 10v7M14 10v7M17.5 10v7"/><path d="M4 17.5h16M3 20.5h18"/></svg></span>
+      <span><p class="nm">역사</p><p class="ds">세계 역사 이야기, 나라·시대별</p><p class="st" id="st-history"><i></i><span>불러오는 중</span></p></span>
+      <span class="chev">›</span>
+    </button>
   </div>
   <p class="last" id="last"></p>
 
@@ -94,7 +100,8 @@
   j("data/sisa/_meta.json").then(function (m) { paint("sisa", m && m.updatedAt, m ? "<b>새 소식 " + (m.counts ? n(m.counts.new_items) : "") + "</b>" : "", 6); });
   j("data/iyagi/_meta.json").then(function (m) { paint("iyagi", m && m.updatedAt, m ? "<b>새 이야기 " + n(m.stories) + "편</b>" : "", 30); });
   j("data/ai/_index.json").then(function (x) { var c = (x && x.counts) || {}; paint("ai", x && x.at, x ? "<b>추천 논문 " + n(c.hf) + "편</b>" : "", 30); });
-  var NAME = { sisa: "시사", iyagi: "이야기", ai: "AI" }, lastApp = null;
+  j("data/history/_index.json").then(function (x) { var c = (x && x.counts) || {}; paint("history", x && x.at, x ? "<b>" + n(c.total) + "편</b>" + (x.queue ? " · 받는 중" : "") : "", 30); });
+  var NAME = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사" }, lastApp = null;
   try { lastApp = localStorage.getItem("vfm:tab"); } catch (e) { }
   if (NAME[lastApp]) document.getElementById("last").innerHTML = "&nbsp;지난번에 본 곳: " + NAME[lastApp];
 

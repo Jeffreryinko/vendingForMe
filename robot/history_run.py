@@ -167,8 +167,12 @@ def good(st, key): st.health.pop(key, None)
 
 # ═══════════════════ 요청 ═══════════════════
 def get(url, params=None, retries=5, timeout=90, kind="wiki"):
-    """위키 요청: 순서대로 하나씩, maxlag 존중, 429·5xx·끊김은 기다렸다 다시."""
-    for i in range(retries + 1):
+    """위키 요청: 순서대로 하나씩, maxlag 존중, 429·5xx·끊김은 기다렸다 다시.
+    maxlag(서버가 밀려 '잠깐 쉬었다 오라'는 신호)는 따로 세어 최대 약 10분까지 기다린다."""
+    lagged = 0; i = -1
+    while True:
+        i += 1
+        if i > retries: break
         wait = LAST[kind] + GAP[kind] - time.time()
         if wait > 0: time.sleep(wait)
         LAST[kind] = time.time(); STAT["calls"] += 1
@@ -185,8 +189,10 @@ def get(url, params=None, retries=5, timeout=90, kind="wiki"):
         r.raise_for_status()
         if "json" in r.headers.get("content-type", ""):
             j = r.json()
-            if isinstance(j, dict) and (j.get("error") or {}).get("code") == "maxlag" and i < retries:
-                time.sleep(max(5, _int(r.headers.get("Retry-After"), 5))); continue
+            if isinstance(j, dict) and (j.get("error") or {}).get("code") == "maxlag" and lagged < 60:
+                lagged += 1; i -= 1
+                if lagged in (1, 10, 30): log(f"  서버가 밀려 있음(maxlag) → 기다렸다 다시 ({lagged}번째)")
+                time.sleep(max(8, _int(r.headers.get("Retry-After"), 5))); continue
             if isinstance(j, dict) and j.get("error"): raise RuntimeError(f"API 오류 {j['error'].get('code')}: {str(j['error'].get('info'))[:80]}")
             if GAP[kind] > 0.25: GAP[kind] = max(0.25, GAP[kind] * 0.97)
             return j
@@ -552,7 +558,7 @@ def wd_entities(qids, props="claims|labels|sitelinks|descriptions", extra=None):
     out = {}
     qids = [q for q in dedupe(qids) if q and re.match(r"^Q\d+$", q)]
     for i in range(0, len(qids), 50):
-        p = {"action": "wbgetentities", "format": "json", "ids": "|".join(qids[i:i + 50]), "props": props, "languages": "ko|en", "languagefallback": 1, "maxlag": 5, **(extra or {})}
+        p = {"action": "wbgetentities", "format": "json", "ids": "|".join(qids[i:i + 50]), "props": props, "languages": "ko|en", "languagefallback": 1, "maxlag": 10, **(extra or {})}
         try: out.update(get(API_WD, p).get("entities", {}))
         except Exception as e: log(f"  위키데이터 묶음 실패: {str(e)[:70]}")
     return out
@@ -809,6 +815,11 @@ def process_batch(batch, st, C, L, CL, budget_left):
     ents = wd_entities([r["qid"] for r in rows if r["qid"]])
     keep = []
     for r in rows:
+        if r["qid"] and r["qid"] not in ents:                          # 위키데이터를 못 받음 → 저장하지 않고 다음에 다시
+            h = st.queue.get(r["asked"])
+            if h:
+                h["tr"] = h.get("tr", 0) + 1
+                if h["tr"] < 5: handled.discard(r["asked"]); continue
         e = ents.get(r["qid"] or "", {})
         kind, why = judge(r, e, r["hint"], CL)
         if not kind: done(r["asked"], why); continue
