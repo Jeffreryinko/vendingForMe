@@ -97,7 +97,7 @@
   document.addEventListener("click", e => {
     const t = e.target.closest("[data-hotcc],[data-hottab],[data-hotday],[data-hotrow],[data-hotmore],[data-hotstar],[data-hotunstar],[data-hotshare],[data-hotiss],[data-hotreveal]"); if (!t) return;
     const d = t.dataset;
-    if (d.hotiss) { e.stopPropagation(); location.hash = "#issue-" + d.hotiss; return; }
+    if (d.hotiss) { e.stopPropagation(); (window.SISA && SISA.replaceTo ? SISA.replaceTo("#issue-" + d.hotiss) : location.replace("#issue-" + d.hotiss)); return; }
     if (d.hotcc) { H.cc = d.hotcc; P.cc = d.hotcc; save(); H.open = null; H.more = {}; render(); ensure(); return; }
     if (d.hottab) { H.tab = d.hottab; H.open = null; if (H.tab === "past" && !H.day) H.day = ((H.idx && H.idx.days) || []).filter(x => x !== today()).slice(-1)[0] || null; render(); ensure(); return; }
     if (d.hotday) { H.day = d.hotday; H.open = null; render(); ensure(); return; }

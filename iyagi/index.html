@@ -1,13 +1,12 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="ko" class="ap ap-iyagi"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <script>window.VFM_APP="iyagi";</script>
 <script src="../assets/claude-shim.js"></script>
 <link rel="manifest" href="../manifest.webmanifest"><meta name="theme-color" content="#0C6E77"><link rel="apple-touch-icon" href="../assets/icon-192.png">
 
 <title>이야기 도서관</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Song+Myung&family=Noto+Serif+KR:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../assets/apple.css">
 <style>
 /* Layout: 한 줄 독서 기둥(최대 680px). 첫 화면은 카드가 아니라 바로 읽히는 본문. 장서 카드식 서지 정보 + 읽는 깊이를 '책 두께'로 표시 */
 :root{
@@ -3062,7 +3061,7 @@ document.addEventListener("click",e=>{
   if(a.disabled)return;
   const id=a.dataset.id;
   switch(a.dataset.act){
-    case"nav":closeSheet();go(a.dataset.v);if(a.dataset.focus)setTimeout(()=>{const q=document.getElementById("q");if(q)q.focus()},60);break;
+    case"nav":closeSheet();navStack.length=0;go(a.dataset.v,true);if(a.dataset.focus)setTimeout(()=>{const q=document.getElementById("q");if(q)q.focus()},60);break;
     case"open":closeSheet();if(a.dataset.mark)markRead(id,a.dataset.mark);openStory(id,a.dataset.d);break;
     case"back":goBack();break;
     case"done":{const k=a.dataset.d,v=lvOf(k);if(lvl(id)>=v){store.levels[id]=v-1;if(!store.levels[id])delete store.levels[id];persist()}else markRead(id,k);rerender();break}
@@ -3152,16 +3151,8 @@ function goBack(){
   if(curHash()!=="home"){go("home",true);return true}
   return false;
 }
-function armGuard(){try{history.pushState({iyagi:"top"},"",location.href)}catch(e){}}
-try{if(!(history.state&&history.state.iyagi==="top")){history.replaceState({iyagi:"base"},"",location.href);armGuard()}}catch(e){}
-addEventListener("popstate",e=>{
-  const st=e.state&&e.state.iyagi;
-  if(st==="top")return;
-  if(st!=="base"){route();return}
-  if(goBack()){armGuard();return}
-  if(Date.now()-exitArm<2500){history.back();return}
-  exitArm=Date.now();armGuard();toast("뒤로가기를 한 번 더 누르면 나가요");
-});
+// 뒤로가기 = 한 단계 위로 (자판기 공통 규칙, assets/shell.js 가 처리)
+window.vfmApp={back:goBack,go:h=>go(decodeURIComponent(String(h).replace(/^#/,""))||"home"),route,top:()=>{if(!$sheet.hidden)closeSheet();go("home")}};
 route();
 
 </script>

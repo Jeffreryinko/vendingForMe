@@ -1,13 +1,12 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="ko" class="ap ap-sisa"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <script>window.VFM_APP="sisa";</script>
 <script src="../assets/claude-shim.js"></script>
 <link rel="manifest" href="../manifest.webmanifest"><meta name="theme-color" content="#0C6E77"><link rel="apple-touch-icon" href="../assets/icon-192.png">
 
 <title>시사 자판기</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@600;700;900&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../assets/apple.css">
 <style>
 /* Layout: 한 손 모바일 앱 — 상단 판(edition) 띠, 카드 목록, 하단 5칸 탭. 자판기 '토큰'처럼 둥근 칩으로 상태 표시 */
 :root{
@@ -1275,7 +1274,7 @@ document.addEventListener("fullscreenchange", () => {
   const h0 = location.hash;
   setTimeout(() => {                                         // 브라우저가 이미 뒤로 갔으면 또 가지 않음
     if(location.hash !== h0) return;
-    if(MF.key || S.sheetOpen || (navStack.length > 1 && navStack[navStack.length-2] !== "#home")) history.back();
+    if(MF.key || S.sheetOpen) sisaBack();
   }, 250);
   fsLast = 0;                                                // 다음 터치에서 바로 전체 화면 다시
 });
@@ -1294,8 +1293,7 @@ function closeMapFull(fromRoute){
   if(!MF.key) return;
   const key = MF.key; MF.key = null; $("#mapHost").innerHTML = ""; document.documentElement.classList.remove("mf-on");
   if(fromRoute) return;
-  if(navStack.length > 1 && navStack[navStack.length-2] !== "#home") return history.back();
-  navReplace = true; location.replace(key === "all" ? "#today" : "#issue-" + key);
+  hashSwap(key === "all" ? "#today" : "#issue-" + key);
 }
 function mfXY(st){
   let xy = st.geo && st.geo.spots && st.geo.spots[0] ? st.geo.spots[0].slice(0,2) : null;
@@ -1608,7 +1606,7 @@ function kbBack(){
   if($("#entHost").innerHTML) return closeEntPop();
   if(MF.key) return closeMapFull();
   if(S.sheetOpen) return closeSheet();
-  if(navStack.length > 1 && navStack[navStack.length-2] !== "#home") history.back();
+  sisaBack();
 }
 function mfPan(dx, dy){ if(!MF.vb) return; const [x, y, w, h] = MF.vb; mfFly(mfClamp([x + w * dx, y + h * dy, w, h])); }
 function kbHelp(){
@@ -2413,9 +2411,8 @@ async function translateSummary(id){
   S.busy = false; drawSheet();
 }
 function closeSheet(){
-  if((location.hash.startsWith("#item-") || location.hash.startsWith("#issue-") || location.hash.startsWith("#theme-")) && navStack.length > 1 && navStack[navStack.length-2] !== "#home") return history.back();
   S.sheetOpen = null; $("#sheetHost").innerHTML = "";
-  navReplace = true; location.replace("#" + (S.view==="src" ? "sources" : S.view));
+  hashSwap("#" + (S.view==="src" ? "sources" : S.view));
 }
 
 // ───────── 새 판 확인 (당겨서 새로고침·버튼·앱으로 돌아왔을 때) ─────────
@@ -2509,12 +2506,12 @@ function sheetStep(dir){
   if(String(S.sheetOpen).startsWith("issue:")){
     const L = S.issueOrder || [], i = L.indexOf(String(S.sheetOpen).slice(6)), j = i + dir;
     if(i < 0) return; if(j < 0 || j >= L.length) return toast(dir > 0 ? "마지막 이슈예요" : "첫 이슈예요");
-    navReplace = true; location.replace("#issue-" + L[j]); return toast(`이슈 ${j+1} / ${L.length}`);
+    hashSwap("#issue-" + L[j]); return toast(`이슈 ${j+1} / ${L.length}`);
   }
   const list = S.listIds || []; const i = list.indexOf(S.sheetOpen), j = i + dir;
   if(i < 0) return;
   if(j < 0 || j >= list.length) return toast(dir > 0 ? "목록의 마지막 글이에요" : "목록의 첫 글이에요");
-  navReplace = true; location.replace("#item-" + list[j]);
+  hashSwap("#item-" + list[j]);
   toast(`${j+1} / ${list.length}`);
 }
 let sw = null;
@@ -2553,7 +2550,9 @@ document.addEventListener("touchend", () => {
 const VIEW_HASH = {today:"today", flow:"flow", feed:"flow", trend:"flow", nation:"nation", hot:"hot", library:"library", log:"library", report:"library", sources:"src"};
 const navStack = [location.hash || "#today"];
 let navPush = false, navReplace = false, booting = false, homeBackAt = 0, skipEvents = 0, guardSet = false;
-function navTo(h){ h = "#" + h; if(location.hash === h) return route(); navReplace = true; location.replace(h); }   // 탭 이동은 기록을 쌓지 않음 (뒤로가기 = 글 닫기 또는 나가기)
+// 화면 이동: 브라우저 기록을 만들지도 바꾸지도 않고 주소 끝(#…)만 갈아 끼움 → 뒤로가기는 assets/shell.js 가 '한 단계 위로' 처리
+function hashSwap(h){ if(location.hash === h) return route(); try{ history.replaceState(history.state, "", location.pathname + location.search + h); }catch(e){ navReplace = true; location.replace(h); return; } route(); }
+function navTo(h){ h = "#" + h; if(location.hash === h) return route(); hashSwap(h); }   // 탭 이동은 기록을 쌓지 않음 (뒤로가기 = 글 닫기 또는 나가기)
 window.addEventListener("hashchange", () => {
   if(skipEvents > 0){ skipEvents--; return; }
   const h = location.hash || "#today";
@@ -2561,26 +2560,17 @@ window.addEventListener("hashchange", () => {
   else if(navPush){ navStack.push(h); navPush = false; }
   else if(navStack.length > 1 && navStack[navStack.length-2] === h){ navStack.pop(); }
   else { navStack.push(h); }
-  if(h === "#home"){                       // 맨 처음 화면에서 뒤로가기: 한 번 더 눌러야 나감
-    if(Date.now() - homeBackAt < 2500) return history.back();
-    homeBackAt = Date.now();
-    toast("뒤로가기를 한 번 더 누르면 나가요");
-    if(S.sheetOpen){ S.sheetOpen = null; $("#sheetHost").innerHTML = ""; }
-    navPush = true; location.hash = "#" + (S.view==="src" ? "sources" : S.view);
-    return;
-  }
   route();
 });
-// 첫 터치 때 뒤로가기 완충 한 칸(#home)을 깔아둠
-// (브라우저는 사용자가 화면을 누른 뒤에 생긴 기록만 뒤로가기에서 인정함)
-function setGuard(){
-  if(guardSet) return; guardSet = true;
-  const cur = (location.hash && location.hash !== "#home") ? location.hash : "#today";
-  try{ skipEvents = 2; location.replace("#home"); location.hash = cur; }catch(e){ skipEvents = 0; return; }
-  navStack.length = 0; navStack.push("#home", cur);
+// 뒤로가기 = 한 단계 위로 (자판기 공통 규칙, assets/shell.js). 처리했으면 true, 첫 화면이면 false → 자판기 홈
+function sisaBack(){
+  if($("#entHost").innerHTML){ closeEntPop(); return true; }
+  if(MF.key){ closeMapFull(); return true; }
+  if(S.sheetOpen){ closeSheet(); return true; }
+  if(S.view !== "today"){ navTo("today"); return true; }
+  return false;
 }
-document.addEventListener("click", setGuard, {capture:true});
-document.addEventListener("touchend", setGuard, {capture:true});
+window.vfmApp = { back: sisaBack, go(h){ hashSwap(h); }, top(){ if(S.sheetOpen) closeSheet(); if(S.view !== "today") navTo("today"); } };
 function route(){
   const h = (location.hash || "").slice(1);
   { const sh = $(".sheet"); if(sh && S.drawnId) S.sheetScroll[S.drawnId] = sh.scrollTop; }   // 지금 보던 시트의 읽던 자리 기억
@@ -2696,7 +2686,7 @@ document.addEventListener("submit", e => {
 });
 
 boot();
-window.SISA = {S, render, esc, ago, toast, replaceTo(h){ navReplace = true; location.replace(h); }};   // 트렌드 코너(assets/hot.js)가 쓰는 다리
+window.SISA = {S, render, esc, ago, toast, replaceTo(h){ hashSwap(h); }};   // 트렌드 코너(assets/hot.js)가 쓰는 다리
 })();
 </script>
 

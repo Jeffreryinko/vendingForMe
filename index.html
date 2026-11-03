@@ -1,27 +1,115 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" class="ap ap-home">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0C6E77">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <title>자판기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="assets/apple.css">
 <style>
-  body{margin:0;min-height:100vh;display:grid;place-items:center;font:16px -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;background:#EEF2F3;color:#13232B}
-  @media (prefers-color-scheme:dark){body{background:#142126;color:#EAF1F2}}
-  .box{text-align:center;padding:24px}
-  .box a{display:inline-block;margin:8px;padding:14px 22px;border-radius:14px;background:#0C6E77;color:#fff;text-decoration:none;font-weight:700;font-size:18px}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;padding:calc(env(safe-area-inset-top,0px) + 18px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 32px) max(16px,env(safe-area-inset-left,0px))}
+  .wrap{max-width:560px;margin:0 auto}
+  .date{margin:8px 4px 0;font-size:13px;font-weight:600;color:var(--ap-label2);text-transform:uppercase;letter-spacing:.02em}
+  h1{margin:2px 4px 22px;font:800 34px/1.15 var(--ap-display);letter-spacing:-.03em}
+  .apps{display:grid;gap:12px}
+  .app{display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:14px;width:100%;padding:16px;border:0;border-radius:22px;background:var(--ap-surface);color:inherit;text-align:left;cursor:pointer;
+    font:inherit;-webkit-tap-highlight-color:transparent;transition:transform .15s ease}
+  .app:active{transform:scale(.97)}
+  .ic{width:64px;height:64px;border-radius:15px;display:grid;place-items:center;color:#fff;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08)}
+  .ic svg{width:34px;height:34px}
+  .ic.sisa{background:linear-gradient(160deg,#4FA3FF 0%,#0A6CFF 55%,#0050C8 100%)}
+  .ic.iyagi{background:linear-gradient(160deg,#FFC24D 0%,#FF9500 55%,#F26B00 100%)}
+  .ic.ai{background:linear-gradient(160deg,#D68CFF 0%,#A346F0 55%,#6E2BD9 100%)}
+  .nm{font:700 20px/1.2 var(--ap-display);letter-spacing:-.02em;margin:0}
+  .ds{font-size:14px;color:var(--ap-label2);margin:3px 0 0;line-height:1.35}
+  .st{display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;font-size:13px;color:var(--ap-label2);margin:7px 0 0}
+  .st i{width:7px;height:7px;border-radius:50%;background:var(--ap-label3);flex:none}.st i.ok{background:var(--ap-green)}.st i.old{background:var(--ap-orange)}
+  .st b{color:var(--ap-label);font-weight:600}
+  .chev{color:var(--ap-label3);font-size:22px;font-weight:300}
+  .last{margin:4px 0 0;font-size:12px;color:var(--ap-label2)}
+  .cap{margin:28px 16px 6px;font-size:13px;color:var(--ap-label2)}
+  .grp{background:var(--ap-surface);border-radius:12px;overflow:hidden}
+  .grp button{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:46px;padding:11px 16px;border:0;background:none;color:var(--ap-label);font:inherit;font-size:16px;text-align:left;position:relative;cursor:pointer}
+  .grp button+button::before{content:"";position:absolute;left:16px;right:0;top:0;height:.5px;background:var(--ap-sep)}
+  .grp button span{color:var(--ap-label3);font-size:20px}
+  .foot{margin:10px 16px 0;font-size:12.5px;color:var(--ap-label2);line-height:1.5}
 </style>
 </head>
 <body>
-<div class="box">
-  <p>자판기</p>
-  <a href="sisa/">시사</a><a href="iyagi/">이야기</a><a href="ai/">AI</a>
+<script>window.VFM_APP = "home";</script>
+<script src="assets/claude-shim.js"></script>
+<div class="wrap">
+  <p class="date" id="date"></p>
+  <h1>자판기</h1>
+  <div class="apps">
+    <button class="app" data-app="sisa">
+      <span class="ic sisa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.8 3.9 5.8 3.9 9s-1.3 6.2-3.9 9c-2.6-2.8-3.9-5.8-3.9-9S9.4 5.8 12 3z"/></svg></span>
+      <span><p class="nm">시사</p><p class="ds">세계 뉴스를 한국어로</p><p class="st" id="st-sisa"><i></i><span>불러오는 중</span></p></span>
+      <span class="chev">›</span>
+    </button>
+    <button class="app" data-app="iyagi">
+      <span class="ic iyagi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 6.5C10 5 7.2 4.5 4 4.8v13.4c3.2-.3 6 .2 8 1.7 2-1.5 4.8-2 8-1.7V4.8c-3.2-.3-6 .2-8 1.7z"/><path d="M12 6.5v13.4"/></svg></span>
+      <span><p class="nm">이야기</p><p class="ds">신화·소설·인물 이야기</p><p class="st" id="st-iyagi"><i></i><span>불러오는 중</span></p></span>
+      <span class="chev">›</span>
+    </button>
+    <button class="app" data-app="ai">
+      <span class="ic ai"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 2.5l1.6 4.7a3 3 0 0 0 1.9 1.9L18.2 10.7l-4.7 1.6a3 3 0 0 0-1.9 1.9L10 18.9l-1.6-4.7a3 3 0 0 0-1.9-1.9L1.8 10.7l4.7-1.6a3 3 0 0 0 1.9-1.9z"/><path d="M18.5 14l.8 2.2a1.5 1.5 0 0 0 .9.9l2.3.8-2.3.8a1.5 1.5 0 0 0-.9.9l-.8 2.3-.8-2.3a1.5 1.5 0 0 0-.9-.9l-2.3-.8 2.3-.8a1.5 1.5 0 0 0 .9-.9z" opacity=".85"/></svg></span>
+      <span><p class="nm">AI</p><p class="ds">새 논문·발표·코드</p><p class="st" id="st-ai"><i></i><span>불러오는 중</span></p></span>
+      <span class="chev">›</span>
+    </button>
+  </div>
+  <p class="last" id="last"></p>
+
+  <p class="cap">설정</p>
+  <div class="grp">
+    <button data-act="settings">갱신 시각·출처 상태<span>›</span></button>
+    <button data-act="export">기록 내보내기<span>›</span></button>
+    <button data-act="settings">기록 불러오기<span>›</span></button>
+  </div>
+  <p class="foot">읽은 기록·별표·메모는 이 폰 브라우저 안에만 저장돼요.<br>홈 화면에 추가하면 앱처럼 열려요 (브라우저 메뉴 → 홈 화면에 추가).</p>
 </div>
 <script>
-  // 마지막에 보던 탭으로 바로 이동 (처음이면 시사)
-  try{var t=localStorage.getItem("vfm:tab")||"sisa";if(t==="sisa"||t==="iyagi"||t==="ai")location.replace(t+"/");}catch(e){location.replace("sisa/");}
+(function () {
+  "use strict";
+  var W = ["일", "월", "화", "수", "목", "금", "토"], d = new Date();
+  document.getElementById("date").textContent = (d.getMonth() + 1) + "월 " + d.getDate() + "일 " + W[d.getDay()] + "요일";
+  function ago(iso) {
+    if (!iso) return ""; var m = Math.round((Date.now() - Date.parse(iso)) / 60000);
+    if (m < 1) return "방금"; if (m < 60) return m + "분 전"; var h = Math.floor(m / 60); if (h < 48) return h + "시간 전"; return Math.floor(h / 24) + "일 전";
+  }
+  function j(p) { return fetch(p, { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+  function paint(app, iso, html, oldH) {
+    var el = document.getElementById("st-" + app); if (!el) return;
+    var i = el.querySelector("i"), s = el.querySelector("span");
+    if (!iso) { i.className = ""; s.textContent = "아직 자료 없음"; return; }
+    i.className = (Date.now() - Date.parse(iso)) > oldH * 3600e3 ? "old" : "ok";
+    s.innerHTML = html + " · " + ago(iso);
+  }
+  function n(x) { return (x || 0).toLocaleString(); }
+  j("data/sisa/_meta.json").then(function (m) { paint("sisa", m && m.updatedAt, m ? "<b>새 소식 " + (m.counts ? n(m.counts.new_items) : "") + "</b>" : "", 6); });
+  j("data/iyagi/_meta.json").then(function (m) { paint("iyagi", m && m.updatedAt, m ? "<b>새 이야기 " + n(m.stories) + "편</b>" : "", 30); });
+  j("data/ai/_index.json").then(function (x) { var c = (x && x.counts) || {}; paint("ai", x && x.at, x ? "<b>추천 논문 " + n(c.hf) + "편</b>" : "", 30); });
+  var NAME = { sisa: "시사", iyagi: "이야기", ai: "AI" }, lastApp = null;
+  try { lastApp = localStorage.getItem("vfm:tab"); } catch (e) { }
+  if (NAME[lastApp]) document.getElementById("last").innerHTML = "&nbsp;지난번에 본 곳: " + NAME[lastApp];
+
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest("[data-app]");
+    if (a) { try { sessionStorage.setItem("vfm:fromHome", "1"); } catch (x) { } location.href = a.getAttribute("data-app") + "/"; return; }
+    var b = e.target.closest("[data-act]"); if (!b) return;
+    if (b.getAttribute("data-act") === "export") {
+      var data = JSON.stringify(window.vfm.exportAll());
+      var l = document.createElement("a"); l.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+      l.download = "vendingForMe-기록-" + new Date().toISOString().slice(0, 10) + ".json"; l.click(); window.vfm.toast && window.vfm.toast("내보냈어요");
+    } else window.vfm.openSettings();
+  });
+})();
 </script>
+<script src="assets/shell.js"></script>
 </body>
 </html>
