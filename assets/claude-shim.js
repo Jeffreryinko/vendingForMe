@@ -198,3 +198,32 @@
     return n;
   };
 })();
+
+/* ── 보던 자리 기억 ──
+ * 다른 사이트에 갔다 오거나 앱이 메모리에서 내려갔다 다시 열릴 때, 처음 화면이 아니라 보던 화면(탭·글·스크롤)으로 돌아옵니다.
+ * 주소 끝(#…)이 사라진 채 열리면 마지막으로 저장해 둔 자리로 되돌립니다 (12시간 안쪽). */
+(function () {
+  var APP = window.VFM_APP || "app", KEY = "vfm:pos:" + APP, MAX = 12 * 3600e3;
+  function rd() { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { return null; } }
+  function wr() {
+    var h = location.hash || "";
+    if (h === "#home") return;                    // 뒤로가기 완충용 자리는 저장하지 않음
+    try { localStorage.setItem(KEY, JSON.stringify({ h: h, y: Math.round(window.scrollY || 0), t: Date.now() })); } catch (e) { }
+  }
+  var pos = rd(), h0 = location.hash || "";
+  var fresh = pos && pos.h && pos.h !== "#home" && Date.now() - pos.t < MAX;
+  var atStart = h0 === "" || h0 === "#home" || h0 === "#today" || h0 === "#library";
+  var restored = false;
+  if (fresh && atStart && pos.h !== h0) { try { history.replaceState(history.state, "", location.pathname + location.search + pos.h); restored = true; } catch (e) { } }
+  if (restored || (fresh && pos.h === h0)) {
+    var tries = 0, go = function () {
+      if (++tries > 12) return;
+      if (document.documentElement.scrollHeight > pos.y + window.innerHeight * 0.5) window.scrollTo(0, pos.y); else setTimeout(go, 400);
+    };
+    window.addEventListener("load", function () { setTimeout(go, 600); });
+  }
+  window.addEventListener("hashchange", function () { setTimeout(wr, 50); });
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") wr(); });
+  window.addEventListener("pagehide", wr);
+  var tm; window.addEventListener("scroll", function () { clearTimeout(tm); tm = setTimeout(wr, 400); }, { passive: true });
+})();
