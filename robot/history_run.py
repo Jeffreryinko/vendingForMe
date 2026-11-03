@@ -240,7 +240,7 @@ def seed_due(st, key, days=None):
 
 def closure(st):
     """종류의 하위 종류 전부 (P279*) → {하위종류: 뿌리} · 막을 종류 · 뺄 직업. 30일에 한 번 새로."""
-    sig = __import__("hashlib").md5(repr([(q, d) for q, _, _, _, d in T.SEED_CLASSES] + sorted(T.CLASS_BLOCK)).encode()).hexdigest()[:12]
+    sig = __import__("hashlib").md5(repr([(q, d) for q, _, _, _, d in T.SEED_CLASSES] + sorted(T.CLASS_BLOCK) + sorted(T.OCC_SKIP_ROOTS) + sorted(T.OCC_KEEP)).encode()).hexdigest()[:12]
     c = rj(ST / "closure.json", None)
     if c and c.get("sig") == sig and not seed_due(st, "closure", 30) and c.get("cls"): return c
     log("하위 종류 표 만들기 (P279*)…")
@@ -723,8 +723,8 @@ def classify(page, ent, kind, C, L, hint, CL):
     desc = ((ent.get("descriptions") or {}).get("ko") or {}).get("value", "")
     words = " ".join(cats + [L.name(q) for q in p31[:4] + occ[:6] + pos[:4]] + [desc])
     roots = [CL["cls"][x] for x in p31 if x in CL["cls"]]
-    theme = ""
-    for th, keys in T.THEME_RULES:
+    theme = person_theme([L.name(q) for q in occ[:8] + pos[:6]], desc) if kind == "person" else ""
+    for th, keys in ([] if theme else T.THEME_RULES):
         if th in T.SPECIFIC and any(k in words for k in keys): theme = th; break
     if not theme:
         for r in roots:
@@ -744,6 +744,31 @@ def classify(page, ent, kind, C, L, hint, CL):
     return {"k": kind, "y": y, "y2": y2, "ya": ya, "md": md, "e": T.era_index(ya if ya is not None else y), "r": region, "c": isos[:3], "s": thens[:2], "h": theme, "g": tags,
             "occ": [L.name(q) for q in occ[:4] if L.name(q)], "cls": [L.name(q) for q in p31[:3] if L.name(q)], "desc": desc,
             "korea": bool(set(isos) & T.KOREA_ISO), "roots": [T.CLASS_MEMO.get(r, "") for r in roots[:2]]}
+
+
+RULES = dict(T.THEME_RULES)
+def person_theme(occ_labels, desc=""):
+    """사람: 직업·관직 라벨을 정해진 순서로 (정치·군주 > 군사 > 첩보 > 혁명 > 종교 > 과학 > 돈 > 문화)"""
+    words = " ".join(occ_labels) + " " + (desc or "")
+    if not words.strip(): return ""
+    for th in T.PERSON_THEME_ORDER:
+        if any(k in words for k in RULES.get(th, ())): return th
+    return ""
+
+
+def retheme_people(st):
+    """한 번만: 예전 규칙으로 테마가 붙은 사람 글을 글 파일의 직업·관직으로 다시 매김."""
+    if st.seeds.get("retheme") == "v2": return
+    n = 0
+    for pid, rec in st.pages.items():
+        e = rec.get("e")
+        if not e or e[8] != "p": continue
+        doc = rj(page_path(pid))
+        if not doc: continue
+        th = person_theme((doc.get("occ") or []) + (doc.get("cls") or []), doc.get("desc", ""))
+        if th and th in T.THEMES and T.THEMES.index(th) != e[7]:
+            e[7] = T.THEMES.index(th); doc["h"] = th; wj(page_path(pid), doc); n += 1
+    st.seeds["retheme"] = "v2"; log(f"사람 테마 다시 매김: {n:,}편")
 
 
 def relations(ent, L):
@@ -1107,6 +1132,7 @@ def main():
     for t in gone: st.queue.pop(t, None)
     if gone: log(f"표에서 뺀 종류의 받을 차례 {len(gone):,}편 버림")
     cp = Checkpoint(st, C, L)
+    retheme_people(st)
     if INDEX_ONLY: build_index(st, C, rj(ST / "days_raw.json", {})); return
     try:
         CL = closure(st)
