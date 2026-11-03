@@ -2528,6 +2528,7 @@ function inHScroll(el){
 document.addEventListener("touchstart", e => {
   if(e.touches.length !== 1 || e.target.closest(".chips,.cchips,.ostrip,.ftabs,.hmap,.mtabs,.tone,.tblwrap,textarea,nav.tabs,.toast,.mfull,.imap")) { sw = null; return; }
   if(inHScroll(e.target)){ sw = null; return; }
+  { const x = e.touches[0].clientX, W = window.innerWidth; if(x < 28 || x > W - 28){ sw = null; return; } }   // 가장자리 = 폰 뒤로가기 제스처
   sw = {x0:e.touches[0].clientX, y0:e.touches[0].clientY, dx:0, inSheet:!!e.target.closest(".sheet"), horiz:null};
 }, {passive:true});
 document.addEventListener("touchmove", e => {
@@ -2539,6 +2540,7 @@ document.addEventListener("touchmove", e => {
   }
   if(sw.horiz){ sw.dx = dx; const el = sw.inSheet ? $(".sheet") : $("#main"); if(el){ el.style.transition = "none"; el.style.transform = `translateX(${dx * 0.3}px)`; } }
 }, {passive:true});
+document.addEventListener("touchcancel", () => { if(sw){ const el = sw.inSheet ? $(".sheet") : $("#main"); if(el){ el.style.transition = ""; el.style.transform = ""; } } sw = null; }, {passive:true});
 document.addEventListener("touchend", () => {
   if(!sw) return; const s = sw; sw = null; if(!s.horiz) return;
   const el = s.inSheet ? $(".sheet") : $("#main"); if(el){ el.style.transition = "transform .18s ease-out"; el.style.transform = ""; }
@@ -2551,7 +2553,7 @@ document.addEventListener("touchend", () => {
 const VIEW_HASH = {today:"today", flow:"flow", feed:"flow", trend:"flow", nation:"nation", hot:"hot", library:"library", log:"library", report:"library", sources:"src"};
 const navStack = [location.hash || "#today"];
 let navPush = false, navReplace = false, booting = false, homeBackAt = 0, skipEvents = 0, guardSet = false;
-function navTo(h){ h = "#" + h; if(location.hash === h) return route(); navPush = true; location.hash = h; }
+function navTo(h){ h = "#" + h; if(location.hash === h) return route(); navReplace = true; location.replace(h); }   // 탭 이동은 기록을 쌓지 않음 (뒤로가기 = 글 닫기 또는 나가기)
 window.addEventListener("hashchange", () => {
   if(skipEvents > 0){ skipEvents--; return; }
   const h = location.hash || "#today";
@@ -2694,7 +2696,7 @@ document.addEventListener("submit", e => {
 });
 
 boot();
-window.SISA = {S, render, esc, ago, toast};   // 트렌드 코너(assets/hot.js)가 쓰는 다리
+window.SISA = {S, render, esc, ago, toast, replaceTo(h){ navReplace = true; location.replace(h); }};   // 트렌드 코너(assets/hot.js)가 쓰는 다리
 })();
 </script>
 

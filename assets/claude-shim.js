@@ -245,7 +245,7 @@
     if (document.visibilityState !== "visible") return;
     try { localStorage.removeItem(KEY); } catch (x) { }
     if ((location.hash || "") !== o.h) {
-      if (o.h) location.hash = o.h; else { try { history.replaceState(history.state, "", location.pathname + location.search); } catch (x) { } location.reload(); return; }
+      if (o.h) { if (window.SISA && SISA.replaceTo) SISA.replaceTo(o.h); else location.replace(location.pathname + location.search + o.h); } else { try { history.replaceState(history.state, "", location.pathname + location.search); } catch (x) { } location.reload(); return; }
     }
     setTimeout(function () { window.scrollTo(0, o.y); }, 500);
   }
