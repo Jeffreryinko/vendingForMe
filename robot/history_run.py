@@ -347,11 +347,14 @@ def seed_people_cats(st):
     (언어판이 1~2개뿐인 조선 문신 같은 한국사 인물까지). 30일에 한 번, 끊기면 이어서."""
     if QUICK or not seed_due(st, "pcat", 30): return
     years = [("출생", y) for y in range(-800, T.PEOPLE_RECENT_BIRTH)] + [("사망", y) for y in range(-800, datetime.now(KST).year + 1)]
+    years += [("출생", f"{d}년대") for d in range(-800, T.PEOPLE_RECENT_BIRTH, 10)] + [("사망", f"{d}년대") for d in range(-800, datetime.now(KST).year + 1, 10)]   # 정확한 해를 모르는 사람
     pos = int(st.seeds.get("pcat_pos", 0)); got = 0
     while pos < len(years):
         if out_of_time(): break
         kind, y = years[pos]
-        cat = f"분류:{'기원전 ' + str(-y) if y < 0 else y}년 {kind}"
+        if isinstance(y, str):                                          # 'N년대'
+            d = int(y[:-2]); cat = f"분류:{'기원전 ' + str(-d) if d < 0 else d}년대 {kind}"; y = d + 5
+        else: cat = f"분류:{'기원전 ' + str(-y) if y < 0 else y}년 {kind}"
         if y == 0: pos += 1; continue
         cont = {}
         try:

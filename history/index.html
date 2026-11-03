@@ -64,7 +64,7 @@ h1.title{font:800 calc(26px*var(--fs))/1.25 var(--ap-display);letter-spacing:-.0
 .depth{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--ap-fill);border-radius:10px;padding:2px;margin:14px 0}
 .depth button{border:0;background:none;padding:7px;border-radius:8px;font-size:14px;font-weight:500}.depth button.on{background:var(--ap-seg-on);font-weight:600;box-shadow:0 3px 8px rgba(0,0,0,.12),0 1px 1px rgba(0,0,0,.04)}
 .lead{font-size:calc(17px*var(--fs));line-height:1.9;margin:12px 0;white-space:pre-wrap}
-.one{font-size:calc(16px*var(--fs));line-height:1.7;background:var(--accent-soft);border-radius:12px;padding:12px 14px;margin:10px 0}
+.oneb{font-size:calc(16px*var(--fs));line-height:1.7;background:var(--accent-soft);border-radius:12px;padding:12px 14px;margin:10px 0}
 .secs h3{font:700 calc(18px*var(--fs))/1.35 var(--ap-display);margin:22px 0 6px}.secs h4{font-size:calc(15.5px*var(--fs));margin:16px 0 4px;color:var(--muted)}.secs p{font-size:calc(16.5px*var(--fs));line-height:1.85;margin:0 0 10px;white-space:pre-wrap}
 .secs details{background:var(--surface);border-radius:12px;margin:0 0 8px;padding:0 14px}.secs details summary{list-style:none;cursor:pointer;padding:12px 0;font-weight:600;font-size:calc(15.5px*var(--fs));display:flex;justify-content:space-between;gap:8px}
 .secs details summary::-webkit-details-marker{display:none}.secs details summary::after{content:"›";color:var(--ap-label3);font-size:20px;transform:rotate(90deg);flex:none}.secs details[open] summary::after{transform:rotate(-90deg)}.secs details summary small{color:var(--muted);font-weight:400;font-size:12px;margin-left:auto;padding-right:8px}
@@ -326,7 +326,7 @@ async function renderPage(id) {
   const secHtml = (secs, open) => secs.map((s, i) => open ? `${s.l <= 2 ? `<h3>${esc(s.h)}</h3>` : `<h4>${esc(s.h)}</h4>`}<p>${esc(s.t)}</p>` : `<details${i < 1 ? " open" : ""}><summary>${esc(s.h)}<small>${Math.max(1, Math.round(s.t.length / 600))}분</small></summary><p>${esc(s.t)}</p></details>`).join("");
   const liveNote = !p.full ? `<div class="live" id="liveBox">이 글은 ‘요약판’이에요 (저장 공간 아끼려고). 본문 ${(p.heads || []).length}개 단락은 위키백과에서 바로 불러와요… </div>` : p.cut ? `<div class="live" id="liveBox"><button class="btn sm" data-act="live">긴 글이라 뒷부분은 잘렸어요 — 위키백과에서 전부 불러오기</button></div>` : "";
   const depthHtml = {
-    short: `<div class="one">${esc(p.one)}</div><div class="lead">${esc(paras.slice(0, 2).join("\n"))}</div>${paras.length > 2 || (p.secs || []).length || !p.full ? `<button class="btn more" data-depth="more">더 자세히 →</button>` : ""}`,
+    short: `<div class="oneb">${esc(p.one)}</div><div class="lead">${esc(paras.slice(0, 2).join("\n"))}</div>${paras.length > 2 || (p.secs || []).length || !p.full ? `<button class="btn more" data-depth="more">더 자세히 →</button>` : ""}`,
     more: `<div class="lead">${esc(p.lead)}</div><div class="secs" id="secs">${secHtml(p.secs || [], false)}</div>${liveNote}${(p.secs || []).length || !p.full ? '<button class="btn more" data-depth="deep">깊게 — 전부 펼치기 →</button>' : ""}`,
     deep: `<div class="lead">${esc(p.lead)}</div><div class="secs" id="secs">${secHtml(p.secs || [], true)}</div>${liveNote}`,
   };
@@ -355,7 +355,7 @@ async function renderPage(id) {
 async function loadLive(p, open) {
   const box = document.getElementById("liveBox"); if (box) box.textContent = "위키백과에서 불러오는 중…";
   try { const secs = await liveSections(p.title); if (S.page !== p) return; const el = document.getElementById("secs"); if (!el) return;
-    const have = new Set((p.secs || []).map(s => s.h)); const add = p.cut ? secs.filter(s => !have.has(s.h) || true) : secs;
+    const have = new Set((p.secs || []).map(s => s.h)); const add = secs;
     if (p.cut) el.innerHTML = ""; const html = add.map((s, i) => open ? `${s.l <= 2 ? `<h3>${esc(s.h)}</h3>` : `<h4>${esc(s.h)}</h4>`}<p>${esc(s.t)}</p>` : `<details${i < 1 ? " open" : ""}><summary>${esc(s.h)}<small>${Math.max(1, Math.round(s.t.length / 600))}분</small></summary><p>${esc(s.t)}</p></details>`).join("");
     el.insertAdjacentHTML("beforeend", html); if (box) box.textContent = `위키백과에서 ${secs.length}개 단락을 불러왔어요 (지금 판).`;
   } catch (e) { if (box) box.innerHTML = `못 불러왔어요 — <a href="${esc(p.src.url)}" target="_blank" rel="noopener">위키백과에서 읽기</a>`; }
@@ -456,7 +456,7 @@ document.addEventListener("selectionchange", () => {
   const sel = document.getSelection(); const txt = sel ? sel.toString().trim() : ""; clearTimeout(selTimer);
   if (!txt || txt.length > 40 || !S.page) { selTimer = setTimeout(() => { if (selBar) { selBar.remove(); selBar = null; } }, 500); return; }
   if (selBar) { selBar.remove(); selBar = null; }
-  const n = sel.anchorNode && sel.anchorNode.parentElement; if (!n || !n.closest("#body, .title, .one, .lead")) return;
+  const n = sel.anchorNode && sel.anchorNode.parentElement; if (!n || !n.closest("#body, .title, .oneb, .lead")) return;
   selBar = document.createElement("button"); selBar.className = "selbar"; selBar.textContent = "“" + txt + "” 메모·검색·저장";
   selBar.addEventListener("click", () => { clearTimeout(selTimer); const t = txt; try { document.getSelection().removeAllRanges(); } catch (x) { } if (selBar) selBar.remove(); selBar = null; openWord(t); });
   document.body.appendChild(selBar);
