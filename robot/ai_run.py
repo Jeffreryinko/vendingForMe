@@ -410,6 +410,14 @@ def main():
     kabs = translate_texts(run, [p["abs"] for p in top] + [p.get("sum") or "" for p in hf], mem, deadline)
     for k, p in enumerate(top): p["kabs"] = kabs[k]
     for k, p in enumerate(hf): p["ksum"] = kabs[len(top) + k]
+    # 용어카드의 영문 위키 문단 → 한국어 (한국어판이 없는 용어만)
+    terms = rj(OUT / "terms.json", [])
+    en_terms = [t for t in terms if t.get("wiki") and t.get("wiki_lang") == "en" and not t.get("wiki_ko_text")]
+    if en_terms:
+        kw = translate_texts(run, [t["wiki"] for t in en_terms], mem, deadline)
+        for t, k in zip(en_terms, kw):
+            if k: t["wiki_ko_text"] = k
+        wj(OUT / "terms.json", terms); log(f"용어 위키 문단 번역 {sum(1 for k in kw if k)}/{len(en_terms)}")
     if len(mem) > 60000: mem = dict(list(mem.items())[-45000:])
     if run is not None: wj(OUT / "_tr.json", mem)
 

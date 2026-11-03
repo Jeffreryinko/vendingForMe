@@ -396,8 +396,49 @@ def build():
         out.append({"id": tid, "en": en, "ko": ko, "short": short, "aliases": names, "wiki_ko": wko, "wiki_en": wen})
     return out
 
+WIKI_CACHE = Path(__file__).resolve().parent.parent / "data/ai/_wiki.json"
+
+def fetch_wiki(terms, max_new=400):
+    """위키백과 첫 문단을 받아 카드에 붙임 (한국어판 우선, 없으면 영문판 — 영문은 ai_run.py 가 NLLB 로 번역). 토큰 0.
+    결과는 data/ai/_wiki.json 에 기억해 두고 30일 지난 것만 다시 받음."""
+    import time, requests
+    from datetime import datetime, timedelta
+    cache = {}
+    try: cache = json.loads(WIKI_CACHE.read_text(encoding="utf-8"))
+    except Exception: pass
+    cut = (datetime.utcnow() - timedelta(days=30)).strftime("%Y-%m-%d")
+    hdr = {"User-Agent": "vendingForMe-bot/1.0 (personal; +https://github.com/Jeffreryinko/vendingForMe)"}
+    n = 0
+    for t in terms:
+        c = cache.get(t["id"])
+        if c and c.get("at", "") >= cut:
+            t.update({k: c[k] for k in ("wiki", "wiki_lang", "wiki_url", "wiki_title") if k in c}); continue
+        if n >= max_new: continue
+        tries = [("ko", t.get("wiki_ko")), ("en", t.get("wiki_en"))]
+        got = None
+        for lang, title in tries:
+            if not title: continue
+            try:
+                r = requests.get(f"https://{lang}.wikipedia.org/api/rest_v1/page/summary/{title.replace(' ', '_')}", headers=hdr, timeout=20)
+                n += 1; time.sleep(0.4)
+                if r.status_code == 429: time.sleep(5); continue
+                if not r.ok: continue
+                j = r.json(); ex = (j.get("extract") or "").strip()
+                if not ex or j.get("type") == "disambiguation": continue
+                got = {"wiki": ex[:700], "wiki_lang": lang, "wiki_url": (j.get("content_urls") or {}).get("mobile", {}).get("page") or (j.get("content_urls") or {}).get("desktop", {}).get("page"), "wiki_title": j.get("title")}
+                break
+            except Exception as e:
+                print("wiki 실패", t["id"], lang, str(e)[:60]); n += 1
+        cache[t["id"]] = dict(got or {}, at=datetime.utcnow().strftime("%Y-%m-%d"))
+        if got: t.update(got)
+    WIKI_CACHE.parent.mkdir(parents=True, exist_ok=True)
+    WIKI_CACHE.write_text(json.dumps(cache, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(f"위키 새로 받음 {n}회 · 문단 있는 용어 {sum(1 for t in terms if t.get('wiki'))}/{len(terms)}")
+
 if __name__ == "__main__":
+    import sys
     terms = build()
+    if "--no-wiki" not in sys.argv: fetch_wiki(terms)
     p = Path(__file__).resolve().parent.parent / "data/ai/terms.json"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(terms, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
