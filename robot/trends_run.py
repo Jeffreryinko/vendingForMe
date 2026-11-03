@@ -193,7 +193,7 @@ def translator():
     cap = TREND_MONTH_CAP
     du = deepl_month_usage(os.environ.get("DEEPL_API_KEY")) if not DRY else None
     if du: cap = min(cap, du[1] - du[0] - 5000 + used["deepl"])      # DeepL 전체 남은 양도 넘지 않게
-    b = max(0, (cap - used["deepl"]) // runs_left)
+    b = min(max(0, cap - used["deepl"]), max(4000, (cap - used["deepl"]) // runs_left))   # 회차당 최소 4,000자 (첫 회차·새 검색어 많은 날 대비)
     if DRY: b = 10 ** 7
     tr = Translator.from_env(b, max(0, (100000 - used["google"]) // runs_left))
     log(f"번역 예산 이번 회차 DeepL {b:,}자 (이달 트렌드 사용 {used['deepl']:,})")
@@ -210,7 +210,12 @@ def translate_all(data, tr):
             for it in (blk.get("items") or [])[:TOP_TR]:
                 if it["kw"] not in mem: todo.setdefault(lang, set()).add(it["kw"])
     for lang, kws in todo.items():
-        kws = sorted(kws)
+        kws = sorted(kws); fit, used = [], 0
+        for k in kws:                                             # 예산에 들어가는 만큼만 (나머지는 다음 회차)
+            if used + len(k) > tr.available: break
+            fit.append(k); used += len(k)
+        kws = fit
+        if not kws: log(f"번역 {lang}: 예산 부족, 다음 회차"); continue
         res, eng = tr.translate(kws, lang) if not DRY else ([f"[번역]{k}" for k in kws], "dry")
         if res:
             for k, v in zip(kws, res): mem[k] = v
