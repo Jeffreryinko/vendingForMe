@@ -248,7 +248,7 @@ function featCard(p, kind) {
     <h2 class="vdk-t">${esc(p.ko || p.title)}</h2>${p.ko ? `<p class="en">${esc(p.title)}</p>` : ""}
     ${one ? `<p class="ez-k">뭐가 생겼나${f && f.one ? "" : ' <span class="sub">(발표문 요약' + (p.ksum ? " · 기계번역" : "") + ')</span>'}</p><p class="vdk-p">${esc(one)}</p>` : ""}
     ${f && f.how ? `<p class="ez-k">나는 어떻게 써 보나</p><p class="vdk-p">${esc(f.how)}</p>` : kind === "post" ? '<p class="sub">\'어떻게 써 보나\'는 그날 큰 소식 3~5개만 아침에 정리돼요.</p>' : ""}
-    <a class="vdk-more" href="${esc(kind === "vid" ? p.url : ku(p.url))}" target="_blank" rel="noopener">${kind === "vid" ? "유튜브에서 보기 ↗" : kind === "news" ? "기사 보기 ↗" : "원문 보기 (한국어 번역) ↗"}</a></div>`;
+    <a class="vdk-more" href="${esc(kind === "vid" ? p.url : ku(p.url))}" target="_blank" rel="noopener">${kind === "vid" ? "유튜브에서 보기 ↗" : kind === "news" ? "기사 보기 ↗" : "원문 보기 ↗"}</a></div>`;
 }
 function feedDeck() {
   return D.create({ id: "ai-feed", app: "ai", emptyTitle: "새 소식이 없어요",
@@ -318,7 +318,7 @@ function renderPaper() {
     <div id="ezbox">${S.easy[p.id] ? easyHtml(p, S.easy[p.id]) : hasEasy(p.id) ? "" : machineHtml(p)}</div>
     ${D ? D.bar("ai", p.id, { title: p.ko || p.title, url: p.url, text: (p.ko || p.title) + "\n" + p.title }) : ""}
     <div class="abs${S.cfg.underline ? "" : " nou"}${absKo ? "" : " en"}" id="abs">${body}</div>
-    ${absKo ? `<details class="fold"><summary>원문 보기</summary><div class="abs en">${underline(p.abs || "")}</div></details>` : `<p class="note">이 편은 번역 안 됨 — <a href="https://translate.google.com/translate?sl=en&tl=ko&u=${encodeURIComponent(p.url)}" target="_blank" rel="noopener">구글 번역으로 보기</a></p>`}
+    ${absKo ? `<details class="fold"><summary>원문 보기</summary><div class="abs en">${underline(p.abs || "")}</div></details>` : `<p class="note">이 편은 번역 안 됨 — <a href="${esc(p.url)}" target="_blank" rel="noopener">원문 보기</a></p>`}
     <div class="links"><a href="${esc(p.url)}" target="_blank" rel="noopener">arXiv</a>${p.pdf ? `<a href="${esc(p.pdf)}" target="_blank" rel="noopener">PDF</a>` : ""}${p.hf ? `<a href="${esc(p.hf)}" target="_blank" rel="noopener">HF 토론 ${p.cm ? p.cm : ""}</a>` : ""}${p.code ? `<a href="${esc(p.code)}" target="_blank" rel="noopener">코드${p.stars ? " ★" + p.stars : ""}</a>` : ""}${p.page ? `<a href="${esc(p.page)}" target="_blank" rel="noopener">프로젝트</a>` : ""}</div>
     ${p.yt && p.yt.length ? `<h2 class="sec">유튜브 해설</h2><div class="yt">${p.yt.map(v => `<a href="${esc(v.u)}" target="_blank" rel="noopener">${esc(v.t)}<small>${esc(v.ch)}</small></a>`).join("")}</div>` : ""}
     ${(p.terms || []).length ? `<h2 class="sec">이 글의 용어 <small>${p.terms.length}개</small></h2><div class="chips">${p.terms.map(([id, n]) => { const t = S.termById[id]; return t ? `<button data-term="${id}" class="${S.myterms[id] ? "on" : ""}">${esc(t.ko)} <small>${n}</small></button>` : ""; }).join("")}</div>` : ""}

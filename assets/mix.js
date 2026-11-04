@@ -16,7 +16,15 @@
   var RK = null; try { RK = new Intl.DisplayNames(["ko"], { type: "region" }); } catch (e) { }
   var cname = function (c) { if (c === "WW") return "세계"; try { return RK ? RK.of(c) : c; } catch (e) { return c; } };
   var go = function (h) { return ' data-mixgo="' + esc(h) + '"'; };
-  function j(p) { return fetch(p, { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+  // 처음 자료를 다 받을 때까지(최대 6초) 카드를 고르지 않음 → 홈에 돌아오면 보던 카드가 그대로 나옴
+  var READY = false, pending = 0;
+  function ready() { if (READY) return; READY = true; D.stale("mix"); var d = D.get("mix-home"); if (d && !(document.getElementById("mxq") || {}).value) d.paint(); }
+  setTimeout(ready, 6000);
+  function j(p) {
+    pending++;
+    return fetch(p, { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+      .then(function (x) { pending--; setTimeout(function () { if (pending === 0) ready(); }, 0); return x; });
+  }
   // 새 것 위주 섞기: 앞쪽(새 것) 절반을 섞고, 뒤쪽을 섞어 이어 붙임
   function freshShuffle(a) {
     var sh = function (x) { for (var i = x.length - 1; i > 0; i--) { var k = Math.floor(Math.random() * (i + 1)); var t = x[i]; x[i] = x[k]; x[k] = t; } return x; };
@@ -106,13 +114,13 @@
           return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag ai">AI</span><span>' + esc(p.name || p.ch || "") + "</span><span>" + esc(p.date || "") + "</span></div>" +
             '<h2 class="vdk-t">' + esc(p.ko || p.title) + "</h2>" + (p.ko ? '<p class="vdk-note" style="margin:-6px 0 10px">' + esc(p.title) + "</p>" : "") +
             (one ? '<p class="vdk-h">뭐가 생겼나</p><p class="vdk-p">' + esc(one) + "</p>" : "") + (f && f.one && (p.ksum || p.sum) ? '<p class="vdk-h">발표 내용</p><p class="vdk-p">' + esc(p.ksum || p.sum) + "</p>" : "") + (f && f.how ? '<p class="vdk-h">나는 어떻게 써 보나</p><p class="vdk-p">' + esc(f.how) + "</p>" : "") +
-            '<a class="vdk-more" href="' + esc(vid ? p.url : D.koUrl(p.url)) + '" target="_blank" rel="noopener">' + (vid ? "유튜브에서 보기 ↗" : "원문 보기 (한국어 번역) ↗") + "</a>" +
+            '<a class="vdk-more" href="' + esc(vid ? p.url : D.koUrl(p.url)) + '" target="_blank" rel="noopener">' + (vid ? "유튜브에서 보기 ↗" : "원문 보기 ↗") + "</a>" +
             '<button type="button" class="vdk-more"' + go("ai/#today") + ">AI 탭에서 더 보기 ›</button></div>";
         } };
     }));
   });
   // 이야기·역사 (가끔): 첫 카드가 뜬 다음에 받음
-  setTimeout(function () {
+  (function () {
     j("data/iyagi/stories/_index.json").then(function (a) {
       if (!Array.isArray(a)) return;
       add("story", a.map(function (s) {
@@ -141,7 +149,7 @@
           } };
       }));
     });
-  }, 2500);
+  })();
 
   /* ── 카드가 보일 때만 더 받아 오기: 시사 기사 목록(그 판), 역사 글 전체 ── */
   var FEEDBY = null, feedP = null, HD = {}, CM = {};
@@ -170,6 +178,7 @@
 
   /* ── 비율대로 섞기 ── */
   function mixed() {
+    if (!READY) return [];
     var ptr = {}, out = [], used = {};
     KINDS.forEach(function (k) { ptr[k[0]] = 0; });
     for (;;) {
@@ -212,7 +221,11 @@
   document.addEventListener("click", function (e) {
     var t = e.target.closest("[data-mxw],#mxRatioBtn,[data-mixgo]"); if (!t) return;
     if (t.id === "mxRatioBtn") { var r = document.getElementById("mxRatio"); r.hidden = !r.hidden; return; }
-    if (t.hasAttribute("data-mixgo")) { try { sessionStorage.setItem("vfm:fromHome", "1"); } catch (x) { } location.href = t.getAttribute("data-mixgo"); return; }
+    if (t.hasAttribute("data-mixgo")) {
+      var to = t.getAttribute("data-mixgo");
+      try { sessionStorage.setItem("vfm:fromHome", "1"); sessionStorage.setItem("vfm:fromCard", "#" + (to.split("#")[1] || "")); } catch (x) { }
+      location.href = to; return;
+    }
     var v = t.getAttribute("data-mxw");
     if (v === "reset") W = Object.assign({}, DEF);
     else { var p = v.split("|"); W[p[0]] = +p[1]; }
