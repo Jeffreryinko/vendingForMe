@@ -49,7 +49,7 @@
     if (src === "google") {
       var ns = it.news || [];
       b = '<p class="vdk-h">왜 떴나 · 구글이 함께 보여 준 뉴스</p>' + (ns.length ? '<div class="vdk-links">' + ns.map(function (n) {
-        return '<a href="' + esc(ku(n.u, cc === "KR" ? "ko" : undefined)) + '" target="_blank" rel="noopener">' + esc(n.ko || n.t) + (n.sn ? "<small>" + esc(n.sn) + "</small>" : "") + "<small>" + esc(n.s || "") + (n.ko ? " · 제목 기계번역" : "") + " · " + (cc === "KR" ? "기사" : "원문(한국어 번역)") + " ↗</small></a>";
+        return '<a href="' + esc(ku(n.u, cc === "KR" ? "ko" : undefined)) + '" target="_blank" rel="noopener">' + esc(n.ko || n.t) + (n.sn ? "<small>" + esc(n.sn) + "</small>" : "") + "<small>" + esc(n.s || "") + (n.ko ? " · 제목 기계번역" : "") + " · " + "기사" + " ↗</small></a>";
       }).join("") + "</div>" : '<p class="vdk-note">이번에는 관련 뉴스가 같이 오지 않았어요.</p>');
     } else if (src === "yt" || src === "ytfun") {
       b = video(it);

@@ -2138,7 +2138,7 @@ function articleDeckCard(i){
     ${b ? `<p class="vdk-p">${esc(b.sum || "")}</p>` : i.sm ? `<p class="vdk-p dk-orig">${esc(i.sm)}</p><p class="note">기사 설명 원문이에요. 원문 보기를 누르면 한국어로 번역돼 열려요.</p>` : '<p class="note">제목만 있는 글이에요.</p>'}
     ${story && !isBrief(story) ? `<button type="button" class="vdk-more" data-issue="${story.id}">이 글이 속한 이야기: ${esc(story.title || "")} ›</button>` : ""}
     ${p ? `<p class="vdk-h">현지 반응${c.mood ? " · " + esc(c.mood) : ""}</p><p class="vdk-p">“${esc(pickText(p))}”</p>` : ""}
-    <a class="vdk-more" href="${esc(artLink(i))}" target="_blank" rel="noopener" data-out="${i.id}">원문 보기 (한국어 번역) ↗</a>
+    <a class="vdk-more" href="${esc(artLink(i))}" target="_blank" rel="noopener" data-out="${i.id}">원문 보기 ↗</a>
     <button type="button" class="vdk-more" data-open="${i.id}">자세히 · 같은 소식 다른 출처 ›</button>
   </div>`;
 }
@@ -2515,12 +2515,11 @@ function drawSheet(){
     ${(() => { const ns = entsOf([ko || "", story ? story.key : ""]); return ns.length ? `<details class="entd" open><summary>이 글을 이해하려면 알아 둘 이름 ${ns.length}</summary>${entCards(ns)}</details>` : ""; })()}
     ${cmBox(it)}
     <div class="btnrow">
-      <a class="btn" href="${esc(artLink(it))}" target="_blank" rel="noopener" data-out="${id}">원문 보기 (한국어 번역)${PAYWALL.has(it.s) ? " · 구독 필요할 수 있음" : ""}</a>
+      <a class="btn" href="${esc(artLink(it))}" target="_blank" rel="noopener" data-out="${id}">원문 보기${PAYWALL.has(it.s) ? " · 구독 필요할 수 있음" : ""}</a>
       <button type="button" class="btn ${st.read?"on":""}" data-read="${id}">${st.read?"✓ 읽음 확인됨":"읽음 확인"}</button>
     </div>
     ${sib.length ? `<div class="stack"><h2 class="sec">같은 소식, 다른 출처 ${sib.length}</h2>${sib.map(i=>`<div class="srow"><button type="button" class="t" data-open="${i.id}"><span class="meta"><span class="src">${esc(srcOf(i.s).n)}</span><span>${esc(cname(ctry(i)))}</span>${whenHtml(i)}${PAYWALL.has(i.s)?"":'<span class="ok">무료</span>'}${stOf(i.id).opened?'<span>봄</span>':""}</span>${esc(koOf(i)||i.t)}</button></div>`).join("")}</div>`:""}
     ${D ? D.bar("sisa", "a:" + id, {title:ko || it.t, url:it.u}) : ""}
-    <p class="note">원문은 구글 번역을 거쳐 한국어로 열려요. <a href="${esc(it.u)}" target="_blank" rel="noopener" data-out="${id}">번역 없이 원래 페이지 ↗</a></p>
     <details class="origd"><summary>원문 제목·설명 보기</summary><p class="orig" style="-webkit-line-clamp:unset;display:block">${esc(it.t)}</p>${it.sm ? `<p class="body-text orig-sm">${esc(it.sm)}</p>` : ""}</details>
     <div class="minor">
       ${!ctxOf(it) && S.sample ? `<button type="button" class="linkbtn" data-ctx="${id}" ${S.busy?"disabled":""}>${S.busy?"확인 중…":"현지 맥락 설명"}</button>` : ""}

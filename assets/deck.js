@@ -335,8 +335,10 @@
       '<button type="button" data-vdk-mode="' + esc(id) + '|list" aria-pressed="' + (m === "list") + '">목록</button></div>';
   }
 
-  /* ── 원문을 한국어 번역 페이지로 (구글 번역 프록시 *.translate.goog) ── */
+  /* ── 원문 주소 (예전엔 구글 번역 프록시로 열었지만 한국에서 막혀서 지금은 원래 주소 그대로) ── */
+  // 구글 번역 프록시(*.translate.goog)는 한국에서 막혀 있어(“이 지역에서는 쓸 수 없어요”) 원래 페이지로 바로 연결
   function koUrl(u, lang) {
+    return u;
     if (!u) return u;
     if (lang === "ko") return u;
     try {
