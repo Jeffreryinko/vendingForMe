@@ -114,7 +114,8 @@ def cmd_build(ed, prev, ko_file, label):
                "delta": {"prev": prev, "gone": gone},
                "counts": {"items": len(items), "ko": sum(1 for i in items if i.get("title_ko")),
                           "sources_ok": sum(1 for v in stats.values() if "error" not in v), "sources_run": len(stats),
-                          "new_items": sum(1 for i in items if i["_first"] == ed)}}
+                          "new_items": sum(1 for i in items if i["_first"] == ed),
+                          "new_news": sum(1 for i in items if i["_first"] == ed and i.get("kind") != "trend")}}   # 시사 첫 화면 숫자와 같은 기준 (트렌드 제외)
     seed = WORK / "seed"; seed.mkdir(exist_ok=True)
     (seed / f"editions__{ed}.json").write_text(json.dumps(edition, ensure_ascii=False))
     for lang in sorted({i["lang"] for i in items}):

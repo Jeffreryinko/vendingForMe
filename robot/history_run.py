@@ -687,6 +687,8 @@ def judge(page, ent, hint, CL):
     return None, "역사 글 아님"
 
 
+# 본문 첫 문단의 연도: '기원전 약 6000년', '기원전 6000년경' 도 기원전으로. '1만 년 전'(지금부터 몇 년 전)은 연도가 아님
+LEAD_YEAR = re.compile(r"(기원전\s*(?:약|대략|무렵)?\s*)?(?<!\d)(?<!\d[,.])(\d{1,5})년(?!\s*전(?:[에의까부]|\s|,|\.|$))")
 def classify(page, ent, kind, C, L, hint, CL):
     p31 = cv(ent, "P31"); occ = cv(ent, "P106"); pos = cv(ent, "P39")
     md = ""
@@ -701,7 +703,7 @@ def classify(page, ent, kind, C, L, hint, CL):
         y = t_year(d0); y2 = t_year((cv(ent, "P582") or cv(ent, "P576") or [None])[0]); ya = y; md = t_md(d0) if kind == "event" else ""
     if y is None and hint.get("y") is not None and kind != "person": y = ya = hint["y"]
     if y is None:                                                     # 본문 첫 문단에서 연도 찾기
-        m = re.search(r"(기원전\s*)?(\d{1,4})년", (page.get("lead") or "")[:400])
+        m = LEAD_YEAR.search((page.get("lead") or "")[:400])
         if m: y = ya = -int(m.group(2)) if m.group(1) else int(m.group(2))
         if kind == "person" and y is not None: ya = y + 40 if y < 1990 else y
     if y2 is not None and y is not None and y2 < y: y2 = None
@@ -1110,7 +1112,7 @@ def build_index(st, C, days_raw):
                              "countryKo": {c: names.get(c, c) for c in ctys}, "queue": len(st.queue), "skipped": len(st.skip), "broken": broken,
                              "budget": {"usedMB": round(used / 1048576, 1), "limitMB": BUDGET_MB}, "stat": STAT,
                              "cols": "id,title,y,y2,era,region,countries,theme,kind,tags,langs,views,img,md,one,ya", "license": "본문: 한국어 위키백과 (CC BY-SA 4.0) · 속성: 위키데이터 (CC0)"})
-    wj(OUT / "_meta.json", {"updatedAt": now_iso(), "by": "history-robot", "label": f"{len(ents):,}편 · 대기 {len(st.queue):,}"})
+    wj(OUT / "_meta.json", {"updatedAt": now_iso(), "by": "history-robot", "label": f"{len(ents):,}편" + (f" · 받는 중 {len(st.queue):,}" if len(st.queue) >= 200 else "")})
     log(f"색인 끝: {len(ents):,}편 · 권역×시대 {len(shards)}조각 · 나라 {len(ctys)} · 연대 {len(decs)} · 글 용량 {used / 1048576:.0f}MB")
 
 

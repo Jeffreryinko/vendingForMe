@@ -445,12 +445,13 @@ def main():
     for p in hf + arx: p["ko"] = kos[i]; i += 1
     for p in en_posts: p["ko"] = kos[i]; i += 1
     for p in data["repos"]: p["ksum"] = kos[i]; i += 1
-    kabs = translate_texts(run, [p["abs"] for p in top] + [p.get("sum") or "" for p in hf] + [(p.get("sum") or "")[:400] for p in en_posts], mem, deadline)
+    # 회사 발표 요약을 먼저 번역 (몇십 편뿐인데, 뒤에 두면 시간이 모자라 영어로 남았음)
+    kpost = translate_texts(run, [(p.get("sum") or "")[:400] for p in en_posts], mem, deadline)
+    for p, v in zip(en_posts, kpost):
+        if v: p["ksum"] = v
+    kabs = translate_texts(run, [p["abs"] for p in top] + [p.get("sum") or "" for p in hf], mem, deadline)
     for k, p in enumerate(top): p["kabs"] = kabs[k]
     for k, p in enumerate(hf): p["ksum"] = kabs[len(top) + k]
-    for k, p in enumerate(en_posts):
-        v = kabs[len(top) + len(hf) + k]
-        if v: p["ksum"] = v
     # 용어카드의 영문 위키 문단 → 한국어 (한국어판이 없는 용어만)
     terms = rj(OUT / "terms.json", [])
     en_terms = [t for t in terms if t.get("wiki") and t.get("wiki_lang") == "en" and not t.get("wiki_ko_text")]

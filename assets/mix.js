@@ -15,6 +15,15 @@
   var CAT = { war: "전쟁·안보", pol: "정치·외교", eco: "경제·시장", tech: "기술·과학", dis: "재난·사고", soc: "사회", spo: "스포츠", cul: "문화" };
   var RK = null; try { RK = new Intl.DisplayNames(["ko"], { type: "region" }); } catch (e) { }
   var cname = function (c) { if (c === "WW") return "세계"; try { return RK ? RK.of(c) : c; } catch (e) { return c; } };
+  var HAN = /[가-힣]/;
+  // 글자 수로 잘린 요약을 낱말 끝에서 다시 자르고 … 를 붙임 (예: '저장공' → '…')
+  function tidy(t, cut) {
+    t = String(t || "").trim(); if (!t) return "";
+    if (/[.!?。」”"')\]다요음함됨임]$/.test(t) && !cut) return t;
+    var i = Math.max(t.lastIndexOf(". "), t.lastIndexOf("다. "), t.lastIndexOf("요. "));
+    if (i > t.length * 0.6) return t.slice(0, i + 1).trim();
+    var sp = t.lastIndexOf(" "); return (sp > t.length * 0.7 ? t.slice(0, sp) : t).replace(/[,·\s]+$/, "") + "…";
+  }
   var go = function (h) { return ' data-mixgo="' + esc(h) + '"'; };
   // 처음 자료를 다 받을 때까지(최대 6초) 카드를 고르지 않음 → 홈에 돌아오면 보던 카드가 그대로 나옴
   var READY = false, pending = 0;
@@ -97,6 +106,7 @@
           var item = { key: "t:" + cc + ":" + x.src + ":" + x.it.kw, sa: "sisa", kind: x.src === "reddit" || x.src === "ytfun" ? "meme" : "trend", title: x.it.ko || x.it.kw,
             url: x.it.url, rank: x.rank, shareText: flag(cc) + " " + d.name + " " + x.srcName + " " + (x.rank + 1) + "위 · " + (x.it.ko || x.it.kw), q: (x.it.ko || "") + " " + x.it.kw + " " + d.name, src: x.src, it: x.it,
             html: function () { return T.card({ cc: cc, cname: d.name, src: x.src, srcName: x.srcName, it: x.it, rank: x.rank, country: d }); } };
+          item.ready = !!(x.it.ko || HAN.test(x.it.kw) || /^[\x00-\x7F\u00C0-\u024F\s]+$/.test(x.it.kw));
           (item.kind === "meme" ? mm : tr).push(item);
         });
         add("trend", tr); if (mm.length) add("meme", mm);
@@ -108,12 +118,13 @@
     var F = r[0] || {}, FE = r[1] || {};
     var list = (F.posts || []).concat(F.news || [], F.vids || []).sort(function (a, b) { return (FE[b.id] ? 1 : 0) - (FE[a.id] ? 1 : 0) || String(b.date || "").localeCompare(String(a.date || "")); });
     add("ai", list.map(function (p) {
-      var f = FE[p.id], vid = !!p.vid, one = (f && f.one) || p.ksum || p.sum || "";
-      return { key: p.id, sa: "ai", kind: "ai", title: p.ko || p.title, url: p.url, shareText: (p.ko || p.title) + "\n" + p.url, q: (p.ko || "") + " " + p.title + " " + (p.name || ""),
+      var f = FE[p.id], vid = !!p.vid, ks = p.ksum || (HAN.test(p.sum || "") ? p.sum : ""), one = tidy((f && f.one) || ks, !(f && f.one) && (p.sum || "").length >= 290);
+      var enOnly = !ks && !!p.sum && !(f && f.one);
+      return { key: p.id, sa: "ai", kind: "ai", ready: !!(p.ko || HAN.test(p.title)), title: p.ko || p.title, url: p.url, shareText: (p.ko || p.title) + "\n" + p.url, q: (p.ko || "") + " " + p.title + " " + (p.name || ""),
         html: function () {
           return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag ai">AI</span><span>' + esc(p.name || p.ch || "") + "</span><span>" + esc(p.date || "") + "</span></div>" +
             '<h2 class="vdk-t">' + esc(p.ko || p.title) + "</h2>" + (p.ko ? '<p class="vdk-note" style="margin:-6px 0 10px">' + esc(p.title) + "</p>" : "") +
-            (one ? '<p class="vdk-h">뭐가 생겼나</p><p class="vdk-p">' + esc(one) + "</p>" : "") + (f && f.one && (p.ksum || p.sum) ? '<p class="vdk-h">발표 내용</p><p class="vdk-p">' + esc(p.ksum || p.sum) + "</p>" : "") + (f && f.how ? '<p class="vdk-h">나는 어떻게 써 보나</p><p class="vdk-p">' + esc(f.how) + "</p>" : "") +
+            (one ? '<p class="vdk-h">뭐가 생겼나</p><p class="vdk-p">' + esc(one) + "</p>" : "") + (f && f.one && ks ? '<p class="vdk-h">발표 내용</p><p class="vdk-p">' + esc(tidy(ks)) + "</p>" : "") + (enOnly ? '<p class="vdk-note">발표 요약은 아직 영어로만 있어요 · 아래 ‘원문 보기’는 번역해서 열려요.</p>' : "") + (f && f.how ? '<p class="vdk-h">나는 어떻게 써 보나</p><p class="vdk-p">' + esc(f.how) + "</p>" : "") +
             '<a class="vdk-more" href="' + esc(vid ? p.url : D.koUrl(p.url)) + '" target="_blank" rel="noopener">' + (vid ? "유튜브에서 보기 ↗" : "원문 보기 ↗") + "</a>" +
             '<button type="button" class="vdk-more"' + go("ai/#f=" + encodeURIComponent(p.id)) + ">AI 탭에서 이 카드부터 보기 ›</button></div>";
         } };
@@ -137,14 +148,14 @@
     j("data/history/top.json").then(function (h) {
       if (!h || !h.all) return;
       add("story", h.all.slice(0, 400).map(function (r) {
-        var id = r[0], title = r[1], y = r[2], sum = r[14] || "";
+        var id = r[0], title = r[1], y = r[2], sum = (window.vfmClean || String)(r[14] || "");
         return { key: "h:" + id, sa: "history", kind: "story", hid: id, title: title, url: location.origin + location.pathname + "history/#p=" + id, shareText: title, q: title + " " + sum,
           html: function () {
             var hd = HD[id];
             return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag story">역사</span>' + (y != null ? "<span>" + (y < 0 ? "기원전 " + (-y) : y) + "년</span>" : "") + "<span>" + (r[6] || []).slice(0, 4).map(flag).join("") + '</span></div><h2 class="vdk-t">' + esc(title) + "</h2>" +
-              (hd ? (hd.desc ? '<p class="vdk-note">' + esc(hd.desc) + "</p>" : "") + '<p class="vdk-p">' + esc(hd.lead || sum) + "</p>" + (hd.secs || []).map(function (x, i) {
+              (hd ? (hd.desc ? '<p class="vdk-note">' + esc(hd.desc) + "</p>" : "") + '<p class="vdk-p">' + esc((window.vfmClean || String)(hd.lead || sum)) + "</p>" + (hd.secs || []).map(function (x, i) {
                 return '<details class="mx-sec"' + (i < 2 ? " open" : "") + "><summary>" + esc(x.h) + "</summary><p class=\"vdk-p\">" + esc(x.t) + "</p></details>"; }).join("") + '<p class="vdk-note">위키백과(한국어) 글을 정리했어요 · CC BY-SA</p>'
-                : '<p class="vdk-p">' + esc(sum) + '…</p><p class="vdk-note">글 전체를 불러오는 중…</p>') +
+                : '<p class="vdk-p">' + esc(tidy(sum, true)) + '</p><p class="vdk-note">글을 불러오는 중…</p>') +
               '<button type="button" class="vdk-more"' + go("history/#p=" + id) + ">역사에서 이어 읽기 ›</button></div>";
           } };
       }));
@@ -170,7 +181,7 @@
     return j("data/history/pages/" + pid.slice(0, 2).padStart(2, "0") + "/" + id + ".json").then(function (d) { if (d) HD[id] = d; return d; });
   }
   function more(x) {
-    var again = function () { var d = D.get("mix-home"); if (d && d.curKey() === x.key) d.paint(); };
+    var again = function () { ["mix-home", "mix-search"].forEach(function (id) { var d = D.get(id); if (d && d.el() && d.curKey() === x.key) d.paint(); }); };
     if (x.kind === "sisa" && !FEEDBY && x.ed) loadFeedOf(x.ed).then(again);
     if (x.hid && !HD[x.hid]) loadHist(x.hid).then(again);
     if (x.src === "wiki" && T.WK[x.it.url] === undefined) T.wikiFor(x.it.url).then(again);
@@ -187,6 +198,7 @@
       var tot = live.reduce(function (a, k) { return a + W[k] * W[k]; }, 0), r = Math.random() * tot, pick = live[0];   // 많이(3)=9, 보통(2)=4, 적게(1)=1 배
       for (var i = 0; i < live.length; i++) { r -= W[live[i]] * W[live[i]]; if (r <= 0) { pick = live[i]; break; } }
       var it = POOL[pick][ptr[pick]++];
+      if (it.ready === false) continue;                               // 한국어로 못 읽는 카드는 넘겨보기에서 뺌 (찾기에는 나옴)
       if (!used[it.key]) { used[it.key] = 1; out.push(it); }
     }
     return out;
@@ -202,22 +214,46 @@
       return '<div class="mx-row"><span>' + k[1] + '</span><div class="mx-seg">' + [3, 2, 1, 0].map(function (v) { return '<button type="button" data-mxw="' + k[0] + "|" + v + '" aria-pressed="' + (W[k[0]] === v) + '">' + WNAME[v] + "</button>"; }).join("") + "</div></div>";
     }).join("") + '<button type="button" class="mx-reset" data-mxw="reset">처음 비율로</button></div>';
   }
-  host.innerHTML = '<div class="mx-top"><input id="mxq" type="search" placeholder="전부에서 찾기 (예: 트럼프, 아이폰)" aria-label="한 번에 찾기"><button type="button" id="mxRatioBtn" aria-label="섞는 비율">비율</button></div>' +
+  host.innerHTML = '<div class="mx-top"><input id="mxq" type="search" placeholder="전부에서 찾기 (예: 트럼프, 임진왜란)" aria-label="한 번에 찾기"><button type="button" id="mxRatioBtn" aria-label="섞는 비율">비율</button></div>' +
     ratioHtml() + '<p class="mx-note" id="mxNote">시사·트렌드·밈·AI를 섞어서 한 장씩 · 옆으로 밀면 다음 · 본 것은 다시 안 나와요</p><div id="mxDeck">' + deck.html() + "</div>";
-  var q = document.getElementById("mxq"), qT = null;
-  q.addEventListener("input", function () {
-    clearTimeout(qT); qT = setTimeout(function () {
-      var v = q.value.trim().toLowerCase(), box = document.getElementById("mxDeck"), note = document.getElementById("mxNote");
-      if (v.length < 2) { note.textContent = "시사·트렌드·밈·AI를 섞어서 한 장씩 · 옆으로 밀면 다음 · 본 것은 다시 안 나와요"; box.innerHTML = deck.html(); return; }
-      var all = [];
-      KINDS.forEach(function (k) { all = all.concat(POOL[k[0]]); });
-      var seen = {}, hits = all.filter(function (x) { if (seen[x.key] || String(x.q || x.title).toLowerCase().indexOf(v) < 0) return false; seen[x.key] = 1; return true; });
-      note.textContent = "‘" + q.value.trim() + "’ 찾은 것 " + hits.length + "장 · 본 것도 나와요";
-      sdeck = D.create({ id: "mix-search", app: "mix", noSeen: true, emptyTitle: "찾은 게 없어요", emptyNote: "다른 낱말로 찾아보세요. 지금 불러온 자료 안에서 찾아요.", items: function () { return hits; } });
-      sdeck.queue = null; sdeck.hist = []; sdeck.pos = -1;
-      box.innerHTML = sdeck.html();
-    }, 250);
-  });
+  var q = document.getElementById("mxq"), qT = null, HT = null, htP = null, NOTE0 = "시사·트렌드·밈·AI를 섞어서 한 장씩 · 옆으로 밀면 다음 · 본 것은 다시 안 나와요";
+  // 역사 8만 편 제목 전부 (첫 찾기 때 한 번만 받음, 약 1MB)
+  function histTitles() {
+    if (!htP) htP = j("data/history/_index.json").then(function (ix) {
+      return Promise.all(((ix && ix.searchBuckets) || []).map(function (b) { return j("data/history/s/" + b + ".json"); }));
+    }).then(function (ls) { HT = []; (ls || []).forEach(function (l) { if (Array.isArray(l)) HT = HT.concat(l); }); return HT; });
+    return htP;
+  }
+  function histItem(r) {                                               // 제목 색인 한 줄 [제목, id, 연도, 종류, 권역] → 카드 (본문은 보일 때 받음)
+    var id = r[1], title = r[0], y = r[2];
+    return { key: "h:" + id, sa: "history", kind: "story", hid: id, title: title, url: location.origin + location.pathname + "history/#p=" + id, shareText: title, q: title,
+      html: function () {
+        var hd = HD[id];
+        return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag story">역사</span>' + (y != null && y !== "" ? "<span>" + (y < 0 ? "기원전 " + (-y) : y) + "년</span>" : "") + '</div><h2 class="vdk-t">' + esc(title) + "</h2>" +
+          (hd ? (hd.desc ? '<p class="vdk-note">' + esc(hd.desc) + "</p>" : "") + '<p class="vdk-p">' + esc((window.vfmClean || String)(hd.lead || hd.one || "")) + "</p>" + (hd.secs || []).slice(0, 4).map(function (x, i) {
+            return '<details class="mx-sec"' + (i < 1 ? " open" : "") + "><summary>" + esc(x.h) + '</summary><p class="vdk-p">' + esc(x.t) + "</p></details>"; }).join("") + '<p class="vdk-note">위키백과(한국어) 글을 정리했어요 · CC BY-SA</p>'
+            : '<p class="vdk-note">글을 불러오는 중…</p>') +
+          '<button type="button" class="vdk-more"' + go("history/#p=" + id) + ">역사에서 이어 읽기 ›</button></div>";
+      } };
+  }
+  function runSearch() {
+    var raw = q.value.trim(), v = raw.toLowerCase(), box = document.getElementById("mxDeck"), note = document.getElementById("mxNote");
+    if (v.length < 2) { note.textContent = NOTE0; if (sdeck) { sdeck = null; box.innerHTML = deck.html(); var k = deck.curKey(); if (k && deck.map[k]) more(deck.map[k]); } return; }
+    var all = [];
+    KINDS.forEach(function (k) { all = all.concat(POOL[k[0]]); });
+    var seen = {}, hits = all.filter(function (x) { if (seen[x.key] || String(x.q || x.title).toLowerCase().indexOf(v) < 0) return false; seen[x.key] = 1; return true; });
+    var hh = HT ? HT.filter(function (r) { return !seen["h:" + r[1]] && String(r[0]).toLowerCase().indexOf(v) >= 0; }) : [];
+    hh.sort(function (a, b) { return (String(a[0]).toLowerCase().indexOf(v) === 0 ? 0 : 1) - (String(b[0]).toLowerCase().indexOf(v) === 0 ? 0 : 1) || a[0].length - b[0].length; });
+    hits = hits.concat(hh.slice(0, 300).map(histItem));
+    note.textContent = "‘" + raw + "’ 찾은 것 " + hits.length + "장" + (hh.length > 300 ? " (역사는 " + hh.length.toLocaleString() + "편 중 제목이 짧은 300편)" : "") + " · 본 것도 나와요" + (HT ? "" : " · 역사 제목을 받는 중…");
+    sdeck = D.create({ id: "mix-search", app: "mix", noSeen: true, emptyTitle: HT ? "찾은 게 없어요" : "찾는 중이에요", emptyNote: HT ? "다른 낱말로 찾아보세요. 시사·트렌드·AI는 지금 판, 역사는 8만 편 제목에서 찾아요." : "역사 제목 8만 편을 받고 있어요.", items: function () { return hits; }, onShow: more });
+    sdeck.queue = null; sdeck.hist = []; sdeck.pos = -1;
+    box.innerHTML = sdeck.html();
+    var k0 = sdeck.curKey(); if (k0 && sdeck.map[k0]) more(sdeck.map[k0]);
+    if (!HT) histTitles().then(function () { if (q.value.trim().toLowerCase() === v) runSearch(); });
+  }
+  q.addEventListener("input", function () { clearTimeout(qT); qT = setTimeout(runSearch, 250); });
+  q.addEventListener("search", function () { clearTimeout(qT); runSearch(); });   // 폰 키보드의 ✕·검색 단추
   document.addEventListener("click", function (e) {
     var t = e.target.closest("[data-mxw],#mxRatioBtn,[data-mixgo]"); if (!t) return;
     if (t.id === "mxRatioBtn") { var r = document.getElementById("mxRatio"); r.hidden = !r.hidden; return; }

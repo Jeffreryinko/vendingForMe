@@ -19,6 +19,26 @@
   var NAME = { home: "홈", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구" };
   try { if (!HOME) localStorage.setItem("vfm:tab", APP); } catch (e) { }
 
+  /* ── 글 다듬기: 첫 문단 괄호 속 외국어 표기(조지아어·벵골어 등)는 폰에서 □□□ 로 깨지고 앞부분을 다 차지함 → 뺌.
+       '(영어: …, 1848년 11월 10일 ~ 1925년)' 이면 날짜 부분만 남김. 한자·로마자 짧은 표기는 그대로. */
+  var RARE = /[\u0370-\u03FF\u0400-\u052F\u0530-\u058F\u0590-\u05FF\u0600-\u06FF\u0700-\u08FF\u0900-\u0DFF\u0E00-\u0FFF\u1000-\u109F\u10A0-\u10FF\u1200-\u139F\u1780-\u18AF\u2C80-\u2CFF\uA500-\uA6FF\uD800-\uDFFF\u25A0-\u25FF\u2580-\u259F]/;
+  var LBL = /^\s*(?:[가-힣]+\s)?[가-힣]+(?:어|문자|자|음|표기|명)\s*:/;
+  function cleanText(t) {
+    if (!t) return t || "";
+    return String(t).replace(/\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g, function (all, inner) {
+      if (!LBL.test(inner) && !RARE.test(inner)) return all;
+      var out = [], drop = false;
+      inner.split(/\s*[;,]\s*(?![^()]*\))/).forEach(function (seg) {
+        if (!seg.trim()) return;
+        if (LBL.test(seg) || RARE.test(seg)) { drop = true; return; }
+        if (drop && !/[가-힣\d]/.test(seg)) return;                  // 앞 표기에 이어진 영문 조각
+        drop = false; out.push(seg.trim());
+      });
+      return out.length ? "(" + out.join(", ") + ")" : "";
+    }).replace(/\s+([,.])/g, "$1").replace(/ {2,}/g, " ");
+  }
+  window.vfmClean = cleanText;
+
   /* ── 모양 (애플식, apple.css 의 색 변수를 씀) ── */
   var css = document.createElement("style");
   css.textContent =

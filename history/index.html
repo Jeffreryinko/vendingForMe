@@ -106,7 +106,7 @@ function save(k) { LS.s(k, S[k]); }
 document.documentElement.style.setProperty("--fs", S.cfg.fs || 1);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 function toast(m) { const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); }
-async function getJ(p) { if (S.cache[p]) return S.cache[p]; const r = await fetch("../data/history/" + p, { cache: "no-cache" }); if (!r.ok) throw new Error(p); const j = await r.json(); if (!p.startsWith("pages/")) S.cache[p] = j; return j; }
+async function getJ(p) { if (S.cache[p]) return S.cache[p]; const r = await fetch("../data/history/" + p, { cache: "no-cache" }); if (!r.ok) throw new Error(p); const j = await r.json(); if (p.startsWith("pages/")) { const cl = window.vfmClean || (x => x); if (j.lead) j.lead = cl(j.lead); if (j.one) { j.one = cl(j.one); if (!/[.!?。)\]다요]\s*$/.test(j.one)) j.one = j.one.replace(/[,\s]+$/, "") + "…"; } } else S.cache[p] = j; return j; }
 const KIND = { p: "인물", e: "사건", s: "나라·왕조", t: "시대", l: "전설·설", o: "기타" };
 const yr = y => y == null ? "" : y < 0 ? `기원전 ${-y}` : `${y}`;
 const span = e => e.y == null ? "연도 미상" : e.y2 != null && e.y2 !== e.y ? `${yr(e.y)}~${yr(e.y2)}` : yr(e.y);
@@ -140,7 +140,7 @@ function badges(e) {
   return `${e.y != null ? `<span class="bd yr">${span(e)}</span>` : ""}${e.e >= 0 ? `<span class="bd">${esc(eraShort(e.e))}</span>` : ""}${e.r && e.r !== "xx" ? `<span class="bd">${esc(regName(e.r))}${e.c && e.c.length ? " · " + esc(cko(e.c[0])) : ""}</span>` : ""}${e.h >= 0 ? `<span class="bd th">${esc(themeName(e.h))}</span>` : ""}
     ${e.g.includes("B") ? '<span class="bd bk">야사</span>' : ""}${e.g.includes("P") ? '<span class="bd pr">대명사</span>' : ""}<span class="bd kd">${KIND[e.k] || ""}</span>${(S.tags[e.i] || []).map(t => `<span class="tag">${esc(t)}</span>`).join("")}${S.star[e.i] ? '<span class="bd pr">★</span>' : ""}`;
 }
-function card(e) { return `<button type="button" class="card${S.read[e.i] ? " read" : ""}${S.star[e.i] ? " star" : ""}" data-open="${esc(e.i)}"><p class="t">${esc(e.t)}</p>${e.o ? `<p class="one">${esc(e.o)}</p>` : ""}<div class="meta">${badges(e)}</div></button>`; }
+function card(e) { return `<button type="button" class="card${S.read[e.i] ? " read" : ""}${S.star[e.i] ? " star" : ""}" data-open="${esc(e.i)}"><p class="t">${esc(e.t)}</p>${e.o ? `<p class="one">${esc((window.vfmClean || (x => x))(e.o))}</p>` : ""}<div class="meta">${badges(e)}</div></button>`; }
 function liRow(e) { return `<button class="li${S.read[e.i] ? " read" : ""}" data-open="${esc(e.i)}"><p class="t">${esc(e.t)}${S.star[e.i] ? " ★" : ""}</p><p class="s">${[e.y != null ? span(e) : "", e.r && e.r !== "xx" ? regName(e.r) : "", e.c && e.c[0] ? cko(e.c[0]) : "", e.h >= 0 ? themeName(e.h) : "", KIND[e.k] || ""].filter(Boolean).map(esc).join(" · ")}</p></button>`; }
 const notHidden = l => l.filter(e => !S.hide[e.i]);
 const notRead = l => l.filter(e => !S.read[e.i] && !S.hide[e.i]);
