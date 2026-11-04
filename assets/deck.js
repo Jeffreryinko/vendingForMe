@@ -172,7 +172,7 @@
     if (old) old.replaceWith(card); else host.appendChild(card);
     if (dir) { card.classList.add(dir > 0 ? "in-r" : "in-l"); requestAnimationFrame(function () { requestAnimationFrame(function () { card.classList.remove("in-r", "in-l"); }); }); }
     var top = host.getBoundingClientRect().top;
-    if (dir && (top < 0 || top > window.innerHeight * 0.6)) window.scrollTo({ top: Math.max(0, window.scrollY + top - 8), behavior: "auto" });   // 넘길 때만 카드 쪽으로 (처음 그릴 땐 화면을 옮기지 않음 — 위에 둘러보기가 있음)
+    if (top < 0 || top > window.innerHeight * 0.6) window.scrollTo({ top: Math.max(0, window.scrollY + top - 8), behavior: dir ? "auto" : "smooth" });
     this.armDwell();
     if (this.o.onShow) { var k = this.curKey(); if (k && this.map[k]) try { this.o.onShow(this.map[k]); } catch (e) { } }
   };
