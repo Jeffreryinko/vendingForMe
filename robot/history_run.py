@@ -722,9 +722,9 @@ def classify(page, ent, kind, C, L, hint, CL):
         y, y2 = t_year((cv(ent, "P571") or cv(ent, "P580") or [None])[0]), t_year((cv(ent, "P576") or cv(ent, "P582") or [None])[0]); ya = y
         rough = t_rough(ent, "P571") if cv(ent, "P571") else t_rough(ent, "P580")
     else:
-        d0 = (cv(ent, "P585") or cv(ent, "P580") or cv(ent, "P571") or [None])[0]
+        d0 = (cv(ent, "P580") or cv(ent, "P585") or cv(ent, "P571") or [None])[0]   # 기간이 있으면 시작(P580) 먼저 — 1차 대전이 1918로 나오던 문제
         y = t_year(d0); y2 = t_year((cv(ent, "P582") or cv(ent, "P576") or [None])[0]); ya = y; md = t_md(d0) if kind == "event" else ""
-        rough = next((t_rough(ent, p) for p in ("P585", "P580", "P571") if cv(ent, p)), False)
+        rough = next((t_rough(ent, p) for p in ("P580", "P585", "P571") if cv(ent, p)), False)
     if y is None and hint.get("y") is not None and kind not in ("person", "concept"): y = ya = hint["y"]
     if y is None and kind != "concept":                               # 본문 첫 문단에서 연도 찾기 (찾으면 '추정'으로 표시)
         m = LEAD_YEAR.search((page.get("lead") or "")[:400])
@@ -739,7 +739,7 @@ def classify(page, ent, kind, C, L, hint, CL):
     if kind == "person": ROLE = (("work", cv(ent, "P937")[:3], 0), ("born", cv(ent, "P19")[:1], 0), ("nat", cv(ent, "P27")[:3], 1))
     elif kind == "state": ROLE = (("at", [ent.get("id")] + cv(ent, "P17")[:2], 1), ("at", cv(ent, "P30")[:1], 0))
     else: ROLE = (("at", cv(ent, "P17")[:4], 1), ("at", cv(ent, "P276")[:6], 0), ("at", cv(ent, "P131")[:1], 0), ("side", [q for q in cv(ent, "P710")[:8] if q in C.c], 1))
-    isos, thens, region, roles, at_regs = [], [], "", {}, []
+    isos, thens, region, roles, at_regs, cont_reg = [], [], "", {}, [], ""
     for role, qs, pol in ROLE:                                        # pol = 나라(정치체)를 가리키는 속성 → '당시 이름'을 씀
         for q in qs:
             if not isinstance(q, str): continue
@@ -750,7 +750,9 @@ def classify(page, ent, kind, C, L, hint, CL):
             if then and then not in thens: thens.append(then)
             if not region and reg: region = reg                       # 처음 권역이 나오는 곳 (대륙만 알아도)
             if role == "at" and reg and reg not in at_regs: at_regs.append(reg)
+            if role == "at" and q in T.CONTINENT_REGION and not cont_reg: cont_reg = T.CONTINENT_REGION[q]
     if isos and not region: region = T.ISO_REGION.get(isos[0], "")
+    if len(at_regs) >= 3 and cont_reg: region = cont_reg               # 여러 권역 사건은 위키데이터가 처음 적은 대륙(1차 대전 → 유럽)
     if (y if y is not None else ya if ya is not None else 9999) < 1948:    # 남북 분단 전 한반도 = '한국' (평양에서 있었던 고구려 일도 북한이 아님)
         fx = lambda l: [x for k, x in enumerate(["KR" if i == "KP" else i for i in l]) if x not in ["KR" if i == "KP" else i for i in l][:k]]
         isos = fx(isos)
@@ -816,7 +818,7 @@ def retheme_people(st):
     st.seeds["retheme"] = "v2"; log(f"사람 테마 다시 매김: {n:,}편")
 
 
-RECLASS = "reclass4"          # 분류 규칙을 바꾸면 이름을 올림 → 받은 글 전부를 위키데이터로 다시 분류 (본문은 안 받음, 토큰 0)
+RECLASS = "reclass5"          # 분류 규칙을 바꾸면 이름을 올림 → 받은 글 전부를 위키데이터로 다시 분류 (본문은 안 받음, 토큰 0)
 def reclass(st, C, L, CL, cp):
     """받은 글 전부 다시 분류: 개념 종류 · 대략 연도(~경) · 역할별 나라 · 권역. 끊겨도 다음 회차에 이어서."""
     if st.seeds.get(RECLASS) == "done": return

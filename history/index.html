@@ -402,8 +402,9 @@ const ROLE_NAME = { work: "활동", born: "출생", nat: "국적", at: "일어�
 function rolesHtml(p) {
   const r = p.roles || {}; const keys = ["work", "born", "nat", "at", "side"].filter(k => (r[k] || []).length);
   if (!keys.length) return "";
-  const nm = x => x[1] && (!x[0] || cko(x[0]) !== x[1]) ? (x[0] ? `${x[1]} (지금 ${cko(x[0])})` : x[1]) : cko(x[0]);
-  return `<p class="roles">${keys.map(k => `<span><b>${ROLE_NAME[k]}</b> ${esc(r[k].slice(0, 3).map(nm).join(" · "))}</span>`).join("")}</p>`;
+  // 국적·참여는 '당시 나라 이름'만 (옛 나라 → 지금 나라 짝짓기는 틀릴 때가 있어 '지금'은 일어난 곳·출생·활동에만)
+  const nm = (x, k) => x[1] && (!x[0] || cko(x[0]) !== x[1]) ? (x[0] && k !== "nat" && k !== "side" ? `${x[1]} (지금 ${cko(x[0])})` : x[1]) : cko(x[0]);
+  return `<p class="roles">${keys.map(k => `<span><b>${ROLE_NAME[k]}</b> ${esc([...new Set(r[k].slice(0, 3).map(x => nm(x, k)))].join(" · "))}</span>`).join("")}</p>`;
 }
 function causeHtml(p) {
   const r = p.rel || {}, c = (r.cause || []).slice(0, 3), f = (r.effect || []).slice(0, 3); if (!c.length && !f.length) return "";
