@@ -1171,7 +1171,8 @@ def main():
     wj(ST / "run.json", {"at": now_iso(), "minutes": round((time.time() - T0) / 60), "stat": STAT, "queue": len(st.queue), "pages": len(st.pages)})
     log(f"끝 {round((time.time() - T0) / 60)}분 · 호출 {STAT['calls']:,} · 글 {len(st.pages):,} · 받을 차례 {len(st.queue):,} · 오류 {STAT['err']} · 429 {STAT['r429']}")
     if os.environ.get("GITHUB_OUTPUT"):
-        progress = 1 if (STAT["pages"] > 0 or STAT["seeds"] > 0 or STAT["updated"] > 0) else 0
+        # 다음 회차는 '받을 게 아직 많을 때'만 (꼬리에 붙는 몇 편은 매일 새벽 회차가 처리)
+        progress = 1 if (len(st.queue) >= 200 and (STAT["pages"] >= 200 or STAT["seeds"] >= 200 or STAT["updated"] >= 200)) else 0
         with open(os.environ["GITHUB_OUTPUT"], "a") as f: f.write(f"queue={len(st.queue)}\nharvested={STAT['pages']}\npages={len(st.pages)}\nprogress={progress}\n")
 
 
