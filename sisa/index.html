@@ -2695,8 +2695,8 @@ document.addEventListener("touchcancel", () => { if(sw){ const el = sw.inSheet ?
 document.addEventListener("touchend", () => {
   if(!sw) return; const s = sw; sw = null; if(!s.horiz) return;
   const el = s.inSheet ? $(".sheet") : $("#main"); if(el){ el.style.transition = "transform .18s ease-out"; el.style.transform = ""; }
-  const need = Math.max(130, window.innerWidth * 0.4);   // 넘겨보기와 같은 기준 (빠르게 튕기기 없음)
-  if(Math.abs(s.dx) < need) return;
+  const need = Math.max(100, window.innerWidth * 0.3), fling = Math.abs(s.dx) >= 80 && Math.abs(s.v) >= 0.6 && (s.v < 0) === (s.dx < 0);   // 넘겨보기와 같은 기준
+  if(Math.abs(s.dx) < need && !fling) return;
   const dir = s.dx < 0 ? 1 : -1;               // 왼쪽으로 밀면 다음
   if(s.inSheet) sheetStep(dir); else if(!S.sheetOpen) tabStep(dir);
 });

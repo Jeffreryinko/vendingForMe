@@ -243,7 +243,7 @@ async function loadFeed() { if (FEED) return FEED; try { FEED = await getJ("feed
 const ku = u => D ? D.koUrl(u) : u;
 function featCard(p, kind) {
   const f = FEAT[p.id];
-  let one = f && f.one || p.ksum || p.sum || ""; if (one.length > 220) one = one.slice(0, 210).replace(/\s\S*$/, "") + "…";
+  const one = f && f.one || p.ksum || p.sum || "";
   return `<div class="vdk-body"><div class="vdk-k"><span class="bd ${kind === "vid" ? "yt" : kind === "news" ? "kr" : "hf"}">${kind === "vid" ? "해설 영상" : kind === "news" ? "국내 소식" : "새 기능·발표"}</span><span>${esc(p.name || p.ch || "")}</span><span>${esc(p.date || "")}</span>${p.new ? '<b class="up">NEW</b>' : ""}</div>
     <h2 class="vdk-t">${esc(p.ko || p.title)}</h2>${p.ko ? `<p class="en">${esc(p.title)}</p>` : ""}
     ${one ? `<p class="ez-k">뭐가 생겼나${f && f.one ? "" : ' <span class="sub">(발표문 요약' + (p.ksum ? " · 기계번역" : "") + ')</span>'}</p><p class="vdk-p">${esc(one)}</p>` : ""}

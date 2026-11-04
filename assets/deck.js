@@ -2,8 +2,9 @@
  *
  *  · 카드 한 장씩 보여 주고, 옆으로 밀면 다음 카드. 위아래로는 그냥 화면이 움직임(카드 안 글을 끝까지 읽기).
  *  · 이미 본 카드는 다시 안 나옴 — 본 기록은 이 폰 저장소(localStorage "vfm:seen:<앱>")에 남김.
- *  · 덜 예민하게: 손가락이 20px 넘게 움직였을 때 방향을 정하고(가로가 세로의 2배 넘어야 가로),
- *    화면 너비의 40%(최소 130px) 넘게 밀었을 때만 넘어감 (빠르게 튕기기로는 안 넘어감).
+ *  · 감도: 손가락이 20px 넘게 움직였을 때 방향을 정하고(가로가 세로의 2배 넘어야 가로),
+ *    화면 너비의 30%(최소 100px) 넘게 밀거나, 80px 넘게 빠르게 밀었을 때 넘어감.
+ *  · 외국어 글은 카드가 보일 때 자동으로 한국어로 번역(구글 번역 무료 주소, 폰에 기억). '원문 보기'로 되돌림.
  *    화면 가장자리 28px 안에서 시작한 손가락은 폰 뒤로가기 제스처라서 무시.
  *  · 카드마다 좋아요(♡)·공유 — 좋아요는 "vfm:likes" 하나에 모든 앱 것을 같이 저장.
  *
@@ -220,10 +221,11 @@
   document.addEventListener("touchend", function () {
     if (!g) return; var s = g; g = null;
     if (s.lock !== "h") return;
-    // 애플·삼성 사진 넘기기의 중간쯤: 화면 너비의 40%(최소 130px) 넘게 밀어야 넘어감. 빠르게 튕기기는 쓰지 않음(사용자 선택)
-    var W = window.innerWidth, need = Math.max(130, W * 0.4);
+    // 중간 감도: 화면 너비의 30%(최소 100px) 넘게 밀거나, 80px 넘게 '쓱' 빠르게 밀면 넘어감
+    var W = window.innerWidth, need = Math.max(100, W * 0.3);
+    var fling = Math.abs(s.dx) >= 80 && Math.abs(s.v) >= 0.6 && (s.v < 0) === (s.dx < 0);
     var d = decks[s.id];
-    if (!d || Math.abs(s.dx) < need) return settle(s.card);
+    if (!d || (Math.abs(s.dx) < need && !fling)) return settle(s.card);
     var dir = s.dx < 0 ? 1 : -1;                                          // 왼쪽으로 밀면 다음
     if (dir < 0 && d.pos <= 0) { toast("첫 카드예요"); return settle(s.card); }
     s.card.style.transition = "transform .16s ease-in, opacity .16s";
@@ -262,6 +264,62 @@
     else if (act === "reset") { d.resetSeen(); toast("본 기록을 지웠어요"); }
     else if (act === "list" && d.o.onList) d.o.onList();
   });
+
+  /* ── 외국어 자동 번역 (카드가 화면에 나올 때만, 한 번 번역한 글은 폰에 기억) ── */
+  var TRC = LS.g("vfm:trc", {}), trFail = 0, trStop = 0, trQ = Promise.resolve();
+  function needTr(t) {
+    t = (t || "").trim(); if (t.length < 6) return false;
+    var h = (t.match(/[가-힣]/g) || []).length, l = (t.match(/[A-Za-zÀ-ɏЀ-ӿ぀-ヿ一-鿿؀-ۿ฀-๿]/g) || []).length;
+    return l >= 5 && l > h * 3;
+  }
+  function tr1(t) {
+    if (TRC[t]) return Promise.resolve(TRC[t]);
+    if (Date.now() < trStop) return Promise.resolve(null);
+    trQ = trQ.then(function () {
+      if (TRC[t]) return TRC[t];
+      return fetch("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ko&dt=t&q=" + encodeURIComponent(t.slice(0, 1800)))
+        .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function (j) {
+          var ko = (j[0] || []).map(function (x) { return x[0]; }).join("").trim(); trFail = 0;
+          if (ko) { TRC[t] = ko; var ks = Object.keys(TRC); if (ks.length > 900) ks.slice(0, 300).forEach(function (k) { delete TRC[k]; }); LS.s("vfm:trc", TRC); }
+          return ko || null;
+        }, function () { if (++trFail >= 3) { trStop = Date.now() + 10 * 60e3; trFail = 0; } return null; });
+    });
+    return trQ;
+  }
+  var TR_SEL = ".vdk-t,.vdk-p,.vdk-ol li,.vdk-links a,.vdk-links button,.vdk-links small";
+  function autoTr(card) {
+    if (!card || card.getAttribute("data-trd")) return;
+    card.setAttribute("data-trd", "1");
+    var jobs = [];
+    [].forEach.call(card.querySelectorAll(TR_SEL), function (el) {
+      [].forEach.call(el.childNodes, function (n) {
+        if (n.nodeType === 3 && needTr(n.nodeValue) && jobs.length < 14) jobs.push(n);
+      });
+    });
+    if (!jobs.length) return;
+    var done = 0;
+    jobs.forEach(function (n) {
+      var orig = n.nodeValue;
+      tr1(orig.trim()).then(function (ko) {
+        if (!ko || !n.parentNode) return;
+        n.__orig = orig; n.__ko = ko; n.nodeValue = ko; done++;
+        if (done === 1) {
+          var b = document.createElement("button"); b.type = "button"; b.className = "vdk-trnote"; b.textContent = "외국어는 자동 번역했어요 · 원문 보기";
+          b.addEventListener("click", function () {
+            var showOrig = b.getAttribute("data-o") !== "1"; b.setAttribute("data-o", showOrig ? "1" : "0");
+            jobs.forEach(function (x) { if (x.__ko) x.nodeValue = showOrig ? x.__orig : x.__ko; });
+            b.textContent = showOrig ? "원문을 보고 있어요 · 번역 보기" : "외국어는 자동 번역했어요 · 원문 보기";
+          });
+          var react = card.querySelector(".vdk-react"); card.insertBefore(b, react || null);
+        }
+      });
+    });
+  }
+  // 앱이 화면을 새로 그려 카드가 생기면 번역
+  var trT = null;
+  new MutationObserver(function () { clearTimeout(trT); trT = setTimeout(function () { [].forEach.call(document.querySelectorAll(".vdk-card[data-vdk-card]:not([data-trd])"), function (c) { if (c.offsetParent !== null) autoTr(c); }); }, 120); })
+    .observe(document.documentElement, { childList: true, subtree: true });
 
   /* ── 넘겨보기 / 목록 고르기 ── */
   var modeCb = {};
@@ -319,6 +377,7 @@
     ".vdk-links{display:flex;flex-direction:column;gap:2px}" +
     ".vdk-links a,.vdk-links button{display:block;text-align:left;width:100%;border:0;background:none;padding:9px 0;font:inherit;font-size:14.5px;line-height:1.45;color:inherit;text-decoration:none;border-top:.5px solid var(--ap-sep,rgba(60,60,67,.2));cursor:pointer}" +
     ".vdk-links small{display:block;color:var(--muted,var(--ap-label2,#666));font-size:12px}" +
+    ".vdk-trnote{display:block;width:100%;margin:10px 0 0;border:0;background:none;padding:4px 0;text-align:left;font:inherit;font-size:12.5px;color:var(--muted,var(--ap-label2,#666));cursor:pointer}" +
     ".vdk-more{display:block;text-align:left;margin-top:6px;font-weight:600;color:var(--ap-tint-t,var(--accent,#0066D6));background:none;border:0;padding:6px 0;font:inherit;cursor:pointer;text-decoration:none}";
   document.head.appendChild(css);
 
