@@ -76,7 +76,7 @@
       var dg = ed.countryDigest || {};
       add("nation", Object.keys(dg).map(function (c) {
         return { key: "n:" + c + ":" + dg[c].slice(0, 24), sa: "sisa", kind: "nation", title: cname(c) + "의 오늘", url: location.origin + location.pathname + "sisa/#nation", shareText: cname(c) + "의 오늘\n" + dg[c], q: cname(c) + " " + dg[c],
-          html: function () { return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag nation">나라별 오늘</span><span>' + esc(ed.label || "") + '</span></div><h2 class="vdk-t">' + flag(c) + " " + esc(cname(c)) + '의 오늘</h2><p class="vdk-p">' + esc(dg[c]) + '</p><button type="button" class="vdk-more"' + go("sisa/#nation") + ">이 나라 뉴스 넘겨 보기 ›</button></div>"; } };
+          html: function () { return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag nation">나라별 오늘</span><span>' + esc(ed.label || "") + '</span></div><h2 class="vdk-t">' + flag(c) + " " + esc(cname(c)) + '의 오늘</h2><p class="vdk-p">' + esc(dg[c]) + '</p><button type="button" class="vdk-more"' + go("sisa/#nation-" + c) + ">이 나라 뉴스 넘겨 보기 ›</button></div>"; } };
       }));
     });
   });
@@ -115,7 +115,7 @@
             '<h2 class="vdk-t">' + esc(p.ko || p.title) + "</h2>" + (p.ko ? '<p class="vdk-note" style="margin:-6px 0 10px">' + esc(p.title) + "</p>" : "") +
             (one ? '<p class="vdk-h">뭐가 생겼나</p><p class="vdk-p">' + esc(one) + "</p>" : "") + (f && f.one && (p.ksum || p.sum) ? '<p class="vdk-h">발표 내용</p><p class="vdk-p">' + esc(p.ksum || p.sum) + "</p>" : "") + (f && f.how ? '<p class="vdk-h">나는 어떻게 써 보나</p><p class="vdk-p">' + esc(f.how) + "</p>" : "") +
             '<a class="vdk-more" href="' + esc(vid ? p.url : D.koUrl(p.url)) + '" target="_blank" rel="noopener">' + (vid ? "유튜브에서 보기 ↗" : "원문 보기 ↗") + "</a>" +
-            '<button type="button" class="vdk-more"' + go("ai/#today") + ">AI 탭에서 더 보기 ›</button></div>";
+            '<button type="button" class="vdk-more"' + go("ai/#f=" + encodeURIComponent(p.id)) + ">AI 탭에서 이 카드부터 보기 ›</button></div>";
         } };
     }));
   });

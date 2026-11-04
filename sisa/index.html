@@ -2721,14 +2721,15 @@ function route(){
   const h = (location.hash || "").slice(1);
   { const sh = $(".sheet"); if(sh && S.drawnId) S.sheetScroll[S.drawnId] = sh.scrollTop; }   // 지금 보던 시트의 읽던 자리 기억
   closeEntPop();
-  if(!S.loaded){ S.view = VIEW_HASH[h] || "today"; return render(); }
+  if(!S.loaded){ S.view = VIEW_HASH[h] || (h.startsWith("nation-") ? "nation" : "today"); return render(); }
   if(h.startsWith("map-")) return showMapFull(h.slice(4));
   closeMapFull(true);
   if(h.startsWith("item-") && S.byId[h.slice(5)]) return showSheet(h.slice(5));
   if(h.startsWith("issue-")) return showIssue(h.slice(6));
   if(h.startsWith("theme-")) return showTheme(h.slice(6));
   if(S.sheetOpen){ S.sheetOpen = null; $("#sheetHost").innerHTML = ""; }
-  const v = VIEW_HASH[h] || "today";
+  if(h.startsWith("nation-")){ S.natC = h.slice(7); try{ localStorage.setItem("vfm:mode:sisa-nat", '"deck"'); }catch(_){} }
+  const v = VIEW_HASH[h] || (h.startsWith("nation-") ? "nation" : "today");
   if(h==="trend") S.flowTab = "trend"; else if(h==="feed") S.flowTab = "cat";
   if(v !== S.view){ S.scroll[S.view] = window.scrollY; S.view = v; render(); window.scrollTo(0, S.scroll[v] || 0); }
   else render();
