@@ -199,6 +199,7 @@
     back.innerHTML =
       '<div class="vfm-sheet" role="dialog" aria-label="자판기 설정"><div class="grab"></div><h3>설정</h3>' +
       '<div class="cap">마지막 갱신</div><div class="grp" id="vfmUpd">' + APPS.map(function (a) { return '<div data-u="' + a[0] + '"><span>' + a[1] + '</span><span class="v">…</span></div>'; }).join("") + "</div>" +
+      '<div class="cap">폰·PC 이어 보기</div><div class="grp" id="vfmSync">' + syncHtml() + "</div>" +
       '<div class="cap">내 기록</div><div class="grp">' +
       '<button type="button" data-act="box"><span class="tint">보관함 — 모든 앱에서 저장한 것 · 내 질문 · 이번 주 생각</span><span class="v">›</span></button>' +
       '<button type="button" data-act="export"><span class="tint">기록 내보내기</span><span class="v">파일 하나로</span></button>' +
@@ -227,6 +228,9 @@
       var b = e.target.closest("[data-act]"); if (!b) return;
       var act = b.getAttribute("data-act");
       if (act === "box") { location.href = ROOT + "box/"; return; }
+      if (act === "login") { window.vfmSync.login().catch(function (x) { toast(x.message || "로그인 실패"); }); return; }
+      if (act === "logout") { if (confirm("로그아웃할까요? 이 기기의 기록은 그대로 남아요.")) window.vfmSync.logout(); return; }
+      if (act === "syncnow") { window.vfmSync.now(); return; }
       if (act === "reload") location.reload();
       else if (act === "home") { back.remove(); goHome(); }
       else if (act === "export") {
@@ -301,6 +305,19 @@
     });
   }
   window.vfm.think = think; window.vfm.box = BOX;
+
+  /* ── 구글 로그인 (assets/sync.js) — 설정(sync-config.js)이 있을 때만 보임 ── */
+  function syncHtml() {
+    var S = window.vfmSync;
+    if (!S || !S.ready) return '<div><span>구글 로그인</span><span class="v">준비 중</span></div>';
+    var u = S.user();
+    if (!u) return '<button type="button" data-act="login"><span class="tint">구글로 로그인</span><span class="v">폰과 PC에서 같은 기록</span></button>';
+    return '<div><span>' + escH((u.user_metadata && (u.user_metadata.name || u.user_metadata.full_name)) || u.email || "로그인됨") + '</span><span class="v">' + escH(S.status || "") + "</span></div>" +
+      '<button type="button" data-act="syncnow"><span class="tint">지금 맞추기</span><span class="v">›</span></button><button type="button" data-act="logout"><span>로그아웃</span><span class="v">›</span></button>';
+  }
+  [ROOT + "assets/sync-config.js", ROOT + "assets/sync.js"].reduce(function (p, src) {
+    return p.then(function () { return new Promise(function (ok) { var sc = document.createElement("script"); sc.src = src; sc.onload = sc.onerror = ok; document.head.appendChild(sc); }); });
+  }, Promise.resolve()).then(function () { if (window.vfmSync) window.vfmSync.render = syncHtml; });
   css.textContent += ".vfm-tk-src{margin:-6px 4px 10px;color:var(--ap-label2);font-size:14px}.vfm-tk-qs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}" +
     ".vfm-tk-qs button{border:0;border-radius:999px;padding:8px 12px;background:var(--ap-fill);color:var(--ap-label);font:inherit;font-size:14px}.vfm-tk-qs button[aria-pressed=true]{background:var(--ap-blue);color:#fff;font-weight:700}" +
     ".vfm-think input,.vfm-think textarea{width:100%;box-sizing:border-box;border:0;border-radius:12px;padding:10px 12px;background:var(--ap-fill);color:var(--ap-label);font:inherit;font-size:16px;margin:4px 0 10px;resize:vertical}" +
