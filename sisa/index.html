@@ -740,6 +740,10 @@ kbd{font-family:var(--f-mono,monospace);font-size:12px;background:var(--sunk);bo
 .dk .dk-cat{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--cc,var(--accent))}.dk .dk-cat i{width:8px;height:8px;border-radius:50%;background:var(--cc,var(--accent))}
 .dk.t-war{--cc:var(--c-war)}.dk.t-pol{--cc:var(--c-pol)}.dk.t-eco{--cc:var(--c-eco)}.dk.t-tech{--cc:var(--c-tech)}.dk.t-dis{--cc:var(--c-dis)}.dk.t-soc{--cc:var(--c-soc)}.dk.t-spo{--cc:var(--c-spo)}.dk.t-cul{--cc:var(--c-cul)}
 .dk .new{color:var(--accent)}.dk .acc{color:var(--coin)}.dk-orig{color:var(--muted)}
+.dk.issue{--tc:var(--accent)}.dk.issue.t-war{--tc:var(--c-war)}.dk.issue.t-pol{--tc:var(--c-pol)}.dk.issue.t-eco{--tc:var(--c-eco)}.dk.issue.t-tech{--tc:var(--c-tech)}.dk.issue.t-dis{--tc:var(--c-dis)}.dk.issue.t-soc{--tc:var(--c-soc)}.dk.issue.t-spo{--tc:var(--c-spo)}.dk.issue.t-cul{--tc:var(--c-cul)}
+.vdk .issue .inum{background:var(--tc)!important;border-color:var(--tc);color:#fff!important}
+.vdk .issue .mtabs button[aria-selected="true"]{background:var(--tc)!important;border-color:var(--tc)!important;color:#fff!important}
+.vdk .issue .ititle{margin-top:4px}
 .natchips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0 8px;margin:0 -2px}.natchips::-webkit-scrollbar{display:none}.natchips .chip{flex:none;white-space:nowrap}
 .entchips{display:flex;flex-wrap:wrap;gap:6px}.entchip{display:flex;flex-direction:column;align-items:flex-start;text-align:left;max-width:100%;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:7px 11px;font:inherit;font-size:14px;cursor:pointer}
 .entchip small{color:var(--muted);font-size:12px;line-height:1.35}.entc-w{white-space:pre-line}
@@ -1730,9 +1734,23 @@ function showIssue(sid){
 }
 function drawIssue(sid){
   const s = (S.ed.stories||[]).find(x => x.id === sid); if(!s){ $("#sheetHost").innerHTML=""; return; }
-  const its = storyItems(s); const countries = issueCountries(s);
   const still = S.drawnId === "issue:"+sid && !!$(".sheet"); S.drawnId = "issue:"+sid;
   const keepScroll = still ? ($(".sheet")?.scrollTop || 0) : (S.sheetScroll["issue:"+sid] || 0);
+  const cat = CAT[s.cat] ? s.cat : "";
+  $("#sheetHost").innerHTML = `<div class="scrim" data-close></div><div class="sheet issue${cat ? " t-"+cat : ""}${still ? " still" : ""}" role="dialog" aria-modal="true" aria-label="이슈 해설">
+    <div class="sheet-top"><button type="button" data-close>← 뒤로</button><span class="grab" aria-hidden="true"></span><button type="button" data-close aria-label="닫기">✕</button></div>
+    <div class="wrap">${issueInner(s, false)}</div></div>`;
+  const sh = $(".sheet"); if(keepScroll) sh.scrollTop = keepScroll;
+  // 지금 읽는 단계 번호만 강조
+  try{
+    const io = new IntersectionObserver(es => { es.forEach(e => { if(e.isIntersecting){ sh.querySelectorAll(".isec.cur").forEach(x => x.classList.remove("cur")); e.target.classList.add("cur"); } }); }, {root:sh, rootMargin:"-30% 0px -60% 0px"});
+    sh.querySelectorAll(".isec").forEach(x => io.observe(x));
+  }catch(_){}
+}
+// 이슈 해설 화면의 내용 전부 (inDeck = 넘겨보기 카드 안: 좋아요·공유는 카드가 붙임)
+function issueInner(s, inDeck){
+  const sid = s.id;
+  const its = storyItems(s); const countries = issueCountries(s);
   const cat = CAT[s.cat] ? s.cat : "";
   S.mapMode = S.mapMode || {};
   const mode = S.mapMode[sid] || (s.geo && s.geo.box ? "loc" : "rep");
@@ -1764,9 +1782,7 @@ function drawIssue(sid){
   const angBody = ((s.angles||[]).length || comm.length) ? `
       ${(s.angles||[]).length ? `<div class="angles">${s.angles.map(a => `<span class="ang"><span class="ang-f">${flag(a.c)}</span><span><b>${esc(cname(a.c))}</b>${a.f ? `<span class="fchip">${esc(a.f)}</span>` : ""} ${esc(a.t)}</span></span>`).join("")}</div><p class="note">기사 제목을 비교해 무엇을 강조했는지 정리했어요(본문 비교 아님).</p>` : ""}
       ${""}` : "";
-  $("#sheetHost").innerHTML = `<div class="scrim" data-close></div><div class="sheet issue${cat ? " t-"+cat : ""}${still ? " still" : ""}" role="dialog" aria-modal="true" aria-label="이슈 해설">
-    <div class="sheet-top"><button type="button" data-close>← 뒤로</button><span class="grab" aria-hidden="true"></span><button type="button" data-close aria-label="닫기">✕</button></div>
-    <div class="wrap">
+  return `
       <span class="st-top">${cat ? `<span class="cat"><i aria-hidden="true"></i>${CAT[cat]}</span>` : ""}<span class="meta">${s.delta==="new" ? '<b class="new">새 이슈</b>' : newIts.length ? `<button type="button" class="dbtn" data-jump="sec-tl">지난 판보다 글 +${newIts.length} ›</button>` : ""}</span></span>
       ${seenBefore && newIts.length ? `<div class="ibanner"><span>마지막으로 읽으신 뒤 새 글 ${newIts.length}개가 붙었어요.</span><button type="button" data-jump="sec-tl">바뀐 것부터 보기</button></div>` : ""}
       <h2 class="ititle">${esc(s.title || storyTitle(s, its))}</h2>
@@ -1784,15 +1800,8 @@ function drawIssue(sid){
       ${sec("먼저 읽을 기사", first.length ? `<div class="irows">${first.map(rowItem).join("")}</div>` : (its.length ? `<div class="irows">${its.slice(0,3).map(rowItem).join("")}</div>` : ""))}
       ${s.watch ? sec("앞으로 지켜볼 것", `<p class="ibody">${entText(s.watch)}</p>`) : ""}
       ${rest.length ? `<details class="origd"><summary>나머지 기사 ${rest.length}개 (${countries.length}개국)</summary><div class="irows">${rest.map(rowItem).join("")}</div></details>` : ""}
-      ${D ? D.bar("sisa", storyKey(s), {title:s.title || "", url:appUrl("#issue-" + s.id), hash:"#issue-" + s.id, text:(s.title || "") + (s.key ? "\n" + s.key : "")}) : ""}
-      <p class="note">AI가 이번 판 기사 제목들과 일반 배경지식으로 정리했어요. 기사에서 확인되지 않은 영향은 쓰지 않았어요. 세부 사실은 원문으로 확인해 주세요.</p>
-    </div></div>`;
-  const sh = $(".sheet"); if(keepScroll) sh.scrollTop = keepScroll;
-  // 지금 읽는 단계 번호만 강조
-  try{
-    const io = new IntersectionObserver(es => { es.forEach(e => { if(e.isIntersecting){ sh.querySelectorAll(".isec.cur").forEach(x => x.classList.remove("cur")); e.target.classList.add("cur"); } }); }, {root:sh, rootMargin:"-30% 0px -60% 0px"});
-    sh.querySelectorAll(".isec").forEach(x => io.observe(x));
-  }catch(_){}
+      ${D && !inDeck ? D.bar("sisa", storyKey(s), {title:s.title || "", url:appUrl("#issue-" + s.id), hash:"#issue-" + s.id, text:(s.title || "") + (s.key ? "\n" + s.key : "")}) : ""}
+      <p class="note">AI가 이번 판 기사 제목들과 일반 배경지식으로 정리했어요. 기사에서 확인되지 않은 영향은 쓰지 않았어요. 세부 사실은 원문으로 확인해 주세요.</p>`;
 }
 
 
@@ -2101,25 +2110,8 @@ function deckArtRows(its, n){
   return `<div class="vdk-links">${its.slice(0, n).map(i => `<button type="button" data-open="${i.id}">${esc(koOf(i)||i.t)}<small>${flag(ctry(i))} ${esc(cname(ctry(i)))} · ${esc(srcOf(i.s).n)}${i.p ? " · " + esc(ago(i.p)) : ""}${D && D.Seen.has("sisa", "a:" + i.id) ? " · 봄" : ""}</small></button>`).join("")}</div>`;
 }
 function storyDeckCard(s){
-  const its = storyItems(s), cs = issueCountries(s), cat = CAT[s.cat] ? s.cat : "";
-  const w3 = s.why3;
-  const first = (s.first||[]).map(id => S.byId[id]).filter(Boolean);
-  const ordered = [...first, ...its.filter(i => !first.includes(i))];
-  const pick = ordered[0];
-  const desc = s.key || s.sum || (pick && (briefOf(pick.id)?.sum || ""));
-  return `<div class="vdk-body dk${cat ? " t-" + cat : ""}">
-    <div class="vdk-k">${cat ? `<span class="dk-cat"><i aria-hidden="true"></i>${CAT[cat]}</span>` : ""}<span>${cs.slice(0,6).map(flag).join("")}</span><span>${isBrief(s) ? `단신 · ${esc(cname(cs[0]))}` : `${cs.length}개국 · 기사 ${its.length}`}</span>${s.delta==="new" ? '<b class="new">새 소식</b>' : s.delta==="grown" ? `<b class="acc">새 글 +${s.grow||0}</b>` : ""}</div>
-    <h2 class="vdk-t">${entText(s.title || storyTitle(s, its))}</h2>
-    ${desc ? `<p class="vdk-p">${entText(desc)}</p>` : pick && pick.sm ? `<p class="vdk-p">${esc(pick.sm)}</p><p class="note">기사 설명 원문이에요.</p>` : ""}
-    ${w3 ? `<p class="vdk-h">왜 중요한가</p><p class="vdk-p">${entText(w3.link)} ${entText(w3.now)}</p>${w3.korea ? `<p class="vdk-p"><b>한국과는?</b> ${entText(w3.korea)}</p>` : ""}` : s.why ? `<p class="vdk-h">왜 중요한가</p><p class="vdk-p">${entText(s.why)}</p>` : ""}
-    ${(s.bg||[]).length ? `<p class="vdk-h">알아 둘 배경</p><ol class="vdk-ol">${s.bg.map(b => `<li>${entText(b)}</li>`).join("")}</ol>` : ""}
-    ${(s.terms||[]).length ? `<p class="vdk-h">용어</p><ol class="vdk-ol">${s.terms.map(t => `<li><b>${esc(t.t)}</b> — ${esc(t.d)}</li>`).join("")}</ol>` : ""}
-    ${(s.angles||[]).length ? `<p class="vdk-h">나라별로 무엇을 강조했나</p><ol class="vdk-ol">${s.angles.slice(0,5).map(a => `<li>${flag(a.c)} <b>${esc(cname(a.c))}</b> ${esc(a.t)}</li>`).join("")}</ol>` : ""}
-    ${s.watch ? `<p class="vdk-h">앞으로 지켜볼 것</p><p class="vdk-p">${entText(s.watch)}</p>` : ""}
-    <p class="vdk-h">기사 ${its.length}개${its.length > 6 ? " 중 6개" : ""} · 누르면 자세히</p>${deckArtRows(ordered, 6)}
-    ${pick ? `<a class="vdk-more" href="${esc(artLink(pick))}" target="_blank" rel="noopener" data-out="${pick.id}">대표 기사 원문 (한국어 번역) ↗</a>` : ""}
-    ${isBrief(s) ? "" : `<button type="button" class="vdk-more" data-issue="${s.id}">해설 전체 · 지도 · 여론 보기 ›</button>`}
-  </div>`;
+  const cat = CAT[s.cat] ? s.cat : "";
+  return `<div class="vdk-body dk issue${cat ? " t-" + cat : ""}">${issueInner(s, true)}</div>`;
 }
 function todayDeck(){
   return D.create({id:"sisa-today", app:"sisa", emptyTitle:"이야기가 아직 없어요",
@@ -2802,8 +2794,8 @@ document.addEventListener("click", e => {
   if(d.ftab){ S.flowTab = d.ftab; return render(); }
   if(d.storyf){ S.storyF = d.storyf; S.more.stories = false; return render(); }
   if(d.theme){ return navTo("theme-" + d.theme); }
-  if(d.mapmode){ const [sid, m] = d.mapmode.split(":"); S.mapMode = S.mapMode || {}; S.mapMode[sid] = m; return drawSheet(); }
-  if(d.jump){ if(d.jump==="sec-tl") S.more.tl = true; drawSheet(); const el = document.getElementById(d.jump); if(el) el.scrollIntoView({behavior:"smooth", block:"start"}); return; }
+  if(d.mapmode){ const [sid, m] = d.mapmode.split(":"); S.mapMode = S.mapMode || {}; S.mapMode[sid] = m; return S.sheetOpen ? drawSheet() : render(); }
+  if(d.jump){ if(d.jump==="sec-tl") S.more.tl = true; if(S.sheetOpen) drawSheet(); else render(); const el = [...document.querySelectorAll("#" + d.jump)].find(x => x.offsetParent !== null); if(el) el.scrollIntoView({behavior:"smooth", block:"start"}); return; }
   if(d.natc){ S.natC = d.natc; render(); const on = document.querySelector(`.natchips [data-natc="${d.natc}"]`); if(on) on.scrollIntoView({block:"nearest", inline:"center"}); return; }
   if(d.likego){ const [kind, v] = [d.likego[0], d.likego.slice(2)]; if(kind === "a" && S.byId[v]) return openSheet(v);
     const st = (S.ed.stories||[]).find(x => storyKey(x) === d.likego); if(st) return navTo("issue-" + st.id); if(d.likeu) window.open(d.likeu, "_blank", "noopener"); else toast("지난 판의 이야기라 지금 판에는 없어요"); return; }
