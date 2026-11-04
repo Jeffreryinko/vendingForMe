@@ -1,5 +1,5 @@
 /* mix.js — 자판기 홈의 "랜덤 넘겨보기" + 한 번에 찾기 + 섞는 비율. 토큰 0.
- *  재료: 시사 이야기·단신 / 나라별 오늘 / 트렌드(22개국 검색어·영상) / 레딧·밈 / AI 새 기능 / 이야기·역사(가끔)
+ *  재료: 시사 이야기·단신 / 나라별 오늘 / 트렌드(22개국 검색어·영상) / 레딧·밈 / AI 새 기능 / 도구·오픈소스 / 이야기·역사(가끔)
  *  · 새 것 위주로 섞음(최근 것이 앞쪽에 몰리게 섞은 뒤, 종류는 비율대로 뽑음)
  *  · 본 카드는 그 앱의 본 기록에도 남음 → 앱에 들어가도 다시 안 나옴
  *  · 비율은 종류마다 많이·보통·적게·끄기 (폰에 저장)
@@ -7,11 +7,11 @@
 (function () {
   "use strict";
   var D = window.VfmDeck, T = window.VfmTrend, esc = D.esc, flag = T.flag;
-  var KINDS = [["sisa", "시사 이야기·단신"], ["trend", "트렌드 (검색어·영상)"], ["meme", "레딧·밈"], ["ai", "AI 새 기능"], ["nation", "나라별 오늘"], ["story", "이야기·역사"]];
-  var DEF = { sisa: 3, trend: 3, meme: 2, ai: 2, nation: 2, story: 1 };
+  var KINDS = [["sisa", "시사 이야기·단신"], ["trend", "트렌드 (검색어·영상)"], ["meme", "레딧·밈"], ["ai", "AI 새 기능"], ["tool", "도구·오픈소스"], ["nation", "나라별 오늘"], ["story", "이야기·역사"]];
+  var DEF = { sisa: 3, trend: 3, meme: 2, ai: 2, tool: 2, nation: 2, story: 1 };
   var WNAME = ["끄기", "적게", "보통", "많이"];
   var W = Object.assign({}, DEF, (function () { try { return JSON.parse(localStorage.getItem("vfm:mix:w") || "{}"); } catch (e) { return {}; } })());
-  var POOL = { sisa: [], trend: [], meme: [], ai: [], nation: [], story: [] };
+  var POOL = { sisa: [], trend: [], meme: [], ai: [], tool: [], nation: [], story: [] };
   var CAT = { war: "전쟁·안보", pol: "정치·외교", eco: "경제·시장", tech: "기술·과학", dis: "재난·사고", soc: "사회", spo: "스포츠", cul: "문화" };
   var RK = null; try { RK = new Intl.DisplayNames(["ko"], { type: "region" }); } catch (e) { }
   var cname = function (c) { if (c === "WW") return "세계"; try { return RK ? RK.of(c) : c; } catch (e) { return c; } };
@@ -129,6 +129,30 @@
             '<button type="button" class="vdk-more"' + go("ai/#f=" + encodeURIComponent(p.id)) + ">AI 탭에서 이 카드부터 보기 ›</button></div>";
         } };
     }));
+  });
+  // 도구·오픈소스 (data/tools/now.json, 도구 로봇): 지금 뜨는 것 먼저, 그다음 출처를 번갈아
+  j("data/tools/now.json").then(function (N) {
+    if (!N || !N.sec) return;
+    var SN = { gh: "GitHub 급상승", gn: "긱뉴스", hn: "해커뉴스", yt: "유튜브 해설", list: "모음집", hf: "AI 앱", rd: "레딧" }, by = {}, out = [], used = {};
+    Object.keys(N.sec).forEach(function (k) { N.sec[k].forEach(function (p) { p.sec = p.sec || k; by[p.id] = p; }); });
+    (N.hot || []).forEach(function (id) { if (by[id]) { out.push(by[id]); used[id] = 1; } });
+    var lists = ["gh", "gn", "hn", "yt", "list", "hf"].map(function (k) { return (N.sec[k] || []).filter(function (p) { return !used[p.id] && p.new; }).slice(0, 12); }), more = true;
+    while (more) { more = false; lists.forEach(function (l) { if (l.length) { out.push(l.shift()); more = true; } }); }
+    var n = function (x) { x = +x || 0; return x >= 10000 ? (x / 1e4).toFixed(1).replace(/\.0$/, "") + "만" : x.toLocaleString(); };
+    POOL.tool = out.map(function (p) {
+      var ko = p.sec === "gh" ? "" : (p.ko && p.ko !== p.title ? p.ko : ""), sum = p.ksum || p.sum || "";
+      var m = p.sec === "gh" ? "★ " + n(p.stars) + (p.gain ? " · 하루 +" + n(p.gain) : "") : p.pts ? "▲ " + n(p.pts) : p.views ? "조회 " + n(p.views) + " · " + (p.ch || "") : p.likes ? "♥ " + n(p.likes) : "";
+      return { key: p.id, sa: "tools", kind: "tool", title: ko || p.title, url: p.url, shareText: (ko || p.title) + "\n" + p.url, q: [p.title, ko, sum, p.owner, p.ch].join(" "),
+        html: function () {
+          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag tool">도구</span><span>' + esc(SN[p.sec] || "") + "</span>" + (m ? "<span>" + esc(m) + "</span>" : "") + "</div>" +
+            (p.sec === "gh" && p.owner ? '<p class="vdk-note" style="margin:0">' + esc(p.owner) + " /</p>" : "") +
+            '<h2 class="vdk-t">' + (p.sec === "gh" ? "<span>" + esc(p.title) + "</span>" : esc(ko || p.title)) + "</h2>" + (ko ? '<p class="vdk-note" style="margin:-6px 0 10px">' + esc(p.title) + "</p>" : "") +   // 저장소 이름은 자동 번역 안 함
+            (sum ? '<p class="vdk-h">' + (p.sec === "yt" ? "영상 설명" : "무엇인가") + '</p><p class="vdk-p">' + esc(sum.slice(0, 360)) + "</p>" : "") +
+            '<a class="vdk-more" href="' + esc(p.url) + '" target="_blank" rel="noopener">' + (p.sec === "gh" ? "GitHub에서 보기 ↗" : p.sec === "yt" ? "유튜브에서 보기 ↗" : p.sec === "hf" ? "바로 써 보기 ↗" : "원문 보기 ↗") + "</a>" +
+            '<button type="button" class="vdk-more"' + go("tools/#f=" + encodeURIComponent(p.id)) + ">도구 탭에서 이 카드부터 보기 ›</button></div>";
+        } };
+    });
+    add("tool", []);
   });
   // 이야기·역사 (가끔): 첫 카드가 뜬 다음에 받음
   (function () {
@@ -283,6 +307,6 @@
     ".mx-sec{margin:6px 0;border-top:.5px solid var(--ap-sep)}.mx-sec summary{padding:8px 0;font-weight:700;font-size:14px;cursor:pointer}" +
     ".mx-tag{font-weight:700;padding:2px 8px;border-radius:999px;font-size:12px}.mx-tag.sisa{background:color-mix(in srgb,var(--ap-blue) 15%,transparent);color:var(--ap-blue-t)}" +
     ".mx-tag.nation{background:color-mix(in srgb,var(--ap-teal) 18%,transparent);color:var(--ap-teal)}.mx-tag.ai{background:color-mix(in srgb,var(--ap-purple) 15%,transparent);color:var(--ap-purple-t)}" +
-    ".mx-tag.story{background:color-mix(in srgb,var(--ap-orange) 16%,transparent);color:var(--ap-orange-t)}.vdk .new{color:var(--ap-blue-t)}";
+    ".mx-tag.story{background:color-mix(in srgb,var(--ap-orange) 16%,transparent);color:var(--ap-orange-t)}.mx-tag.tool{background:color-mix(in srgb,#30B0C7 18%,transparent);color:#0A7A8C}.vdk .new{color:var(--ap-blue-t)}";
   document.head.appendChild(css);
 })();
