@@ -107,8 +107,8 @@ nav.tabs button b{font-size:19px;font-weight:400}nav.tabs button[aria-current="p
 <div class="wrap" id="app"></div>
 <nav class="tabs" id="tabs">
   <button data-v="today" aria-current="page"><b>☀︎</b>오늘</button>
-  <button data-v="know"><b>✦</b>내 지식</button>
   <button data-v="terms"><b>ⓣ</b>용어장</button>
+  <button data-v="know"><b>✦</b>내 지식</button>
   <button data-v="box"><b>☆</b>보관함</button>
 </nav>
 <script>
@@ -326,7 +326,7 @@ function renderPaper() {
     ${(p.terms || []).length ? `<h2 class="sec">이 글의 용어 <small>${p.terms.length}개</small></h2><div class="chips">${p.terms.map(([id, n]) => { const t = S.termById[id]; return t ? `<button data-term="${id}" class="${S.myterms[id] ? "on" : ""}">${esc(t.ko)} <small>${n}</small></button>` : ""; }).join("")}</div>` : ""}
     <h2 class="sec">내 메모</h2><textarea class="memo" id="memo" placeholder="내 말로 적어 두기">${esc(S.memo[p.id] || "")}</textarea>
     <div style="height:70px"></div>
-    <div class="rbar"><button data-act="star" class="${sv ? "on" : ""}"><b>${sv ? "★" : "☆"}</b>별표</button><button data-act="hide"><b>⊘</b>숨기기</button><button data-act="tag"><b>#</b>태그</button><button data-act="share"><b>↗</b>공유</button></div>`;
+    <div class="rbar"><button data-act="star" class="${sv ? "on" : ""}"><b>${sv ? "★" : "☆"}</b>별표</button><button data-act="hide"><b>⊘</b>숨기기</button><button data-act="tag"><b>#</b>태그</button><button data-act="think"><b>✎</b>생각</button><button data-act="share"><b>↗</b>공유</button></div>`;
   window.scrollTo(0, 0);
   if (D) D.Seen.add("ai", p.id);
   knowPaper(p, !!S.easy[p.id]);
@@ -537,6 +537,7 @@ document.addEventListener("click", async e => {
   if (d.act === "search") { boxMode = "find"; nav("#box"); return; }
   if (d.act === "export") return exportMine();
   const p = S.paper; if (!p) return;
+  if (d.act === "think") { if (window.vfm && window.vfm.think) window.vfm.think({ app: "ai", key: p.id, title: p.ko || p.title, url: p.url }); return; }
   if (d.act === "star") { if (S.star[p.id]) { delete S.star[p.id]; toast("별표 해제"); } else { S.star[p.id] = { at: Date.now(), item: p, memo: S.memo[p.id] || "", tags: S.tags[p.id] || [] }; toast("별표 — 영구 보관"); } save("star"); renderPaper(); }
   else if (d.act === "hide") { S.hide[p.id] = 1; save("hide"); toast("오늘 목록에서 숨겼어요 (설정에서 되살리기)"); aiBack() || nav("#today"); }
   else if (d.act === "tag") tagSheet(p);

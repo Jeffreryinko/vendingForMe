@@ -93,7 +93,7 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
   <button data-v="today" aria-current="page"><b>☀︎</b>오늘</button>
   <button data-v="explore"><b>◎</b>탐색</button>
   <button data-v="back"><b>◑</b>뒤편</button>
-  <button data-v="shelf"><b>☆</b>서재</button>
+  <button data-v="shelf"><b>☆</b>보관함</button>
 </nav>
 <script>
 "use strict";
@@ -276,7 +276,7 @@ async function renderBack() {
 let shelfMode = "star";
 function renderShelf() {
   const app = document.getElementById("app");
-  app.innerHTML = head("서재", '<button class="ib" data-act="export" aria-label="내 기록 내보내기">⤓</button>') + `<div class="chips">${[["star", "별표"], ["memo", "메모"], ["read", "읽은 글"], ["tag", "태그"], ["book", "도감"], ["words", "낱말"]].map(([k, n]) => `<button data-sm="${k}" class="${shelfMode === k ? "on" : ""}">${n}</button>`).join("")}</div><div id="sres"></div>`;
+  app.innerHTML = head("보관함", '<button class="ib" data-act="export" aria-label="내 기록 내보내기">⤓</button>') + `<div class="chips">${[["star", "별표"], ["memo", "메모"], ["read", "읽은 글"], ["tag", "태그"], ["book", "도감"], ["words", "낱말"]].map(([k, n]) => `<button data-sm="${k}" class="${shelfMode === k ? "on" : ""}">${n}</button>`).join("")}</div><div id="sres"></div>`;
   const b = document.getElementById("sres");
   const entry = id => (S.read[id] && S.read[id].e) || (S.star[id] || {}).item || S.recent.find(e => e.i === id) || null;
   if (shelfMode === "star") { const l = Object.values(S.star).sort((a, b) => b.at - a.at); b.innerHTML = l.length ? l.map(s => card(s.item)).join("") : '<p class="empty">별표한 글이 없어요.</p>'; }
@@ -357,7 +357,7 @@ async function renderPage(id) {
     <div class="src">출처: <a href="${esc(p.src.url)}" target="_blank" rel="noopener">한국어 위키백과 ‘${esc(p.title)}’</a> (${esc(p.src.license)}) · 위키백과 글 고친 날 ${esc(p.src.edited || "")} · 로봇이 받은 날 ${esc(p.at || "")}${p.qid ? ` · <a href="https://www.wikidata.org/wiki/${esc(p.qid)}" target="_blank" rel="noopener">위키데이터</a>` : ""}${p.en ? ` · <a href="https://en.wikipedia.org/wiki/${encodeURIComponent(p.en.replace(/ /g, "_"))}" target="_blank" rel="noopener">영문판</a>` : ""}<br>
       <span class="sub">분류: ${esc((p.cats || []).slice(0, 8).join(" · "))}</span><br><span class="sub">위키백과 글을 로봇이 토큰 없이 잘라 둔 것이에요. 연도·나라·테마는 위키데이터 속성으로 자동으로 붙여 틀릴 수 있어요.</span></div>
     <div style="height:70px"></div>
-    <div class="rbar"><button data-act="star" class="${sv ? "on" : ""}"><b>${sv ? "★" : "☆"}</b>별표</button><button data-act="hide"><b>⊘</b>숨기기</button><button data-act="tag"><b>#</b>태그</button><button data-act="share"><b>↗</b>공유</button></div>`;
+    <div class="rbar"><button data-act="star" class="${sv ? "on" : ""}"><b>${sv ? "★" : "☆"}</b>별표</button><button data-act="hide"><b>⊘</b>숨기기</button><button data-act="tag"><b>#</b>태그</button><button data-act="think"><b>✎</b>생각</button><button data-act="share"><b>↗</b>공유</button></div>`;
   window.scrollTo(0, 0);
   document.getElementById("memo").addEventListener("change", ev => { const v = ev.target.value.trim(); if (v) S.memo[id] = v; else delete S.memo[id]; save("memo"); if (S.star[id]) { S.star[id].memo = v; save("star"); } toast("메모 저장"); });
   if (!p.full && d !== "short") loadLive(p, d === "deep");
@@ -398,7 +398,7 @@ function openWord(word) {
   const w = word.trim(); const key = "w:" + w.toLowerCase(); const saved = S.words[key];
   const back = document.createElement("div"); back.className = "back";
   back.innerHTML = `<div class="sheet"><h3>${esc(w)}</h3><p class="k">${saved ? "낱말장에 있어요." : "이 말을 메모하거나, 찾아보거나, 낱말장에 저장할 수 있어요."}</p>
-    <div class="acts"><button data-a="memo">메모<small>이 말에 내 메모</small></button><button data-a="save">${saved ? "낱말장에 있음 ✓" : "낱말장 저장"}<small>서재 › 낱말</small></button>
+    <div class="acts"><button data-a="memo">메모<small>이 말에 내 메모</small></button><button data-a="save">${saved ? "낱말장에 있음 ✓" : "낱말장 저장"}<small>보관함 › 낱말</small></button>
       <button data-a="wiki">위키 미리보기<small>첫 문단만</small></button><button data-a="pages">이 말이 든 글<small>역사 자판기 안에서</small></button><button data-a="tag">태그로 추가<small>${S.page ? "이 글에 #" + esc(w) : "(읽기 화면에서)"}</small></button><button data-a="copy">복사</button></div>
     <div class="row"><a class="btn sm" href="https://ko.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(w)}" target="_blank" rel="noopener">위키백과</a><a class="btn sm" href="https://www.google.com/search?q=${encodeURIComponent(w + " 역사")}" target="_blank" rel="noopener">구글</a><a class="btn sm" href="https://encykorea.aks.ac.kr/Article/Search/${encodeURIComponent(w)}" target="_blank" rel="noopener">민족문화대백과</a></div><div id="wsub"></div></div>`;
   document.body.appendChild(back); const sub = back.querySelector("#wsub");
@@ -512,6 +512,7 @@ document.addEventListener("click", async e => {
   if (d.act === "export") return exportMine();
   const p = S.page; if (!p) return; const id = p.id;
   if (d.act === "live") return loadLive(p, S.depth === "deep");
+  if (d.act === "think") { if (window.vfm && window.vfm.think) window.vfm.think({ app: "history", key: id, title: p.title, url: "history/#p=" + id }); return; }
   if (d.act === "star") { if (S.star[id]) { delete S.star[id]; toast("별표 해제"); } else { S.star[id] = { at: Date.now(), item: entryOf(p), memo: S.memo[id] || "", tags: S.tags[id] || [] }; toast("별표"); } save("star"); renderPage(id); }
   else if (d.act === "hide") { S.hide[id] = 1; save("hide"); toast("목록에서 숨겼어요 (설정에서 되살리기)"); histBack() || nav("#today"); }
   else if (d.act === "tag") tagSheet(id);

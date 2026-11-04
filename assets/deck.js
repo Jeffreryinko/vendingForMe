@@ -67,6 +67,7 @@
     var on = Like.has(app, key);
     return '<div class="vdk-react"><button type="button" class="vdk-like' + (on ? " on" : "") + '" data-vdk-like="' + esc(app + "|" + key) + '" data-vdk-t="' + esc(info.title || "") + '" data-vdk-u="' + esc(info.url || "") + '" data-vdk-h="' + esc(info.hash || "") + '" aria-pressed="' + on + '">' +
       '<span aria-hidden="true">' + (on ? "♥" : "♡") + "</span> 좋아요</button>" +
+      '<button type="button" class="vdk-share" data-vdk-think="' + esc(app + "|" + key) + '" data-vdk-t="' + esc(info.title || "") + '" data-vdk-u="' + esc(info.url || "") + '"><span aria-hidden="true">✎</span> 생각</button>' +
       '<button type="button" class="vdk-share" data-vdk-share="1" data-vdk-t="' + esc(info.title || "") + '" data-vdk-u="' + esc(info.url || "") + '" data-vdk-x="' + esc(info.text || "") + '"><span aria-hidden="true">↗</span> 공유</button></div>';
   }
 
@@ -248,7 +249,8 @@
 
   /* ── 단추 ── */
   document.addEventListener("click", function (e) {
-    var t = e.target.closest && e.target.closest("[data-vdk-act],[data-vdk-like],[data-vdk-share],[data-vdk-mode]"); if (!t) return;
+    var t = e.target.closest && e.target.closest("[data-vdk-act],[data-vdk-like],[data-vdk-share],[data-vdk-mode],[data-vdk-think]"); if (!t) return;
+    if (t.hasAttribute("data-vdk-think")) { var tk = t.getAttribute("data-vdk-think").split("|"); if (window.vfm && window.vfm.think) window.vfm.think({ app: tk[0], key: tk.slice(1).join("|"), title: t.getAttribute("data-vdk-t"), url: t.getAttribute("data-vdk-u") }); return; }
     if (t.hasAttribute("data-vdk-like")) {
       var p = t.getAttribute("data-vdk-like").split("|"), app = p[0], key = p.slice(1).join("|");
       var on = Like.toggle(app, key, { title: t.getAttribute("data-vdk-t"), url: t.getAttribute("data-vdk-u"), hash: t.getAttribute("data-vdk-h") });

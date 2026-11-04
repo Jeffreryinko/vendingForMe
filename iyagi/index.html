@@ -292,11 +292,11 @@ body.reading .rtools{position:sticky;top:0;z-index:15;background:var(--paper);ma
 </div>
 
 <nav class="tabbar" aria-label="주 메뉴">
-  <button data-act="nav" data-v="home"><svg viewBox="0 0 24 24"><path d="M5 5h3v14H5zM10 5h3v14h-3zM15.5 5.5l2.8-.8 3.2 13.6-2.8.8z"/></svg>목록</button>
   <button data-act="nav" data-v="today"><svg viewBox="0 0 24 24"><path d="M4 5h7a2 2 0 012 2v12a2 2 0 00-2-2H4z"/><path d="M20 5h-7a2 2 0 00-2 2v12a2 2 0 012-2h7z"/></svg>오늘</button>
+  <button data-act="nav" data-v="explore"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>탐색</button>
+  <button data-act="nav" data-v="home"><svg viewBox="0 0 24 24"><path d="M5 5h3v14H5zM10 5h3v14h-3zM15.5 5.5l2.8-.8 3.2 13.6-2.8.8z"/></svg>목록</button>
   <button data-act="nav" data-v="list"><svg viewBox="0 0 24 24"><path d="M5 6h14M5 10h14M5 14h14M5 18h9"/></svg>쭉 읽기</button>
-  <button data-act="nav" data-v="explore"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>탐험</button>
-  <button data-act="nav" data-v="library"><svg viewBox="0 0 24 24"><path d="M5 4v16M9 4v16M13.5 4.5l5 15"/></svg>내 서재</button>
+  <button data-act="nav" data-v="library"><svg viewBox="0 0 24 24"><path d="M5 4v16M9 4v16M13.5 4.5l5 15"/></svg>보관함</button>
 </nav>
 <div id="sheet" class="sheet" hidden></div>
 <div id="toast" class="toast" hidden role="status"></div>
@@ -2965,7 +2965,7 @@ function renderRead(){
   const made=s.web?`수집: 웹 수집기 · ${new Date(s.at).toLocaleDateString("ko-KR")} · 위 출처 문서를 읽고 재화 · 편집부 검수 전`:s.robot?`작성: Claude · ${new Date(s.at).toLocaleDateString("ko-KR")} · ${esc(laneName(s.lane))} 길 · 편집부 검수 전`:"재화·편집: 이야기 편집부 · 2026년 11월 작성 · 시범판(판본 대조 검수 전)";
   $view.innerHTML=`
   <article>
-    <div class="rtools"><button class="link quiet" data-act="back">← ${({home:"목록",explore:"탐험",library:"내 서재",flow:"흐름",list:"쭉 읽기"})[ui.from]||"오늘"}으로</button>
+    <div class="rtools"><button class="link quiet" data-act="back">← ${({home:"목록",explore:"탐색",library:"보관함",flow:"흐름",list:"쭉 읽기"})[ui.from]||"오늘"}으로</button>
       <div class="fs" aria-label="글자 크기"><button data-act="fullscreen" aria-label="전체 화면">⤢</button><button data-act="font" data-f="-1" aria-label="글자 작게">가−</button><button data-act="font" data-f="1" aria-label="글자 크게">가+</button></div></div>
     <p class="eyebrow" style="margin-top:22px">${esc(shelfOf(s))}</p>
     <h1 class="title">${esc(s.title)}</h1>
@@ -2996,7 +2996,7 @@ function renderExplore(){
   const ex=ui.ex,regions=[...new Set(STORIES.map(s=>s.region))].slice(0,24);
   const chip=(f,v)=>`<button class="chip" data-act="filter" data-f="${f}" data-v="${esc(v)}" aria-pressed="${ex[f]===v}">${esc(v)}</button>`;
   $view.innerHTML=`
-  <h1 class="ph">탐험</h1>
+  <h1 class="ph">탐색</h1>
   <p class="sub">작품 이름을 몰라도 괜찮아요. 종류, 마음, 세계, 질문 중 아무 데서나 시작하세요.</p>
   <label class="vh" for="q">이야기 찾기</label>
   <input id="q" class="search" type="search" placeholder="예: 금기, 화가, 남극, 도깨비 같은 존재" value="${esc(ex.q)}" autocomplete="off">
@@ -3036,7 +3036,7 @@ function renderLibrary(){
   const notMet=GROUPS.filter(g=>!gMet.has(g));
   const saved=store.saved.filter(id=>byId[id]);
   $view.innerHTML=`
-  <h1 class="ph">내 서재</h1>
+  <h1 class="ph">보관함</h1>
   <p class="sub">내가 만난 이야기와, 어디까지 알게 됐는지를 기억합니다.</p>
   <div class="ledger"><div><b>${month.size}</b><span>이번 달 만난 이야기</span></div><div><b>${gMet.size}</b><span>만난 갈래</span></div><div><b>${rMet.size}</b><span>만난 문화권</span></div></div>
   ${resumeBlock()}
@@ -3144,7 +3144,7 @@ document.addEventListener("click",e=>{
     case"open":closeSheet();if(a.dataset.mark)markRead(id,a.dataset.mark);openStory(id,a.dataset.d);break;
     case"back":goBack();break;
     case"done":{const k=a.dataset.d,v=lvOf(k);if(lvl(id)>=v){store.levels[id]=v-1;if(!store.levels[id])delete store.levels[id];persist()}else markRead(id,k);rerender();break}
-    case"save":{const i=store.saved.indexOf(id);if(i<0){store.saved.unshift(id);toast("서재에 담아두었습니다",true)}else{store.saved.splice(i,1);toast("담아둔 목록에서 뺐습니다")}persist();rerender();break}
+    case"save":{const i=store.saved.indexOf(id);if(i<0){store.saved.unshift(id);toast("보관함에 담아두었습니다",true)}else{store.saved.splice(i,1);toast("담아둔 목록에서 뺐습니다")}persist();rerender();break}
     case"other":openOther(id);break;
     case"close":closeSheet();break;
     case"showend":ui.showEnd[id]=true;rerender();break;

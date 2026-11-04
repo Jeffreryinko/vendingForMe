@@ -16,7 +16,7 @@
   var HOME = APP === "home";
   var ROOT = HOME ? "./" : "../";
   var APPS = [["sisa", "시사"], ["iyagi", "이야기"], ["ai", "AI"], ["history", "역사"], ["tools", "도구"]];
-  var NAME = { home: "홈", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구" };
+  var NAME = { home: "홈", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", box: "보관함" };
   try { if (!HOME) localStorage.setItem("vfm:tab", APP); } catch (e) { }
 
   /* ── 글 다듬기: 첫 문단 괄호 속 외국어 표기(조지아어·벵골어 등)는 폰에서 □□□ 로 깨지고 앞부분을 다 차지함 → 뺌.
@@ -200,6 +200,7 @@
       '<div class="vfm-sheet" role="dialog" aria-label="자판기 설정"><div class="grab"></div><h3>설정</h3>' +
       '<div class="cap">마지막 갱신</div><div class="grp" id="vfmUpd">' + APPS.map(function (a) { return '<div data-u="' + a[0] + '"><span>' + a[1] + '</span><span class="v">…</span></div>'; }).join("") + "</div>" +
       '<div class="cap">내 기록</div><div class="grp">' +
+      '<button type="button" data-act="box"><span class="tint">보관함 — 모든 앱에서 저장한 것 · 내 질문 · 이번 주 생각</span><span class="v">›</span></button>' +
       '<button type="button" data-act="export"><span class="tint">기록 내보내기</span><span class="v">파일 하나로</span></button>' +
       '<button type="button" data-act="import"><span class="tint">기록 불러오기</span><span class="v">›</span></button>' +
       "<div><span>이 폰에 저장된 양</span><span class=\"v\">" + kb.toLocaleString() + " KB / 약 5,000 KB</span></div></div>" +
@@ -225,6 +226,7 @@
       if (e.target === back) return back.remove();
       var b = e.target.closest("[data-act]"); if (!b) return;
       var act = b.getAttribute("data-act");
+      if (act === "box") { location.href = ROOT + "box/"; return; }
       if (act === "reload") location.reload();
       else if (act === "home") { back.remove(); goHome(); }
       else if (act === "export") {
@@ -247,6 +249,63 @@
   window.vfm.openSettings = openSheet;
   window.vfm.openApp = openApp;
   window.vfm.toast = toast;
+
+  /* ── 생각 남기기 (모든 앱 공통, 토큰 0) — 보관함(box/)에서 질문별로 모아 봄
+       vfm:box:qs    = [{id, t, at}]                       내가 붙잡고 있는 질문
+       vfm:box:think = [{id, at, app, key, title, url, q, f, a, x}]   f=발견 · a=내 일에 적용 · x=틀렸다는 증거 */
+  var BOX = {
+    g: function (k, d) { try { var v = JSON.parse(localStorage.getItem("vfm:box:" + k)); return v == null ? d : v; } catch (e) { return d; } },
+    s: function (k, v) { try { localStorage.setItem("vfm:box:" + k, JSON.stringify(v)); return true; } catch (e) { toast("저장 공간이 꽉 찼어요"); return false; } },
+    id: function () { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  };
+  BOX.qs = function () { return BOX.g("qs", []); };
+  BOX.thinks = function () { return BOX.g("think", []); };
+  function escH(t) { return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function think(info, edit) {
+    info = info || {}; var old = edit || {}, qs = BOX.qs(), pick = old.q || BOX.g("lastQ", "");
+    if (pick && !qs.some(function (q) { return q.id === pick; })) pick = "";
+    var back = document.createElement("div"); back.className = "vfm-back";
+    back.innerHTML = '<div class="vfm-sheet vfm-think" role="dialog" aria-label="생각 남기기"><div class="grab"></div><h3>생각 남기기</h3>' +
+      (info.title ? '<p class="vfm-tk-src">' + escH(info.title) + "</p>" : "") +
+      '<div class="cap">어느 질문에 붙일까요?</div><div class="vfm-tk-qs">' +
+      '<button type="button" data-q="" aria-pressed="' + (!pick) + '">질문 없이</button>' +
+      qs.map(function (q) { return '<button type="button" data-q="' + q.id + '" aria-pressed="' + (q.id === pick) + '">' + escH(q.t) + "</button>"; }).join("") +
+      '<button type="button" data-q="+">+ 새 질문</button></div>' +
+      '<input class="vfm-tk-newq" placeholder="예: 사람들이 편해져도 계속 돈을 쓰는 불편은?" hidden>' +
+      '<label class="vfm-tk-l">내가 발견한 점<textarea data-f="f" rows="2" placeholder="이 글에서 새로 보인 것">' + escH(old.f) + "</textarea></label>" +
+      '<label class="vfm-tk-l">내 일에 적용한다면<textarea data-f="a" rows="2" placeholder="내 일·생활에 어떻게 쓸까">' + escH(old.a) + "</textarea></label>" +
+      '<label class="vfm-tk-l">이 생각이 틀렸다는 증거는<textarea data-f="x" rows="2" placeholder="무엇이 나오면 생각을 바꿀까">' + escH(old.x) + "</textarea></label>" +
+      '<p class="vfm-tk-err" hidden>한 칸은 적어 주세요</p>' +
+      '<div class="vfm-tk-btns"><button type="button" class="ghost" data-tk="cancel">닫기</button><button type="button" data-tk="save">저장</button></div></div>';
+    document.body.appendChild(back);
+    var nq = back.querySelector(".vfm-tk-newq");
+    back.addEventListener("click", function (e) {
+      if (e.target === back) { back.remove(); return; }
+      var qb = e.target.closest("[data-q]");
+      if (qb) {
+        back.querySelectorAll("[data-q]").forEach(function (b) { b.setAttribute("aria-pressed", String(b === qb)); });
+        nq.hidden = qb.getAttribute("data-q") !== "+"; if (!nq.hidden) nq.focus(); return;
+      }
+      var b = e.target.closest("[data-tk]"); if (!b) return;
+      if (b.getAttribute("data-tk") === "cancel") { back.remove(); return; }
+      var v = {}; back.querySelectorAll("[data-f]").forEach(function (t) { v[t.getAttribute("data-f")] = t.value.trim(); });
+      if (!v.f && !v.a && !v.x) { back.querySelector(".vfm-tk-err").hidden = false; return; }
+      var on = back.querySelector('[data-q][aria-pressed="true"]'), q = on ? on.getAttribute("data-q") : "";
+      if (q === "+") {
+        var t = nq.value.trim(); if (!t) { nq.focus(); return; }
+        var list = BOX.qs(); q = BOX.id(); list.push({ id: q, t: t, at: Date.now() }); BOX.s("qs", list);
+      }
+      var all = BOX.thinks(), rec = { id: old.id || BOX.id(), at: old.at || Date.now(), ed: old.id ? Date.now() : undefined, app: info.app || old.app || APP, key: info.key || old.key || "", title: info.title || old.title || "", url: info.url || old.url || "", q: q, f: v.f, a: v.a, x: v.x };
+      all = all.filter(function (r) { return r.id !== rec.id; }); all.unshift(rec);
+      if (BOX.s("think", all)) { BOX.s("lastQ", q); back.remove(); toast("생각을 남겼어요 · 보관함에서 모아 봐요"); if (info.onSave) info.onSave(rec); }
+    });
+  }
+  window.vfm.think = think; window.vfm.box = BOX;
+  css.textContent += ".vfm-tk-src{margin:-6px 4px 10px;color:var(--ap-label2);font-size:14px}.vfm-tk-qs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}" +
+    ".vfm-tk-qs button{border:0;border-radius:999px;padding:8px 12px;background:var(--ap-fill);color:var(--ap-label);font:inherit;font-size:14px}.vfm-tk-qs button[aria-pressed=true]{background:var(--ap-blue);color:#fff;font-weight:700}" +
+    ".vfm-think input,.vfm-think textarea{width:100%;box-sizing:border-box;border:0;border-radius:12px;padding:10px 12px;background:var(--ap-fill);color:var(--ap-label);font:inherit;font-size:16px;margin:4px 0 10px;resize:vertical}" +
+    ".vfm-tk-l{display:block;font-weight:700;font-size:14px;margin:0 2px}.vfm-tk-err{color:var(--ap-red,#d33);font-size:13px;margin:0 4px 8px}" +
+    ".vfm-tk-btns{display:flex;gap:8px}.vfm-tk-btns button{flex:1;border:0;border-radius:12px;padding:13px;font:inherit;font-weight:700;font-size:16px;background:var(--ap-blue);color:#fff}.vfm-tk-btns .ghost{background:var(--ap-fill);color:var(--ap-label)}";
 
   /* ── PWA ── */
   if ("serviceWorker" in navigator) {

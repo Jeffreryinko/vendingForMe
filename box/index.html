@@ -1,0 +1,176 @@
+<!doctype html><html lang="ko" class="ap ap-box"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>window.VFM_APP="box";</script>
+<script src="../assets/claude-shim.js"></script>
+<link rel="manifest" href="../manifest.webmanifest"><meta name="theme-color" content="#F2F2F7"><link rel="apple-touch-icon" href="../assets/icon-192.png">
+<title>보관함 · 자판기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../assets/apple.css">
+<style>
+/* 보관함 — 모든 앱(시사·이야기·AI·역사·도구·홈)에서 저장한 것 + 내 질문 + 이번 주 생각. 전부 이 폰 안에서 계산 (토큰 0).
+   읽는 곳: vfm:likes(좋아요) · vfm:ai/history/tools:star·memo · iyagi-library-v1(담아둔 이야기) · vfm:box:qs/think(질문·생각) */
+body{margin:0;background:var(--ap-bg);color:var(--ap-label);font:16px/1.5 var(--ap-font)}
+.wrap{max-width:720px;margin:0 auto;padding:0 16px calc(env(safe-area-inset-bottom,0px) + 90px)}
+h1{font-size:32px;font-weight:800;letter-spacing:-.03em;margin:8px 2px 4px}
+.sub{color:var(--ap-label2);font-size:14px;margin:0 2px 12px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:3px;border-radius:12px;background:var(--ap-fill);margin:0 0 14px;position:sticky;top:0;z-index:5}
+.seg button{border:0;border-radius:9px;background:transparent;color:var(--ap-label);font:inherit;font-size:15px;padding:9px 0}
+.seg button[aria-pressed=true]{background:var(--ap-seg-on);font-weight:700;box-shadow:0 3px 8px rgba(0,0,0,.12)}
+.chips{display:flex;gap:6px;overflow-x:auto;margin:0 -16px 10px;padding:0 16px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chips button{flex:none;border:0;border-radius:999px;padding:7px 12px;background:var(--ap-fill);color:var(--ap-label);font:inherit;font-size:14px}
+.chips button[aria-pressed=true]{background:var(--ap-blue);color:#fff;font-weight:700}
+input.q,textarea{width:100%;box-sizing:border-box;border:0;border-radius:12px;padding:11px 14px;background:var(--ap-fill);color:var(--ap-label);font:inherit;font-size:16px}
+.list{background:var(--ap-surface);border-radius:14px;overflow:hidden;margin:10px 0 18px}
+.row{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-top:.5px solid var(--ap-sep);text-decoration:none;color:inherit}
+.row:first-child{border-top:0}a.b{color:inherit;text-decoration:none}.th .src a{text-decoration:none}.row .b{flex:1;min-width:0}.row .t{margin:0;font-weight:600;font-size:15.5px;line-height:1.4}
+.row .m{margin:3px 0 0;font-size:13px;color:var(--ap-label2)}.row .memo{margin:4px 0 0;font-size:14px;color:var(--ap-label);background:var(--ap-fill2);border-radius:8px;padding:6px 8px}
+.row .tk{flex:none;border:0;background:var(--ap-fill);color:var(--ap-label);border-radius:10px;padding:6px 9px;font:inherit;font-size:13px}
+.tag{display:inline-block;font-weight:700;font-size:11.5px;padding:1px 7px;border-radius:999px;margin-right:6px;background:var(--ap-fill);vertical-align:1px}
+.tag.sisa{color:var(--ap-blue-t);background:color-mix(in srgb,var(--ap-blue) 14%,transparent)}.tag.iyagi{color:var(--ap-orange-t);background:color-mix(in srgb,var(--ap-orange) 15%,transparent)}
+.tag.ai{color:var(--ap-purple-t);background:color-mix(in srgb,var(--ap-purple) 14%,transparent)}.tag.history{color:#8a5a2b;background:rgba(160,110,60,.15)}.tag.tools{color:var(--ap-teal);background:color-mix(in srgb,var(--ap-teal) 16%,transparent)}
+h2{font-size:20px;font-weight:800;margin:20px 2px 6px;letter-spacing:-.02em}h2 small{font-weight:500;font-size:13px;color:var(--ap-label2);margin-left:6px}
+.card{background:var(--ap-surface);border-radius:14px;padding:14px;margin:10px 0}
+.card .qh{display:flex;align-items:center;gap:8px}.card .qh p{flex:1;margin:0;font-weight:700;font-size:16.5px}
+.card .n{font-size:13px;color:var(--ap-label2)}
+.th{border-top:.5px solid var(--ap-sep);padding:10px 0 4px;margin-top:10px}.th p{margin:2px 0;font-size:14.5px}.th b{font-size:12.5px;color:var(--ap-label2);font-weight:700;margin-right:6px}
+.th .src{font-size:12.5px;color:var(--ap-label2)}.th .src a{color:var(--ap-blue)}
+.btns{display:flex;gap:8px;margin:8px 0 0}.btns button{border:0;border-radius:10px;padding:8px 12px;background:var(--ap-fill);color:var(--ap-label);font:inherit;font-size:14px}
+.btns .pri{background:var(--ap-blue);color:#fff;font-weight:700}
+.empty{color:var(--ap-label2);text-align:center;padding:26px 10px;font-size:15px}
+.stat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0}
+.stat div{background:var(--ap-surface);border-radius:14px;padding:12px}.stat b{display:block;font-size:26px;font-weight:800}.stat span{font-size:13px;color:var(--ap-label2)}
+.wk{display:flex;align-items:center;gap:8px;margin:0 0 6px}.wk button{border:0;background:var(--ap-fill);border-radius:10px;width:36px;height:36px;font-size:18px;color:var(--ap-label)}.wk p{flex:1;text-align:center;margin:0;font-weight:700}
+.words{display:flex;flex-wrap:wrap;gap:6px}.words span{background:var(--ap-fill);border-radius:999px;padding:5px 10px;font-size:14px}.words small{color:var(--ap-label2);margin-left:3px}
+.note{font-size:13px;color:var(--ap-label2);margin:4px 2px}
+</style></head><body>
+<div class="wrap">
+  <h1>보관함</h1>
+  <p class="sub">모든 앱에서 저장한 것, 내 질문, 이번 주 생각을 한곳에서. 이 폰 안에만 있어요.</p>
+  <div class="seg" role="tablist"><button data-v="saved">저장한 것</button><button data-v="qs">내 질문</button><button data-v="week">이번 주</button></div>
+  <div id="app"></div>
+</div>
+<script>
+(function () {
+  "use strict";
+  var APPN = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", mix: "홈" };
+  var PATH = { sisa: "../sisa/", iyagi: "../iyagi/", ai: "../ai/", history: "../history/", tools: "../tools/", mix: "../" };
+  var S = { v: "saved", app: "", q: "", wk: 0, open: {} };
+  var esc = function (t) { return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var g = function (k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
+  var B = function () { return window.vfm && window.vfm.box; };
+  var day = function (t) { var d = new Date(t); return (d.getMonth() + 1) + "/" + d.getDate(); };
+  var abs = function (u) { return !u ? "" : /^https?:/.test(u) ? u : "../" + u.replace(/^\.?\//, ""); };
+
+  /* ── 모든 앱의 저장 모으기 (읽기만 함 — 각 앱의 저장 방식은 그대로) ── */
+  var IYT = null;
+  function saved() {
+    var out = [];
+    var likes = g("vfm:likes", {});
+    Object.keys(likes).forEach(function (k) { var x = likes[k]; out.push({ app: x.app, key: x.key, title: x.t || x.key, url: x.h ? PATH[x.app] + x.h : x.u, at: x.at || 0, how: "좋아요" }); });
+    [["ai", function (id, it) { return "../ai/#p=" + encodeURIComponent(id); }], ["history", function (id) { return "../history/#p=" + encodeURIComponent(id); }], ["tools", function (id) { return "../tools/#f=" + encodeURIComponent(id); }]].forEach(function (a) {
+      var st = g("vfm:" + a[0] + ":star", {}), memo = g("vfm:" + a[0] + ":memo", {});
+      Object.keys(st).forEach(function (id) { var x = st[id] || {}, it = x.item || {}; out.push({ app: a[0], key: id, title: it.ko || it.t || it.title || id, url: a[1](id, it), at: x.at || 0, memo: memo[id] || x.memo || "", tags: x.tags || [], how: "별표" }); });
+      Object.keys(memo).forEach(function (id) { if (!st[id] && memo[id]) out.push({ app: a[0], key: id, title: id, url: a[1](id), at: 0, memo: memo[id], how: "메모" }); });
+    });
+    var lib = g("iyagi-library-v1", {});
+    (lib.saved || []).forEach(function (id) { out.push({ app: "iyagi", key: id, title: (IYT && IYT[id]) || id, url: "../iyagi/#read-" + id, at: 0, how: "담아둠" }); });
+    var seen = {}; out = out.filter(function (x) { var k = x.app + "|" + x.key; if (seen[k]) return false; seen[k] = 1; return true; });
+    return out.sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
+  }
+  function thinkCount() { var m = {}; (B() ? B().thinks() : []).forEach(function (t) { var k = t.app + "|" + t.key; m[k] = (m[k] || 0) + 1; }); return m; }
+
+  function viewSaved() {
+    var all = saved(), tc = thinkCount(), apps = {};
+    all.forEach(function (x) { apps[x.app] = (apps[x.app] || 0) + 1; });
+    var q = S.q.trim().toLowerCase();
+    var list = all.filter(function (x) { return (!S.app || x.app === S.app) && (!q || (x.title + " " + (x.memo || "") + " " + (x.tags || []).join(" ")).toLowerCase().indexOf(q) >= 0); });
+    return '<div class="chips"><button data-app="" aria-pressed="' + !S.app + '">전부 ' + all.length + "</button>" + Object.keys(APPN).filter(function (a) { return apps[a]; }).map(function (a) { return '<button data-app="' + a + '" aria-pressed="' + (S.app === a) + '">' + APPN[a] + " " + apps[a] + "</button>"; }).join("") + "</div>" +
+      '<input class="q" id="q" type="search" placeholder="제목·메모·태그에서 찾기" value="' + esc(S.q) + '">' +
+      (list.length ? '<div class="list">' + list.map(function (x) {
+        var n = tc[x.app + "|" + x.key] || 0;
+        return '<div class="row"><a class="b" href="' + esc(x.url || "#") + '"' + (/^https?:/.test(x.url || "") ? ' target="_blank" rel="noopener"' : "") + '><p class="t"><span class="tag ' + x.app + '">' + (APPN[x.app] || x.app) + "</span>" + esc(x.title) + '</p><p class="m">' + esc(x.how) + (x.at ? " · " + day(x.at) : "") + ((x.tags || []).length ? " · #" + x.tags.map(esc).join(" #") : "") + (n ? " · 생각 " + n + "개" : "") + "</p>" + (x.memo ? '<p class="memo">' + esc(x.memo) + "</p>" : "") + "</a>" +
+          '<button class="tk" data-think="' + esc(x.app + "|" + x.key) + '" data-t="' + esc(x.title) + '" data-u="' + esc(x.url || "") + '">✎ 생각</button></div>';
+      }).join("") + "</div>" : '<p class="empty">' + (all.length ? "찾는 게 없어요" : "아직 저장한 게 없어요.<br>각 앱에서 ♡ 좋아요 · ☆ 별표 · 담아두기를 누르면 여기 모여요.") + "</p>");
+  }
+
+  /* ── 내 질문 ── */
+  function thinkHtml(t) {
+    return '<div class="th">' + (t.f ? "<p><b>발견</b>" + esc(t.f) + "</p>" : "") + (t.a ? "<p><b>적용</b>" + esc(t.a) + "</p>" : "") + (t.x ? "<p><b>반증</b>" + esc(t.x) + "</p>" : "") +
+      '<p class="src">' + day(t.at) + (t.title ? " · " + (t.url ? '<a href="' + esc(abs(t.url)) + '">' + esc(t.title) + "</a>" : esc(t.title)) : "") + ' · <a href="#" data-edit="' + t.id + '">고치기</a> · <a href="#" data-del="' + t.id + '">지우기</a></p></div>';
+  }
+  function viewQs() {
+    var qs = B().qs(), th = B().thinks();
+    var by = {}; th.forEach(function (t) { (by[t.q || ""] = by[t.q || ""] || []).push(t); });
+    return '<p class="note">읽다가 떠오른 생각을 질문에 붙여 두면, 하나의 생각이 근거와 함께 자라요. 카드마다 ✎ 생각 단추가 있어요.</p>' +
+      '<div class="card"><input class="q" id="newq" placeholder="새 질문 (예: 자동화가 늘수록 중요해지는 사람의 역할은?)"><div class="btns"><button class="pri" data-act="addq">질문 추가</button></div></div>' +
+      qs.map(function (q) {
+        var l = by[q.id] || [], open = S.open[q.id];
+        return '<div class="card"><div class="qh"><p>' + esc(q.t) + '</p><span class="n">생각 ' + l.length + "</span></div>" +
+          (open ? l.map(thinkHtml).join("") || '<p class="note" style="margin-top:8px">아직 붙인 생각이 없어요.</p>' : (l[0] ? thinkHtml(l[0]) : "")) +
+          '<div class="btns"><button data-act="addt" data-q="' + q.id + '">✎ 생각 쓰기</button>' + (l.length > 1 ? '<button data-act="open" data-q="' + q.id + '">' + (open ? "접기" : "전부 " + l.length + "개") + "</button>" : "") + '<button data-act="renq" data-q="' + q.id + '">이름 바꾸기</button><button data-act="delq" data-q="' + q.id + '">지우기</button></div></div>';
+      }).join("") +
+      ((by[""] || []).length ? '<h2>질문 없이 남긴 생각 <small>' + by[""].length + "</small></h2>" + '<div class="card">' + by[""].map(thinkHtml).join("") + "</div>" : "") +
+      (!qs.length && !th.length ? '<p class="empty">아직 질문이 없어요. 요즘 붙잡고 있는 질문을 하나 적어 보세요.</p>' : "");
+  }
+
+  /* ── 이번 주 (월요일 시작) ── */
+  function weekRange(k) { var d = new Date(); d.setHours(0, 0, 0, 0); var w = (d.getDay() + 6) % 7; var s = new Date(d.getTime() - (w + 7 * k) * 864e5); return [s.getTime(), s.getTime() + 7 * 864e5]; }
+  var STOP = /^(그리고|하지만|그러나|이번|지난|오늘|있는|없는|대한|위해|통해|에서|으로|하는|했다|한다|이다|있다|것이|그는|이후|가장|모든|다른|우리|정말|어떤|무엇|많은|새로운|관련|기사|뉴스|사람들)$/;
+  function words(texts) {
+    var c = {};
+    texts.forEach(function (t) { (String(t).match(/[가-힣A-Za-z]{2,}/g) || []).forEach(function (w) { w = w.replace(/(은|는|이|가|을|를|의|에|와|과|도|로|으로|에서|에게|까지|부터|이다|했다|한다)$/, ""); if (w.length < 2 || STOP.test(w)) return; c[w] = (c[w] || 0) + 1; }); });
+    return Object.keys(c).filter(function (w) { return c[w] >= 2; }).sort(function (a, b) { return c[b] - c[a]; }).slice(0, 14).map(function (w) { return [w, c[w]]; });
+  }
+  function viewWeek() {
+    var r = weekRange(S.wk), inW = function (t) { return t >= r[0] && t < r[1]; };
+    var sv = saved().filter(function (x) { return x.at && inW(x.at); }), th = B().thinks(), thW = th.filter(function (t) { return inW(t.at) || (t.ed && inW(t.ed)); }), qs = B().qs();
+    var qName = function (id) { var q = qs.filter(function (x) { return x.id === id; })[0]; return q ? q.t : "질문 없이"; };
+    var byQ = {}; thW.forEach(function (t) { (byQ[t.q || ""] = byQ[t.q || ""] || []).push(t); });
+    var grown = Object.keys(byQ).filter(function (q) { return q && th.some(function (t) { return t.q === q && t.at < r[0]; }); });
+    var weak = qs.filter(function (q) { return th.filter(function (t) { return t.q === q.id; }).length < 2; });
+    var checks = thW.filter(function (t) { return t.x; });
+    var apps = {}; sv.forEach(function (x) { apps[x.app] = (apps[x.app] || 0) + 1; });
+    var ws = words(sv.map(function (x) { return x.title; }).concat(thW.map(function (t) { return t.title + " " + t.f + " " + t.a; })));
+    var lbl = S.wk === 0 ? "이번 주" : S.wk === 1 ? "지난주" : S.wk + "주 전";
+    return '<div class="wk"><button data-wk="1" aria-label="앞 주">‹</button><p>' + lbl + " · " + day(r[0]) + "~" + day(r[1] - 864e5) + '</p><button data-wk="-1" aria-label="다음 주"' + (S.wk === 0 ? " disabled" : "") + ">›</button></div>" +
+      '<div class="stat"><div><b>' + thW.length + "</b><span>남긴 생각</span></div><div><b>" + sv.length + "</b><span>저장한 것" + (Object.keys(apps).length ? " · " + Object.keys(apps).map(function (a) { return APPN[a] + " " + apps[a]; }).join(" · ") : "") + "</span></div></div>" +
+      "<h2>질문별로 모인 생각</h2>" + (Object.keys(byQ).length ? Object.keys(byQ).map(function (q) { return '<div class="card"><div class="qh"><p>' + esc(qName(q)) + '</p><span class="n">이번 주 ' + byQ[q].length + "</span></div>" + byQ[q].map(thinkHtml).join("") + "</div>"; }).join("") : '<p class="empty">이 주에 남긴 생각이 없어요.</p>') +
+      (grown.length ? "<h2>생각이 이어진 질문 <small>예전 생각에 이번 주 생각이 더해짐</small></h2>" + '<div class="list">' + grown.map(function (q) { var old = th.filter(function (t) { return t.q === q && t.at < r[0]; })[0]; return '<div class="row"><div class="b"><p class="t">' + esc(qName(q)) + '</p><p class="m">처음 생각 (' + day(old.at) + "): " + esc(old.f || old.a || old.x) + "</p></div></div>"; }).join("") + "</div>" : "") +
+      (checks.length ? "<h2>다음 주에 확인할 것 <small>내가 적은 '틀렸다는 증거'</small></h2>" + '<div class="list">' + checks.map(function (t) { return '<div class="row"><div class="b"><p class="t">' + esc(t.x) + '</p><p class="m">' + esc(qName(t.q)) + "</p></div></div>"; }).join("") + "</div>" : "") +
+      (weak.length ? "<h2>아직 근거가 부족한 질문 <small>생각 1개 이하</small></h2>" + '<div class="list">' + weak.map(function (q) { return '<div class="row"><div class="b"><p class="t">' + esc(q.t) + "</p></div></div>"; }).join("") + "</div>" : "") +
+      (ws.length ? "<h2>자주 나온 낱말 <small>저장·생각한 글 제목에서</small></h2>" + '<div class="words">' + ws.map(function (w) { return "<span>" + esc(w[0]) + "<small>" + w[1] + "</small></span>"; }).join("") + "</div>" : "") +
+      '<p class="note" style="margin-top:16px">읽은 양보다 ‘생각이 어떻게 바뀌었나’를 보려고 만든 화면이에요. 전부 이 폰 안에서 계산해요.</p>';
+  }
+
+  function render() {
+    document.querySelectorAll(".seg button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-v") === S.v)); });
+    var el = document.getElementById("app");
+    if (!B()) { el.innerHTML = '<p class="empty">불러오는 중…</p>'; return; }
+    el.innerHTML = S.v === "qs" ? viewQs() : S.v === "week" ? viewWeek() : viewSaved();
+  }
+  function go(v) { S.v = v; try { history.replaceState(null, "", "#" + v); } catch (e) { } render(); window.scrollTo(0, 0); }
+
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-v],[data-app],[data-think],[data-act],[data-edit],[data-del],[data-wk]"); if (!t) return;
+    if (t.hasAttribute("data-v") && t.closest(".seg")) return go(t.getAttribute("data-v"));
+    if (t.hasAttribute("data-app")) { S.app = t.getAttribute("data-app"); return render(); }
+    if (t.hasAttribute("data-wk")) { S.wk = Math.max(0, S.wk + +t.getAttribute("data-wk")); return render(); }
+    if (t.hasAttribute("data-think")) { var p = t.getAttribute("data-think").split("|"); return window.vfm.think({ app: p[0], key: p.slice(1).join("|"), title: t.getAttribute("data-t"), url: t.getAttribute("data-u"), onSave: render }); }
+    var bx = B(), th, qs;
+    if (t.hasAttribute("data-edit")) { e.preventDefault(); th = bx.thinks().filter(function (x) { return x.id === t.getAttribute("data-edit"); })[0]; if (th) window.vfm.think({ onSave: render }, th); return; }
+    if (t.hasAttribute("data-del")) { e.preventDefault(); if (!confirm("이 생각을 지울까요?")) return; bx.s("think", bx.thinks().filter(function (x) { return x.id !== t.getAttribute("data-del"); })); return render(); }
+    var act = t.getAttribute("data-act"), qid = t.getAttribute("data-q");
+    if (act === "addq") { var v = document.getElementById("newq").value.trim(); if (!v) return document.getElementById("newq").focus(); qs = bx.qs(); qs.unshift({ id: bx.id(), t: v, at: Date.now() }); bx.s("qs", qs); return render(); }
+    if (act === "addt") { bx.s("lastQ", qid); return window.vfm.think({ app: "box", title: "", onSave: render }); }
+    if (act === "open") { S.open[qid] = !S.open[qid]; return render(); }
+    if (act === "renq") { qs = bx.qs(); var q = qs.filter(function (x) { return x.id === qid; })[0]; var nv = q && prompt("질문 이름", q.t); if (nv && nv.trim()) { q.t = nv.trim(); bx.s("qs", qs); render(); } return; }
+    if (act === "delq") { if (!confirm("이 질문을 지울까요? 붙어 있던 생각은 '질문 없이'로 남아요.")) return; bx.s("qs", bx.qs().filter(function (x) { return x.id !== qid; })); bx.s("think", bx.thinks().map(function (x) { if (x.q === qid) x.q = ""; return x; })); return render(); }
+  });
+  document.addEventListener("input", function (e) { if (e.target.id === "q") { S.q = e.target.value; var pos = e.target.selectionStart; render(); var q = document.getElementById("q"); q.focus(); try { q.setSelectionRange(pos, pos); } catch (x) { } } });
+  window.vfmApp = { back: function () { if (S.v !== "saved") { go("saved"); return true; } return false; }, top: function () { go("saved"); } };
+  var h = (location.hash || "").slice(1); if (h === "qs" || h === "week") S.v = h;
+  fetch("../data/iyagi/stories/_index.json", { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : []; }).then(function (a) { IYT = {}; (a || []).forEach(function (s) { IYT[s.id] = s.title; }); if (S.v === "saved") render(); }).catch(function () { });
+  window.addEventListener("DOMContentLoaded", render);
+})();
+</script>
+<script src="../assets/shell.js"></script>
+</body></html>

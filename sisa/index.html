@@ -775,10 +775,10 @@ kbd{font-family:var(--f-mono,monospace);font-size:12px;background:var(--sunk);bo
 <nav class="tabs" aria-label="화면">
   <div class="in">
     <button type="button" data-v="today" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>오늘</span></button>
-    <button type="button" data-v="flow"><svg viewBox="0 0 24 24"><path d="M4 7h11M4 12h16M4 17h8"/></svg><span>흐름</span></button>
+    <button type="button" data-v="flow"><svg viewBox="0 0 24 24"><path d="M4 7h11M4 12h16M4 17h8"/></svg><span>탐색</span></button>
     <button type="button" data-v="nation"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.8 2.6 14.2 0 17M12 3.5c-2.6 2.8-2.6 14.2 0 17"/></svg><span>나라</span></button>
     <button type="button" data-v="hot"><svg viewBox="0 0 24 24"><path d="M4 17l5-6 4 4 7-9"/><path d="M15 6h5v5"/></svg><span>트렌드</span></button>
-    <button type="button" data-v="library"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4-6 4z"/></svg><span>내 기록</span></button>
+    <button type="button" data-v="library"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4-6 4z"/></svg><span>보관함</span></button>
   </div>
 </nav>
 
@@ -893,7 +893,7 @@ async function loadEdition(id){
 }
 
 // ───────── 불러오기 상태 (로딩·로그인 필요·지연·빈 데이터·오류) ─────────
-const VIEW_NAME = {today:"오늘", feed:"전체 글", trend:"트렌드", library:"내 서재", src:"수집처"};
+const VIEW_NAME = {today:"오늘", feed:"전체 글", trend:"트렌드", library:"보관함", src:"수집처"};
 const FAIL = {
   login: {title:"로그인 필요", head:"시사 자판기를 열려면 로그인이 필요해요", msg:"기사 목록과 내 기록은 Claude에 로그인한 상태에서만 불러와요. 로그인 전에는 어떤 데이터도 불러오지 않아요."},
   slow:  {title:"연결 지연", head:"데이터 서버 응답이 늦어요", msg:"계속 연결을 시도하고 있어요. 응답이 오면 이 화면이 자동으로 바뀝니다."},
@@ -1610,7 +1610,7 @@ function showEntPop(n){
   Promise.all([ensureEntsFull(), wikiInfo(n)]).then(() => { if(S.entPopN === n && $("#entHost").innerHTML) draw(false); });
 }
 function closeEntPop(){ S.entPopN = null; const h = $("#entHost"); if(h && h.innerHTML) h.innerHTML = ""; }
-// 흐름 탭 '이름 사전': 이번 판에 나오는 이름 전부
+// 탐색 탭 '이름 사전': 이번 판에 나오는 이름 전부
 function entsAll(){
   if(!S.entsFull){ ensureEntsFull().then(ok => { if(ok && S.view === "flow" && S.flowTab === "ent") render(); }); }
   if(!S.ents || !Object.keys(S.ents).length) return '<div class="empty">이름 사전을 아직 만들지 못했어요. 매시간 갱신 때 채워져요.</div>';
@@ -1662,7 +1662,7 @@ function kbBack(){
 function mfPan(dx, dy){ if(!MF.vb) return; const [x, y, w, h] = MF.vb; mfFly(mfClamp([x + w * dx, y + h * dy, w, h])); }
 function kbHelp(){
   // [키들, 설명] — 키는 '|'로 나누고, 그냥 글자는 '~'로 시작
-  const rows = [["I|K|~또는|↑|↓","카드 하나씩 위·아래로 고르기"],["Enter|O","고른 카드 열기"],["J|L|~또는|←|→","이전·다음 탭 · 시트에선 이전·다음 이슈·글"],["U|Esc|Backspace","닫기 · 뒤로 (CapsLock+U · CapsLock+O)"],["PgUp|PgDn","한 화면씩 위·아래 (CapsLock+Shift+U·O)"],["Home|End","맨 위 · 맨 아래 (CapsLock+- · =)"],["1|2|3|4","오늘 · 흐름 · 나라 · 내 기록 탭"],["H","오늘 탭으로"],["M","지도 크게 보기"],[",|.","흐름 안 작은 탭 이전·다음"],["~지도에서|I|J|K|L","지도 이동 (방향키도 돼요)"],["~지도에서|+|−|0","확대 · 축소 · 처음 크기"],["~카드 줄 위에서 마우스 휠","옆으로 넘기기"],["~카드 줄을 마우스로 끌기","옆으로 밀기"],["~마우스 옆 버튼","뒤로 · 앞으로"],["?","이 도움말"]];
+  const rows = [["I|K|~또는|↑|↓","카드 하나씩 위·아래로 고르기"],["Enter|O","고른 카드 열기"],["J|L|~또는|←|→","이전·다음 탭 · 시트에선 이전·다음 이슈·글"],["U|Esc|Backspace","닫기 · 뒤로 (CapsLock+U · CapsLock+O)"],["PgUp|PgDn","한 화면씩 위·아래 (CapsLock+Shift+U·O)"],["Home|End","맨 위 · 맨 아래 (CapsLock+- · =)"],["1|2|3|4","오늘 · 탐색 · 나라 · 트렌드 · 보관함 탭"],["H","오늘 탭으로"],["M","지도 크게 보기"],[",|.","흐름 안 작은 탭 이전·다음"],["~지도에서|I|J|K|L","지도 이동 (방향키도 돼요)"],["~지도에서|+|−|0","확대 · 축소 · 처음 크기"],["~카드 줄 위에서 마우스 휠","옆으로 넘기기"],["~카드 줄을 마우스로 끌기","옆으로 밀기"],["~마우스 옆 버튼","뒤로 · 앞으로"],["?","이 도움말"]];
   $("#entHost").innerHTML = `<div class="entpop-scrim" data-entclose></div><div class="entpop kbhelp" role="dialog" aria-label="단축키">
     <div class="entpop-top"><span class="grabbar"></span><button type="button" data-entclose aria-label="닫기">✕</button></div>
     <h3 class="kbh-t">키보드·마우스 단축키</h3>
@@ -1992,7 +1992,7 @@ function opinionCards(){
   for(const c of cards){ const key = c.kind==="cm" ? "i"+c.i.id : (c.s ? c.s.id : "x") + c.t.id + c.t.sub; if(seen.has(key)) continue; seen.add(key); out.push(c); }
   return out;
 }
-// 첫 화면: 앞쪽 12장 + 끝에 '전체 보기' 카드 (여론은 개수 제한 없음 → 흐름 탭 '여론'에서 전부)
+// 첫 화면: 앞쪽 12장 + 끝에 '전체 보기' 카드 (여론은 개수 제한 없음 → 탐색 탭 '여론'에서 전부)
 function opinionStrip(){
   const all = opinionCards(); if(!all.length) return "";
   const out = all.slice(0, 12);
@@ -2003,7 +2003,7 @@ function opinionStrip(){
       const cm = cmOf(c.i.id); const p = cm.picks.find(x => x.type==="top") || cm.picks[0];
       return `<button type="button" class="ocard" data-open="${c.i.id}"><span class="oc-h">${flag(ctry(c.i))} <b>${esc(srcOf(c.i.s).n)}</b></span><span class="oc-q">“${esc(p.ko)}”</span><span class="oc-m">${esc(cm.mood)}</span><span class="oc-f">${esc(c.s ? c.s.title.split(/[,，…]/)[0] : (koOf(c.i)||"").slice(0,40))}</span></button>`; }).join("")}${all.length > out.length ? `<button type="button" class="ocard more" data-opall><span class="oc-q">반응 ${all.length - out.length}장 더</span><span class="oc-m">나라·커뮤니티별 댓글을 한 화면에서 끝까지 볼 수 있어요</span><span class="oc-f">전부 보기 ›</span></button>` : ""}</div></section>`;
 }
-// 흐름 탭 '여론': 모든 여론 카드를 댓글까지 펼쳐서
+// 탐색 탭 '여론': 모든 여론 카드를 댓글까지 펼쳐서
 function opinionAll(){
   const all = opinionCards();
   if(!all.length) return '<div class="empty">이번 판에는 정리된 댓글이 아직 없어요. 댓글은 3시간마다 모아요.</div>';
@@ -2183,7 +2183,7 @@ function viewFlow(){
   else if(t === "ent"){ body = entsAll(); }
   else if(t === "story"){ const all = (S.ed.stories||[]).filter(okStory); const ccount = {}; all.forEach(x => { if(x.cat) ccount[x.cat] = (ccount[x.cat]||0)+1; }); body = catChips(ccount, all.length) + storiesBlock(all); }
   else body = timelineHtml();
-  return `<h2 class="ttl1">흐름</h2>${flowTabs()}${body}`;
+  return `<h2 class="ttl1">탐색</h2>${flowTabs()}${body}`;
 }
 function timelineHtml(){
   const now = Date.now() + 10*60e3;

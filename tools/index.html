@@ -77,9 +77,9 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
 <div class="wrap" id="app"></div>
 <nav class="tabs" id="tabs">
   <button data-v="today" aria-current="page"><b>☀︎</b>오늘</button>
-  <button data-v="secs"><b>▦</b>출처별</button>
+  <button data-v="secs"><b>▦</b>탐색</button>
   <button data-v="lists"><b>☰</b>모음집</button>
-  <button data-v="shelf"><b>☆</b>서재</button>
+  <button data-v="shelf"><b>☆</b>보관함</button>
 </nav>
 <script>
 "use strict";
@@ -202,7 +202,7 @@ function renderToday() {
 
 /* ───── 화면: 출처별 ───── */
 function renderSecs() {
-  let h = head("출처별", "어디서 왔는지로 골라 보기");
+  let h = head("탐색 · 출처별", "어디서 왔는지로 골라 보기");
   h += `<div class="grid">${ORDER.filter(k => (S.now.sec[k] || []).length).map(k => `<button class="tile" data-go="#sec=${k}"><b>${SEC[k]}</b><small>${S.now.sec[k].length}개 · 새 것 ${S.now.sec[k].filter(p => p.new).length}</small></button>`).join("")}</div>`;
   h += `<h2 class="sec">어디서 오나요</h2><div class="list">${ORDER.filter(k => S.idx.secs && S.idx.secs[k]).map(k => `<a class="li" href="${esc(S.idx.secs[k][1])}" target="_blank" rel="noopener"><p class="t">${SEC[k]} ↗</p><p class="s">${esc(SEC_NOTE[k])}</p></a>`).join("")}</div>`;
   if ((S.idx.channels || []).length) h += `<p class="note">유튜브 채널: ${esc(S.idx.channels.join(" · "))}${S.idx.ytKey ? " + 하루 한 번 검색" : ""}</p>`;
@@ -252,7 +252,7 @@ async function renderList(id) {
 /* ───── 화면: 서재 · 찾기 ───── */
 function renderShelf() {
   const st = Object.entries(S.star).sort((a, b) => b[1].at - a[1].at);
-  let h = head("서재", `별표 ${st.length} · 메모 ${Object.keys(S.memo).filter(k => S.memo[k]).length} · 읽은 것 ${Object.keys(S.read).length}`, '<button class="ib" data-act="find" aria-label="찾기">⌕</button>');
+  let h = head("보관함", `별표 ${st.length} · 메모 ${Object.keys(S.memo).filter(k => S.memo[k]).length} · 읽은 것 ${Object.keys(S.read).length}`, '<button class="ib" data-act="find" aria-label="찾기">⌕</button>');
   h += `<h2 class="sec">별표<small>영구 보관</small></h2>`;
   h += st.length ? st.map(([id, v]) => card(Object.assign({}, v.item, { id }))).join("") : '<p class="note">카드를 열고 ☆ 별표를 누르면 여기에 모여요 (지나간 날 것도 계속 남아요)</p>';
   const memos = Object.keys(S.memo).filter(k => S.memo[k] && !S.star[k]);
@@ -295,7 +295,7 @@ function openItem(id) {
   const acts = [`<a class="btn pri" href="${esc(p.url)}" target="_blank" rel="noopener">${OPEN_LBL(p)}</a>`];
   if (p.disc && p.disc !== p.url) acts.push(`<a class="btn" href="${esc(p.disc)}" target="_blank" rel="noopener">댓글 토론 ↗</a>`);
   if (p.sec === "gh") acts.push(`<a class="btn" href="https://www.youtube.com/results?search_query=${encodeURIComponent(p.title)}" target="_blank" rel="noopener">유튜브 해설 찾기 ↗</a>`);
-  acts.push(`<button class="btn" data-act="star">${S.star[id] ? "★ 별표 해제" : "☆ 별표"}</button>`, `<button class="btn" data-act="share">공유</button>`, `<button class="btn" data-act="hide">숨기기</button>`);
+  acts.push(`<button class="btn" data-act="star">${S.star[id] ? "★ 별표 해제" : "☆ 별표"}</button>`, `<button class="btn" data-act="think">✎ 생각</button>`, `<button class="btn" data-act="share">공유</button>`, `<button class="btn" data-act="hide">숨기기</button>`);
   const back = document.createElement("div"); back.className = "back"; back.dataset.id = id;
   back.innerHTML = `<div class="sheet" role="dialog"><div class="grab"></div>
     <div class="meta" style="margin-bottom:6px"><span class="bd src">${esc(SEC[p.sec] || "")}</span>${p.kind && p.kind !== SEC[p.sec] ? `<span class="bd">${esc(p.kind)}</span>` : ""}${metaOf(p).map(x => `<span>${x}</span>`).join("")}<span>${dayLbl(p.date)}</span></div>
@@ -371,8 +371,9 @@ document.addEventListener("click", async e => {
   if (a === "clearread") { S.read = {}; save("read"); toast("지웠어요"); return paint(); }
   const sh = t.closest(".back"); if (!sh) return;
   const id = sh.dataset.id, p = S.byId[id] || (S.star[id] && S.star[id].item) || {};
-  if (a === "star") { if (S.star[id]) { delete S.star[id]; toast("별표 해제"); } else { S.star[id] = { at: Date.now(), item: entry(p), memo: S.memo[id] || "" }; toast("서재에 넣었어요"); } save("star"); t.textContent = S.star[id] ? "★ 별표 해제" : "☆ 별표"; }
-  else if (a === "hide") { S.hide[id] = 1; save("hide"); toast("숨겼어요 (서재에서 되살리기)"); closeSheet(); }
+  if (a === "think") { if (window.vfm && window.vfm.think) window.vfm.think({ app: "tools", key: id, title: p.ko || p.title, url: p.url }); return; }
+  if (a === "star") { if (S.star[id]) { delete S.star[id]; toast("별표 해제"); } else { S.star[id] = { at: Date.now(), item: entry(p), memo: S.memo[id] || "" }; toast("보관함에 넣었어요"); } save("star"); t.textContent = S.star[id] ? "★ 별표 해제" : "☆ 별표"; }
+  else if (a === "hide") { S.hide[id] = 1; save("hide"); toast("숨겼어요 (보관함에서 되살리기)"); closeSheet(); }
   else if (a === "share") { const text = `${p.ko || p.title}\n${p.ksum || p.sum || ""}\n${p.url}${S.memo[id] ? "\n메모: " + S.memo[id] : ""}`; if (navigator.share) navigator.share({ title: p.title, text, url: p.url }).catch(() => { }); else { try { await navigator.clipboard.writeText(text); toast("복사했어요"); } catch (x) { } } }
 });
 

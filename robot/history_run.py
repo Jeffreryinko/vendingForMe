@@ -734,19 +734,25 @@ def classify(page, ent, kind, C, L, hint, CL):
     # 역할별 나라: 인물 = 활동지 → 출생지 → 국적 / 사건 = 일어난 곳 → 나라 / 나라·왕조 = 그 나라
     if kind == "person": ROLE = (("work", cv(ent, "P937")[:3], 0), ("born", cv(ent, "P19")[:1], 0), ("nat", cv(ent, "P27")[:3], 1))
     elif kind == "state": ROLE = (("at", [ent.get("id")] + cv(ent, "P17")[:2], 1), ("at", cv(ent, "P30")[:1], 0))
-    else: ROLE = (("at", cv(ent, "P276")[:6], 0), ("at", cv(ent, "P17")[:4], 1), ("at", cv(ent, "P131")[:1], 0), ("side", [q for q in cv(ent, "P710")[:8] if q in C.c], 1))
+    else: ROLE = (("at", cv(ent, "P17")[:4], 1), ("at", cv(ent, "P276")[:6], 0), ("at", cv(ent, "P131")[:1], 0), ("side", [q for q in cv(ent, "P710")[:8] if q in C.c], 1))
     isos, thens, region, roles, at_regs = [], [], "", {}, []
     for role, qs, pol in ROLE:                                        # pol = 나라(정치체)를 가리키는 속성 → '당시 이름'을 씀
         for q in qs:
             if not isinstance(q, str): continue
             iso, reg, then = C.resolve(q)
             then = then if pol else ""
-            if (iso or then) and not any(r[0] == (iso or "") and r[1] == then for r in roles.get(role, [])): roles.setdefault(role, []).append([iso or "", then])
+            if (iso or then) and not any(r[0] == (iso or "") and (r[1] == then or not then) for r in roles.get(role, [])): roles.setdefault(role, []).append([iso or "", then])
             if iso and iso not in isos: isos.append(iso)
             if then and then not in thens: thens.append(then)
             if not region and reg: region = reg                       # 처음 권역이 나오는 곳 (대륙만 알아도)
             if role == "at" and reg and reg not in at_regs: at_regs.append(reg)
     if isos and not region: region = T.ISO_REGION.get(isos[0], "")
+    if (y if y is not None else ya if ya is not None else 9999) < 1948:    # 남북 분단 전 한반도 = '한국' (평양에서 있었던 고구려 일도 북한이 아님)
+        fx = lambda l: [x for k, x in enumerate(["KR" if i == "KP" else i for i in l]) if x not in ["KR" if i == "KP" else i for i in l][:k]]
+        isos = fx(isos)
+        for r in roles.values():
+            for x in r:
+                if x[0] == "KP": x[0] = "KR"
     if not isos:                                                      # 위키데이터에 나라가 없으면 분류 이름으로 한국·일본·중국만이라도
         cats = " ".join(c["title"] for c in page.get("cats", []))
         for words, iso in ((("조선", "고려", "신라", "백제", "고구려", "발해", "가야", "대한제국", "한국", "대한민국", "일제강점기"), "KR"), (("일본",), "JP"), (("중국", "청나라", "명나라", "당나라", "송나라", "원나라", "한나라"), "CN")):
@@ -806,7 +812,7 @@ def retheme_people(st):
     st.seeds["retheme"] = "v2"; log(f"사람 테마 다시 매김: {n:,}편")
 
 
-RECLASS = "reclass3"          # 분류 규칙을 바꾸면 이름을 올림 → 받은 글 전부를 위키데이터로 다시 분류 (본문은 안 받음, 토큰 0)
+RECLASS = "reclass4"          # 분류 규칙을 바꾸면 이름을 올림 → 받은 글 전부를 위키데이터로 다시 분류 (본문은 안 받음, 토큰 0)
 def reclass(st, C, L, CL, cp):
     """받은 글 전부 다시 분류: 개념 종류 · 대략 연도(~경) · 역할별 나라 · 권역. 끊겨도 다음 회차에 이어서."""
     if st.seeds.get(RECLASS) == "done": return

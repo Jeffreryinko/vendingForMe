@@ -27,6 +27,7 @@
   .ic.ai{background:linear-gradient(160deg,#D68CFF 0%,#A346F0 55%,#6E2BD9 100%)}
   .ic.history{background:linear-gradient(160deg,#C9A57A 0%,#A2845E 55%,#7A5F3E 100%)}
   .ic.tools{background:linear-gradient(160deg,#6FDCEB 0%,#30B0C7 55%,#0A7A8C 100%)}
+  .ic.box{background:linear-gradient(160deg,#9DA3AF 0%,#6B7280 55%,#4B5160 100%)}
   .nm{font:700 20px/1.2 var(--ap-display);letter-spacing:-.02em;margin:0}
   .ds{font-size:14px;color:var(--ap-label2);margin:3px 0 0;line-height:1.35}
   .st{display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;font-size:13px;color:var(--ap-label2);margin:7px 0 0}
@@ -78,6 +79,11 @@
       <span><p class="nm">도구</p><p class="ds">요즘 뜨는 AI 도구·오픈소스·활용법</p><p class="st" id="st-tools"><i></i><span>불러오는 중</span></p></span>
       <span class="chev">›</span>
     </button>
+    <button class="app" data-app="box">
+      <span class="ic box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M3 4h18v4H3z"/><path d="M10 12h4"/></svg></span>
+      <span><p class="nm">보관함</p><p class="ds">모든 앱에서 저장한 것 · 내 질문 · 이번 주 생각</p><p class="st" id="st-box"><i class="ok"></i><span id="boxN">이 폰 안에만 있어요</span></p></span>
+      <span class="chev">›</span>
+    </button>
   </div>
   <p class="last" id="last"></p>
 
@@ -112,6 +118,7 @@
   j("data/ai/_index.json").then(function (x) { var c = (x && x.counts) || {}; paint("ai", x && x.at, x ? "<b>추천 논문 " + n(c.hf) + "편</b>" : "", 30); });
   j("data/history/_index.json").then(function (x) { var c = (x && x.counts) || {}; paint("history", x && x.at, x ? "<b>" + n(c.total) + "편</b>" + (x.queue >= 200 ? " · 받는 중" : "") : "", 30); });
   j("data/tools/_index.json").then(function (x) { paint("tools", x && x.at, x ? "<b>새 것 " + n(x.new) + "개</b>" : "", 12); });
+  try { var nq = JSON.parse(localStorage.getItem("vfm:box:qs") || "[]").length, nt = JSON.parse(localStorage.getItem("vfm:box:think") || "[]").length; if (nq || nt) document.getElementById("boxN").textContent = "질문 " + nq + " · 생각 " + nt; } catch (e) { }
   var NAME = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구" }, lastApp = null;
   try { lastApp = localStorage.getItem("vfm:tab"); } catch (e) { }
   if (NAME[lastApp]) document.getElementById("last").innerHTML = "&nbsp;지난번에 본 곳: " + NAME[lastApp];
