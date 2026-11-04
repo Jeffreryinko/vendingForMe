@@ -2,8 +2,8 @@
  *
  *  · 카드 한 장씩 보여 주고, 옆으로 밀면 다음 카드. 위아래로는 그냥 화면이 움직임(카드 안 글을 끝까지 읽기).
  *  · 이미 본 카드는 다시 안 나옴 — 본 기록은 이 폰 저장소(localStorage "vfm:seen:<앱>")에 남김.
- *  · 덜 예민하게: 손가락이 18px 넘게 움직였을 때 방향을 정하고(가로가 세로의 2배 넘어야 가로),
- *    화면 너비의 30%(최소 100px) 이상 밀거나, 빠르게 튕겼을 때(60px 이상 + 빠르기)만 넘어감.
+ *  · 덜 예민하게: 손가락이 20px 넘게 움직였을 때 방향을 정하고(가로가 세로의 2배 넘어야 가로),
+ *    화면 너비의 40%(최소 130px) 넘게 밀었을 때만 넘어감 (빠르게 튕기기로는 안 넘어감).
  *    화면 가장자리 28px 안에서 시작한 손가락은 폰 뒤로가기 제스처라서 무시.
  *  · 카드마다 좋아요(♡)·공유 — 좋아요는 "vfm:likes" 하나에 모든 앱 것을 같이 저장.
  *
@@ -81,11 +81,13 @@
     this.queue = null;
     decks[o.id] = this;
   }
+  Deck.prototype.sa = function (k) { var it = this.map[k]; return (it && it.sa) || this.app; };
+  Deck.prototype.seen = function (k) { return !this.o.noSeen && Seen.has(this.sa(k), k); };
   Deck.prototype.build = function () {
     var self = this, all = this.o.items() || [];
     this.map = {}; all.forEach(function (it) { self.map[it.key] = it; });
     this.total = all.length;
-    this.queue = all.filter(function (it) { return !Seen.has(self.app, it.key); }).map(function (it) { return it.key; });
+    this.queue = all.filter(function (it) { return !self.seen(it.key); }).map(function (it) { return it.key; });
     this.hist = this.hist.filter(function (k) { return self.map[k]; });
     if (this.pos >= this.hist.length) this.pos = this.hist.length - 1;
     if (this.pos < 0) {
@@ -99,10 +101,10 @@
   Deck.prototype.left = function () {   // 아직 안 본 카드 수 (지금 카드 제외)
     var self = this, k = this.curKey(), used = {};
     this.hist.forEach(function (x) { used[x] = 1; });
-    return this.queue.filter(function (x) { return !used[x] && !Seen.has(self.app, x) && x !== k; }).length;
+    return this.queue.filter(function (x) { return !used[x] && !self.seen(x) && x !== k; }).length;
   };
   Deck.prototype.save = function () { LS.s("vfm:deck:" + this.id, { cur: this.curKey() }); };
-  Deck.prototype.markCur = function () { var k = this.curKey(); if (k) Seen.add(this.app, k); };
+  Deck.prototype.markCur = function () { var k = this.curKey(); if (k) Seen.add(this.sa(k), k); };
   Deck.prototype.next = function () {
     this.ensure();
     var self = this, k = this.curKey();
@@ -111,7 +113,7 @@
     if (this.pos < this.hist.length - 1) { this.pos++; }
     else {
       var used = {}; this.hist.forEach(function (x) { used[x] = 1; });
-      var nx = this.queue.filter(function (x) { return !used[x] && !Seen.has(self.app, x); })[0];
+      var nx = this.queue.filter(function (x) { return !used[x] && !self.seen(x); })[0];
       if (!nx) { this.pos = this.hist.length; this.save(); return true; }   // 끝 카드
       this.hist.push(nx); this.pos++;
     }
@@ -124,7 +126,9 @@
     this.pos--; this.save(); return true;
   };
   Deck.prototype.resetSeen = function () {
-    Seen.remove(this.app, Object.keys(this.map));
+    var self = this, by = {};
+    Object.keys(this.map).forEach(function (k) { (by[self.sa(k)] = by[self.sa(k)] || []).push(k); });
+    Object.keys(by).forEach(function (a) { Seen.remove(a, by[a]); });
     this.cur = null; LS.s("vfm:deck:" + this.id, {});
     this.refresh();
   };
@@ -141,7 +145,7 @@
     var body = ""; try { body = it.html(); } catch (e) { body = '<p class="vdk-note">이 카드를 그리지 못했어요.</p>'; }
     var left = this.left();
     return '<div class="vdk-card" data-vdk-card="' + esc(this.id) + '">' + body +
-      bar(this.app, k, { title: it.title, url: it.url, hash: it.hash, text: it.shareText }) +
+      bar(this.sa(k), k, { title: it.title, url: it.url, hash: it.hash, text: it.shareText }) +
       '<div class="vdk-nav"><button type="button" data-vdk-act="prev" data-vdk="' + esc(this.id) + '" ' + (this.pos <= 0 ? "disabled" : "") + ' aria-label="이전 카드">‹</button>' +
       '<span class="vdk-left">' + (left ? "안 본 카드 " + left + "장 남음" : "마지막 카드") + '<small>옆으로 밀면 다음</small></span>' +
       '<button type="button" data-vdk-act="next" data-vdk="' + esc(this.id) + '" aria-label="다음 카드">›</button></div></div>';
@@ -175,7 +179,7 @@
     var self = this, k = this.curKey();
     clearTimeout(this.dwellT);
     if (!k) return;
-    this.dwellT = setTimeout(function () { if (self.curKey() === k && self.el()) { Seen.add(self.app, k); self.save(); } }, 4000);
+    this.dwellT = setTimeout(function () { if (self.curKey() === k && self.el()) { Seen.add(self.sa(k), k); self.save(); } }, 4000);
   };
   Deck.prototype.step = function (dir) {
     var ok = dir > 0 ? this.next() : this.prev();
@@ -202,7 +206,7 @@
     if (!g) return;
     var x = e.touches[0].clientX, y = e.touches[0].clientY, dx = x - g.x0, dy = y - g.y0;
     if (g.lock === null) {
-      if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
+      if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
       g.lock = Math.abs(dx) > Math.abs(dy) * 2 ? "h" : "v";
       if (g.lock === "v") { g = null; return; }                          // 세로 = 그냥 스크롤
     }
@@ -216,10 +220,10 @@
   document.addEventListener("touchend", function () {
     if (!g) return; var s = g; g = null;
     if (s.lock !== "h") return;
-    var W = window.innerWidth, need = Math.max(100, W * 0.3);
-    var fling = Math.abs(s.dx) >= 60 && Math.abs(s.v) >= 0.6 && (s.v < 0) === (s.dx < 0);
+    // 애플·삼성 사진 넘기기의 중간쯤: 화면 너비의 40%(최소 130px) 넘게 밀어야 넘어감. 빠르게 튕기기는 쓰지 않음(사용자 선택)
+    var W = window.innerWidth, need = Math.max(130, W * 0.4);
     var d = decks[s.id];
-    if (!d || (Math.abs(s.dx) < need && !fling)) return settle(s.card);
+    if (!d || Math.abs(s.dx) < need) return settle(s.card);
     var dir = s.dx < 0 ? 1 : -1;                                          // 왼쪽으로 밀면 다음
     if (dir < 0 && d.pos <= 0) { toast("첫 카드예요"); return settle(s.card); }
     s.card.style.transition = "transform .16s ease-in, opacity .16s";

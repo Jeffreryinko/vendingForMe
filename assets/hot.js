@@ -10,7 +10,7 @@
   const flag = cc => String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
   const dayOf = iso => new Date(new Date(iso).getTime() + 9 * 3600e3).toISOString().slice(0, 10);
   const today = () => dayOf(new Date().toISOString());
-  const SRC_ORDER = ["google", "signal", "yahoojp", "baidu", "weibo", "x", "yt", "wiki"];
+  const SRC_ORDER = ["google", "signal", "yahoojp", "baidu", "weibo", "reddit", "x", "yt", "ytfun", "wiki"];
   const ADULT = /(porn|sex|xxx|nude|hentai|onlyfans|야동|섹스|포르노|성인|エロ|성관계|rape|강간)/i;
   const css = `
   .hot-flags{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0 4px}.hot-flags::-webkit-scrollbar{display:none}
@@ -91,9 +91,13 @@
     const days = H.tab === "past" ? `<div class="chips">${(idx.days || []).slice().reverse().filter(x => x !== today()).map(x => `<button type="button" class="chip" data-hotday="${x}" aria-pressed="${x === H.day}">${x.slice(5).replace("-", "/")}</button>`).join("") || '<span class="note">아직 지난 날 자료가 없어요 (내일부터 쌓여요)</span>'}</div>` : "";
     const msw = D && H.tab === "now" ? D.modeSwitch("sisa-hot", () => render()) : "";
     if (D && H.tab === "now" && D.mode("sisa-hot") === "deck") {
-      const dk = deckOf(d.cc); const k0 = dk.curKey(), x0 = k0 && dk.map[k0];
-      if (x0 && x0.src === "wiki" && WK[x0.it.url] === undefined) wikiFor(x0.it.url).then(() => { if (dk.curKey() === k0) dk.paint(); });
-      return `<p class="lead">트렌드</p>${seg}${msw}${flags}<p class="note">${esc(d.name)} · ${ago(d.at)} 갱신 · 검색어·영상·문서를 한 장씩 · 본 것은 다시 안 나와요</p>${dk.html()}`;
+      const dc = P.deckCc || "ALL";
+      if (dc === "ALL") ensureAll();
+      const dflags = `<div class="hot-flags"><button type="button" class="chip" data-hotdeck="ALL" aria-pressed="${dc === "ALL"}">🌐 모든 나라 랜덤</button>${idx.countries.map(([cc, nm]) => `<button type="button" class="chip" data-hotdeck="${cc}" aria-pressed="${cc === dc}">${flag(cc)} ${esc(nm)}</button>`).join("")}</div>`;
+      if (dc !== "ALL" && !H.data[`${dc}.json`]) { fetchJ(`${dc}.json`).then(x => { H.data[`${dc}.json`] = x; render(); }).catch(() => {}); return `<p class="lead">트렌드</p>${seg}${msw}${dflags}<p class="note">불러오는 중…</p>`; }
+      const dk = deckOf(dc); const k0 = dk.curKey(), x0 = k0 && dk.map[k0];
+      if (x0 && x0.src === "wiki" && T.WK[x0.it.url] === undefined) T.wikiFor(x0.it.url).then(() => { if (dk.curKey() === k0) dk.paint(); });
+      return `<p class="lead">트렌드</p>${seg}${msw}${dflags}<p class="note">${dc === "ALL" ? "22개국 검색어·영상·레딧·밈을 모두 섞어서" : esc((H.data[`${dc}.json`] || {}).name || dc) + "의 검색어·영상·레딧을"} 한 장씩 · ${ago(idx.at)} 갱신 · 본 것은 다시 안 나와요</p>${dk.html()}`;
     }
     const srcs = Object.entries(d.src || {}).sort((a, b) => SRC_ORDER.indexOf(a[0]) - SRC_ORDER.indexOf(b[0]));
     const broken = Object.keys(idx.broken || {}).length ? `<p class="note">3일 넘게 못 가져오는 출처 ${Object.keys(idx.broken).length}곳 — 설정 시트에서 볼 수 있어요.</p>` : "";
@@ -104,69 +108,45 @@
   /* ── 넘겨보기: 한 나라의 검색어·영상·문서를 한 장씩 (안 본 것만) ── */
   const D = window.VfmDeck || null;
   const tKey = (cc, src, it) => `t:${cc}:${src}:${it.kw}`;
-  const WK = {};                                                   // 위키백과 첫 문단 (누를 때·카드가 보일 때만 받음)
-  async function wikiFor(u) {
-    if (WK[u] !== undefined) return WK[u];
-    WK[u] = null;
-    try {
-      const m = u.match(/^https:\/\/([a-z-]+)\.wikipedia\.org\/wiki\/(.+)$/); if (!m) return null;
-      const lang = m[1], title = decodeURIComponent(m[2].replace(/\+/g, " "));
-      const q = (l, t, extra) => fetch(`https://${l}.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&prop=extracts${extra || ""}&exintro=1&explaintext=1&exsentences=4&titles=${encodeURIComponent(t)}`).then(r => r.json()).then(j => Object.values(j.query.pages || {})[0] || {});
-      let pg = await q(lang, title, lang === "ko" ? "" : "|langlinks&lllang=ko"), out = { lang, title: pg.title || title, text: pg.extract || "" };
-      const ko = (pg.langlinks || [])[0];
-      if (ko && ko["*"]) { const k = await q("ko", ko["*"]); if (k.extract) out = { lang: "ko", title: k.title, text: k.extract }; }
-      WK[u] = out.text ? out : null;
-    } catch (e) { WK[u] = null; }
-    return WK[u];
-  }
   const ku = (u, l) => D ? D.koUrl(u, l) : u;
-  function deckCard(cc, src, b, it, i) {
-    const isNew = it.since && (Date.now() - Date.parse(it.since)) < 6 * 3600e3;
-    const iss = issueOf(it);
-    const head = `<div class="vdk-k"><span>${flag(cc)} ${esc((cur() || {}).name || cc)}</span><span>${esc(b.name)} ${i + 1}위</span>${it.n ? `<span>${esc(it.n)}</span>` : ""}${it.tag === "NEW" || isNew ? '<b class="new">NEW</b>' : it.tag ? `<span>${esc(it.tag)}</span>` : ""}</div>
-      <h2 class="vdk-t">${esc(it.ko || it.kw)}</h2>${it.ko && it.ko !== it.kw ? `<p class="note" style="margin:-6px 0 10px">${esc(it.kw)}</p>` : ""}`;
-    let body = "";
-    if (src === "google") {
-      const ns = it.news || [];
-      body = `<p class="vdk-h">왜 떴나 · 구글이 함께 보여 준 뉴스</p>${ns.length ? `<div class="vdk-links">${ns.map(n => `<a href="${esc(ku(n.u, cc === "KR" ? "ko" : undefined))}" target="_blank" rel="noopener">${esc(n.ko || n.t)}${n.sn ? `<small>${esc(n.sn)}</small>` : ""}<small>${esc(n.s || "")}${n.ko ? " · 제목 기계번역" : ""} · ${cc === "KR" ? "기사" : "원문(한국어 번역)"} ↗</small></a>`).join("")}</div>` : '<p class="note">이번에는 관련 뉴스가 같이 오지 않았어요.</p>'}`;
-    } else if (src === "yt") {
-      const desc = it.dko || it.desc, cap = it.capko || it.cap;
-      body = `<p class="vdk-h">영상 정보</p><p class="vdk-p">${esc(it.sub || "")} 채널${it.n ? " · 조회 " + esc(it.n) : ""}</p>
-        ${desc ? `<p class="vdk-h">설명란${it.dko ? " (기계번역)" : ""}</p><p class="vdk-p">${esc(desc)}</p>` : '<p class="note">설명란이 비어 있거나 아직 못 가져왔어요.</p>'}
-        ${cap ? `<p class="vdk-h">자막 앞부분${it.capko ? " (기계번역)" : ""}</p><p class="vdk-p">${esc(cap.slice(0, 700))}${cap.length > 700 ? "…" : ""}</p>` : ""}
-        <a class="vdk-more" href="${esc(it.url)}" target="_blank" rel="noopener">유튜브에서 영상 보기 ↗</a>`;
-    } else if (src === "wiki") {
-      const w = WK[it.url];
-      body = `<p class="vdk-h">어떤 문서인가 · 위키백과 첫 문단</p>${w ? `<p class="vdk-p">${esc(w.text)}</p><p class="note">위키백과(${w.lang === "ko" ? "한국어" : w.lang}) ‘${esc(w.title)}’</p>` : w === null ? '<p class="note">설명을 불러오지 못했어요.</p>' : '<p class="note">설명을 불러오는 중…</p>'}
-        ${it.sub ? `<p class="note">${esc(it.sub)}</p>` : ""}<a class="vdk-more" href="${esc(ku(it.url, w && w.lang === "ko" ? "ko" : undefined))}" target="_blank" rel="noopener">문서 열기 ↗</a>`;
-    } else {
-      const g = (((cur() || {}).src || {}).google || {}).items || [];
-      const k = (it.ko || it.kw).toLowerCase(), hit = g.find(x => (x.ko || x.kw).toLowerCase().includes(k) || k.includes((x.ko || x.kw).toLowerCase()));
-      body = `${it.sub ? `<p class="vdk-p">${esc(it.sub)}</p>` : ""}${hit && (hit.news || []).length ? `<p class="vdk-h">관련 뉴스 (구글 급상승)</p><div class="vdk-links">${hit.news.map(n => `<a href="${esc(ku(n.u))}" target="_blank" rel="noopener">${esc(n.ko || n.t)}<small>${esc(n.s || "")}</small></a>`).join("")}</div>` : '<p class="note">이 출처는 검색어만 알려 줘요. 이유는 검색 결과에서 확인해요.</p>'}
-        <a class="vdk-more" href="${esc(it.url)}" target="_blank" rel="noopener">검색 결과 보기 ↗</a>`;
-    }
-    return `<div class="vdk-body dk">${head}${iss ? `<button type="button" class="vdk-more" data-hotiss="${esc(iss.id)}">관련 이야기: ${esc(iss.title || "")} ›</button>` : ""}${body}</div>`;
+  const T = window.VfmTrend;
+  // 22개국을 한꺼번에 받아 둠 (모든 나라 랜덤 넘겨보기)
+  let allP = null;
+  function ensureAll() {
+    if (!allP) allP = Promise.all((H.idx.countries || []).map(([cc]) => H.data[`${cc}.json`] ? null : fetchJ(`${cc}.json`).then(d => { H.data[`${cc}.json`] = d; }).catch(() => {})))
+      .then(() => { if (D) D.stale("sisa"); if (S.view === "hot") render(); });
+    return allP;
+  }
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  function cardOf(cc, x) {
+    const d = H.data[`${cc}.json`] || {}, iss = issueOf(x.it);
+    return { key: tKey(cc, x.src, x.it), title: x.it.ko || x.it.kw, url: ["yt", "ytfun", "wiki", "reddit"].includes(x.src) ? x.it.url : location.href.split("#")[0] + "#hot",
+      shareText: `${flag(cc)} ${d.name || cc} ${x.srcName} ${x.rank + 1}위 · ${x.it.ko || x.it.kw}`, src: x.src, it: x.it, cc,
+      html: () => T.card({ cc, cname: d.name || cc, src: x.src, srcName: x.srcName, it: x.it, rank: x.rank, country: d, extra: iss ? `<button type="button" class="vdk-more" data-hotiss="${esc(iss.id)}">관련 이야기: ${esc(iss.title || "")} ›</button>` : "" }) };
   }
   function deckOf(cc) {
     return D.create({ id: "sisa-hot-" + cc, app: "sisa", emptyTitle: "트렌드 자료가 없어요",
       items: () => {
+        if (cc === "ALL") {                                          // 모든 나라·모든 출처를 완전히 섞어서
+          const out = [];
+          (H.idx.countries || []).forEach(([c]) => { const d = H.data[`${c}.json`]; if (d) T.items(d).forEach(x => out.push(cardOf(c, x))); });
+          (H.idx.memes || []).forEach((it, r) => out.push({ key: `t:WW:memes:${it.kw}`, title: it.ko || it.kw, url: it.url, shareText: it.ko || it.kw, src: "memes", it, cc: "WW",
+            html: () => T.card({ cc: "WW", cname: "세계 밈", src: "memes", srcName: "레딧 밈", it, rank: r }) }));
+          return shuffle(out);
+        }
         const d = H.data[`${cc}.json`]; if (!d) return [];
-        const srcs = Object.entries(d.src || {}).filter(([, b]) => (b.items || []).length).sort((a, b) => SRC_ORDER.indexOf(a[0]) - SRC_ORDER.indexOf(b[0]));
-        const out = [];
-        for (let r = 0; r < 20; r++) srcs.forEach(([src, b]) => {     // 출처마다 1위끼리, 2위끼리… 번갈아
-          const it = b.items[r]; if (!it || ADULT.test(it.kw + " " + (it.ko || ""))) return;
-          out.push({ key: tKey(cc, src, it), title: it.ko || it.kw, url: src === "yt" || src === "wiki" ? it.url : location.href.split("#")[0] + "#hot", shareText: `${flag(cc)} ${d.name} ${b.name} ${r + 1}위 · ${it.ko || it.kw}`, src, html: () => deckCard(cc, src, b, it, r), it });
-        });
-        return out;
+        const by = {}; T.items(d).forEach(x => (by[x.rank] = by[x.rank] || []).push(x));   // 출처마다 1위끼리, 2위끼리… 번갈아
+        return Object.keys(by).sort((a, b) => a - b).flatMap(r => by[r]).map(x => cardOf(cc, x));
       },
-      onShow(x) { if (x.src === "wiki" && WK[x.it.url] === undefined) wikiFor(x.it.url).then(() => { const dk = D.get("sisa-hot-" + cc); if (dk && dk.curKey() === x.key) dk.paint(); }); if (x.it) logView(x.it, cc); },
+      onShow(x) { if (x.src === "wiki" && T.WK[x.it.url] === undefined) T.wikiFor(x.it.url).then(() => { const dk = D.get("sisa-hot-" + cc); if (dk && dk.curKey() === x.key) dk.paint(); }); if (x.it) logView(x.it, x.cc); },
       onList() { try { localStorage.setItem("vfm:mode:sisa-hot", '"list"'); } catch (e) { } render(); } });
   }
   function itemOf(id) { const [src, i] = id.split("|"); const d = cur(); const b = d && d.src[src]; return b && { it: b.items[+i], src, b, cc: d.cc }; }
   document.addEventListener("click", e => {
-    const t = e.target.closest("[data-hotcc],[data-hottab],[data-hotday],[data-hotrow],[data-hotmore],[data-hotstar],[data-hotunstar],[data-hotshare],[data-hotiss],[data-hotreveal]"); if (!t) return;
+    const t = e.target.closest("[data-hotdeck],[data-hotcc],[data-hottab],[data-hotday],[data-hotrow],[data-hotmore],[data-hotstar],[data-hotunstar],[data-hotshare],[data-hotiss],[data-hotreveal]"); if (!t) return;
     const d = t.dataset;
     if (d.hotiss) { e.stopPropagation(); (window.SISA && SISA.replaceTo ? SISA.replaceTo("#issue-" + d.hotiss) : location.replace("#issue-" + d.hotiss)); return; }
+    if (d.hotdeck) { P.deckCc = d.hotdeck; save(); render(); const on = document.querySelector(`[data-hotdeck="${d.hotdeck}"]`); if (on) on.scrollIntoView({ block: "nearest", inline: "center" }); return; }
     if (d.hotcc) { H.cc = d.hotcc; P.cc = d.hotcc; save(); H.open = null; H.more = {}; render(); ensure(); return; }
     if (d.hottab) { H.tab = d.hottab; H.open = null; if (H.tab === "past" && !H.day) H.day = ((H.idx && H.idx.days) || []).filter(x => x !== today()).slice(-1)[0] || null; render(); ensure(); return; }
     if (d.hotday) { H.day = d.hotday; H.open = null; render(); ensure(); return; }

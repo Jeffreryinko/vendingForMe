@@ -2,6 +2,8 @@
 
   python robot/easy_tools.py todo [N]          오늘 풀이할 논문 N편(기본 3): 요청 먼저, 그다음 HF 추천 ▲ 많은 순 (아직 풀이 없는 것)
   python robot/easy_tools.py add <파일.json>   풀이(1편 또는 배열)를 검사해 data/ai/easy/<id>.json 으로 저장, 목록 갱신, 요청 완료 표시
+  python robot/easy_tools.py feat-todo [N]     오늘 정리할 AI 새 기능 소식 N개(기본 5): 새로 나온 발표 중 일반 사용자가 쓸 만한 것 후보
+  python robot/easy_tools.py feat-add <파일>    [{"id","one","how"}] 를 data/ai/feat.json 에 더함 (30일 지난 것은 정리)
   python robot/easy_tools.py requests [앱]      요청함 보기 (ai / iyagi)
   python robot/easy_tools.py done <앱> <id>     요청 하나를 완료로 표시 (이야기 작가가 쓴 뒤)
 
@@ -95,10 +97,34 @@ def cmd_add(path):
     print(f"쉬운 풀이 {n}편 저장 · 전체 {len(got)}편")
 
 
+def cmd_feat_todo(n=5):
+    feed = rj(ROOT / "data/ai/feed.json", {}); have_ = rj(ROOT / "data/ai/feat.json", {})
+    cand = [p for p in feed.get("posts", []) if p["id"] not in have_]
+    cand.sort(key=lambda p: str(p.get("date", "")), reverse=True)
+    cand.sort(key=lambda p: not p.get("new"))                 # 오늘 새로 나온 것 먼저, 그 안에서 최신순
+    print(json.dumps([{k: p.get(k) for k in ("id", "name", "title", "ko", "sum", "url", "date")} for p in cand[: n * 3]], ensure_ascii=False, indent=1))
+    print(f"# 위 후보 중 일반 사용자에게 의미 있는 새 기능·서비스 소식 {n}개만 골라 정리하세요 (개발자용·회사 소식도 섞여 있음)")
+
+
+def cmd_feat_add(path):
+    new = rj(path, None)
+    if isinstance(new, dict): new = [new]
+    cur = rj(ROOT / "data/ai/feat.json", {})
+    cut = (datetime.now(KST) - timedelta(days=30)).isoformat()
+    cur = {k: v for k, v in cur.items() if v.get("at", "9") >= cut}
+    for e in new:
+        assert e.get("id") and e.get("one") and e.get("how"), "id·one·how 필요"
+        cur[e["id"]] = {"one": e["one"], "how": e["how"], "at": datetime.now(KST).isoformat(timespec="seconds")}
+    wj(ROOT / "data/ai/feat.json", cur)
+    print(f"새 기능 정리 {len(new)}개 저장 · 전체 {len(cur)}개")
+
+
 if __name__ == "__main__":
     a = sys.argv[1:] or ["todo"]
     if a[0] == "todo": cmd_todo(int(a[1]) if len(a) > 1 else 3)
     elif a[0] == "add": cmd_add(a[1])
+    elif a[0] == "feat-todo": cmd_feat_todo(int(a[1]) if len(a) > 1 else 5)
+    elif a[0] == "feat-add": cmd_feat_add(a[1])
     elif a[0] == "requests": print(json.dumps(requests_(a[1] if len(a) > 1 else None), ensure_ascii=False, indent=1))
     elif a[0] == "done": print("완료 표시", mark_done(a[1], a[2]))
     else: print(__doc__)

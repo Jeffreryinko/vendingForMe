@@ -9,6 +9,8 @@
 | 돼지코(shim) | `assets/claude-shim.js` — 아티팩트 전용 부품을 파일+폰 저장소로 대체 | 사이트 안 |
 | 껍데기 | `assets/shell.js` — 위쪽 앱 전환 막대(홈·시사·이야기·AI·설정), 공통 뒤로가기, 설정 시트, PWA | 사이트 안 |
 | 넘겨보기 | `assets/deck.js` — 세 앱 공통: 카드 한 장씩 옆으로 밀기, 본 것은 다시 안 나옴(폰 저장소), 좋아요·공유, 원문을 한국어 번역(`*.translate.goog`)으로 열기 | 사이트 안 |
+| 홈 랜덤 | `assets/mix.js` — 홈 첫 화면: 시사·트렌드·레딧/밈·AI 새 기능·나라별 오늘·이야기/역사를 비율대로 섞어 넘겨보기, 한 번에 찾기, 종류별 비율(많이·보통·적게·끄기) | 사이트 안 |
+| 트렌드 카드 | `assets/trendcard.js` — 트렌드·레딧·밈 카드 (시사 트렌드 탭과 홈이 같이 씀) | 사이트 안 |
 | 디자인 | `assets/apple.css` — 애플식 공통 디자인(시스템 글꼴·iOS 색·반투명 막대). 앱 강조색: 시사 파랑·이야기 주황·AI 보라 | 사이트 안 |
 | 시사 로봇 | `robot/sisa_run.py` — 수집·번역·댓글·사진 (3시간마다) | GitHub Actions `sisa.yml` |
 | 트렌드 로봇 | `robot/trends_run.py` — 22개국 구글·위키·유튜브·X·현지 검색 순위 (3시간마다) → `assets/hot.js` 화면 | GitHub Actions `trends.yml` |

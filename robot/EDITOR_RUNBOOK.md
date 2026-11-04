@@ -34,11 +34,11 @@
 ## 5. 댓글 분위기 (`brief/ED__cm.json`)
 `map[글id].mood`가 비어 있는 글마다 `picks`의 댓글을 읽고 분위기 한 줄을 씁니다. `picks[].type`을 top·counter·insight·info·joke·claim 중 하나로 고치고, `ko`를 다듬습니다(`raw`는 현지 말투 번역, `orig`는 원문 그대로 둠). 욕설·혐오 표현은 순화합니다.
 
-## 6. AI 논문 쉬운 풀이 (07시 회차만, 최대 3편) — `robot/AI_RUNBOOK.md`
-07시 회차에서만 `python robot/easy_tools.py todo 3` 으로 고른 논문(요청 먼저 → HF 추천 ▲ 많은 순)의 쉬운 풀이를 씁니다. 방법은 `robot/AI_RUNBOOK.md`. 19시 회차는 건너뜁니다.
+## 6. AI 새 기능 3~5개 정리 + 논문 쉬운 풀이 2편 (07시 회차만) — `robot/AI_RUNBOOK.md`
+07시 회차에서만 `robot/AI_RUNBOOK.md` 를 따릅니다: 먼저 AI 서비스 새 기능 3~5개("뭐가 생겼나·어떻게 써 보나"), 그다음 논문 2편 쉬운 풀이(요청 먼저). 19시 회차는 건너뜁니다.
 
 ## 7. 저장
 1. `editions/ED.json`, `brief/ents.json`, `brief/ED__cm.json`을 덮어씁니다. (풀이를 썼으면 `data/ai/easy`, `data/requests.json` 도 함께) `editions/ED.json`의 `editedAt`에 지금 시각(KST)을 적습니다.
 2. `python robot/reindex.py`
-3. `git add data/sisa data/ai/easy data/requests.json && git commit -m "시사: ED 해설(편집장)" && git pull --rebase && git push`
+3. `git add data/sisa data/ai/easy data/ai/feat.json data/requests.json && git commit -m "시사: ED 해설(편집장)" && git pull --rebase && git push`
 4. 한 줄로 결과를 남깁니다: 판 ID, 새 이슈·단신 수, 해설 쓴 이슈 수, 이름 추가 수, 실패한 단계.

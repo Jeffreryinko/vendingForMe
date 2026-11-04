@@ -2684,19 +2684,19 @@ document.addEventListener("touchmove", e => {
   if(!sw) return;
   const dx = e.touches[0].clientX - sw.x0, dy = e.touches[0].clientY - sw.y0;
   // 덜 예민하게: 18px 넘게 움직인 뒤 방향을 정하고, 가로가 세로의 2배를 넘어야 '옆으로 밀기'
-  if(sw.horiz === null && (Math.abs(dx) > 18 || Math.abs(dy) > 18)){
+  if(sw.horiz === null && (Math.abs(dx) > 20 || Math.abs(dy) > 20)){
     sw.horiz = Math.abs(dx) > Math.abs(dy) * 2;
     if(!sw.horiz){ sw = null; return; }
     if(sw.horiz){ drag = null; pull = null; ptrHide(); }
   }
-  if(sw.horiz){ const now = Date.now(); if(now > sw.lt){ sw.v = (e.touches[0].clientX - sw.lx) / (now - sw.lt); sw.lx = e.touches[0].clientX; sw.lt = now; } sw.dx = dx; const el = sw.inSheet ? $(".sheet") : $("#main"); if(el){ el.style.transition = "none"; el.style.transform = `translateX(${dx * 0.3}px)`; } }
+  if(sw.horiz){ const now = Date.now(); if(now > sw.lt){ sw.v = (e.touches[0].clientX - sw.lx) / (now - sw.lt); sw.lx = e.touches[0].clientX; sw.lt = now; } sw.dx = dx; const el = sw.inSheet ? $(".sheet") : $("#main"); if(el){ el.style.transition = "none"; el.style.transform = `translateX(${dx * 0.5}px)`; } }
 }, {passive:true});
 document.addEventListener("touchcancel", () => { if(sw){ const el = sw.inSheet ? $(".sheet") : $("#main"); if(el){ el.style.transition = ""; el.style.transform = ""; } } sw = null; }, {passive:true});
 document.addEventListener("touchend", () => {
   if(!sw) return; const s = sw; sw = null; if(!s.horiz) return;
   const el = s.inSheet ? $(".sheet") : $("#main"); if(el){ el.style.transition = "transform .18s ease-out"; el.style.transform = ""; }
-  const need = Math.max(110, window.innerWidth * 0.32), fling = Math.abs(s.dx) >= 70 && Math.abs(s.v) >= 0.7 && (s.v < 0) === (s.dx < 0);
-  if(Math.abs(s.dx) < need && !fling) return;
+  const need = Math.max(130, window.innerWidth * 0.4);   // 넘겨보기와 같은 기준 (빠르게 튕기기 없음)
+  if(Math.abs(s.dx) < need) return;
   const dir = s.dx < 0 ? 1 : -1;               // 왼쪽으로 밀면 다음
   if(s.inSheet) sheetStep(dir); else if(!S.sheetOpen) tabStep(dir);
 });
@@ -2849,6 +2849,7 @@ window.SISA = {S, render, esc, ago, toast, replaceTo(h){ hashSwap(h); }};   // �
 </script>
 
 
+<script src="../assets/trendcard.js"></script>
 <script src="../assets/hot.js"></script>
 <script src="../assets/shell.js"></script>
 </body></html>
