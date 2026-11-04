@@ -15,7 +15,7 @@
   body{margin:0;min-height:100vh;padding:calc(env(safe-area-inset-top,0px) + 18px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 32px) max(16px,env(safe-area-inset-left,0px))}
   .wrap{max-width:560px;margin:0 auto}
   .date{margin:8px 4px 0;font-size:13px;font-weight:600;color:var(--ap-label2);text-transform:uppercase;letter-spacing:.02em}
-  h1{margin:2px 4px 22px;font:800 34px/1.15 var(--ap-display);letter-spacing:-.03em}
+  h1{margin:2px 4px 14px;font:800 34px/1.15 var(--ap-display);letter-spacing:-.03em}
   .apps{display:grid;gap:12px}
   .app{display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:14px;width:100%;padding:16px;border:0;border-radius:22px;background:var(--ap-surface);color:inherit;text-align:left;cursor:pointer;
     font:inherit;-webkit-tap-highlight-color:transparent;transition:transform .15s ease}
@@ -44,9 +44,13 @@
 <body>
 <script>window.VFM_APP = "home";</script>
 <script src="assets/claude-shim.js"></script>
+<script src="assets/deck.js"></script>
+<script src="assets/trendcard.js"></script>
 <div class="wrap">
   <p class="date" id="date"></p>
   <h1>자판기</h1>
+  <div id="mix"></div>
+  <p class="cap" style="margin-top:6px">앱 바로가기</p>
   <div class="apps">
     <button class="app" data-app="sisa">
       <span class="ic sisa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.8 3.9 5.8 3.9 9s-1.3 6.2-3.9 9c-2.6-2.8-3.9-5.8-3.9-9S9.4 5.8 12 3z"/></svg></span>
@@ -60,7 +64,7 @@
     </button>
     <button class="app" data-app="ai">
       <span class="ic ai"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 2.5l1.6 4.7a3 3 0 0 0 1.9 1.9L18.2 10.7l-4.7 1.6a3 3 0 0 0-1.9 1.9L10 18.9l-1.6-4.7a3 3 0 0 0-1.9-1.9L1.8 10.7l4.7-1.6a3 3 0 0 0 1.9-1.9z"/><path d="M18.5 14l.8 2.2a1.5 1.5 0 0 0 .9.9l2.3.8-2.3.8a1.5 1.5 0 0 0-.9.9l-.8 2.3-.8-2.3a1.5 1.5 0 0 0-.9-.9l-2.3-.8 2.3-.8a1.5 1.5 0 0 0 .9-.9z" opacity=".85"/></svg></span>
-      <span><p class="nm">AI</p><p class="ds">새 논문·발표·코드</p><p class="st" id="st-ai"><i></i><span>불러오는 중</span></p></span>
+      <span><p class="nm">AI</p><p class="ds">AI 서비스 새 기능·인기 논문</p><p class="st" id="st-ai"><i></i><span>불러오는 중</span></p></span>
       <span class="chev">›</span>
     </button>
     <button class="app" data-app="history">
@@ -117,6 +121,7 @@
   });
 })();
 </script>
+<script src="assets/mix.js"></script>
 <script src="assets/shell.js"></script>
 </body>
 </html>

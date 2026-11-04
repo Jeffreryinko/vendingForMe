@@ -1,6 +1,7 @@
 <!doctype html><html lang="ko" class="ap ap-sisa"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <script>window.VFM_APP="sisa";</script>
 <script src="../assets/claude-shim.js"></script>
+<script src="../assets/deck.js"></script>
 <link rel="manifest" href="../manifest.webmanifest"><meta name="theme-color" content="#0C6E77"><link rel="apple-touch-icon" href="../assets/icon-192.png">
 
 <title>시사 자판기</title>
@@ -734,6 +735,14 @@ html.mf-on,html.mf-on body{overflow:hidden}
 .kbh dd{margin:0;font-size:14px;line-height:1.5;word-break:keep-all}
 kbd{font-family:var(--f-mono,monospace);font-size:12px;background:var(--sunk);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:2px 6px;white-space:nowrap}
 @media (min-width:760px){.entpop{width:min(640px,100%);margin:0 auto}}
+
+/* 넘겨보기 카드 (assets/deck.js) */
+.dk .dk-cat{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--cc,var(--accent))}.dk .dk-cat i{width:8px;height:8px;border-radius:50%;background:var(--cc,var(--accent))}
+.dk.t-war{--cc:var(--c-war)}.dk.t-pol{--cc:var(--c-pol)}.dk.t-eco{--cc:var(--c-eco)}.dk.t-tech{--cc:var(--c-tech)}.dk.t-dis{--cc:var(--c-dis)}.dk.t-soc{--cc:var(--c-soc)}.dk.t-spo{--cc:var(--c-spo)}.dk.t-cul{--cc:var(--c-cul)}
+.dk .new{color:var(--accent)}.dk .acc{color:var(--coin)}.dk-orig{color:var(--muted)}
+.natchips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0 8px;margin:0 -2px}.natchips::-webkit-scrollbar{display:none}.natchips .chip{flex:none;white-space:nowrap}
+.entchips{display:flex;flex-wrap:wrap;gap:6px}.entchip{display:flex;flex-direction:column;align-items:flex-start;text-align:left;max-width:100%;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:7px 11px;font:inherit;font-size:14px;cursor:pointer}
+.entchip small{color:var(--muted);font-size:12px;line-height:1.35}.entc-w{white-space:pre-line}
 </style>
 
 <header>
@@ -875,6 +884,7 @@ async function loadEdition(id){
   S.tr = Object.assign({}, ...Object.values(S.edCache).map(x => x.tr));   // 같은 글은 이전 판 번역을 그대로 사용
   const i = S.eds.findIndex(e => e.id===id); S.prevEdId = i > 0 ? S.eds[i-1].id : null;
   S.openStory = null;
+  if(window.VfmDeck) VfmDeck.stale("sisa");
 }
 
 // ───────── 불러오기 상태 (로딩·로그인 필요·지연·빈 데이터·오류) ─────────
@@ -989,7 +999,7 @@ function itemCard(it){
       ${briefOf(it.id) ? briefHtml(briefOf(it.id)) : smKo ? `<p class="ri-sm">${esc(smKo)}</p>` : it.sm ? `<p class="ri-sm orig-sm">${esc(it.sm)}</p>` : `<p class="note">제목 번역만 있어요.</p>`}
       <div class="ri-act">
         <button type="button" class="btn pri wide" data-open="${it.id}">한국어 요약 보기</button>
-        <a class="btn sm" href="${esc(it.u)}" target="_blank" rel="noopener" data-out="${it.id}">원문</a>
+        <a class="btn sm" href="${esc(artLink(it))}" target="_blank" rel="noopener" data-out="${it.id}">원문</a>
         <button type="button" class="btn sm ${st.saved?"on":""}" data-save="${it.id}">${st.saved?"★ 저장됨":"☆ 저장"}</button>
       </div>
     </div>` : ""}
@@ -1505,8 +1515,38 @@ function setEnts(m){
 }
 async function loadEnts(){
   if(S.entsLoaded || !S.db) return; S.entsLoaded = true;
-  try{ const d = await S.db.collection("brief").doc("entpics").get(); S.pics = d && d.exists ? {...(d.data().map || {})} : {}; }catch(_){ S.pics = {}; }   // 사진은 '주소'만 저장(사진 파일은 위키미디어에서 직접 불러옴)
-  try{ const d = await S.db.collection("brief").doc("ents").get(); setEnts(d && d.exists ? {...(d.data().map || {})} : {}); }catch(_){ setEnts({}); }
+  // 처음에는 이름 목록(밑줄 칠 이름)만 받음. 설명은 이름을 누를 때 받음 (ensureEntsFull)
+  try{
+    const d = await S.db.collection("brief").doc("entnames").get();
+    if(d && d.exists){ const m = {}; Object.entries(d.data().map || {}).forEach(([n, v]) => { m[n] = {t:v[0] || "term", c:v[1] || "", a:v.slice(2)}; }); setEnts(m); S.entsFull = false; return; }
+  }catch(_){}
+  await ensureEntsFull();
+}
+async function ensureEntsFull(){
+  if(S.entsFull) return true;
+  if(S.entsFullP) return S.entsFullP;
+  S.entsFullP = (async () => {
+    try{ const d = await S.db.collection("brief").doc("ents").get(); if(d && d.exists){ setEnts({...(d.data().map || {})}); S.entsFull = true; } }catch(_){}
+    S.entsFullP = null; return !!S.entsFull;
+  })();
+  return S.entsFullP;
+}
+// 위키백과 요약 (누를 때만, 브라우저에서 바로 · 토큰 0). 사진은 위키백과 '자유 이용' 사진만 (pilicense=free)
+const WIKI = {};
+async function wikiInfo(n){
+  if(WIKI[n] !== undefined) return WIKI[n];
+  const e = S.ents[n] || {};
+  const tries = [["ko", e.w || n]]; if(e.o && /[A-Za-z]/.test(e.o)) tries.push(["en", e.o]); else if(e.o) tries.push(["ko", e.o]);
+  for(const [lang, title] of tries){
+    try{
+      const u = `https://${lang}.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&prop=extracts|pageimages|description|pageprops&ppprop=disambiguation&exintro=1&explaintext=1&exsentences=3&piprop=thumbnail&pithumbsize=200&pilicense=free&titles=${encodeURIComponent(title)}`;
+      const r = await fetch(u); if(!r.ok) continue;
+      const pg = Object.values((await r.json()).query?.pages || {})[0];
+      if(!pg || pg.missing !== undefined || (pg.pageprops && "disambiguation" in pg.pageprops) || !pg.extract) continue;
+      return WIKI[n] = {lang, title:pg.title, desc:pg.description || "", text:pg.extract, img:pg.thumbnail?.source || ""};
+    }catch(_){}
+  }
+  return WIKI[n] = null;
 }
 // 글 안에서 사전 이름 찾기: 긴 이름 먼저, 단어 첫머리에서만('사랑이란'의 '이란' 같은 오인 방지), 겹치지 않게
 function entMatches(text){
@@ -1533,35 +1573,41 @@ function entText(text){
 }
 function entsOf(texts){ const seen = new Map(); texts.forEach(t => entMatches(t || "").forEach(m => seen.set(m.n, (seen.get(m.n) || 0) + 1))); return [...seen.keys()]; }
 function entPic(n, e){
-  const q = (S.pics || {})[n]; if(!q || !q.u || !/^https:\/\/(upload|thumb)\.wikimedia\.org\//.test(q.u)) return "";
-  const host = q.h === "ko" ? "ko" : "en";
-  return `<a class="entc-pic ${e.t === "person" ? "ppl" : "obj"}" href="https://${host}.wikipedia.org/wiki/${encodeURIComponent((q.p || "").replace(/ /g, "_"))}" target="_blank" rel="noopener noreferrer" aria-label="${esc(n)} 위키백과 문서"><img src="${esc(q.u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest('.entc').classList.add('nopic');this.closest('a').remove()"></a>`;
+  const w = WIKI[n]; if(!w || !w.img || !/^https:\/\/(upload|thumb)\.wikimedia\.org\//.test(w.img)) return "";
+  return `<a class="entc-pic ${e.t === "person" ? "ppl" : "obj"}" href="https://${w.lang}.wikipedia.org/wiki/${encodeURIComponent(w.title.replace(/ /g, "_"))}" target="_blank" rel="noopener noreferrer" aria-label="${esc(n)} 위키백과 문서"><img src="${esc(w.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest('.entc').classList.add('nopic');this.closest('a').remove()"></a>`;
 }
 function entCard(n){
   const e = S.ents[n]; if(!e) return "";
-  const pic = entPic(n, e), q = (S.pics || {})[n];
+  const pic = entPic(n, e), w = WIKI[n];
   return `<div class="entc${pic ? " haspic" : ""}"><div class="entc-top">${pic}<div class="entc-tx"><div class="entc-h"><b>${esc(n)}</b>${e.o ? `<span class="entc-o">${esc(e.o)}</span>` : ""}<span class="fchip">${e.c ? flag(e.c) + " " : ""}${ENT_T[e.t] || "용어"}</span></div>
-    ${e.r ? `<p class="entc-r">${esc(e.r)}</p>` : ""}</div></div>${e.d ? `<p class="entc-d">${esc(e.d)}</p>` : ""}${pic && q ? `<p class="entc-cr">사진: ${esc(q.c || "위키미디어")} · 위키백과</p>` : ""}</div>`;
+    ${e.r ? `<p class="entc-r">${esc(e.r)}</p>` : w && w.desc ? `<p class="entc-r">${esc(w.desc)}</p>` : ""}</div></div>${e.d ? `<p class="entc-d">${esc(e.d)}</p>` : ""}
+    ${w ? `<p class="entc-d entc-w">${esc(w.text)}</p><p class="entc-cr">위키백과(${w.lang === "ko" ? "한국어" : "영어"}) ‘${esc(w.title)}’ 첫 문단${pic ? " · 사진: 위키미디어 자유 이용" : ""} · <a href="https://${w.lang}.wikipedia.org/wiki/${encodeURIComponent(w.title.replace(/ /g, "_"))}" target="_blank" rel="noopener">문서 ↗</a></p>` : ""}</div>`;
 }
+// 여러 이름은 이름 단추만 (누르면 설명을 받아 옴)
 function entCards(names){
   if(!names.length) return "";
-  const by = {}; names.forEach(n => { const t = (S.ents[n] || {}).t || "term"; (by[t] = by[t] || []).push(n); });
-  return `<div class="ents">${ENT_ORDER.filter(t => by[t]).map(t => `<div class="entg"><span class="entg-h">${ENT_T[t]} ${by[t].length}</span>${by[t].map(entCard).join("")}</div>`).join("")}</div>`;
+  return `<div class="entchips">${names.map(n => { const e = S.ents[n] || {}; return `<button type="button" class="entchip" data-ent="${esc(n)}">${e.c ? flag(e.c) + " " : ""}<b>${esc(n)}</b><small>${ENT_T[e.t] || "용어"}${e.r ? " · " + esc(e.r) : ""}</small></button>`; }).join("")}</div><p class="note">이름을 누르면 누구·어디인지 설명이 떠요.</p>`;
 }
 function storyTexts(s){ return [s.title, s.key, s.why, ...(s.bg || []), ...(s.why3 ? [s.why3.link, s.why3.now, s.why3.korea] : []), ...storyItems(s).map(i => koOf(i) || "")]; }
 // 눌렀을 때 아래에서 올라오는 작은 설명 카드
 function showEntPop(n){
-  const e = S.ents[n]; if(!e) return;
-  const rel = (S.ed.stories || []).filter(okStory).filter(st => entMatches([st.title, st.key].join(" ")).some(m => m.n === n)).slice(0, 8);
-  $("#entHost").innerHTML = `<div class="entpop-scrim" data-entclose></div><div class="entpop" role="dialog" aria-label="${esc(n)} 설명">
+  if(!S.ents[n]) return;
+  const draw = loading => {
+    const e = S.ents[n]; if(!e) return;
+    const rel = (S.ed.stories || []).filter(okStory).filter(st => entMatches([st.title, st.key].join(" ")).some(m => m.n === n)).slice(0, 8);
+    $("#entHost").innerHTML = `<div class="entpop-scrim" data-entclose></div><div class="entpop" role="dialog" aria-label="${esc(n)} 설명">
     <div class="entpop-top"><span class="grabbar"></span><button type="button" data-entclose aria-label="닫기">✕</button></div>
-    ${entCard(n)}
+    ${entCard(n)}${loading ? '<p class="note">설명을 불러오는 중…</p>' : ""}
     ${rel.length ? `<span class="entg-h">이 이름이 나오는 이야기 ${rel.length}</span><div class="entrel">${rel.map(st => `<button type="button" data-issue="${st.id}">${esc(st.title)}</button>`).join("")}</div>` : ""}
-    <p class="note">AI가 일반 배경지식과 이번 판 기사로 정리했어요. 직책·숫자처럼 바뀌는 정보는 기사 시점 기준이에요.</p></div>`;
+    <p class="note">한 줄 설명은 편집장이 기사 시점 기준으로, 긴 설명은 위키백과 첫 문단을 그대로 가져왔어요. 직책·숫자처럼 바뀌는 정보는 원문으로 확인해 주세요.</p></div>`;
+  };
+  S.entPopN = n; draw(true);
+  Promise.all([ensureEntsFull(), wikiInfo(n)]).then(() => { if(S.entPopN === n && $("#entHost").innerHTML) draw(false); });
 }
-function closeEntPop(){ const h = $("#entHost"); if(h && h.innerHTML) h.innerHTML = ""; }
+function closeEntPop(){ S.entPopN = null; const h = $("#entHost"); if(h && h.innerHTML) h.innerHTML = ""; }
 // 흐름 탭 '이름 사전': 이번 판에 나오는 이름 전부
 function entsAll(){
+  if(!S.entsFull){ ensureEntsFull().then(ok => { if(ok && S.view === "flow" && S.flowTab === "ent") render(); }); }
   if(!S.ents || !Object.keys(S.ents).length) return '<div class="empty">이름 사전을 아직 만들지 못했어요. 매시간 갱신 때 채워져요.</div>';
   const stories = (S.ed.stories || []).filter(okStory);
   const cnt = {}; stories.forEach(st => entsOf([st.title, st.key]).forEach(n => cnt[n] = (cnt[n] || 0) + 1));
@@ -1570,7 +1616,7 @@ function entsAll(){
   const tc = {}; Object.keys(cnt).forEach(n => { const t = S.ents[n].t; tc[t] = (tc[t] || 0) + 1; });
   return `<p class="note">오늘 이야기에 나오는 사람·정당·지역·용어를 미리 알아 두면 기사가 훨씬 쉽게 읽혀요. 기사 속 밑줄 친 이름을 눌러도 같은 설명이 떠요.</p>
     <div class="ftabs inl">${[["all", `전체 ${Object.keys(cnt).length}`], ...ENT_ORDER.filter(t => tc[t]).map(t => [t, `${ENT_T[t]} ${tc[t]}`])].map(([k, l]) => `<button type="button" data-entf="${k}" aria-selected="${f === k}">${l}</button>`).join("")}</div>
-    <div class="ents all">${names.map(n => `<div class="entw">${entCard(n)}<button type="button" class="linkbtn" data-ent="${esc(n)}">이 이름이 나오는 이야기 ${cnt[n]}개 ›</button></div>`).join("")}</div>`;
+    <div class="ents all">${names.map(n => `<div class="entw">${entCard(n)}${S.entsFull ? "" : '<p class="note">설명 불러오는 중…</p>'}<button type="button" class="linkbtn" data-ent="${esc(n)}">이 이름이 나오는 이야기 ${cnt[n]}개 ›</button></div>`).join("")}</div>`;
 }
 
 // ───────── 컴퓨터(마우스·키보드)용 조작 ─────────
@@ -1678,7 +1724,7 @@ document.addEventListener("pointerup", () => {
 // ───────── 이슈 해설 시트 ─────────
 function showIssue(sid){
   const s = (S.ed.stories||[]).find(x => x.id === sid); if(!s) return;
-  S.sheetOpen = "issue:" + sid;
+  S.sheetOpen = "issue:" + sid; markStorySeen(s);
   if(!issueOpened(s) || Date.now() - Date.parse(stOf(issueKey(sid)).opened) > 10*60e3) setState(issueKey(sid), {opened:new Date().toISOString(), kind:"issue", title:s.title, key:s.key||s.sum||""});
   drawIssue(sid);
 }
@@ -1738,6 +1784,7 @@ function drawIssue(sid){
       ${sec("먼저 읽을 기사", first.length ? `<div class="irows">${first.map(rowItem).join("")}</div>` : (its.length ? `<div class="irows">${its.slice(0,3).map(rowItem).join("")}</div>` : ""))}
       ${s.watch ? sec("앞으로 지켜볼 것", `<p class="ibody">${entText(s.watch)}</p>`) : ""}
       ${rest.length ? `<details class="origd"><summary>나머지 기사 ${rest.length}개 (${countries.length}개국)</summary><div class="irows">${rest.map(rowItem).join("")}</div></details>` : ""}
+      ${D ? D.bar("sisa", storyKey(s), {title:s.title || "", url:appUrl("#issue-" + s.id), hash:"#issue-" + s.id, text:(s.title || "") + (s.key ? "\n" + s.key : "")}) : ""}
       <p class="note">AI가 이번 판 기사 제목들과 일반 배경지식으로 정리했어요. 기사에서 확인되지 않은 영향은 쓰지 않았어요. 세부 사실은 원문으로 확인해 주세요.</p>
     </div></div>`;
   const sh = $(".sheet"); if(keepScroll) sh.scrollTop = keepScroll;
@@ -2013,12 +2060,17 @@ function storiesBlock(list){
 function viewHome(){
   const allS = (S.ed.stories||[]).filter(okStory);
   if(!allS.some(s => s.key)) return viewTodayOld();
+  const msw = D ? D.modeSwitch("sisa-today", () => render()) : "";
+  if(D && D.mode("sisa-today") === "deck"){
+    S.issueOrder = todayDeckList().map(s => s.id);
+    return `${S.newEd ? `<button type="button" class="newed" data-ed="${S.newEd.id}">새 판이 도착했어요 · ${esc(S.newEd.label)} 보기</button>` : ""}${msw}${todayDeck().html()}`;
+  }
   let tops = allS.filter(s => s.top).sort((a,b) => a.top-b.top); if(!tops.length) tops = allS.slice(0,5);
   const others = allS.filter(s => !tops.includes(s));
   const {comm} = homePicks();
   S.issueOrder = [...tops, ...others].map(s => s.id);
   return `${S.newEd ? `<button type="button" class="newed" data-ed="${S.newEd.id}">새 판이 도착했어요 · ${esc(S.newEd.label)} 보기</button>` : ""}
-    ${sinceHero()}
+    ${msw}${sinceHero()}
     ${hotspotMap(allS.filter(s => !isBrief(s)))}
     ${recapHtml(tops)}
     <section class="blk"><div class="blk-h"><h2 class="ttl2">꼭 알아야 할 다섯 가지</h2><span class="note">세계적 중요도 순</span></div>
@@ -2030,6 +2082,100 @@ function viewHome(){
     <button type="button" class="btn" data-v="flow">모든 글 시간순으로 보기</button>`;
 }
 
+
+// ───────── 넘겨보기 (assets/deck.js): 안 본 이야기만 한 장씩, 옆으로 밀면 다음 ─────────
+const D = window.VfmDeck || null;
+const storyKey = s => isBrief(s) ? "b:" + (s.items[0] || s.id) : "i:" + (s.title || s.id);
+function markStorySeen(s){ if(D && s) D.Seen.add("sisa", storyKey(s)); }
+const artLink = i => D ? D.koUrl(i.u, S.langOf[i.id]) : i.u;
+const appUrl = h => location.href.split("#")[0] + h;
+function todayDeckList(){
+  const allS = (S.ed.stories||[]).filter(okStory);
+  const tops = allS.filter(s => s.top).sort((a,b) => a.top-b.top);
+  const rest = allS.filter(s => !tops.includes(s));
+  const rk = s => (s.delta==="new" ? 0 : s.delta==="grown" ? 1 : 2) + (isBrief(s) ? 3 : 0) - (s.why3 || (s.bg||[]).length ? 0.5 : 0);
+  rest.sort((a,b) => rk(a)-rk(b) || issueCountries(b).length - issueCountries(a).length || storyItems(b).length - storyItems(a).length);
+  return [...tops, ...rest];
+}
+function deckArtRows(its, n){
+  return `<div class="vdk-links">${its.slice(0, n).map(i => `<button type="button" data-open="${i.id}">${esc(koOf(i)||i.t)}<small>${flag(ctry(i))} ${esc(cname(ctry(i)))} · ${esc(srcOf(i.s).n)}${i.p ? " · " + esc(ago(i.p)) : ""}${D && D.Seen.has("sisa", "a:" + i.id) ? " · 봄" : ""}</small></button>`).join("")}</div>`;
+}
+function storyDeckCard(s){
+  const its = storyItems(s), cs = issueCountries(s), cat = CAT[s.cat] ? s.cat : "";
+  const w3 = s.why3;
+  const first = (s.first||[]).map(id => S.byId[id]).filter(Boolean);
+  const ordered = [...first, ...its.filter(i => !first.includes(i))];
+  const pick = ordered[0];
+  const desc = s.key || s.sum || (pick && (briefOf(pick.id)?.sum || ""));
+  return `<div class="vdk-body dk${cat ? " t-" + cat : ""}">
+    <div class="vdk-k">${cat ? `<span class="dk-cat"><i aria-hidden="true"></i>${CAT[cat]}</span>` : ""}<span>${cs.slice(0,6).map(flag).join("")}</span><span>${isBrief(s) ? `단신 · ${esc(cname(cs[0]))}` : `${cs.length}개국 · 기사 ${its.length}`}</span>${s.delta==="new" ? '<b class="new">새 소식</b>' : s.delta==="grown" ? `<b class="acc">새 글 +${s.grow||0}</b>` : ""}</div>
+    <h2 class="vdk-t">${entText(s.title || storyTitle(s, its))}</h2>
+    ${desc ? `<p class="vdk-p">${entText(desc)}</p>` : pick && pick.sm ? `<p class="vdk-p">${esc(pick.sm)}</p><p class="note">기사 설명 원문이에요.</p>` : ""}
+    ${w3 ? `<p class="vdk-h">왜 중요한가</p><p class="vdk-p">${entText(w3.link)} ${entText(w3.now)}</p>${w3.korea ? `<p class="vdk-p"><b>한국과는?</b> ${entText(w3.korea)}</p>` : ""}` : s.why ? `<p class="vdk-h">왜 중요한가</p><p class="vdk-p">${entText(s.why)}</p>` : ""}
+    ${(s.bg||[]).length ? `<p class="vdk-h">알아 둘 배경</p><ol class="vdk-ol">${s.bg.map(b => `<li>${entText(b)}</li>`).join("")}</ol>` : ""}
+    ${(s.terms||[]).length ? `<p class="vdk-h">용어</p><ol class="vdk-ol">${s.terms.map(t => `<li><b>${esc(t.t)}</b> — ${esc(t.d)}</li>`).join("")}</ol>` : ""}
+    ${(s.angles||[]).length ? `<p class="vdk-h">나라별로 무엇을 강조했나</p><ol class="vdk-ol">${s.angles.slice(0,5).map(a => `<li>${flag(a.c)} <b>${esc(cname(a.c))}</b> ${esc(a.t)}</li>`).join("")}</ol>` : ""}
+    ${s.watch ? `<p class="vdk-h">앞으로 지켜볼 것</p><p class="vdk-p">${entText(s.watch)}</p>` : ""}
+    <p class="vdk-h">기사 ${its.length}개${its.length > 6 ? " 중 6개" : ""} · 누르면 자세히</p>${deckArtRows(ordered, 6)}
+    ${pick ? `<a class="vdk-more" href="${esc(artLink(pick))}" target="_blank" rel="noopener" data-out="${pick.id}">대표 기사 원문 (한국어 번역) ↗</a>` : ""}
+    ${isBrief(s) ? "" : `<button type="button" class="vdk-more" data-issue="${s.id}">해설 전체 · 지도 · 여론 보기 ›</button>`}
+  </div>`;
+}
+function todayDeck(){
+  return D.create({id:"sisa-today", app:"sisa", emptyTitle:"이야기가 아직 없어요",
+    items: () => todayDeckList().map(s => ({key:storyKey(s), title:s.title || "", url:appUrl("#issue-" + s.id), hash:"#issue-" + s.id, shareText:(s.title || "") + (s.key ? "\n" + s.key : ""), html:() => storyDeckCard(s)})),
+    onList(){ try{ localStorage.setItem("vfm:mode:sisa-today", '"list"'); }catch(_){} render(); }});
+}
+// 나라: 나라 하나를 고르면 그 나라 뉴스를 한 장씩 (첫 장 = 그 나라 오늘 요약)
+function natList(){
+  const dg = S.ed.countryDigest || {};
+  const cnt = {}; S.items.forEach(i => { if(i.k!=="trend" && koOf(i)){ const c = ctry(i); cnt[c] = (cnt[c]||0) + 1; } });
+  const order = COUNTRY_ORDER.filter(c => cnt[c] || dg[c]).concat(Object.keys(cnt).filter(c => !COUNTRY_ORDER.includes(c) && c !== "WW").sort((a,b) => cnt[b]-cnt[a]));
+  return order.map(c => [c, cnt[c] || 0]);
+}
+function natItems(c){
+  return S.items.filter(i => i.k!=="trend" && ctry(i)===c && koOf(i) && !stOf(i.id).hidden)
+    .sort((a,b) => (a.k==="news"?0:1)-(b.k==="news"?0:1) || (isOld(a)?1:0)-(isOld(b)?1:0) || String(b.p||"").localeCompare(String(a.p||"")) || a.r-b.r);
+}
+function articleDeckCard(i){
+  const b = briefOf(i.id), c = cmOf(i.id), story = (S.ed.stories||[]).find(s => okStory(s) && s.items.includes(i.id));
+  const p = c && c.picks ? (c.picks.find(x => x.type==="top") || c.picks[0]) : null;
+  return `<div class="vdk-body dk">
+    <div class="vdk-k"><span>${flag(ctry(i))} ${esc(cname(ctry(i)))}</span><span>${esc(srcOf(i.s).n)}</span><span>${esc(KIND[i.k] || "")}</span>${i.p ? `<span>${esc(ago(i.p))}</span>` : ""}${PAYWALL.has(i.s) ? "<span>구독 기사일 수 있음</span>" : ""}</div>
+    <h2 class="vdk-t">${entText(koOf(i) || i.t)}</h2>
+    ${b ? `<p class="vdk-p">${esc(b.sum || "")}</p>` : i.sm ? `<p class="vdk-p dk-orig">${esc(i.sm)}</p><p class="note">기사 설명 원문이에요. 원문 보기를 누르면 한국어로 번역돼 열려요.</p>` : '<p class="note">제목만 있는 글이에요.</p>'}
+    ${story && !isBrief(story) ? `<button type="button" class="vdk-more" data-issue="${story.id}">이 글이 속한 이야기: ${esc(story.title || "")} ›</button>` : ""}
+    ${p ? `<p class="vdk-h">현지 반응${c.mood ? " · " + esc(c.mood) : ""}</p><p class="vdk-p">“${esc(pickText(p))}”</p>` : ""}
+    <a class="vdk-more" href="${esc(artLink(i))}" target="_blank" rel="noopener" data-out="${i.id}">원문 보기 (한국어 번역) ↗</a>
+    <button type="button" class="vdk-more" data-open="${i.id}">자세히 · 같은 소식 다른 출처 ›</button>
+  </div>`;
+}
+function natDeck(c){
+  const dg = (S.ed.countryDigest || {})[c];
+  return D.create({id:"sisa-nat-" + c, app:"sisa", emptyTitle:"이 나라 글이 없어요",
+    items: () => {
+      const out = [];
+      if(dg){
+        const iss = (S.ed.stories||[]).filter(okStory).filter(s => !isBrief(s) && storyItems(s).some(i => ctry(i)===c)).slice(0, 6);
+        out.push({key:"n:" + c + ":" + dg.slice(0, 24), title:cname(c) + "의 오늘", url:appUrl("#nation"), shareText:cname(c) + "의 오늘\n" + dg, html:() => `<div class="vdk-body dk">
+          <div class="vdk-k"><span>${flag(c)} 나라 요약</span><span>${esc(S.ed.label)}</span></div>
+          <h2 class="vdk-t">${esc(cname(c))}의 오늘</h2><p class="vdk-p">${entText(dg)}</p>
+          ${iss.length ? `<p class="vdk-h">이 나라도 다룬 이야기</p><div class="vdk-links">${iss.map(s => `<button type="button" data-issue="${s.id}">${esc(s.title || "")}<small>${issueCountries(s).length}개국</small></button>`).join("")}</div>` : ""}
+          <p class="note">옆으로 밀면 이 나라 뉴스가 한 장씩 나와요.</p></div>`});
+      }
+      natItems(c).forEach(i => out.push({key:"a:" + i.id, title:koOf(i) || i.t, url:i.u, shareText:koOf(i) || i.t, html:() => articleDeckCard(i)}));
+      return out;
+    },
+    onList(){ try{ localStorage.setItem("vfm:mode:sisa-nat", '"list"'); }catch(_){} render(); }});
+}
+function nationDeckView(){
+  const list = natList();
+  if(!list.length) return '<div class="empty">나라별 글이 아직 없어요.</div>';
+  if(!S.natC || !list.some(([c]) => c === S.natC)) S.natC = list[0][0];
+  const left = c => natItems(c).filter(i => !D.Seen.has("sisa", "a:" + i.id)).length;
+  return `<div class="natchips" role="tablist" aria-label="나라 고르기">${list.map(([c]) => { const n = left(c); return `<button type="button" class="chip" data-natc="${c}" aria-pressed="${c===S.natC}">${flag(c)} ${esc(cname(c))}${n ? ` <small>${n}</small>` : ""}</button>`; }).join("")}</div>
+    ${natDeck(S.natC).html()}`;
+}
 // ── 흐름 ──
 const FLOW_TABS = [["story","이야기"],["op","여론"],["ent","이름 사전"],["time","시간순"],["rank","순위"],["cat","카테고리"],["trend","검색어"],["theme","테마"]];
 function flowTabs(){ return `<div class="ftabs" role="tablist">${FLOW_TABS.map(([k,l]) => `<button type="button" role="tab" data-ftab="${k}" aria-selected="${(S.flowTab||"story")===k}">${l}</button>`).join("")}</div>`; }
@@ -2082,7 +2228,9 @@ function nationMap(){
   </svg><p class="hmap-cap">진할수록 그 나라 글이 많아요 · 나라를 눌러 보세요</p></div>`;
 }
 function viewNation(){
-  return `<h2 class="ttl1">나라</h2>${nationMap()}${countryHtml()}`;
+  const msw = D ? D.modeSwitch("sisa-nat", () => render()) : "";
+  if(D && D.mode("sisa-nat") === "deck") return `<h2 class="ttl1">나라</h2>${msw}${nationDeckView()}`;
+  return `<h2 class="ttl1">나라</h2>${msw}${nationMap()}${countryHtml()}`;
 }
 
 // 이슈 안 '나라별 여론 비교'
@@ -2245,6 +2393,7 @@ function viewLibrary(){
       ${saved ? `<div class="ai">${esc(saved.text)}</div><p class="note">${kstTime(saved.at)}에 Claude가 정리 · 제목·메모 기준</p>` : ""}
       ${S.sample && P.openedIds.length ? `<button type="button" class="btn ${saved?"":"pri"}" id="aiBtn" ${S.busy?"disabled":""}>${S.busy?"정리 중…":saved?"지금 기록으로 다시 정리":"Claude로 하루 정리하기"}</button>` : ""}
     </div>
+    ${(() => { const L = D ? D.Like.list("sisa") : []; return `<div class="stack"><h2 class="sec">좋아요 ${L.length || ""}</h2>${L.length ? `<div class="vdk-links likes">${L.slice(0, 60).map(x => `<button type="button" data-likego="${esc(x.key)}" data-likeu="${esc(x.key.startsWith("a:") ? x.u : "")}">${esc(x.t)}<small>${new Date(x.at).toLocaleDateString("ko-KR")} · ${x.key.startsWith("a:") ? "기사" : x.key.startsWith("b:") ? "단신" : "이야기"}</small></button>`).join("")}</div>` : '<p class="note">카드나 해설에서 ♡ 좋아요를 누르면 여기에 모여요.</p>'}</div>`; })()}
     <div class="stack"><h2 class="sec">저장한 글 ${savedIds.length || ""}</h2>
       ${savedIds.length ? `<div class="list">${savedIds.map(id=>libRow(id)).join("")}</div>` : '<p class="note">글에서 ☆를 누르면 여기에 모여요.</p>'}</div>
     ${memoIds.length ? `<div class="stack"><h2 class="sec">메모</h2><div class="list">${memoIds.map(id => { const it=S.byId[id]; const ev=S.events.find(e=>e.item===id); return `<button type="button" class="ri-main" ${it?`data-open="${id}"`:""}><span class="ri-body"><span class="ri-t" style="font-weight:400">${esc(stOf(id).memo)}</span><span class="ri-m"><span>${esc(it ? (koOf(it)||it.t) : (ev?.t||""))}</span></span></span></button>`; }).join("")}</div></div>` : ""}
@@ -2338,7 +2487,8 @@ function openSheet(id){ if(S.byId[id]) navTo("item-" + id); }
 function showSheet(id){
   const it = S.byId[id]; if(!it) return;
   if(S.sheetOpen !== id) S.memoOpen = false;
-  S.sheetOpen = id;
+  S.sheetOpen = id; if(D) D.Seen.add("sisa", "a:" + id);
+  if(D){ const bs = (S.ed.stories||[]).find(x => isBrief(x) && x.items[0] === id); if(bs) markStorySeen(bs); }
   const st = stOf(id);
   const last = st.opened ? Date.parse(st.opened) : 0;
   if(Date.now() - last > 10*60e3){ logEvent("open", it); setState(id, {opened:new Date().toISOString()}); }
@@ -2373,10 +2523,12 @@ function drawSheet(){
     ${(() => { const ns = entsOf([ko || "", story ? story.key : ""]); return ns.length ? `<details class="entd" open><summary>이 글을 이해하려면 알아 둘 이름 ${ns.length}</summary>${entCards(ns)}</details>` : ""; })()}
     ${cmBox(it)}
     <div class="btnrow">
-      <a class="btn" href="${esc(it.u)}" target="_blank" rel="noopener" data-out="${id}">원문 보기${PAYWALL.has(it.s) ? " · 구독 필요할 수 있음" : ""}</a>
+      <a class="btn" href="${esc(artLink(it))}" target="_blank" rel="noopener" data-out="${id}">원문 보기 (한국어 번역)${PAYWALL.has(it.s) ? " · 구독 필요할 수 있음" : ""}</a>
       <button type="button" class="btn ${st.read?"on":""}" data-read="${id}">${st.read?"✓ 읽음 확인됨":"읽음 확인"}</button>
     </div>
     ${sib.length ? `<div class="stack"><h2 class="sec">같은 소식, 다른 출처 ${sib.length}</h2>${sib.map(i=>`<div class="srow"><button type="button" class="t" data-open="${i.id}"><span class="meta"><span class="src">${esc(srcOf(i.s).n)}</span><span>${esc(cname(ctry(i)))}</span>${whenHtml(i)}${PAYWALL.has(i.s)?"":'<span class="ok">무료</span>'}${stOf(i.id).opened?'<span>봄</span>':""}</span>${esc(koOf(i)||i.t)}</button></div>`).join("")}</div>`:""}
+    ${D ? D.bar("sisa", "a:" + id, {title:ko || it.t, url:it.u}) : ""}
+    <p class="note">원문은 구글 번역을 거쳐 한국어로 열려요. <a href="${esc(it.u)}" target="_blank" rel="noopener" data-out="${id}">번역 없이 원래 페이지 ↗</a></p>
     <details class="origd"><summary>원문 제목·설명 보기</summary><p class="orig" style="-webkit-line-clamp:unset;display:block">${esc(it.t)}</p>${it.sm ? `<p class="body-text orig-sm">${esc(it.sm)}</p>` : ""}</details>
     <div class="minor">
       ${!ctxOf(it) && S.sample ? `<button type="button" class="linkbtn" data-ctx="${id}" ${S.busy?"disabled":""}>${S.busy?"확인 중…":"현지 맥락 설명"}</button>` : ""}
@@ -2523,25 +2675,28 @@ function inHScroll(el){
   return false;
 }
 document.addEventListener("touchstart", e => {
-  if(e.touches.length !== 1 || e.target.closest(".chips,.cchips,.ostrip,.ftabs,.hmap,.mtabs,.tone,.tblwrap,textarea,nav.tabs,.toast,.mfull,.imap")) { sw = null; return; }
+  if(e.touches.length !== 1 || e.target.closest(".chips,.cchips,.ostrip,.ftabs,.hmap,.mtabs,.tone,.tblwrap,textarea,nav.tabs,.toast,.mfull,.imap,.vdk,.vdk-mode,.natchips,.entpop")) { sw = null; return; }
   if(inHScroll(e.target)){ sw = null; return; }
   { const x = e.touches[0].clientX, W = window.innerWidth; if(x < 28 || x > W - 28){ sw = null; return; } }   // 가장자리 = 폰 뒤로가기 제스처
-  sw = {x0:e.touches[0].clientX, y0:e.touches[0].clientY, dx:0, inSheet:!!e.target.closest(".sheet"), horiz:null};
+  sw = {x0:e.touches[0].clientX, y0:e.touches[0].clientY, dx:0, inSheet:!!e.target.closest(".sheet"), horiz:null, lx:e.touches[0].clientX, lt:Date.now(), v:0};
 }, {passive:true});
 document.addEventListener("touchmove", e => {
   if(!sw) return;
   const dx = e.touches[0].clientX - sw.x0, dy = e.touches[0].clientY - sw.y0;
-  if(sw.horiz === null && (Math.abs(dx) > 12 || Math.abs(dy) > 12)){
-    sw.horiz = Math.abs(dx) > Math.abs(dy) * 1.5;
+  // 덜 예민하게: 18px 넘게 움직인 뒤 방향을 정하고, 가로가 세로의 2배를 넘어야 '옆으로 밀기'
+  if(sw.horiz === null && (Math.abs(dx) > 20 || Math.abs(dy) > 20)){
+    sw.horiz = Math.abs(dx) > Math.abs(dy) * 2;
+    if(!sw.horiz){ sw = null; return; }
     if(sw.horiz){ drag = null; pull = null; ptrHide(); }
   }
-  if(sw.horiz){ sw.dx = dx; const el = sw.inSheet ? $(".sheet") : $("#main"); if(el){ el.style.transition = "none"; el.style.transform = `translateX(${dx * 0.3}px)`; } }
+  if(sw.horiz){ const now = Date.now(); if(now > sw.lt){ sw.v = (e.touches[0].clientX - sw.lx) / (now - sw.lt); sw.lx = e.touches[0].clientX; sw.lt = now; } sw.dx = dx; const el = sw.inSheet ? $(".sheet") : $("#main"); if(el){ el.style.transition = "none"; el.style.transform = `translateX(${dx * 0.5}px)`; } }
 }, {passive:true});
 document.addEventListener("touchcancel", () => { if(sw){ const el = sw.inSheet ? $(".sheet") : $("#main"); if(el){ el.style.transition = ""; el.style.transform = ""; } } sw = null; }, {passive:true});
 document.addEventListener("touchend", () => {
   if(!sw) return; const s = sw; sw = null; if(!s.horiz) return;
   const el = s.inSheet ? $(".sheet") : $("#main"); if(el){ el.style.transition = "transform .18s ease-out"; el.style.transform = ""; }
-  if(Math.abs(s.dx) < 70) return;
+  const need = Math.max(130, window.innerWidth * 0.4);   // 넘겨보기와 같은 기준 (빠르게 튕기기 없음)
+  if(Math.abs(s.dx) < need) return;
   const dir = s.dx < 0 ? 1 : -1;               // 왼쪽으로 밀면 다음
   if(s.inSheet) sheetStep(dir); else if(!S.sheetOpen) tabStep(dir);
 });
@@ -2603,7 +2758,7 @@ function render(){
 function go(v){ navTo(v==="src" ? "sources" : v); }
 
 document.addEventListener("click", e => {
-  const t = e.target.closest("[data-sum],#briefBtn,[data-more],[data-fclear],[data-tsrc],[data-trow],[data-track],[data-untrack],[data-q],[data-memoopen],[data-tap],[data-v],[data-open],[data-story],[data-f],[data-tog],[data-logf],[data-day],[data-read],[data-save],[data-memo],[data-close],[data-out],[data-gt],[data-misgroup],[data-gostory],[data-smtr],[data-ctx],[data-ed],[data-retread],[data-retno],[data-issue],[data-country],[data-mapmode],[data-jump],[data-theme],[data-tone],[data-ftab],[data-storyf],[data-mapfull],[data-opall],[data-opf],[data-snav],[data-ent],[data-entclose],[data-entf],[data-mfclose],[data-mfzoom],[data-mfmode],[data-mfsel],#trBtn,#aiBtn,#srcBtn,#fsBtn,#kbBtn,#chkBtn,#demoBtn");
+  const t = e.target.closest("[data-sum],#briefBtn,[data-more],[data-fclear],[data-tsrc],[data-trow],[data-track],[data-untrack],[data-q],[data-memoopen],[data-tap],[data-v],[data-open],[data-story],[data-f],[data-tog],[data-logf],[data-day],[data-read],[data-save],[data-memo],[data-close],[data-out],[data-gt],[data-misgroup],[data-gostory],[data-smtr],[data-ctx],[data-ed],[data-retread],[data-retno],[data-issue],[data-country],[data-mapmode],[data-jump],[data-theme],[data-tone],[data-ftab],[data-storyf],[data-mapfull],[data-opall],[data-opf],[data-snav],[data-natc],[data-likego],[data-ent],[data-entclose],[data-entf],[data-mfclose],[data-mfzoom],[data-mfmode],[data-mfsel],#trBtn,#aiBtn,#srcBtn,#fsBtn,#kbBtn,#chkBtn,#demoBtn");
   if(!t) return;
   const d = t.dataset;
   if(t.id==="srcBtn") return go("src");
@@ -2649,6 +2804,9 @@ document.addEventListener("click", e => {
   if(d.theme){ return navTo("theme-" + d.theme); }
   if(d.mapmode){ const [sid, m] = d.mapmode.split(":"); S.mapMode = S.mapMode || {}; S.mapMode[sid] = m; return drawSheet(); }
   if(d.jump){ if(d.jump==="sec-tl") S.more.tl = true; drawSheet(); const el = document.getElementById(d.jump); if(el) el.scrollIntoView({behavior:"smooth", block:"start"}); return; }
+  if(d.natc){ S.natC = d.natc; render(); const on = document.querySelector(`.natchips [data-natc="${d.natc}"]`); if(on) on.scrollIntoView({block:"nearest", inline:"center"}); return; }
+  if(d.likego){ const [kind, v] = [d.likego[0], d.likego.slice(2)]; if(kind === "a" && S.byId[v]) return openSheet(v);
+    const st = (S.ed.stories||[]).find(x => storyKey(x) === d.likego); if(st) return navTo("issue-" + st.id); if(d.likeu) window.open(d.likeu, "_blank", "noopener"); else toast("지난 판의 이야기라 지금 판에는 없어요"); return; }
   if(d.country){ S.openCountry = S.openCountry===d.country ? null : d.country; return render(); }
   if(d.tog){ S.f[d.tog] = !S.f[d.tog]; return render(); }
   if(d.more){ S.more[d.more] = !S.more[d.more]; return S.sheetOpen ? drawSheet() : render(); }
@@ -2691,6 +2849,7 @@ window.SISA = {S, render, esc, ago, toast, replaceTo(h){ hashSwap(h); }};   // �
 </script>
 
 
+<script src="../assets/trendcard.js"></script>
 <script src="../assets/hot.js"></script>
 <script src="../assets/shell.js"></script>
 </body></html>

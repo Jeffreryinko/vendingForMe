@@ -10,7 +10,7 @@
   const flag = cc => String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
   const dayOf = iso => new Date(new Date(iso).getTime() + 9 * 3600e3).toISOString().slice(0, 10);
   const today = () => dayOf(new Date().toISOString());
-  const SRC_ORDER = ["google", "signal", "yahoojp", "baidu", "weibo", "x", "yt", "wiki"];
+  const SRC_ORDER = ["google", "signal", "yahoojp", "baidu", "weibo", "reddit", "x", "yt", "ytfun", "wiki"];
   const ADULT = /(porn|sex|xxx|nude|hentai|onlyfans|야동|섹스|포르노|성인|エロ|성관계|rape|강간)/i;
   const css = `
   .hot-flags{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0 4px}.hot-flags::-webkit-scrollbar{display:none}
@@ -38,7 +38,7 @@
     try {
       if (!H.idx) { H.idx = await fetchJ("_index.json"); H.cc = H.cc || P.cc || "KR"; }
       const k = H.tab === "past" && H.day ? `hist/${H.cc}_${H.day}.json` : `${H.cc}.json`;
-      if (!H.data[k]) H.data[k] = await fetchJ(k);
+      if (!H.data[k]) { H.data[k] = await fetchJ(k); if (D) D.stale("sisa"); }
     } catch (e) { H.err = e.message; }
     H.loading = false;
     if (S.view === "hot") render();
@@ -65,7 +65,9 @@
       : `<span class="ht">${esc(it.ko || it.kw)}</span>${it.ko && it.ko !== it.kw ? `<span class="ho">${esc(it.kw)}</span>` : ""}`;
     const meta = [it.sub ? esc(it.sub) : "", tag, iss ? `<button type="button" class="pill coin" data-hotiss="${esc(iss.id)}">이슈 보기</button>` : ""].filter(Boolean).join("");
     const x = open && !hide ? `<div class="hot-x">
-        ${(it.news || []).map(n => `<a href="${esc(n.u)}" target="_blank" rel="noopener">${esc(n.t)} <small>· ${esc(n.s || "")}</small></a>`).join("")}
+        ${(it.news || []).map(n => `<a href="${esc(ku(n.u))}" target="_blank" rel="noopener">${esc(n.ko || n.t)} <small>· ${esc(n.s || "")}</small>${n.sn ? `<small style="display:block">${esc(n.sn)}</small>` : ""}</a>`).join("")}
+        ${src === "yt" && (it.dko || it.desc) ? `<p class="note" style="color:var(--ink);margin:0">${esc(it.dko || it.desc)}</p>` : ""}
+        ${src === "yt" && (it.capko || it.cap) ? `<p class="note" style="margin:0"><b>자막</b> ${esc((it.capko || it.cap).slice(0, 300))}…</p>` : ""}
         <div class="btnrow"><a class="btn" href="${esc(it.url)}" target="_blank" rel="noopener">${src === "yt" ? "유튜브에서 보기" : src === "wiki" ? "문서 열기" : "검색 결과"}</a>
           <button type="button" class="btn ${isStar(cc, src, it.kw) ? "on" : ""}" data-hotstar="${id}">${isStar(cc, src, it.kw) ? "★ 보관됨" : "☆ 보관"}</button>
           <button type="button" class="btn" data-hotshare="${id}">공유</button></div></div>` : "";
@@ -87,23 +89,70 @@
     const world = idx.world && idx.world.length && H.tab === "now" ? `<div class="stack"><h2 class="sec">세계가 같이 찾는 것</h2><div class="hot-world">${idx.world.map(w => `<a class="wchip" href="https://www.google.com/search?q=${encodeURIComponent(w.kw)}" target="_blank" rel="noopener">${esc(w.ko)}<small>${w.cc.map(flag).join("")}</small></a>`).join("")}</div></div>` : "";
     const flags = `<div class="hot-flags">${idx.countries.map(([cc, nm]) => `<button type="button" class="chip" data-hotcc="${cc}" aria-pressed="${cc === H.cc}">${flag(cc)} ${esc(nm)}</button>`).join("")}</div>`;
     const days = H.tab === "past" ? `<div class="chips">${(idx.days || []).slice().reverse().filter(x => x !== today()).map(x => `<button type="button" class="chip" data-hotday="${x}" aria-pressed="${x === H.day}">${x.slice(5).replace("-", "/")}</button>`).join("") || '<span class="note">아직 지난 날 자료가 없어요 (내일부터 쌓여요)</span>'}</div>` : "";
+    const msw = D && H.tab === "now" ? D.modeSwitch("sisa-hot", () => render()) : "";
+    if (D && H.tab === "now" && D.mode("sisa-hot") === "deck") {
+      const dc = P.deckCc || "ALL";
+      if (dc === "ALL") ensureAll();
+      const dflags = `<div class="hot-flags"><button type="button" class="chip" data-hotdeck="ALL" aria-pressed="${dc === "ALL"}">🌐 모든 나라 랜덤</button>${idx.countries.map(([cc, nm]) => `<button type="button" class="chip" data-hotdeck="${cc}" aria-pressed="${cc === dc}">${flag(cc)} ${esc(nm)}</button>`).join("")}</div>`;
+      if (dc !== "ALL" && !H.data[`${dc}.json`]) { fetchJ(`${dc}.json`).then(x => { H.data[`${dc}.json`] = x; render(); }).catch(() => {}); return `<p class="lead">트렌드</p>${seg}${msw}${dflags}<p class="note">불러오는 중…</p>`; }
+      const dk = deckOf(dc); const k0 = dk.curKey(), x0 = k0 && dk.map[k0];
+      if (x0 && x0.src === "wiki" && T.WK[x0.it.url] === undefined) T.wikiFor(x0.it.url).then(() => { if (dk.curKey() === k0) dk.paint(); });
+      return `<p class="lead">트렌드</p>${seg}${msw}${dflags}<p class="note">${dc === "ALL" ? "22개국 검색어·영상·레딧·밈을 모두 섞어서" : esc((H.data[`${dc}.json`] || {}).name || dc) + "의 검색어·영상·레딧을"} 한 장씩 · ${ago(idx.at)} 갱신 · 본 것은 다시 안 나와요</p>${dk.html()}`;
+    }
     const srcs = Object.entries(d.src || {}).sort((a, b) => SRC_ORDER.indexOf(a[0]) - SRC_ORDER.indexOf(b[0]));
     const broken = Object.keys(idx.broken || {}).length ? `<p class="note">3일 넘게 못 가져오는 출처 ${Object.keys(idx.broken).length}곳 — 설정 시트에서 볼 수 있어요.</p>` : "";
-    return `<p class="lead">트렌드</p><p class="note">${d.name} · ${ago(d.at)} 갱신 · 3시간마다 로봇이 모아요 · 순위를 누르면 펼쳐져요</p>${seg}${world}${flags}${days}
+    return `<p class="lead">트렌드</p><p class="note">${d.name} · ${ago(d.at)} 갱신 · 3시간마다 로봇이 모아요 · 순위를 누르면 펼쳐져요</p>${seg}${msw}${world}${flags}${days}
       ${srcs.map(([k, b]) => srcCard(d.cc, k, b)).join("")}${broken}
       <p class="note">구글·위키백과·유튜브는 공식 자료, 나머지는 민간 집계 사이트(출처 ↗)에서 가져와요. 틱톡·페이스북·인스타그램은 순위를 공개하지 않아 없어요.</p>`;
   }
+  /* ── 넘겨보기: 한 나라의 검색어·영상·문서를 한 장씩 (안 본 것만) ── */
+  const D = window.VfmDeck || null;
+  const tKey = (cc, src, it) => `t:${cc}:${src}:${it.kw}`;
+  const ku = (u, l) => D ? D.koUrl(u, l) : u;
+  const T = window.VfmTrend;
+  // 22개국을 한꺼번에 받아 둠 (모든 나라 랜덤 넘겨보기)
+  let allP = null;
+  function ensureAll() {
+    if (!allP) allP = Promise.all((H.idx.countries || []).map(([cc]) => H.data[`${cc}.json`] ? null : fetchJ(`${cc}.json`).then(d => { H.data[`${cc}.json`] = d; }).catch(() => {})))
+      .then(() => { if (D) D.stale("sisa"); if (S.view === "hot") render(); });
+    return allP;
+  }
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  function cardOf(cc, x) {
+    const d = H.data[`${cc}.json`] || {}, iss = issueOf(x.it);
+    return { key: tKey(cc, x.src, x.it), title: x.it.ko || x.it.kw, url: ["yt", "ytfun", "wiki", "reddit"].includes(x.src) ? x.it.url : location.href.split("#")[0] + "#hot",
+      shareText: `${flag(cc)} ${d.name || cc} ${x.srcName} ${x.rank + 1}위 · ${x.it.ko || x.it.kw}`, src: x.src, it: x.it, cc,
+      html: () => T.card({ cc, cname: d.name || cc, src: x.src, srcName: x.srcName, it: x.it, rank: x.rank, country: d, extra: iss ? `<button type="button" class="vdk-more" data-hotiss="${esc(iss.id)}">관련 이야기: ${esc(iss.title || "")} ›</button>` : "" }) };
+  }
+  function deckOf(cc) {
+    return D.create({ id: "sisa-hot-" + cc, app: "sisa", emptyTitle: "트렌드 자료가 없어요",
+      items: () => {
+        if (cc === "ALL") {                                          // 모든 나라·모든 출처를 완전히 섞어서
+          const out = [];
+          (H.idx.countries || []).forEach(([c]) => { const d = H.data[`${c}.json`]; if (d) T.items(d).forEach(x => out.push(cardOf(c, x))); });
+          (H.idx.memes || []).forEach((it, r) => out.push({ key: `t:WW:memes:${it.kw}`, title: it.ko || it.kw, url: it.url, shareText: it.ko || it.kw, src: "memes", it, cc: "WW",
+            html: () => T.card({ cc: "WW", cname: "세계 밈", src: "memes", srcName: "레딧 밈", it, rank: r }) }));
+          return shuffle(out);
+        }
+        const d = H.data[`${cc}.json`]; if (!d) return [];
+        const by = {}; T.items(d).forEach(x => (by[x.rank] = by[x.rank] || []).push(x));   // 출처마다 1위끼리, 2위끼리… 번갈아
+        return Object.keys(by).sort((a, b) => a - b).flatMap(r => by[r]).map(x => cardOf(cc, x));
+      },
+      onShow(x) { if (x.src === "wiki" && T.WK[x.it.url] === undefined) T.wikiFor(x.it.url).then(() => { const dk = D.get("sisa-hot-" + cc); if (dk && dk.curKey() === x.key) dk.paint(); }); if (x.it) logView(x.it, x.cc); },
+      onList() { try { localStorage.setItem("vfm:mode:sisa-hot", '"list"'); } catch (e) { } render(); } });
+  }
   function itemOf(id) { const [src, i] = id.split("|"); const d = cur(); const b = d && d.src[src]; return b && { it: b.items[+i], src, b, cc: d.cc }; }
   document.addEventListener("click", e => {
-    const t = e.target.closest("[data-hotcc],[data-hottab],[data-hotday],[data-hotrow],[data-hotmore],[data-hotstar],[data-hotunstar],[data-hotshare],[data-hotiss],[data-hotreveal]"); if (!t) return;
+    const t = e.target.closest("[data-hotdeck],[data-hotcc],[data-hottab],[data-hotday],[data-hotrow],[data-hotmore],[data-hotstar],[data-hotunstar],[data-hotshare],[data-hotiss],[data-hotreveal]"); if (!t) return;
     const d = t.dataset;
     if (d.hotiss) { e.stopPropagation(); (window.SISA && SISA.replaceTo ? SISA.replaceTo("#issue-" + d.hotiss) : location.replace("#issue-" + d.hotiss)); return; }
+    if (d.hotdeck) { P.deckCc = d.hotdeck; save(); render(); const on = document.querySelector(`[data-hotdeck="${d.hotdeck}"]`); if (on) on.scrollIntoView({ block: "nearest", inline: "center" }); return; }
     if (d.hotcc) { H.cc = d.hotcc; P.cc = d.hotcc; save(); H.open = null; H.more = {}; render(); ensure(); return; }
     if (d.hottab) { H.tab = d.hottab; H.open = null; if (H.tab === "past" && !H.day) H.day = ((H.idx && H.idx.days) || []).filter(x => x !== today()).slice(-1)[0] || null; render(); ensure(); return; }
     if (d.hotday) { H.day = d.hotday; H.open = null; render(); ensure(); return; }
     if (d.hotmore) { H.more[d.hotmore] = !H.more[d.hotmore]; render(); return; }
     if (d.hotreveal) { H.reveal[d.hotreveal] = true; render(); return; }
-    if (d.hotrow) { H.open = H.open === d.hotrow ? null : d.hotrow; const o = itemOf(d.hotrow); if (H.open && o) logView(o.it, o.cc); render(); return; }
+    if (d.hotrow) { H.open = H.open === d.hotrow ? null : d.hotrow; const o = itemOf(d.hotrow); if (H.open && o) { logView(o.it, o.cc); if (D) D.Seen.add("sisa", tKey(o.cc, o.src, o.it)); } render(); return; }
     if (d.hotstar) { const o = itemOf(d.hotstar); if (!o) return; const i = P.stars.findIndex(s => s.cc === o.cc && s.src === o.src && s.kw === o.it.kw);
       if (i >= 0) { P.stars.splice(i, 1); toast("보관함에서 뺐어요"); } else { P.stars.push({ cc: o.cc, src: o.src, srcName: o.b.name, kw: o.it.kw, ko: o.it.ko || "", url: o.it.url, at: new Date().toISOString() }); toast("영구 보관했어요 · 내 보관함"); }
       save(); render(); return; }

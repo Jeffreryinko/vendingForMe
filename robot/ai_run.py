@@ -139,6 +139,12 @@ POSTS = [  # (출처 id, 이름, 종류, 주소)
     ("nvidia", "엔비디아", "rss", "https://blogs.nvidia.com/blog/category/generative-ai/feed/"),
     ("naver", "네이버 D2", "rss-ai", "https://d2.naver.com/d2.atom"),
     ("kakao", "카카오 테크", "rss-ai", "https://tech.kakao.com/feed/"),
+    # AI 서비스 새 기능 (일반 사용자용 앱 회사)
+    ("gemini", "구글 제미나이", "rss", "https://blog.google/products/gemini/rss/"),
+    ("microsoft", "마이크로소프트(코파일럿)", "rss-ai", "https://blogs.microsoft.com/feed/"),
+    ("apple", "애플 머신러닝", "rss", "https://machinelearning.apple.com/rss.xml"),
+    ("samsung", "삼성 뉴스룸", "rss-ai", "https://news.samsung.com/global/feed"),
+    ("huggingface", "허깅페이스 블로그", "rss", "https://huggingface.co/blog/feed.xml"),
 ]
 NEWS = [
     ("aitimes", "AI타임스", "rss", "https://www.aitimes.com/rss/allArticle.xml"),
@@ -254,6 +260,28 @@ def youtube_links(papers, cache):
 
 
 # ───────── 용어 밑줄 ─────────
+def ai_feature_videos(prev):
+    key = os.environ.get("YOUTUBE_API_KEY")
+    if not key: return prev
+    out, seen = [], set()
+    after = (datetime.now(timezone.utc) - timedelta(days=3)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    for q in ("AI 새 기능", "챗GPT 제미나이 클로드 업데이트"):
+        try:
+            r = requests.get("https://www.googleapis.com/youtube/v3/search", params={"part": "snippet", "q": q, "type": "video", "maxResults": 12, "key": key,
+                             "relevanceLanguage": "ko", "regionCode": "KR", "order": "viewCount", "publishedAfter": after, "safeSearch": "strict"}, timeout=30)
+            r.raise_for_status()
+            for v in r.json().get("items", []):
+                vid = v["id"].get("videoId")
+                if not vid or vid in seen: continue
+                seen.add(vid); sn = v["snippet"]
+                out.append({"id": "y" + vid, "vid": vid, "title": clean(sn["title"], 140), "ch": clean(sn["channelTitle"], 60), "sum": clean(sn.get("description"), 300),
+                            "url": f"https://www.youtube.com/watch?v={vid}", "date": (sn.get("publishedAt") or "")[:10]})
+        except Exception as e:
+            log(f"유튜브 AI 영상 검색 실패: {e}")
+    log(f"유튜브 AI 새 기능 영상 {len(out)}개")
+    return out[:20] or prev
+
+
 def term_matcher():
     terms = rj(OUT / "terms.json", [])
     pats = []
@@ -331,6 +359,16 @@ def translate_texts(run, texts, mem, deadline):
 
 
 # ───────── 보관 정리 ─────────
+def write_feed(data):
+    """AI 탭 첫 화면과 자판기 홈 랜덤이 쓰는 가벼운 파일 (논문 초록 없이): 새 기능 소식·국내 소식·해설 영상·인기 논문 2편"""
+    keep = ("id", "sid", "name", "title", "ko", "ksum", "sum", "url", "date", "new", "ch", "vid")
+    slim = lambda lst, n: [{k: p[k] for k in keep if p.get(k)} for p in lst[:n]]
+    hf = sorted([p for p in data["papers"] if p.get("src") == "hf"], key=lambda p: -(p.get("up") or 0))[:2]
+    papers = [{k: p[k] for k in ("id", "title", "ko", "ksum", "one", "url", "up", "src") if p.get(k)} for p in hf]
+    wj(OUT / "feed.json", {"day": data["day"], "at": data["at"], "posts": slim(data["posts"], 60), "news": slim(data["news"], 25),
+                           "vids": slim(data.get("vids", []), 20), "papers": papers})
+
+
 def archive():
     cutoff = (datetime.now(KST) - timedelta(days=KEEP_DAYS)).strftime("%Y-%m-%d")
     for f in sorted(DAYS.glob("????-??-??.json")):
@@ -407,9 +445,12 @@ def main():
     for p in hf + arx: p["ko"] = kos[i]; i += 1
     for p in en_posts: p["ko"] = kos[i]; i += 1
     for p in data["repos"]: p["ksum"] = kos[i]; i += 1
-    kabs = translate_texts(run, [p["abs"] for p in top] + [p.get("sum") or "" for p in hf], mem, deadline)
+    kabs = translate_texts(run, [p["abs"] for p in top] + [p.get("sum") or "" for p in hf] + [(p.get("sum") or "")[:400] for p in en_posts], mem, deadline)
     for k, p in enumerate(top): p["kabs"] = kabs[k]
     for k, p in enumerate(hf): p["ksum"] = kabs[len(top) + k]
+    for k, p in enumerate(en_posts):
+        v = kabs[len(top) + len(hf) + k]
+        if v: p["ksum"] = v
     # 용어카드의 영문 위키 문단 → 한국어 (한국어판이 없는 용어만)
     terms = rj(OUT / "terms.json", [])
     en_terms = [t for t in terms if t.get("wiki") and t.get("wiki_lang") == "en" and not t.get("wiki_ko_text")]
@@ -427,6 +468,9 @@ def main():
     if len(ytc) > 3000: ytc = dict(list(ytc.items())[-2500:])
     wj(OUT / "_yt.json", ytc); log(f"유튜브 검색 {n}편")
 
+    # 4-2. 유튜브: AI 새 기능 해설 영상 (한국어, 최근 3일, 조회수 순)
+    data["vids"] = ai_feature_videos(prev.get("vids", []))
+
     # 5. 저장
     for p in top: p["one"] = (p.get("ksum") or p.get("kabs") or "").split(". ")[0][:160] or None
     data["papers"] = top; data["counts"] = {"hf": len(hf), "arxiv": len(arx), "posts": len(data["posts"]), "repos": len(data["repos"]), "news": len(data["news"]), "more": len(rest)}
@@ -438,6 +482,7 @@ def main():
     idx = {"at": now_iso(), "today": day, "days": sorted(f.stem for f in DAYS.glob("????-??-??.json")), "archive": sorted(f.stem for f in ARCH.glob("*.json")),
            "broken": broken, "counts": data["counts"], "ytKey": bool(os.environ.get("YOUTUBE_API_KEY")), "sources": {k: POST_HOME[k] for k in POST_HOME}}
     wj(OUT / "_index.json", idx); wj(OUT / "_health.json", health)
+    write_feed(data)
     wj(OUT / "_meta.json", {"updatedAt": now_iso(), "by": "ai-robot", "label": f"{day} 새벽판"})
     log(f"끝 {round(time.time() - t0)}초 · HF {len(hf)} · arXiv {len(arx)} · 고장 {len(broken)}개")
 

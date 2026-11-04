@@ -91,10 +91,23 @@ nav.tabs button b{font-size:19px;font-weight:400}nav.tabs button[aria-current="p
 .termcard b{font-size:16px}.termcard .wk{font-size:13px;color:var(--ap-label2);margin-top:6px;border-left:2px solid var(--ap-tint);padding-left:8px}.termcard .en{font-size:13px;color:var(--muted)}.termcard p{margin:4px 0 0;font-size:14px}
 .sub{font-size:13px;color:var(--muted)}
 .health{font-size:12.5px;color:var(--warn);margin:6px 0}
+
+.easy{background:color-mix(in srgb,var(--ap-purple,#AF52DE) 8%,var(--surface,#fff));border-radius:14px;padding:12px 14px;margin:10px 0}
+.easy p,.easy li{line-height:1.6}.easy ol{padding-left:20px;margin:4px 0}.ez-h{font-weight:700;font-size:16px;margin:0 0 6px}.ez-one{font-size:16.5px;font-weight:600}
+.ez-k{font-size:13px;font-weight:700;color:var(--muted,#666);margin:14px 0 4px}
+.kterms{display:flex;flex-direction:column;gap:6px}.kterm{display:flex;gap:10px;align-items:center;background:var(--surface,#fff);border-radius:12px;padding:8px 10px;border:1px solid var(--line,#e5e5ea)}
+.kterm>div{flex:1;min-width:0}.kterm p{margin:2px 0 0;font-size:14px;line-height:1.45}.kterm button{flex:none;border:0;border-radius:10px;padding:8px 10px;font:inherit;font-size:13px;font-weight:600;background:var(--ap-fill,rgba(118,118,128,.12));color:inherit}
+.kterm button.on{background:color-mix(in srgb,var(--ap-green,#34C759) 18%,transparent);color:var(--ap-green-t,#248A3D)}
+.ezreq{margin:14px 0 4px;padding:12px;border-radius:12px;background:var(--ap-fill2,rgba(118,118,128,.08))}.ezreq p{margin:0 0 8px}
+.bd.ez{background:color-mix(in srgb,var(--ap-purple,#AF52DE) 16%,transparent);color:var(--ap-purple-t,#8E3BBF)}
+.kstat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0}.kstat div{background:var(--surface,#fff);border-radius:14px;padding:12px;text-align:center}.kstat b{display:block;font-size:24px}.kstat span{font-size:12.5px;color:var(--muted,#666)}
+.vdk-card .en{color:var(--muted,#666);font-size:13px;margin:-6px 0 8px}
 </style></head><body>
+<script src="../assets/deck.js"></script>
 <div class="wrap" id="app"></div>
 <nav class="tabs" id="tabs">
   <button data-v="today" aria-current="page"><b>☀︎</b>오늘</button>
+  <button data-v="know"><b>✦</b>내 지식</button>
   <button data-v="terms"><b>ⓣ</b>용어장</button>
   <button data-v="box"><b>☆</b>보관함</button>
 </nav>
@@ -105,7 +118,7 @@ const LS = { g(k, d) { try { const v = localStorage.getItem("vfm:ai:" + k); retu
              s(k, v) { try { localStorage.setItem("vfm:ai:" + k, JSON.stringify(v)); } catch (e) { toast("저장 공간이 꽉 찼어요"); } } };
 const DEF_TAGS = ["LLM", "에이전트", "RAG", "영상", "음성", "로봇", "의료", "데이터", "학습법", "하드웨어"];
 const S = { view: "today", day: null, idx: null, days: {}, more: {}, moreShown: 0, terms: [], termById: {}, paper: null, cfg: LS.g("cfg", { underline: true, fs: 1 }),
-  star: LS.g("star", {}), hide: LS.g("hide", {}), tags: LS.g("tags", {}), tagdefs: LS.g("tagdefs", DEF_TAGS), memo: LS.g("memo", {}), tmemo: LS.g("tmemo", {}), myterms: LS.g("myterms", {}), read: LS.g("read", {}) };
+  star: LS.g("star", {}), hide: LS.g("hide", {}), tags: LS.g("tags", {}), tagdefs: LS.g("tagdefs", DEF_TAGS), memo: LS.g("memo", {}), tmemo: LS.g("tmemo", {}), myterms: LS.g("myterms", {}), read: LS.g("read", {}), know: LS.g("know", { papers: {}, terms: {} }), easyIdx: null, easy: {} };
 function save(k) { LS.s(k, S[k]); }
 document.documentElement.style.setProperty("--fs", S.cfg.fs || 1);
 
@@ -158,6 +171,8 @@ async function renderToday() {
   let d; try { d = await loadDay(S.day); } catch (e) { document.getElementById("body").innerHTML = `<p class="empty">이 날 자료가 없어요. 로봇이 새벽 4시 30분에 처음 돌고 나면 채워집니다.</p>`; return; }
   const broken = Object.keys(S.idx.broken || {});
   const papers = (d.papers || []).filter(p => !S.hide[p.id]);
+  await loadEasyIdx();
+  if (D) { const sw = D.modeSwitch("ai-today", () => renderToday()); const bd = document.getElementById("body"); if (D.mode("ai-today") === "deck") { await loadFeed(); bd.innerHTML = sw + `<p class="note">AI 서비스 새 기능 소식이 먼저, 그날 인기 논문 2편이 사이사이에 나와요. 옆으로 밀면 다음.</p>` + feedDeck().html(); return; } bd.insertAdjacentHTML("beforebegin", `<div id="msw">${sw}</div>`); }
   const hf = papers.filter(p => p.src === "hf"), ax = papers.filter(p => p.src === "arxiv");
   const posts = (d.posts || []), repos = d.repos || [], news = d.news || [];
   document.getElementById("body").innerHTML = `
@@ -179,6 +194,118 @@ async function showMore() {
   const b = document.querySelector("[data-act=more]"); if (b) b.textContent = S.moreShown >= list.length ? "끝 (전부 " + list.length + "편)" : `arXiv 더 보기 (${S.moreShown}/${list.length})`;
 }
 
+/* ───── 쉬운 풀이 (루틴이 미리 만든 것만, data/ai/easy) · 넘겨보기 · 내 지식 ───── */
+const D = window.VfmDeck || null;
+const REPO = "https://github.com/Jeffreryinko/vendingForMe";
+async function loadEasyIdx() { if (S.easyIdx) return S.easyIdx; try { S.easyIdx = new Set(await getJ("easy/_index.json")); } catch (e) { S.easyIdx = new Set(); } return S.easyIdx; }
+async function loadEasy(id) { if (S.easy[id] !== undefined) return S.easy[id]; if (!(await loadEasyIdx()).has(id)) return S.easy[id] = null; try { S.easy[id] = await getJ("easy/" + id + ".json"); } catch (e) { S.easy[id] = null; } return S.easy[id]; }
+const hasEasy = id => !!(S.easyIdx && S.easyIdx.has(id));
+function reqUrl(p) {
+  const t = `[요청] ai ${p.id} · ${(p.ko || p.title || "").slice(0, 60)}`;
+  const b = `앱의 '쉬운 풀이 부탁하기' 버튼으로 만든 요청이에요. 그대로 'Submit new issue'를 누르면 다음 루틴 때 풀이를 만들어 앱에 올려요.\n\n- 논문: ${p.title}\n- 주소: ${p.url}`;
+  return `${REPO}/issues/new?title=${encodeURIComponent(t)}&body=${encodeURIComponent(b)}`;
+}
+function learn(key, e, from) { if (!S.know.terms[key]) { S.know.terms[key] = { ...e, at: Date.now(), from }; save("know"); return true; } return false; }
+function knowPaper(p, easy) { const k = S.know.papers[p.id] || { t: p.ko || p.title, at: Date.now() }; if (easy) k.easy = 1; S.know.papers[p.id] = k; save("know"); }
+// 용어 줄: 이미 배운 것은 ✓
+function termRows(list) {
+  return `<div class="kterms">${list.map(x => { const k = x.key, on = !!S.know.terms[k]; return `<div class="kterm"><div><b>${esc(x.t)}</b>${x.en ? ` <span class="sub">${esc(x.en)}</span>` : ""}<p>${esc(x.d)}</p></div><button data-learn="${esc(k)}" data-lt="${esc(x.t)}" data-len="${esc(x.en || "")}" data-ld="${esc(x.d)}" class="${on ? "on" : ""}">${on ? "✓ 배움" : "알았어요"}</button></div>`; }).join("")}</div>`;
+}
+function easyHtml(p, e) {
+  if (!e) return "";
+  return `<div class="easy"><p class="ez-h">쉬운 풀이 <span class="sub">초등학생도 알 수 있게</span></p>
+    <p class="ez-one">${esc(e.one)}</p>
+    <p class="ez-k">쉬운 비유</p><p>${esc(e.analogy)}</p>
+    <p class="ez-k">꼭 알아야 할 것</p><ol>${(e.must || []).map(x => `<li>${esc(x)}</li>`).join("")}</ol>
+    <p class="ez-k">꼭 알아야 할 용어</p>${termRows((e.terms || []).map(t => ({ key: "e:" + t.t, t: t.t, en: t.en, d: t.d })))}
+    <p class="ez-k">왜 중요한가</p><p>${esc(e.why)}</p>
+    ${e.limit ? `<p class="sub">조심할 점: ${esc(e.limit)}</p>` : ""}<p class="sub">${esc(e.by || "Claude 루틴")} · 논문 초록을 읽고 만든 풀이예요. 자세한 내용은 원문으로 확인해 주세요.</p></div>`;
+}
+// 풀이가 없을 때: AI 없이 보여 줄 수 있는 것 (기계번역 한 줄, 용어 목록의 쉬운 뜻)
+function machineHtml(p) {
+  const ts = (p.terms || []).map(([id]) => S.termById[id]).filter(Boolean).slice(0, 5);
+  return `${p.ksum || p.one ? `<p class="ez-k">한 줄 요약 <span class="sub">(기계번역)</span></p><p>${esc(p.ksum || p.one)}</p>` : ""}
+    ${ts.length ? `<p class="ez-k">이 글에 나오는 용어</p>${termRows(ts.map(t => ({ key: t.id, t: t.ko, en: t.en, d: t.short })))}` : ""}
+    <div class="ezreq"><p>아직 쉬운 풀이가 없어요. 많이 보는 논문은 매일 아침 몇 편씩 미리 만들어 둬요.</p>
+      <a class="btn sm" href="${esc(reqUrl(p))}" target="_blank" rel="noopener">쉬운 풀이 부탁하기 ↗</a><p class="sub">GitHub 요청 화면이 열려요. 그대로 올리면 다음 루틴 때 만들어 저장해요(한 번 만들면 계속 다시 써요).</p></div>`;
+}
+function deckCardAi(p) {
+  const e = S.easy[p.id];
+  if (hasEasy(p.id) && e === undefined) loadEasy(p.id).then(() => { ["ai-today", "ai-feed"].forEach(n => { const d = D.get(n); if (d && d.curKey() === p.id) d.paint(); }); });
+  return `<div class="vdk-body"><div class="vdk-k">${srcBadge(p)}${p.up ? `<span class="up">▲ ${p.up}</span>` : ""}${hasEasy(p.id) ? '<span class="bd ez">쉬운 풀이</span>' : ""}</div>
+    <h2 class="vdk-t">${esc(e && e.title || p.ko || p.title)}</h2>${p.ko || e ? `<p class="en">${esc(p.title)}</p>` : ""}
+    ${e ? easyHtml(p, e) : hasEasy(p.id) ? '<p class="sub">풀이를 불러오는 중…</p>' : machineHtml(p)}
+    <button class="vdk-more" data-open="${esc(p.id)}">초록 번역·링크·메모 ›</button></div>`;
+}
+/* 새 기능 소식 (data/ai/feed.json, 로봇) + "뭐가 생겼나·어떻게 써 보나" (data/ai/feat.json, 편집장 루틴이 하루 3~5개) */
+let FEED = null, FEAT = {};
+async function loadFeed() { if (FEED) return FEED; try { FEED = await getJ("feed.json"); } catch (e) { FEED = { posts: [], news: [], vids: [], papers: [] }; } try { FEAT = await getJ("feat.json"); } catch (e) { FEAT = {}; } return FEED; }
+const ku = u => D ? D.koUrl(u) : u;
+function featCard(p, kind) {
+  const f = FEAT[p.id];
+  let one = f && f.one || p.ksum || p.sum || ""; if (one.length > 220) one = one.slice(0, 210).replace(/\s\S*$/, "") + "…";
+  return `<div class="vdk-body"><div class="vdk-k"><span class="bd ${kind === "vid" ? "yt" : kind === "news" ? "kr" : "hf"}">${kind === "vid" ? "해설 영상" : kind === "news" ? "국내 소식" : "새 기능·발표"}</span><span>${esc(p.name || p.ch || "")}</span><span>${esc(p.date || "")}</span>${p.new ? '<b class="up">NEW</b>' : ""}</div>
+    <h2 class="vdk-t">${esc(p.ko || p.title)}</h2>${p.ko ? `<p class="en">${esc(p.title)}</p>` : ""}
+    ${one ? `<p class="ez-k">뭐가 생겼나${f && f.one ? "" : ' <span class="sub">(발표문 요약' + (p.ksum ? " · 기계번역" : "") + ')</span>'}</p><p class="vdk-p">${esc(one)}</p>` : ""}
+    ${f && f.how ? `<p class="ez-k">나는 어떻게 써 보나</p><p class="vdk-p">${esc(f.how)}</p>` : kind === "post" ? '<p class="sub">\'어떻게 써 보나\'는 그날 큰 소식 3~5개만 아침에 정리돼요.</p>' : ""}
+    <a class="vdk-more" href="${esc(kind === "vid" ? p.url : ku(p.url))}" target="_blank" rel="noopener">${kind === "vid" ? "유튜브에서 보기 ↗" : kind === "news" ? "기사 보기 ↗" : "원문 보기 (한국어 번역) ↗"}</a></div>`;
+}
+function feedDeck() {
+  return D.create({ id: "ai-feed", app: "ai", emptyTitle: "새 소식이 없어요",
+    items: () => {
+      const F = FEED || {}, byNew = (a, b) => String(b.date || "").localeCompare(String(a.date || ""));
+      // 정리된 것 먼저, 그다음 회사별로 번갈아 (한 회사 소식만 몰리지 않게)
+      const sorted = (F.posts || []).slice().sort(byNew), feat = sorted.filter(p => FEAT[p.id]), rest = sorted.filter(p => !FEAT[p.id]), by = {};
+      rest.forEach(p => (by[p.sid] = by[p.sid] || []).push(p));
+      const rr = []; let more = true; while (more) { more = false; Object.keys(by).forEach(k => { if (by[k].length) { rr.push(by[k].shift()); more = true; } }); }
+      const posts = feat.concat(rr).map(p => ({ key: p.id, title: p.ko || p.title, url: p.url, shareText: (p.ko || p.title) + "\n" + p.url, html: () => featCard(p, "post") }));
+      const news = (F.news || []).slice().sort(byNew).map(p => ({ key: p.id, title: p.title, url: p.url, html: () => featCard(p, "news") }));
+      const vids = (F.vids || []).map(p => ({ key: p.id, title: p.title, url: p.url, html: () => featCard(p, "vid") }));
+      const papers = (F.papers || []).map(p => ({ key: p.id, title: p.ko || p.title, url: p.url, html: () => deckCardAi(p), p }));
+      // 새 기능 위주로, 국내 소식·영상을 사이사이에, 논문 2편은 3번째·8번째쯤
+      const out = []; let i = 0;
+      while (posts.length || news.length || vids.length) {
+        if (posts.length) out.push(posts.shift());
+        if (posts.length) out.push(posts.shift());
+        if (i % 2 === 0 && news.length) out.push(news.shift()); else if (vids.length) out.push(vids.shift());
+        if (i === 0 && papers[0]) out.push(papers[0]); if (i === 2 && papers[1]) out.push(papers[1]);
+        i++;
+      }
+      papers.forEach(x => { if (!out.includes(x)) out.push(x); });
+      return out;
+    },
+    onShow(x) { if (x.p) knowPaper(x.p, !!S.easy[x.p.id]); },
+    onList() { try { localStorage.setItem("vfm:mode:ai-today", '"list"'); } catch (e) { } renderToday(); } });
+}
+function todayDeck(papers) {
+  return D.create({ id: "ai-today", app: "ai", emptyTitle: "논문이 없어요",
+    items: () => {
+      const ez = papers.filter(p => hasEasy(p.id)), rest = papers.filter(p => !hasEasy(p.id));
+      const hf = rest.filter(p => p.src === "hf").sort((a, b) => (b.up || 0) - (a.up || 0)), ax = rest.filter(p => p.src !== "hf");
+      return [...ez, ...hf, ...ax].map(p => ({ key: p.id, title: p.ko || p.title, url: p.url, shareText: (p.ko || p.title) + "\n" + p.title, html: () => deckCardAi(p), p }));
+    },
+    onShow(x) { knowPaper(x.p, !!S.easy[x.p.id]); },
+    onList() { try { localStorage.setItem("vfm:mode:ai-today", '"list"'); } catch (e) { } renderToday(); } });
+}
+function renderKnow() {
+  const app = document.getElementById("app");
+  const ps = Object.entries(S.know.papers).sort((a, b) => b[1].at - a[1].at), ts = Object.entries(S.know.terms).sort((a, b) => b[1].at - a[1].at);
+  const mine = Object.keys(S.myterms).length, ez = ps.filter(([, v]) => v.easy).length;
+  const wk = Date.now() - 7 * 864e5;
+  // 다음에 배울 말: 내가 본 논문에 자주 나왔는데 아직 모르는 용어
+  const cnt = {}; ps.forEach(([id]) => { const p = findPaper(id); (p && p.terms || []).forEach(([tid]) => { if (!S.know.terms[tid] && S.termById[tid]) cnt[tid] = (cnt[tid] || 0) + 1; }); });
+  const next = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]).slice(0, 6).map(id => S.termById[id]);
+  const likes = D ? D.Like.list("ai") : [];
+  app.innerHTML = `<div class="top"><h1 class="lt">내 지식</h1></div>
+    <div class="kstat"><div><b>${ps.length}</b><span>본 논문</span></div><div><b>${ez}</b><span>쉬운 풀이로 읽음</span></div><div><b>${ts.length + mine}</b><span>배운 용어</span></div></div>
+    <p class="note">넘겨보기에서 본 논문과 '알았어요'를 누른 용어가 여기 쌓여요. 이 폰에만 저장돼요(설정 → 내보내기로 백업).</p>
+    ${next.length ? `<h2 class="sec">다음에 배울 말 <small>내가 본 논문에 자주 나온 말</small></h2>${termRows(next.map(t => ({ key: t.id, t: t.ko, en: t.en, d: t.short })))}` : ""}
+    <h2 class="sec">배운 용어 <small>${ts.length}개</small></h2>${ts.length ? termRows(ts.map(([k, v]) => ({ key: k, t: v.t, en: v.en, d: v.d }))) : '<p class="empty">풀이 속 용어에서 \'알았어요\'를 누르면 쌓여요.</p>'}
+    <h2 class="sec">본 논문 <small>이번 주 ${ps.filter(([, v]) => v.at > wk).length}편 · 전체 ${ps.length}편</small></h2>
+    <div class="list">${ps.slice(0, 60).map(([id, v]) => `<button class="li" data-open="${esc(id)}" style="text-align:left;width:100%;border:0;background:none"><p class="t">${esc(v.t)}${v.easy ? ' <span class="bd ez">쉬운 풀이</span>' : ""}</p><p class="s">${new Date(v.at).toLocaleDateString("ko-KR")}</p></button>`).join("") || '<p class="empty">아직 없어요.</p>'}</div>
+    ${likes.length ? `<h2 class="sec">좋아요 <small>${likes.length}</small></h2><div class="list">${likes.map(x => `<button class="li" data-open="${esc(x.key)}" style="text-align:left;width:100%;border:0;background:none"><p class="t">${esc(x.t)}</p></button>`).join("")}</div>` : ""}`;
+}
+
 /* ───── 화면: 읽기 ───── */
 function openPaper(id) { const p = findPaper(id); if (!p) { toast("이 논문 자료를 찾지 못했어요"); return; } S.paper = p; S.read[id] = Date.now(); save("read"); nav("#p=" + id); }
 function renderPaper() {
@@ -188,6 +315,8 @@ function renderPaper() {
     <h1 class="title">${esc(p.ko || p.title)}</h1>${p.ko ? `<p class="title-en">${esc(p.title)}</p>` : ""}
     <div class="meta">${(p.authors || []).map(esc).join(", ")}${p.authors && p.authors.length >= 4 ? " 외" : ""} · ${fmtDay(p.pub || p.daily || p.day || S.day)}${(p.cats || []).length ? " · " + p.cats.join(" ") : ""}${(S.tags[p.id] || []).map(t => ` <span class="tag">${esc(t)}</span>`).join("")}</div>
     ${p.ksum ? `<p class="note" style="margin-top:10px"><b>한 줄:</b> ${esc(p.ksum)}</p>` : ""}
+    <div id="ezbox">${S.easy[p.id] ? easyHtml(p, S.easy[p.id]) : hasEasy(p.id) ? "" : machineHtml(p)}</div>
+    ${D ? D.bar("ai", p.id, { title: p.ko || p.title, url: p.url, text: (p.ko || p.title) + "\n" + p.title }) : ""}
     <div class="abs${S.cfg.underline ? "" : " nou"}${absKo ? "" : " en"}" id="abs">${body}</div>
     ${absKo ? `<details class="fold"><summary>원문 보기</summary><div class="abs en">${underline(p.abs || "")}</div></details>` : `<p class="note">이 편은 번역 안 됨 — <a href="https://translate.google.com/translate?sl=en&tl=ko&u=${encodeURIComponent(p.url)}" target="_blank" rel="noopener">구글 번역으로 보기</a></p>`}
     <div class="links"><a href="${esc(p.url)}" target="_blank" rel="noopener">arXiv</a>${p.pdf ? `<a href="${esc(p.pdf)}" target="_blank" rel="noopener">PDF</a>` : ""}${p.hf ? `<a href="${esc(p.hf)}" target="_blank" rel="noopener">HF 토론 ${p.cm ? p.cm : ""}</a>` : ""}${p.code ? `<a href="${esc(p.code)}" target="_blank" rel="noopener">코드${p.stars ? " ★" + p.stars : ""}</a>` : ""}${p.page ? `<a href="${esc(p.page)}" target="_blank" rel="noopener">프로젝트</a>` : ""}</div>
@@ -197,6 +326,9 @@ function renderPaper() {
     <div style="height:70px"></div>
     <div class="rbar"><button data-act="star" class="${sv ? "on" : ""}"><b>${sv ? "★" : "☆"}</b>별표</button><button data-act="hide"><b>⊘</b>숨기기</button><button data-act="tag"><b>#</b>태그</button><button data-act="share"><b>↗</b>공유</button></div>`;
   window.scrollTo(0, 0);
+  if (D) D.Seen.add("ai", p.id);
+  knowPaper(p, !!S.easy[p.id]);
+  if (hasEasy(p.id) && S.easy[p.id] === undefined) loadEasy(p.id).then(e => { const b = document.getElementById("ezbox"); if (b && S.paper === p && e) { b.innerHTML = easyHtml(p, e); knowPaper(p, true); } });
   document.getElementById("memo").addEventListener("change", e => { const v = e.target.value.trim(); if (v) S.memo[p.id] = v; else delete S.memo[p.id]; save("memo"); if (S.star[p.id]) { S.star[p.id].memo = v; save("star"); } toast("메모 저장"); });
 }
 
@@ -361,7 +493,7 @@ async function route() {
   if (h.startsWith("#p=")) { const id = decodeURIComponent(h.slice(3)); if (!S.paper || S.paper.id !== id) { await loadDay(S.day).catch(() => { }); S.paper = findPaper(id); } if (S.paper) { setTab(""); document.getElementById("tabs").hidden = true; document.body.classList.add("reading"); return renderPaper(); } nav("#today", true); return; }
   document.getElementById("tabs").hidden = false; document.body.classList.remove("reading"); S.paper = null;
   const v = h.slice(1).split("?")[0]; S.view = v; setTab(v);
-  if (v === "terms") renderTerms(); else if (v === "box") renderBox(); else renderToday();
+  if (v === "terms") renderTerms(); else if (v === "box") renderBox(); else if (v === "know") renderKnow(); else renderToday();
 }
 /* 화면 이동: 브라우저 기록은 쌓지 않고(replaceState) 앱 안에 '앞 화면' 목록만 둠. 뒤로가기는 assets/shell.js → vfmApp.back */
 const navStack = [];
@@ -380,6 +512,8 @@ function aiBack() {
 window.vfmApp = { back: aiBack, go: h => nav(h, true), route, top: () => nav("#today") };
 window.addEventListener("hashchange", route);
 document.addEventListener("click", async e => {
+  const lt = e.target.closest("[data-learn]");
+  if (lt) { const k = lt.dataset.learn; if (S.know.terms[k]) { delete S.know.terms[k]; save("know"); lt.classList.remove("on"); lt.textContent = "알았어요"; } else { learn(k, { t: lt.dataset.lt, en: lt.dataset.len, d: lt.dataset.ld }, (S.paper || {}).id || ""); lt.classList.add("on"); lt.textContent = "✓ 배움"; toast("내 지식에 쌓았어요"); } return; }
   const t = e.target.closest("[data-v],[data-open],[data-act],[data-day],[data-t],[data-term],[data-mode],[data-tag],[data-godate],[data-arch],[data-visit]"); if (!t) return;
   const d = t.dataset;
   if (d.visit) { S.read[d.visit] = Date.now(); save("read"); return; }

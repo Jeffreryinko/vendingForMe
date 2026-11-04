@@ -61,9 +61,16 @@ C = {
  "EG": ("이집트",    "EG", "ar", "egypt",          [],                "ar"),
  "CA": ("캐나다",    "CA", "en", "canada",         [],                "en"),
 }
-SRC_NAME = {"google":"구글 급상승", "wiki":"위키백과 어제 많이 본", "yt":"유튜브 인기", "x":"X 트렌드",
+# 나라별 레딧 게시판 (그 나라 게시판 + 밈 게시판). 세계 밈은 _index.json 의 memes
+REDDIT = {"KR": ["korea", "hanguk"], "US": ["AskAnAmerican", "funny"], "JP": ["japan", "newsokur"], "CN": ["China", "chinalife"], "GB": ["unitedkingdom", "CasualUK"],
+          "DE": ["de", "ich_iel"], "FR": ["france", "rance"], "IN": ["india", "IndianDankMemes"], "BR": ["brasil", "DiretoDoZapZap"], "ID": ["indonesia", "indonesia"],
+          "RU": ["russia", "Pikabu"], "TW": ["taiwan", "Taiwanese"], "VN": ["VietNam", "vozforums"], "MX": ["mexico", "Mujico"], "AR": ["argentina", "Republica_Argentina"],
+          "CL": ["chile", "RepublicadeChile"], "CO": ["Colombia", "colombia"], "PE": ["PERU", "PERU"], "NG": ["Nigeria", "Nigeria"], "ZA": ["southafrica", "southafrica"],
+          "EG": ["Egypt", "Egypt"], "CA": ["canada", "CanadaMemes"]}
+WORLD_MEMES = ["memes", "dankmemes", "me_irl"]
+SRC_NAME = {"reddit":"레딧 인기 글", "ytfun":"유튜브 코미디·엔터", "google":"구글 급상승", "wiki":"위키백과 어제 많이 본", "yt":"유튜브 인기", "x":"X 트렌드",
             "signal":"시그널 실시간 (네이버·다음 등 집계)", "yahoojp":"야후재팬 리얼타임", "baidu":"바이두 핫검색", "weibo":"웨이보 핫검색"}
-SRC_HOME = {"google":"https://trends.google.com/trending?geo={geo}", "wiki":"https://{lang}.wikipedia.org", "yt":"https://www.youtube.com/feed/trending",
+SRC_HOME = {"reddit":"https://www.reddit.com/", "ytfun":"https://www.youtube.com/feed/trending", "google":"https://trends.google.com/trending?geo={geo}", "wiki":"https://{lang}.wikipedia.org", "yt":"https://www.youtube.com/feed/trending",
             "x":"https://trends24.in/{slug}/", "signal":"https://signal.bz/news", "yahoojp":"https://search.yahoo.co.jp/realtime",
             "baidu":"https://top.baidu.com/board?tab=realtime", "weibo":"https://s.weibo.com/top/summary"}
 
@@ -96,7 +103,9 @@ def src_google(cc):
         if not kw: continue
         traffic = clean(it.findtext("ht:approx_traffic", namespaces=ns))
         news = [{"t": clean(n.findtext("ht:news_item_title", namespaces=ns), 160), "u": n.findtext("ht:news_item_url", namespaces=ns),
-                 "s": clean(n.findtext("ht:news_item_source", namespaces=ns), 40)} for n in it.findall("ht:news_item", ns)][:3]
+                 "s": clean(n.findtext("ht:news_item_source", namespaces=ns), 40),
+                 "sn": clean(re.sub(r"<[^>]+>", " ", n.findtext("ht:news_item_snippet", namespaces=ns) or ""), 220)} for n in it.findall("ht:news_item", ns)][:3]
+        news = [{k: v for k, v in n.items() if v} for n in news]
         out.append({"kw": kw, "url": f"https://www.google.com/search?q={quote_plus(kw)}", "n": traffic, "news": news})
     return out[:20]
 
@@ -118,6 +127,36 @@ def src_wiki(cc):
     return out
 
 
+def yt_desc(t):
+    """설명란에서 링크·해시태그·협찬 안내 줄을 빼고 앞부분만 (앱에서 글로 먼저 보여 주려고)"""
+    keep = []
+    for line in str(t or "").splitlines():
+        line = line.strip()
+        if not line or re.search(r"https?://|www\.|^#|@\w|구독|subscribe|follow us|instagram|tiktok|facebook|sponsor|협찬|문의|contact", line, re.I): continue
+        keep.append(line)
+        if sum(len(x) for x in keep) > 600: break
+    return clean(" ".join(keep), 600)
+
+
+_cap_fail = 0
+def yt_caption(vid, want):
+    """자막 앞부분 (공개 자막 목록에서, 실패하면 빈칸). 클라우드 서버에서 유튜브가 막는 일이 잦아 3번 연속 실패하면 이번 회차는 그만둠."""
+    global _cap_fail
+    if _cap_fail >= 3: return None                                # 이번 회차는 건너뜀 (다음 회차에 다시)
+    try:
+        h = get(f"https://www.youtube.com/watch?v={vid}&hl=en", headers={"Accept-Language": "en"}).text
+        m = re.search(r'"captionTracks":(\[.*?\])', h)
+        if not m: _cap_fail += 1; return ""
+        tracks = json.loads(m.group(1))
+        tr = next((t for t in tracks if t.get("languageCode", "").startswith(want)), None) or tracks[0]
+        x = get(tr["baseUrl"]).text
+        txt = " ".join(html.unescape(re.sub(r"<[^>]+>", "", s)) for s in re.findall(r"<text[^>]*>(.*?)</text>", x, re.S))
+        _cap_fail = 0
+        return clean(txt, 1500)
+    except Exception:
+        _cap_fail += 1; return ""
+
+
 def src_yt(cc):
     key = os.environ.get("YOUTUBE_API_KEY")
     if not key: return None
@@ -126,7 +165,8 @@ def src_yt(cc):
         if cat: p["videoCategoryId"] = cat
         r = requests.get("https://www.googleapis.com/youtube/v3/videos", params=p, timeout=30); r.raise_for_status()
         return [{"kw": clean(v["snippet"]["title"], 100), "url": f"https://www.youtube.com/watch?v={v['id']}", "n": f"{int(v.get('statistics', {}).get('viewCount', 0)):,}회",
-                 "sub": clean(v["snippet"]["channelTitle"], 40), "img": v["snippet"]["thumbnails"].get("medium", {}).get("url")} for v in r.json().get("items", [])]
+                 "sub": clean(v["snippet"]["channelTitle"], 40), "vid": v["id"], "desc": yt_desc(v["snippet"].get("description")),
+                 "vl": (v["snippet"].get("defaultAudioLanguage") or v["snippet"].get("defaultLanguage") or "")[:2]} for v in r.json().get("items", [])]
     try: news = pull("25")
     except Exception: news = []
     allv = pull()
@@ -185,6 +225,85 @@ SRC_FN = {"google": src_google, "wiki": src_wiki, "yt": src_yt, "x": src_x, "sig
 
 
 # ───────── 번역 (TOP5만, 기억해서 다시 안 함) ─────────
+ROUGH = re.compile(r"nsfw|nsfl|gore|graphic|corpse|dead body|beheading|killed|murder|shooting video|blood|자살|살해|시신|사망 영상", re.I)
+def reddit_list(sub, limit=8):
+    from crawler import reddit_api as R
+    params = {"t": "day", "limit": limit, "raw_json": 1}
+    if R.enabled(): j = R._get(f"/r/{sub}/top", params)
+    else: j = get(f"https://www.reddit.com/r/{sub}/top.json", params=params).json()
+    out = []
+    for ch in j.get("data", {}).get("children", []):
+        d = ch.get("data", {})
+        title = clean(d.get("title"), 200)
+        if not title or d.get("stickied") or d.get("over_18") or d.get("spoiler") or ROUGH.search(title + " " + (d.get("link_flair_text") or "")): continue
+        u = d.get("url_overridden_by_dest") or d.get("url") or ""
+        img = u if re.match(r"^https://i\.redd\.it/[\w.-]+\.(jpg|jpeg|png|gif|webp)$", u) else ""
+        if not img and d.get("is_gallery") and d.get("media_metadata"):           # 여러 장 글: 첫 장
+            m = next(iter(d["media_metadata"].values()), {}); src = html.unescape(((m.get("s") or {}).get("u") or ""))
+            if src.startswith("https://preview.redd.it/") or src.startswith("https://i.redd.it/"): img = src
+        it = {"kw": title, "url": "https://www.reddit.com" + d.get("permalink", ""), "n": f"▲{d.get('score', 0):,} · 댓글 {d.get('num_comments', 0):,}", "sub": "r/" + sub}
+        if img: it["img"] = img
+        txt = clean(d.get("selftext"), 300)
+        if txt: it["desc"] = txt
+        out.append(it)
+    return out
+
+
+def src_reddit(cc):
+    subs = list(dict.fromkeys(REDDIT.get(cc) or []))
+    if not subs: return None
+    items = []
+    for sub in subs:
+        try: items += reddit_list(sub)
+        except Exception as e: log(f"레딧 r/{sub}: {e}")
+        time.sleep(0.8)
+    if not items: raise RuntimeError("레딧 0개")
+    return sorted(items, key=lambda x: -int(re.sub(r"\D", "", x["n"].split("·")[0]) or 0))[:12]
+
+
+def src_ytfun(cc):
+    """유튜브 인기 중 코미디(23)·엔터(24) — 밈 영상 대신 (나라마다 2단위)"""
+    key = os.environ.get("YOUTUBE_API_KEY")
+    if not key: return None
+    out, seen = [], set()
+    for cat, tag in (("23", "코미디"), ("24", "엔터")):
+        try:
+            r = requests.get("https://www.googleapis.com/youtube/v3/videos", params={"part": "snippet,statistics", "chart": "mostPopular", "regionCode": cc, "maxResults": 10, "videoCategoryId": cat, "key": key}, timeout=30)
+            r.raise_for_status()
+        except Exception: continue
+        for v in r.json().get("items", []):
+            if v["id"] in seen: continue
+            seen.add(v["id"])
+            out.append({"kw": clean(v["snippet"]["title"], 100), "url": f"https://www.youtube.com/watch?v={v['id']}", "n": f"{int(v.get('statistics', {}).get('viewCount', 0)):,}회",
+                        "sub": clean(v["snippet"]["channelTitle"], 40), "vid": v["id"], "desc": yt_desc(v["snippet"].get("description")), "tag": tag,
+                        "vl": (v["snippet"].get("defaultAudioLanguage") or "")[:2]})
+    return sorted(out, key=lambda x: -int(re.sub(r"\D", "", x["n"]) or 0))[:15]
+
+
+def world_memes(tr):
+    items = []
+    for sub in WORLD_MEMES:
+        try: items += reddit_list(sub, 10)
+        except Exception as e: log(f"레딧 r/{sub}: {e}")
+        time.sleep(0.8)
+    items = [x for x in items if x.get("img")][:20]
+    mem = rj(OUT / "_tr.json", {})
+    todo = [x["kw"] for x in items if x["kw"] not in mem]
+    fit, used = [], 0
+    for k in todo:
+        if used + len(k) > tr.available: break
+        fit.append(k); used += len(k)
+    if fit and not DRY:
+        res, _ = tr.translate(fit, "en")
+        if res: mem.update(dict(zip(fit, res))); wj(OUT / "_tr.json", mem)
+    for x in items:
+        if mem.get(x["kw"]): x["ko"] = mem[x["kw"]]
+    return items
+
+
+SRC_FN.update(reddit=src_reddit, ytfun=src_ytfun)
+
+
 def translator():
     usage = rj(OUT / "_usage.json", {}); mk = datetime.now(KST).strftime("%Y-%m")
     used = usage.get(mk, {"deepl": 0, "google": 0})
@@ -227,6 +346,55 @@ def translate_all(data, tr):
                 if it["kw"] in mem and C[cc][5] != "ko": it["ko"] = mem[it["kw"]]
     if len(mem) > 4000: mem = dict(list(mem.items())[-3000:])
     wj(OUT / "_tr.json", mem)
+
+
+YT_DETAIL = int(os.environ.get("TRENDS_YT_DETAIL", "8"))      # 나라마다 설명·자막을 번역해 붙일 영상 수
+CAP_TRY = int(os.environ.get("TRENDS_CAP_TRY", "3"))         # 나라마다 자막을 시도할 영상 수
+def enrich(data, tr):
+    """급상승 이유(구글 관련 뉴스 제목)와 유튜브 설명·자막을 한국어로. 이미 한 것은 _ytdesc.json 에 기억."""
+    mem = rj(OUT / "_ytdesc.json", {})
+    todo = {}                                                     # lang -> [(key, text)]
+    for cc, d in data.items():
+        lang = C[cc][5]
+        g = (d["src"].get("google") or {}).get("items") or []
+        for it in g[:10]:
+            for n in (it.get("news") or [])[:1]:
+                k = "n:" + n["t"]
+                if lang != "ko" and k not in mem: todo.setdefault(lang, []).append((k, n["t"]))
+        yt = ((d["src"].get("yt") or {}).get("items") or [])[:YT_DETAIL] + ((d["src"].get("ytfun") or {}).get("items") or [])[:4]
+        for i, it in enumerate(yt):
+            vid = it.get("vid"); vl = it.get("vl") or lang
+            if not vid: continue
+            if i < CAP_TRY and ("c:" + vid) not in mem:
+                cap = yt_caption(vid, vl)
+                if cap is not None: mem["c:" + vid] = cap
+            for kind, text in (("d", it.get("desc") or ""), ("c", mem.get("c:" + vid) or "")):
+                k = f"{kind}k:{vid}"
+                if text and vl != "ko" and k not in mem: todo.setdefault(vl if vl in ("en", "ja", "zh", "es", "pt", "fr", "de", "ru", "id", "vi", "ar") else lang, []).append((k, text[:350]))
+    for lang, rows in todo.items():
+        fit, used = [], 0
+        for k, t in rows:
+            if used + len(t) > tr.available: break
+            fit.append((k, t)); used += len(t)
+        if not fit: continue
+        res, eng = tr.translate([t for _, t in fit], lang) if not DRY else ([f"[번역]{t}" for _, t in fit], "dry")
+        if res:
+            for (k, _), v in zip(fit, res): mem[k] = v
+            log(f"자세히 번역 {lang}: {len(fit)}개 ({eng})")
+    for cc, d in data.items():
+        for n in [n for it in ((d["src"].get("google") or {}).get("items") or []) for n in (it.get("news") or [])]:
+            if mem.get("n:" + n["t"]): n["ko"] = mem["n:" + n["t"]]
+        for it in ((d["src"].get("yt") or {}).get("items") or []) + ((d["src"].get("ytfun") or {}).get("items") or []):
+            vid = it.get("vid")
+            if not vid: continue
+            if mem.get("c:" + vid): it["cap"] = mem["c:" + vid][:1200]
+            if mem.get("dk:" + vid): it["dko"] = mem["dk:" + vid]
+            if mem.get("ck:" + vid): it["capko"] = mem["ck:" + vid]
+    # 오래된 기억 정리 (4000개 넘으면 앞쪽부터)
+    keys = list(mem)
+    if len(keys) > 4000:
+        for k in keys[:len(keys) - 3000]: mem.pop(k, None)
+    wj(OUT / "_ytdesc.json", mem)
 
 
 # ───────── NEW 표시·세계 공통·보관 ─────────
@@ -285,7 +453,7 @@ def main():
     data = {}
     wiki_done_today = (rj(OUT / "_index.json", {}).get("wikiDay") == datetime.now(KST).strftime("%Y-%m-%d"))
     for cc, (name, geo, lang, slug, local, _) in C.items():
-        srcs = [s for s in ["google", "wiki", "yt", "x"] + local if not (s == "google" and not geo) and not (s == "x" and not slug)]
+        srcs = [s for s in ["google", "wiki", "yt", "ytfun", "reddit", "x"] + local if not (s == "google" and not geo) and not (s == "x" and not slug)]
         d = {"cc": cc, "name": name, "at": now_iso(), "src": {}}
         for s in srcs:
             old = (prev[cc].get("src") or {}).get(s) or {}
@@ -311,13 +479,17 @@ def main():
         log(f"{cc} {name}: " + ", ".join(f"{s}{'' if b.get('ok') else '✗'}{len(b.get('items') or [])}" for s, b in d["src"].items()))
     tr, mk, usage = translator()
     translate_all(data, tr)
+    try: enrich(data, tr)
+    except Exception as e: log(f"자세히 붙이기 실패 — 건너뜀: {e}")
     m = usage.setdefault(mk, {"deepl": 0, "google": 0}); m["deepl"] += tr.used["deepl"]; m["google"] += tr.used["google"]
     if not DRY: wj(OUT / "_usage.json", usage)
+    try: memes = world_memes(tr)
+    except Exception as e: log(f"세계 밈 실패: {e}"); memes = rj(OUT / "_index.json", {}).get("memes", [])
     mark_seen(data)
     for cc, d in data.items(): wj(OUT / f"{cc}.json", d)
     broken = {k: v for k, v in health.items() if v.get("n", 0) >= 3 * RUNS_PER_DAY}   # 3일 넘게 계속 실패
     idx = {"at": now_iso(), "wikiDay": datetime.now(KST).strftime("%Y-%m-%d"), "countries": [[cc, v[0]] for cc, v in C.items()],
-           "world": world_band(data), "broken": broken, "days": sorted({f.stem[3:] for f in HIST.glob("??_*.json")} | {datetime.now(KST).strftime("%Y-%m-%d")}), "ytKey": bool(os.environ.get("YOUTUBE_API_KEY")), "trErrors": tr.errors[:5]}
+           "world": world_band(data), "memes": memes, "broken": broken, "days": sorted({f.stem[3:] for f in HIST.glob("??_*.json")} | {datetime.now(KST).strftime("%Y-%m-%d")}), "ytKey": bool(os.environ.get("YOUTUBE_API_KEY")), "trErrors": tr.errors[:5]}
     wj(OUT / "_index.json", idx); wj(OUT / "_health.json", health)
     archive(data)
     wj(OUT / "_meta.json", {"updatedAt": now_iso(), "by": "trends-robot"})

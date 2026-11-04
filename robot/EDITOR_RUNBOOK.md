@@ -26,14 +26,19 @@
 ## 3. 흐름·나라 (`themes`, `countryDigest`)
 `themes.ai`·`themes.eco`의 `flows`를 이번 판 글로 다시 묶습니다(갈래 4~6개, 갈래마다 근거 글 id 3~6개). `countryDigest`를 나라마다 2문장으로 다시 씁니다.
 
-## 4. 이름 사전 (`brief/ents.json`)
-이번 판 이슈·단신 제목과 `key`에 나온 인물·정당·지역·기관·용어 중 사전에 없는 이름을 더합니다. `map["표기"] = {t, r, d, o, c, a}` (`t`=person·party·org·place·term·event, `r`=한 줄 정체, `d`=2~4문장 배경, `o`=원어, `c`=나라 코드, `a`=다른 표기들). 표기는 **기사 속 한국어 표기 그대로**. 바뀌는 직책은 "기사 기준"을 붙입니다. 기존 항목은 지우지 않고, `updatedAt`을 바꿉니다. (사진은 로봇이 다음 회차에 자동으로 찾아 붙입니다.)
+## 4. 이름 사전 (`brief/ents.json`) — 짧게 (토큰 아끼기)
+이번 판 이슈·단신 제목과 `key`에 나온 인물·정당·지역·기관·용어 중 사전에 없는 이름만 더합니다. `map["표기"] = {t, r, o, c, a, w}` (`t`=person·party·org·place·term·event, `r`=**한 줄** 정체(누구·어디인지), `o`=원어, `c`=나라 코드, `a`=다른 표기들, `w`=한국어 위키백과 문서 제목(알면)). 표기는 **기사 속 한국어 표기 그대로**. 바뀌는 직책은 "기사 기준"을 붙입니다.
+- **긴 설명(`d`)은 새로 쓰지 않습니다.** 앱이 이름을 누를 때 위키백과 첫 문단을 바로 받아 보여 줘요. 위키백과에 없을 만한 것(새 사건·신조어)만 `d` 1~2문장.
+- 기존 항목은 지우지 않고, `updatedAt`을 바꿉니다. 사진은 찾지 않습니다(앱이 누를 때 위키백과 자유 이용 사진만 씀).
 
 ## 5. 댓글 분위기 (`brief/ED__cm.json`)
 `map[글id].mood`가 비어 있는 글마다 `picks`의 댓글을 읽고 분위기 한 줄을 씁니다. `picks[].type`을 top·counter·insight·info·joke·claim 중 하나로 고치고, `ko`를 다듬습니다(`raw`는 현지 말투 번역, `orig`는 원문 그대로 둠). 욕설·혐오 표현은 순화합니다.
 
-## 6. 저장
-1. `editions/ED.json`, `brief/ents.json`, `brief/ED__cm.json`을 덮어씁니다. `editions/ED.json`의 `editedAt`에 지금 시각(KST)을 적습니다.
+## 6. AI 새 기능 3~5개 정리 + 논문 쉬운 풀이 2편 (07시 회차만) — `robot/AI_RUNBOOK.md`
+07시 회차에서만 `robot/AI_RUNBOOK.md` 를 따릅니다: 먼저 AI 서비스 새 기능 3~5개("뭐가 생겼나·어떻게 써 보나"), 그다음 논문 2편 쉬운 풀이(요청 먼저). 19시 회차는 건너뜁니다.
+
+## 7. 저장
+1. `editions/ED.json`, `brief/ents.json`, `brief/ED__cm.json`을 덮어씁니다. (풀이를 썼으면 `data/ai/easy`, `data/requests.json` 도 함께) `editions/ED.json`의 `editedAt`에 지금 시각(KST)을 적습니다.
 2. `python robot/reindex.py`
-3. `git add data/sisa && git commit -m "시사: ED 해설(편집장)" && git pull --rebase && git push`
+3. `git add data/sisa data/ai/easy data/ai/feat.json data/requests.json && git commit -m "시사: ED 해설(편집장)" && git pull --rebase && git push`
 4. 한 줄로 결과를 남깁니다: 판 ID, 새 이슈·단신 수, 해설 쓴 이슈 수, 이름 추가 수, 실패한 단계.
