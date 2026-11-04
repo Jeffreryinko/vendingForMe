@@ -2,7 +2,7 @@
  *
  *  · 카드 한 장씩 보여 주고, 옆으로 밀면 다음 카드. 위아래로는 그냥 화면이 움직임(카드 안 글을 끝까지 읽기).
  *  · 이미 본 카드는 다시 안 나옴 — 본 기록은 이 폰 저장소(localStorage "vfm:seen:<앱>")에 남김.
- *  · 감도: 손가락이 20px 넘게 움직였을 때 방향을 정하고(가로가 세로의 2배 넘어야 가로),
+ *  · 감도: 손가락이 16px 넘게 움직였을 때 방향을 정하고(가로가 세로보다 조금만 커도 가로 — 엄지는 휘어서 밀기 때문),
  *    화면 너비의 30%(최소 100px) 넘게 밀거나, 80px 넘게 빠르게 밀었을 때 넘어감.
  *  · 외국어 글은 카드가 보일 때 자동으로 한국어로 번역(구글 번역 무료 주소, 폰에 기억). '원문 보기'로 되돌림.
  *    화면 가장자리 28px 안에서 시작한 손가락은 폰 뒤로가기 제스처라서 무시.
@@ -206,16 +206,20 @@
   document.addEventListener("touchmove", function (e) {
     if (!g) return;
     var x = e.touches[0].clientX, y = e.touches[0].clientY, dx = x - g.x0, dy = y - g.y0;
-    if (g.lock === null) {
-      if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
-      g.lock = Math.abs(dx) > Math.abs(dy) * 2 ? "h" : "v";
-      if (g.lock === "v") { g = null; return; }                          // 세로 = 그냥 스크롤
+    // 방향 정하기: 엄지로 밀면 살짝 휘어지므로 가로가 세로보다 조금만 커도 '옆으로'.
+    // 세로로 시작했어도 0.35초 안에 확실히 옆으로 가면(가로 60px 이상, 세로의 1.5배) 옆으로 바꿔 줌
+    if (g.lock === null || g.lock === "v") {
+      if (Math.abs(dx) < 16 && Math.abs(dy) < 16) return;
+      if (g.lock === null) g.lock = Math.abs(dx) > Math.abs(dy) * 1.1 ? "h" : "v";
+      else if (Date.now() - g.t0 < 350 && Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.5) g.lock = "h";
+      if (g.lock === "v") { if (Date.now() - g.t0 > 350) g = null; return; }   // 세로 = 그냥 스크롤
     }
+    if (e.cancelable) e.preventDefault();                                   // 옆으로 미는 동안 화면이 위아래로 흔들리지 않게
     var now = Date.now(); if (now > g.lastT) { g.v = (x - g.lastX) / (now - g.lastT); g.lastX = x; g.lastT = now; }
     g.dx = dx;
     g.card.style.transition = "none";
     g.card.style.transform = "translateX(" + (dx * 0.85) + "px) rotate(" + (dx / 60).toFixed(2) + "deg)";
-  }, { passive: true });
+  }, { passive: false });
   function settle(card) { card.style.transition = "transform .2s ease-out"; card.style.transform = ""; }
   document.addEventListener("touchcancel", function () { if (g) settle(g.card); g = null; }, { passive: true });
   document.addEventListener("touchend", function () {
