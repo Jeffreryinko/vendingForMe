@@ -45,19 +45,24 @@
         var brief = s.kind === "brief", key = brief ? "b:" + (s.items[0] || s.id) : "i:" + s.title, cs = s.countries || [];
         return { key: key, sa: "sisa", kind: "sisa", title: s.title, url: location.origin + location.pathname + "sisa/#issue-" + s.id, shareText: s.title + (s.key ? "\n" + s.key : ""),
           q: s.title + " " + (s.key || ""), s: s, ed: m.edition, html: function () {
-            var w3 = s.why3 || {}, li = function (a) { return a.map(function (b) { return "<li>" + b + "</li>"; }).join(""); };
+            var w3 = s.why3 || {}, li = function (a) { return a.map(function (b) { return "<li>" + b + "</li>"; }).join(""); }, n = 0;
+            var sec = function (t, body) { if (!body) return ""; n++; return '<p class="mx-ih"><span>' + n + "</span>" + t + "</p>" + body; };
             var its = (s.first || []).concat((s.items || []).filter(function (x) { return (s.first || []).indexOf(x) < 0; })).map(function (x) { return FEEDBY && FEEDBY[x]; }).filter(Boolean);
+            var seenT = {}, tl = its.filter(function (i) { return i.p && i.k !== "trend"; }).sort(function (a, b) { return String(a.p).localeCompare(String(b.p)); }).filter(function (i) { var k = i.ko || i.t; if (seenT[k]) return false; seenT[k] = 1; return true; });
+            var ops = its.filter(function (i) { return CM[i.id] && CM[i.id].picks && CM[i.id].picks.length; }).slice(0, 4);
+            var when = function (p) { var d = new Date(p); return (d.getMonth() + 1) + "/" + d.getDate() + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+            var art = function (i) { return '<a href="' + esc(D.koUrl(i.u, i.l)) + '" target="_blank" rel="noopener">' + esc(i.ko || i.t) + "<small>" + flag(i.c) + " " + esc(cname(i.c)) + (i.p ? " · " + when(i.p) : "") + "</small></a>"; };
             return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag sisa">시사</span>' + (CAT[s.cat] ? "<span>" + CAT[s.cat] + "</span>" : "") + "<span>" + cs.slice(0, 6).map(flag).join("") + "</span><span>" + (brief ? "단신" : cs.length + "개국 · 기사 " + (s.items || []).length) + "</span>" + (s.delta === "new" ? '<b class="new">새 소식</b>' : "") + "</div>" +
-              '<h2 class="vdk-t">' + esc(s.title) + '</h2><p class="vdk-p">' + esc(s.key || s.sum) + "</p>" +
-              (w3.link || w3.now || s.why ? '<p class="vdk-h">왜 중요한가</p>' + (w3.link ? '<p class="vdk-p">' + esc(w3.link) + "</p>" : "") + (w3.now ? '<p class="vdk-p">' + esc(w3.now) + "</p>" : "") + (s.why && !w3.now ? '<p class="vdk-p">' + esc(s.why) + "</p>" : "") + (w3.korea ? '<p class="vdk-p"><b>한국과는?</b> ' + esc(w3.korea) + "</p>" : "") : "") +
-              ((s.bg || []).length ? '<p class="vdk-h">알아 둘 배경</p><ol class="vdk-ol">' + li(s.bg.map(esc)) + "</ol>" : "") +
-              ((s.terms || []).length ? '<p class="vdk-h">용어</p><ol class="vdk-ol">' + li(s.terms.map(function (t) { return "<b>" + esc(t.t) + "</b> — " + esc(t.d); })) + "</ol>" : "") +
-              ((s.qa || []).length ? '<p class="vdk-h">궁금한 것</p><ol class="vdk-ol">' + li(s.qa.map(function (x) { return "<b>" + esc(x.q) + "</b><br>" + esc(x.a); })) + "</ol>" : "") +
-              ((s.angles || []).length ? '<p class="vdk-h">나라별로 무엇을 강조했나</p><ol class="vdk-ol">' + li(s.angles.map(function (a) { return flag(a.c) + " <b>" + esc(cname(a.c)) + "</b> " + esc(a.t); })) + "</ol>" : "") +
-              (s.watch ? '<p class="vdk-h">앞으로 지켜볼 것</p><p class="vdk-p">' + esc(s.watch) + "</p>" : "") +
-              (its.length ? '<p class="vdk-h">기사 ' + its.length + "개 · 누르면 원문(한국어 번역)</p>" + '<div class="vdk-links">' + its.slice(0, 12).map(function (i) {
-                return '<a href="' + esc(D.koUrl(i.u, i.l)) + '" target="_blank" rel="noopener">' + esc(i.ko || i.t) + "<small>" + flag(i.c) + " " + esc(cname(i.c)) + "</small></a>"; }).join("") + "</div>" : FEEDBY ? "" : '<p class="vdk-note">기사 목록을 불러오는 중…</p>') +
-              '<button type="button" class="vdk-more"' + go("sisa/#issue-" + s.id) + ">" + (brief ? "시사에서 자세히 ›" : "시사에서 지도·여론까지 보기 ›") + "</button></div>";
+              '<h2 class="vdk-t">' + esc(s.title) + "</h2>" +
+              sec("무슨 일이 있었나", '<p class="vdk-p">' + esc(s.key || s.sum) + "</p>") +
+              sec("왜 중요한가", (w3.link ? '<p class="vdk-p"><b>어떤 연결이 있나요?</b><br>' + esc(w3.link) + "</p>" : "") + (w3.now ? '<p class="vdk-p"><b>지금 확인된 영향</b><br>' + esc(w3.now) + "</p>" : "") + (s.why && !w3.now ? '<p class="vdk-p">' + esc(s.why) + "</p>" : "") + (w3.korea ? '<p class="vdk-p"><b>한국과는?</b><br>' + esc(w3.korea) + "</p>" : "")) +
+              sec("이해하려면 알아야 할 것", ((s.bg || []).length ? '<ol class="vdk-ol">' + li(s.bg.map(esc)) + "</ol>" : "") + ((s.terms || []).length ? '<ol class="vdk-ol">' + li(s.terms.map(function (t) { return "<b>" + esc(t.t) + "</b> — " + esc(t.d); })) + "</ol>" : "") + ((s.qa || []).length ? s.qa.map(function (x) { return '<details class="mx-sec"><summary>' + esc(x.q) + '</summary><p class="vdk-p">' + esc(x.a) + "</p></details>"; }).join("") : "")) +
+              sec("어떻게 흘러왔나", tl.length >= 2 ? '<ol class="vdk-ol">' + li(tl.slice(-8).map(function (i) { return "<small>" + when(i.p) + "</small> " + flag(i.c) + " " + esc(i.ko || i.t); })) + "</ol>" : "") +
+              sec("나라별로 무엇을 강조했나", (s.angles || []).length ? '<ol class="vdk-ol">' + li(s.angles.map(function (a) { return flag(a.c) + " <b>" + esc(cname(a.c)) + "</b>" + (a.f ? " [" + esc(a.f) + "]" : "") + " " + esc(a.t); })) + "</ol>" : "") +
+              sec("세계의 여론", ops.length ? ops.map(function (i) { var c = CM[i.id], pk = c.picks.filter(function (x) { return x.type === "top"; })[0] || c.picks[0]; return '<p class="vdk-p">' + flag(i.c) + " <b>" + esc(cname(i.c)) + "</b> " + esc(c.mood || "") + "<br>“" + esc(pk.ko || pk.raw || pk.orig) + "”</p>"; }).join("") : "") +
+              sec("기사", its.length ? '<div class="vdk-links">' + its.slice(0, 12).map(art).join("") + "</div>" + (its.length > 12 ? '<p class="vdk-note">기사 ' + its.length + "개 중 12개</p>" : "") : FEEDBY ? "" : '<p class="vdk-note">기사 목록을 불러오는 중…</p>') +
+              sec("앞으로 지켜볼 것", s.watch ? '<p class="vdk-p">' + esc(s.watch) + "</p>" : "") +
+              '<button type="button" class="vdk-more"' + go("sisa/#issue-" + s.id) + ">지도와 함께 시사에서 보기 ›</button></div>";
           } };
       }));
       var dg = ed.countryDigest || {};
@@ -139,13 +144,15 @@
   }, 2500);
 
   /* ── 카드가 보일 때만 더 받아 오기: 시사 기사 목록(그 판), 역사 글 전체 ── */
-  var FEEDBY = null, feedP = null, HD = {};
+  var FEEDBY = null, feedP = null, HD = {}, CM = {};
   function loadFeedOf(ed) {
     if (!feedP) feedP = j("data/sisa/feed/_index.json").then(function (ids) {
       return Promise.all((ids || []).filter(function (x) { return x.indexOf(ed + "__") === 0; }).map(function (x) { return j("data/sisa/feed/" + x + ".json"); }));
     }).then(function (docs) {
+      return j("data/sisa/brief/" + ed + "__cm.json").then(function (cm) { CM = (cm && cm.map) || {}; return docs; });
+    }).then(function (docs) {
       FEEDBY = {};
-      (docs || []).forEach(function (d) { (d && d.items || []).forEach(function (it) { FEEDBY[it.id] = { t: it.t, ko: it.ko || (d.lang === "ko" ? it.t : ""), u: it.u, c: it.c, l: d.lang }; }); });
+      (docs || []).forEach(function (d) { (d && d.items || []).forEach(function (it) { FEEDBY[it.id] = { id: it.id, t: it.t, ko: it.ko || (d.lang === "ko" ? it.t : ""), u: it.u, c: it.c, l: d.lang, p: it.p, k: it.k }; }); });
     });
     return feedP;
   }
@@ -223,6 +230,7 @@
     ".mx-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:.5px solid var(--ap-sep);font-size:14px}.mx-row:first-of-type{border-top:0}" +
     ".mx-seg{display:flex;gap:2px;background:var(--ap-fill);border-radius:9px;padding:2px;flex:none}.mx-seg button{border:0;border-radius:7px;padding:6px 8px;font:inherit;font-size:12.5px;background:none;color:var(--ap-label)}.mx-seg button[aria-pressed=true]{background:var(--ap-seg-on);font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.12)}" +
     ".mx-reset{margin-top:8px;border:0;background:none;color:var(--ap-blue);font:inherit;font-size:14px;padding:4px 0}" +
+    ".mx-ih{display:flex;align-items:center;gap:8px;margin:18px 0 6px;font-weight:700;font-size:16px}.mx-ih span{width:24px;height:24px;border-radius:50%;background:var(--ap-blue);color:#fff;display:grid;place-items:center;font-size:13px}" +
     ".mx-sec{margin:6px 0;border-top:.5px solid var(--ap-sep)}.mx-sec summary{padding:8px 0;font-weight:700;font-size:14px;cursor:pointer}" +
     ".mx-tag{font-weight:700;padding:2px 8px;border-radius:999px;font-size:12px}.mx-tag.sisa{background:color-mix(in srgb,var(--ap-blue) 15%,transparent);color:var(--ap-blue-t)}" +
     ".mx-tag.nation{background:color-mix(in srgb,var(--ap-teal) 18%,transparent);color:var(--ap-teal)}.mx-tag.ai{background:color-mix(in srgb,var(--ap-purple) 15%,transparent);color:var(--ap-purple-t)}" +
