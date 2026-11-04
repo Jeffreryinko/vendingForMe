@@ -586,6 +586,18 @@ def t_year(v):
     return year_lit(v.get("time", "").lstrip("+"))
 
 
+def t_rough(e, p):
+    """그 속성의 첫 날짜가 대략적인가? (정밀도가 연도보다 거칠거나, 출처가 '경'으로 단 날짜)"""
+    cs = [c for c in (e.get("claims") or {}).get(p, []) if c.get("rank") != "deprecated"] if e else []
+    if not cs: return False
+    cs.sort(key=lambda c: 0 if c.get("rank") == "preferred" else 1); c = cs[0]
+    v = ((c.get("mainsnak") or {}).get("datavalue") or {}).get("value")
+    if isinstance(v, dict) and v.get("precision", 9) < 9: return True
+    for q in (c.get("qualifiers") or {}).get("P1480", []):
+        if (((q.get("datavalue") or {}).get("value")) or {}).get("id") == T.CIRCA: return True
+    return False
+
+
 def t_md(v):
     """정밀도가 '일'인 날짜 → 'MM-DD'"""
     if not isinstance(v, dict) or v.get("precision", 0) < 11: return ""
@@ -618,6 +630,7 @@ class Countries:
         seen = seen if seen is not None else set()
         if not q or q in seen or depth > 5: return None, "", ""
         seen.add(q)
+        if q in T.CONTINENT_REGION: return None, T.CONTINENT_REGION[q], ""          # 대륙·지역 자체 (유럽·중동 등)
         if q in T.HIST_ISO: iso = T.HIST_ISO[q]; return iso, T.ISO_REGION.get(iso, ""), (self.c.get(q) or {}).get("ko", "")
         r = self.c.get(q)
         if not r: return None, "", ""
@@ -653,7 +666,7 @@ class Labels:
 
 
 # ═══════════════════ 4. 거르기·분류 ═══════════════════
-KCODE = {"person": "p", "event": "e", "state": "s", "period": "t", "lore": "l", "other": "o"}
+KCODE = {"person": "p", "event": "e", "state": "s", "period": "t", "lore": "l", "concept": "c", "other": "o"}
 REL_PROPS = (("prev", "P155"), ("next", "P156"), ("part", "P361"), ("people", "P710"), ("effect", "P1542"), ("cause", "P828"), ("conf", "P607"), ("evt", "P793"), ("follows", "P1365"), ("followed", "P1366"))
 
 
@@ -689,34 +702,51 @@ def judge(page, ent, hint, CL):
 
 # 본문 첫 문단의 연도: '기원전 약 6000년', '기원전 6000년경' 도 기원전으로. '1만 년 전'(지금부터 몇 년 전)은 연도가 아님
 LEAD_YEAR = re.compile(r"(기원전\s*(?:약|대략|무렵)?\s*)?(?<!\d)(?<!\d[,.])(\d{1,5})년(?!\s*전(?:[에의까부]|\s|,|\.|$))")
+def role_places(e, kind):
+    """classify 가 나라를 알아내려고 볼 장소 QID 들 (미리 Countries 에 받아 둠)"""
+    out = cv(e, "P17") + cv(e, "P27") + cv(e, "P276") + cv(e, "P19") + cv(e, "P937") + cv(e, "P131")[:1] + cv(e, "P30")[:1] + ([e["id"]] if kind == "state" and e.get("id") else [])
+    return [q for q in out if isinstance(q, str)]
+
+
 def classify(page, ent, kind, C, L, hint, CL):
     p31 = cv(ent, "P31"); occ = cv(ent, "P106"); pos = cv(ent, "P39")
-    md = ""
-    if kind == "person":
+    md = ""; rough = False
+    if kind not in ("person", "state") and set(p31) & T.CONCEPT_CLASSES: kind = "concept"
+    if kind == "concept":
+        y = y2 = ya = None
+    elif kind == "person":
         bt = (cv(ent, "P569") or [None])[0]; dt = (cv(ent, "P570") or [None])[0]
-        y, y2 = t_year(bt), t_year(dt)
+        y, y2 = t_year(bt), t_year(dt); rough = t_rough(ent, "P569") if y is not None else t_rough(ent, "P570")
         ya = (min(y2, y + 40) if y2 is not None else y + 40) if y is not None else y2
     elif kind == "state":
         y, y2 = t_year((cv(ent, "P571") or cv(ent, "P580") or [None])[0]), t_year((cv(ent, "P576") or cv(ent, "P582") or [None])[0]); ya = y
+        rough = t_rough(ent, "P571") if cv(ent, "P571") else t_rough(ent, "P580")
     else:
         d0 = (cv(ent, "P585") or cv(ent, "P580") or cv(ent, "P571") or [None])[0]
         y = t_year(d0); y2 = t_year((cv(ent, "P582") or cv(ent, "P576") or [None])[0]); ya = y; md = t_md(d0) if kind == "event" else ""
-    if y is None and hint.get("y") is not None and kind != "person": y = ya = hint["y"]
-    if y is None:                                                     # 본문 첫 문단에서 연도 찾기
+        rough = next((t_rough(ent, p) for p in ("P585", "P580", "P571") if cv(ent, p)), False)
+    if y is None and hint.get("y") is not None and kind not in ("person", "concept"): y = ya = hint["y"]
+    if y is None and kind != "concept":                               # 본문 첫 문단에서 연도 찾기 (찾으면 '추정'으로 표시)
         m = LEAD_YEAR.search((page.get("lead") or "")[:400])
-        if m: y = ya = -int(m.group(2)) if m.group(1) else int(m.group(2))
+        if m: y = ya = -int(m.group(2)) if m.group(1) else int(m.group(2)); rough = True
         if kind == "person" and y is not None: ya = y + 40 if y < 1990 else y
     if y2 is not None and y is not None and y2 < y: y2 = None
-    where = cv(ent, "P17") + (cv(ent, "P27") if kind == "person" else [])
-    places = cv(ent, "P276") + cv(ent, "P131")[:1] + (cv(ent, "P19") if kind == "person" else []) + (cv(ent, "P30")[:1] if kind == "state" else [])
-    if kind == "state": where = [ent.get("id")] + where
-    isos, thens, region = [], [], ""
-    for q in where[:5] + places[:3]:
-        iso, reg, then = C.resolve(q)
-        if iso and iso not in isos: isos.append(iso)
-        if then and then not in thens and q in where: thens.append(then)
-        if not region and reg: region = reg
-    if isos: region = T.ISO_REGION.get(isos[0], region)
+    # 역할별 나라: 인물 = 활동지 → 출생지 → 국적 / 사건 = 일어난 곳 → 나라 / 나라·왕조 = 그 나라
+    if kind == "person": ROLE = (("work", cv(ent, "P937")[:3], 0), ("born", cv(ent, "P19")[:1], 0), ("nat", cv(ent, "P27")[:3], 1))
+    elif kind == "state": ROLE = (("at", [ent.get("id")] + cv(ent, "P17")[:2], 1), ("at", cv(ent, "P30")[:1], 0))
+    else: ROLE = (("at", cv(ent, "P276")[:6], 0), ("at", cv(ent, "P17")[:4], 1), ("at", cv(ent, "P131")[:1], 0), ("side", [q for q in cv(ent, "P710")[:8] if q in C.c], 1))
+    isos, thens, region, roles, at_regs = [], [], "", {}, []
+    for role, qs, pol in ROLE:                                        # pol = 나라(정치체)를 가리키는 속성 → '당시 이름'을 씀
+        for q in qs:
+            if not isinstance(q, str): continue
+            iso, reg, then = C.resolve(q)
+            then = then if pol else ""
+            if (iso or then) and not any(r[0] == (iso or "") and r[1] == then for r in roles.get(role, [])): roles.setdefault(role, []).append([iso or "", then])
+            if iso and iso not in isos: isos.append(iso)
+            if then and then not in thens: thens.append(then)
+            if not region and reg: region = reg                       # 처음 권역이 나오는 곳 (대륙만 알아도)
+            if role == "at" and reg and reg not in at_regs: at_regs.append(reg)
+    if isos and not region: region = T.ISO_REGION.get(isos[0], "")
     if not isos:                                                      # 위키데이터에 나라가 없으면 분류 이름으로 한국·일본·중국만이라도
         cats = " ".join(c["title"] for c in page.get("cats", []))
         for words, iso in ((("조선", "고려", "신라", "백제", "고구려", "발해", "가야", "대한제국", "한국", "대한민국", "일제강점기"), "KR"), (("일본",), "JP"), (("중국", "청나라", "명나라", "당나라", "송나라", "원나라", "한나라"), "CN")):
@@ -743,9 +773,12 @@ def classify(page, ent, kind, C, L, hint, CL):
     tags = ""
     if kind == "lore" or any(k in words or k in (page.get("lead") or "")[:300] for k in T.BACKSTAGE): tags += "B"
     if any(p in page["title"] for p in T.PRONOUN): tags += "P"
+    if rough and y is not None: tags += "~"                            # 연도가 대략적 → 화면에 '~경'
+    if len(at_regs) >= 3: tags += "W"                                 # 세 권역 넘게 걸친 사건 → '여러 권역'
+    if kind == "concept": theme = theme or "문화와 예술"
     return {"k": kind, "y": y, "y2": y2, "ya": ya, "md": md, "e": T.era_index(ya if ya is not None else y), "r": region, "c": isos[:3], "s": thens[:2], "h": theme, "g": tags,
             "occ": [L.name(q) for q in occ[:4] if L.name(q)], "cls": [L.name(q) for q in p31[:3] if L.name(q)], "desc": desc,
-            "korea": bool(set(isos) & T.KOREA_ISO), "roots": [T.CLASS_MEMO.get(r, "") for r in roots[:2]]}
+            "korea": bool(set(isos) & T.KOREA_ISO), "roots": [T.CLASS_MEMO.get(r, "") for r in roots[:2]], "roles": roles}
 
 
 RULES = dict(T.THEME_RULES)
@@ -771,6 +804,49 @@ def retheme_people(st):
         if th and th in T.THEMES and T.THEMES.index(th) != e[7]:
             e[7] = T.THEMES.index(th); doc["h"] = th; wj(page_path(pid), doc); n += 1
     st.seeds["retheme"] = "v2"; log(f"사람 테마 다시 매김: {n:,}편")
+
+
+RECLASS = "reclass3"          # 분류 규칙을 바꾸면 이름을 올림 → 받은 글 전부를 위키데이터로 다시 분류 (본문은 안 받음, 토큰 0)
+def reclass(st, C, L, CL, cp):
+    """받은 글 전부 다시 분류: 개념 종류 · 대략 연도(~경) · 역할별 나라 · 권역. 끊겨도 다음 회차에 이어서."""
+    if st.seeds.get(RECLASS) == "done": return
+    pids = sorted(st.pages, key=lambda k: int(k)); pos = int(st.seeds.get(RECLASS) or 0)
+    log(f"다시 분류: {pos:,}/{len(pids):,}편부터")
+    changed = 0
+    while pos < len(pids) and not out_of_time():
+        chunk = pids[pos:pos + 50]; docs = {}
+        for pid in chunk:
+            try: docs[pid] = rj(page_path(pid))
+            except Exception: pass
+        ents = wd_entities([d.get("qid") for d in docs.values() if d and d.get("qid")])
+        if docs and not ents and any(d and d.get("qid") for d in docs.values()):
+            log("  위키데이터를 못 받아 다음 회차에 이어서"); break
+        where, lab = [], []
+        for d in docs.values():
+            e = ents.get((d or {}).get("qid") or "", {})
+            where += role_places(e, d.get("k")); lab += cv(e, "P31")[:4] + cv(e, "P106")[:6] + cv(e, "P39")[:4]
+            for _, p in REL_PROPS: lab += [q for q in cv(e, p)[:10] if isinstance(q, str)]
+        C.ensure(where); L.ensure([q for q in lab if isinstance(q, str)])
+        for pid, d in docs.items():
+            if not d: continue
+            e = ents.get(d.get("qid") or "", {})
+            if d.get("qid") and not e: continue
+            page = {"title": d["title"], "lead": d.get("lead") or "", "cats": [{"title": "분류:" + c} for c in d.get("cats") or []]}
+            info = classify(page, e, d.get("k") if d.get("k") != "concept" else "event", C, L, {}, CL)
+            new = {"k": info["k"], "y": info["y"], "y2": info["y2"], "ya": info["ya"], "md": info["md"], "e": info["e"], "r": info["r"], "c": info["c"], "s": info["s"],
+                   "roles": info["roles"], "h": info["h"], "g": info["g"], "occ": info["occ"], "cls": info["cls"], "desc": info["desc"] or d.get("desc", "")}
+            if e: new["rel"] = relations(e, L)
+            if all(d.get(k) == v for k, v in new.items()): continue
+            d.update(new); wj(page_path(pid), d); changed += 1
+            rec = st.pages.get(pid)
+            if rec and rec.get("e") and len(rec["e"]) >= 16:
+                o = rec["e"]
+                rec["e"] = [o[0], o[1], info["y"], info["y2"], info["e"], T.REGION_CODE.get(info["r"], "xx"), info["c"], T.THEMES.index(info["h"]) if info["h"] in T.THEMES else -1,
+                            KCODE.get(info["k"], "o"), info["g"], o[10], o[11], o[12], info["md"], o[14], info["ya"]]
+        pos += len(chunk); st.seeds[RECLASS] = pos
+        if pos % 2000 < 50: log(f"  다시 분류 {pos:,}/{len(pids):,} · 바뀜 {changed:,}"); cp()
+    if pos >= len(pids): st.seeds[RECLASS] = "done"; log(f"다시 분류 끝 · 바뀜 {changed:,}편")
+    cp(force=True) if GIT_PUSH else cp.save()
 
 
 def upgrade_lite(st):
@@ -879,7 +955,7 @@ def process_batch(batch, st, C, L, CL, budget_left):
     where, lab = [], []
     for r in keep:
         e = r["ent"]
-        where += cv(e, "P17") + cv(e, "P27") + cv(e, "P276") + cv(e, "P19") + cv(e, "P131")[:1] + ([e["id"]] if r["kind"] == "state" and e.get("id") else [])
+        where += role_places(e, r["kind"])
         lab += cv(e, "P31")[:4] + cv(e, "P106")[:6] + cv(e, "P39")[:4]
         for _, p in REL_PROPS: lab += [q for q in cv(e, p)[:10] if isinstance(q, str)]
     C.ensure([q for q in where if isinstance(q, str)]); L.ensure([q for q in lab if isinstance(q, str)])
@@ -898,7 +974,7 @@ def process_batch(batch, st, C, L, CL, budget_left):
         secs, cut = cap_sections(lead, r["secs"], FULL_CHARS) if full else ([], bool(r["secs"]))
         one = first_sentence(lead)
         doc = {"id": "k" + pid, "qid": r["qid"], "title": r["title"], "en": en, "desc": info["desc"], "k": info["k"], "y": info["y"], "y2": info["y2"], "ya": info["ya"], "md": info["md"],
-               "e": info["e"], "r": info["r"], "c": info["c"], "s": info["s"], "h": info["h"], "g": info["g"], "n": nlinks, "img": r["img"], "one": one, "lead": lead[:4000],
+               "e": info["e"], "r": info["r"], "c": info["c"], "s": info["s"], "roles": info["roles"], "h": info["h"], "g": info["g"], "n": nlinks, "img": r["img"], "one": one, "lead": lead[:4000],
                "secs": secs, "heads": r["heads"], "full": full, "cut": cut, "links": r["links"], "rel": relations(e, L), "occ": info["occ"], "cls": info["cls"],
                "cats": [c["title"].split(":", 1)[-1] for c in r["cats"]][:10],
                "src": {"site": "ko.wikipedia.org", "title": r["title"], "url": "https://ko.wikipedia.org/wiki/" + quote(r["title"].replace(" ", "_")), "rev": r["rev"], "edited": r["ts"], "license": "CC BY-SA 4.0"}, "at": today()}
@@ -1155,6 +1231,7 @@ def main():
     if INDEX_ONLY: build_index(st, C, rj(ST / "days_raw.json", {})); return
     try:
         CL = closure(st)
+        reclass(st, C, L, CL, cp)
         if not NO_SEEDS:
             seed_classes(st); cp(); seed_people(st); cp(); seed_vital(st); cp(); seed_cats(st); cp(); seed_people_cats(st); cp()
             log(f"종자 끝: 받을 차례 {len(st.queue):,} (새로 {STAT['seeds']:,})")
@@ -1174,7 +1251,7 @@ def main():
     log(f"끝 {round((time.time() - T0) / 60)}분 · 호출 {STAT['calls']:,} · 글 {len(st.pages):,} · 받을 차례 {len(st.queue):,} · 오류 {STAT['err']} · 429 {STAT['r429']}")
     if os.environ.get("GITHUB_OUTPUT"):
         # 다음 회차는 '받을 게 아직 많을 때'만 (꼬리에 붙는 몇 편은 매일 새벽 회차가 처리)
-        progress = 1 if (len(st.queue) >= 200 and (STAT["pages"] >= 200 or STAT["seeds"] >= 200 or STAT["updated"] >= 200)) else 0
+        progress = 1 if st.seeds.get(RECLASS) != "done" else 1 if (len(st.queue) >= 200 and (STAT["pages"] >= 200 or STAT["seeds"] >= 200 or STAT["updated"] >= 200)) else 0
         with open(os.environ["GITHUB_OUTPUT"], "a") as f: f.write(f"queue={len(st.queue)}\nharvested={STAT['pages']}\npages={len(st.pages)}\nprogress={progress}\n")
 
 

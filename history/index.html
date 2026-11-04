@@ -30,6 +30,7 @@ h2.sec small{font:400 13px var(--ap-font);color:var(--muted);letter-spacing:0;fl
 .card .t{font-weight:650;letter-spacing:-.015em;font-size:calc(15.5px*var(--fs));line-height:1.45;margin:0 0 4px}
 .card .one{font-size:calc(13.5px*var(--fs));color:var(--muted);margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .meta{display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;font-size:12px;color:var(--muted)}
+.roles{display:flex;flex-wrap:wrap;gap:4px 12px;margin:8px 2px 0;font-size:13px;color:var(--muted)}.roles b{color:var(--ink);font-weight:600;margin-right:3px}.bd.lore{display:inline-block;margin:6px 0 2px}
 .bd{display:inline-block;padding:2px 7px;border-radius:6px;font-weight:600;font-size:11.5px;background:var(--sunk)}
 .bd.th{background:var(--accent-soft);color:var(--accent)}.bd.yr{background:transparent;padding:0;color:var(--ink);font-variant-numeric:tabular-nums}.bd.bk{background:var(--back-soft);color:var(--back)}.bd.pr{background:var(--coin-soft);color:var(--coin)}.bd.kd{background:transparent;padding:0}
 .tag{background:var(--sunk);padding:1px 7px;border-radius:6px;font-size:11.5px}
@@ -107,9 +108,9 @@ document.documentElement.style.setProperty("--fs", S.cfg.fs || 1);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 function toast(m) { const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); }
 async function getJ(p) { if (S.cache[p]) return S.cache[p]; const r = await fetch("../data/history/" + p, { cache: "no-cache" }); if (!r.ok) throw new Error(p); const j = await r.json(); if (p.startsWith("pages/")) { const cl = window.vfmClean || (x => x); if (j.lead) j.lead = cl(j.lead); if (j.one) { j.one = cl(j.one); if (!/[.!?。)\]다요]\s*$/.test(j.one)) j.one = j.one.replace(/[,\s]+$/, "") + "…"; } } else S.cache[p] = j; return j; }
-const KIND = { p: "인물", e: "사건", s: "나라·왕조", t: "시대", l: "전설·설", o: "기타" };
+const KIND = { p: "인물", e: "사건", s: "나라·왕조", t: "시대", l: "전설·설", c: "개념", o: "기타" };
 const yr = y => y == null ? "" : y < 0 ? `기원전 ${-y}` : `${y}`;
-const span = e => e.y == null ? "연도 미상" : e.y2 != null && e.y2 !== e.y ? `${yr(e.y)}~${yr(e.y2)}` : yr(e.y);
+const span = e => { if (e.y == null) return e.k === "c" ? "" : "연도 미상"; const g = (e.g || "").includes("~") ? "경" : ""; return e.y2 != null && e.y2 !== e.y ? `${yr(e.y)}${g}~${yr(e.y2)}${g}` : yr(e.y) + g; };   // ~경 = 연도가 대략적 (위키데이터 정밀도·출처의 '경', 또는 본문에서 찾은 연도)
 const cko = c => ((S.idx || {}).countryKo || {})[c] || c;
 const regName = rc => (S.regMap || {})[rc] || "";
 const themeName = h => h >= 0 ? (S.idx.themes || [])[h] || "" : "";
@@ -137,8 +138,8 @@ function findLocal(id) { for (const l of [S.top.all, S.top.recent, S.top.back, S
 
 /* ───── 카드·줄 ───── */
 function badges(e) {
-  return `${e.y != null ? `<span class="bd yr">${span(e)}</span>` : ""}${e.e >= 0 ? `<span class="bd">${esc(eraShort(e.e))}</span>` : ""}${e.r && e.r !== "xx" ? `<span class="bd">${esc(regName(e.r))}${e.c && e.c.length ? " · " + esc(cko(e.c[0])) : ""}</span>` : ""}${e.h >= 0 ? `<span class="bd th">${esc(themeName(e.h))}</span>` : ""}
-    ${e.g.includes("B") ? '<span class="bd bk">야사</span>' : ""}${e.g.includes("P") ? '<span class="bd pr">대명사</span>' : ""}<span class="bd kd">${KIND[e.k] || ""}</span>${(S.tags[e.i] || []).map(t => `<span class="tag">${esc(t)}</span>`).join("")}${S.star[e.i] ? '<span class="bd pr">★</span>' : ""}`;
+  return `${e.y != null ? `<span class="bd yr">${span(e)}</span>` : ""}${e.e >= 0 ? `<span class="bd">${esc(eraShort(e.e))}</span>` : ""}${(e.g || "").includes("W") ? `<span class="bd">${esc(regName(e.r) || "")} 외 여러 권역</span>` : e.r && e.r !== "xx" ? `<span class="bd">${esc(regName(e.r))}${e.c && e.c.length ? " · " + esc(cko(e.c[0])) : ""}</span>` : ""}${e.h >= 0 ? `<span class="bd th">${esc(themeName(e.h))}</span>` : ""}
+    ${e.g.includes("B") ? `<span class="bd bk">${e.k === "l" ? "전설·설화" : "뒤편 이야기"}</span>` : ""}${e.g.includes("P") ? '<span class="bd pr">대명사</span>' : ""}<span class="bd kd">${KIND[e.k] || ""}</span>${(S.tags[e.i] || []).map(t => `<span class="tag">${esc(t)}</span>`).join("")}${S.star[e.i] ? '<span class="bd pr">★</span>' : ""}`;
 }
 function card(e) { return `<button type="button" class="card${S.read[e.i] ? " read" : ""}${S.star[e.i] ? " star" : ""}" data-open="${esc(e.i)}"><p class="t">${esc(e.t)}</p>${e.o ? `<p class="one">${esc((window.vfmClean || (x => x))(e.o))}</p>` : ""}<div class="meta">${badges(e)}</div></button>`; }
 function liRow(e) { return `<button class="li${S.read[e.i] ? " read" : ""}" data-open="${esc(e.i)}"><p class="t">${esc(e.t)}${S.star[e.i] ? " ★" : ""}</p><p class="s">${[e.y != null ? span(e) : "", e.r && e.r !== "xx" ? regName(e.r) : "", e.c && e.c[0] ? cko(e.c[0]) : "", e.h >= 0 ? themeName(e.h) : "", KIND[e.k] || ""].filter(Boolean).map(esc).join(" · ")}</p></button>`; }
@@ -314,7 +315,15 @@ function histBack() {
   return false;
 }
 function openPage(id) { nav("#p=" + id); }
-function entryOf(p) { return { i: p.id, t: p.title, y: p.y, y2: p.y2, ya: p.ya, e: p.e, r: ({ "동아시아": "ea", "남·동남아시아": "sa", "중동·중앙아시아": "me", "유럽": "eu", "아프리카": "af", "북미": "na", "중남미": "la", "오세아니아": "oc" })[p.r] || "xx", c: p.c || [], h: (S.idx.themes || []).indexOf(p.h), k: ({ person: "p", event: "e", state: "s", period: "t", lore: "l" })[p.k] || "o", g: p.g || "", n: p.n || 0, o: p.one }; }
+function entryOf(p) { return { i: p.id, t: p.title, y: p.y, y2: p.y2, ya: p.ya, e: p.e, r: ({ "동아시아": "ea", "남·동남아시아": "sa", "중동·중앙아시아": "me", "유럽": "eu", "아프리카": "af", "북미": "na", "중남미": "la", "오세아니아": "oc" })[p.r] || "xx", c: p.c || [], h: (S.idx.themes || []).indexOf(p.h), k: ({ person: "p", event: "e", state: "s", period: "t", lore: "l", concept: "c" })[p.k] || "o", g: p.g || "", n: p.n || 0, o: p.one }; }
+const LORE = /전설|설화|일화|야사|민담|민간 ?전승|전승|음모론|의혹|논란|미스터리|진위|소문|비화|괴담|가설/;
+const ROLE_NAME = { work: "활동", born: "출생", nat: "국적", at: "일어난 곳", side: "참여" };
+function rolesHtml(p) {
+  const r = p.roles || {}; const keys = ["work", "born", "nat", "at", "side"].filter(k => (r[k] || []).length);
+  if (!keys.length) return "";
+  const nm = x => x[1] && (!x[0] || cko(x[0]) !== x[1]) ? (x[0] ? `${x[1]} (지금 ${cko(x[0])})` : x[1]) : cko(x[0]);
+  return `<p class="roles">${keys.map(k => `<span><b>${ROLE_NAME[k]}</b> ${esc(r[k].slice(0, 3).map(nm).join(" · "))}</span>`).join("")}</p>`;
+}
 async function renderPage(id) {
   const app = document.getElementById("app"); app.innerHTML = `<div class="read-top"><button class="ib" data-act="back" aria-label="뒤로">‹</button></div><p class="empty">불러오는 중…</p>`;
   let p; try { p = S.page && S.page.id === id ? S.page : await getJ(pagePath(id)); } catch (e) { app.innerHTML += '<p class="empty">이 글을 못 찾았어요.</p>'; return; }
@@ -323,7 +332,8 @@ async function renderPage(id) {
   S.recent = [e].concat(S.recent.filter(x => x.i !== id)).slice(0, 12); save("recent");
   const sv = S.star[id]; const paras = (p.lead || "").split("\n").filter(x => x.trim());
   const needLive = !p.full || p.cut;
-  const secHtml = (secs, open) => secs.map((s, i) => open ? `${s.l <= 2 ? `<h3>${esc(s.h)}</h3>` : `<h4>${esc(s.h)}</h4>`}<p>${esc(s.t)}</p>` : `<details${i < 1 ? " open" : ""}><summary>${esc(s.h)}<small>${Math.max(1, Math.round(s.t.length / 600))}분</small></summary><p>${esc(s.t)}</p></details>`).join("");
+  const lore = s => LORE.test(s.h) ? '<span class="bd bk lore">전해지는 이야기 · 기록과 다를 수 있어요</span>' : "";
+  const secHtml = (secs, open) => secs.map((s, i) => open ? `${s.l <= 2 ? `<h3>${esc(s.h)}</h3>` : `<h4>${esc(s.h)}</h4>`}${lore(s)}<p>${esc(s.t)}</p>` : `<details${i < 1 ? " open" : ""}><summary>${esc(s.h)}<small>${Math.max(1, Math.round(s.t.length / 600))}분</small></summary>${lore(s)}<p>${esc(s.t)}</p></details>`).join("");
   const liveNote = !p.full ? `<div class="live" id="liveBox">이 글은 ‘요약판’이에요 (저장 공간 아끼려고). 본문 ${(p.heads || []).length}개 단락은 위키백과에서 바로 불러와요… </div>` : p.cut ? `<div class="live" id="liveBox"><button class="btn sm" data-act="live">긴 글이라 뒷부분은 잘렸어요 — 위키백과에서 전부 불러오기</button></div>` : "";
   const depthHtml = {
     short: `<div class="oneb">${esc(p.one)}</div><div class="lead">${esc(paras.slice(0, 2).join("\n"))}</div>${paras.length > 2 || (p.secs || []).length || !p.full ? `<button class="btn more" data-depth="more">더 자세히 →</button>` : ""}`,
@@ -335,8 +345,9 @@ async function renderPage(id) {
   document.body.classList.add("reading");
   app.innerHTML = `<div class="read-top"><button class="ib" data-act="back" aria-label="뒤로">‹</button><span class="sp"></span><span class="bd kd">${KIND[e.k] || ""}</span>${p.n ? `<span class="bd" title="이 글이 있는 위키백과 언어판 수">${p.n}개 언어</span>` : ""}</div>
     <h1 class="title">${esc(p.title)}</h1>${p.en ? `<p class="title-en">${esc(p.en)}</p>` : ""}
-    <div class="meta">${badges(e)}${(p.s || []).length ? `<span class="bd">당시: ${esc(p.s.join(" · "))}</span>` : ""}${(p.c || []).slice(1).map(c => `<span class="bd">${esc(cko(c))}</span>`).join("")}${occ.map(o => `<span class="tag">${esc(o)}</span>`).join("")}</div>
-    ${p.desc ? `<p class="note" style="margin-top:6px">${esc(p.desc)}</p>` : ""}
+    <div class="meta">${badges(e)}${p.roles ? "" : ((p.s || []).length ? `<span class="bd">당시: ${esc(p.s.join(" · "))}</span>` : "") + (p.c || []).slice(1).map(c => `<span class="bd">${esc(cko(c))}</span>`).join("")}${occ.filter(o => /[가-힣]/.test(o)).map(o => `<span class="tag">${esc(o)}</span>`).join("")}</div>
+    ${rolesHtml(p)}
+    ${p.desc && /[가-힣]/.test(p.desc) ? `<p class="note" style="margin-top:6px">${esc(p.desc)}</p>` : ""}
     ${S.cfg.pics && p.img ? `<img class="hero" src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}
     <div class="depth">${[["short", "짧게"], ["more", "자세히"], ["deep", "깊게"]].map(([k, n]) => `<button data-depth="${k}" class="${d === k ? "on" : ""}">${n}</button>`).join("")}</div>
     <div id="body">${depthHtml[d]}</div>

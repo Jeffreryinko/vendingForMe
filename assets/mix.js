@@ -176,7 +176,7 @@
         return { key: "h:" + id, sa: "history", kind: "story", hid: id, title: title, url: location.origin + location.pathname + "history/#p=" + id, shareText: title, q: title + " " + sum,
           html: function () {
             var hd = HD[id];
-            return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag story">역사</span>' + (y != null ? "<span>" + (y < 0 ? "기원전 " + (-y) : y) + "년</span>" : "") + "<span>" + (r[6] || []).slice(0, 4).map(flag).join("") + '</span></div><h2 class="vdk-t">' + esc(title) + "</h2>" +
+            return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag story">역사</span>' + (y != null ? "<span>" + (y < 0 ? "기원전 " + (-y) : y) + "년" + (String(r[9] || "").indexOf("~") >= 0 ? "경" : "") + "</span>" : "") + "<span>" + (r[6] || []).slice(0, 4).map(flag).join("") + '</span></div><h2 class="vdk-t">' + esc(title) + "</h2>" +
               (hd ? (hd.desc ? '<p class="vdk-note">' + esc(hd.desc) + "</p>" : "") + '<p class="vdk-p">' + esc((window.vfmClean || String)(hd.lead || sum)) + "</p>" + (hd.secs || []).map(function (x, i) {
                 return '<details class="mx-sec"' + (i < 2 ? " open" : "") + "><summary>" + esc(x.h) + "</summary><p class=\"vdk-p\">" + esc(x.t) + "</p></details>"; }).join("") + '<p class="vdk-note">위키백과(한국어) 글을 정리했어요 · CC BY-SA</p>'
                 : '<p class="vdk-p">' + esc(tidy(sum, true)) + '</p><p class="vdk-note">글을 불러오는 중…</p>') +
