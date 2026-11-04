@@ -2676,8 +2676,8 @@ document.addEventListener("touchmove", e => {
   if(!sw) return;
   const dx = e.touches[0].clientX - sw.x0, dy = e.touches[0].clientY - sw.y0;
   // 덜 예민하게: 18px 넘게 움직인 뒤 방향을 정하고, 가로가 세로의 2배를 넘어야 '옆으로 밀기'
-  if(sw.horiz === null && (Math.abs(dx) > 20 || Math.abs(dy) > 20)){
-    sw.horiz = Math.abs(dx) > Math.abs(dy) * 2;
+  if(sw.horiz === null && (Math.abs(dx) > 16 || Math.abs(dy) > 16)){
+    sw.horiz = Math.abs(dx) > Math.abs(dy) * 1.1;   // 엄지는 휘어서 밀기 때문에 가로가 조금만 커도 '옆으로'(넘어가는 거리 기준은 따로 있음)
     if(!sw.horiz){ sw = null; return; }
     if(sw.horiz){ drag = null; pull = null; ptrHide(); }
   }
