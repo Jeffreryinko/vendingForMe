@@ -172,7 +172,9 @@ async function renderToday() {
   const broken = Object.keys(S.idx.broken || {});
   const papers = (d.papers || []).filter(p => !S.hide[p.id]);
   await loadEasyIdx();
-  if (D) { const sw = D.modeSwitch("ai-today", () => renderToday()); const bd = document.getElementById("body"); if (D.mode("ai-today") === "deck") { await loadFeed(); bd.innerHTML = sw + `<p class="note">AI 서비스 새 기능 소식이 먼저, 그날 인기 논문 2편이 사이사이에 나와요. 옆으로 밀면 다음.</p>` + feedDeck().html(); return; } bd.insertAdjacentHTML("beforebegin", `<div id="msw">${sw}</div>`); }
+  if (D) { const sw = D.modeSwitch("ai-today", () => renderToday()); const bd = document.getElementById("body"); if (D.mode("ai-today") === "deck") { await loadFeed();
+      if (S.focus) { const dk = feedDeck(); dk.queue = null; dk.hist = []; dk.pos = -1; dk.cur = S.focus; S.focus = null; }   // 홈 카드에서 고른 그 소식부터
+      bd.innerHTML = sw + `<p class="note">AI 서비스 새 기능 소식이 먼저, 그날 인기 논문 2편이 사이사이에 나와요. 옆으로 밀면 다음.</p>` + feedDeck().html(); return; } bd.insertAdjacentHTML("beforebegin", `<div id="msw">${sw}</div>`); }
   const hf = papers.filter(p => p.src === "hf"), ax = papers.filter(p => p.src === "arxiv");
   const posts = (d.posts || []), repos = d.repos || [], news = d.news || [];
   document.getElementById("body").innerHTML = `
@@ -492,7 +494,9 @@ async function route() {
   const h = location.hash || "#today"; document.querySelector(".rbar")?.remove();
   if (h.startsWith("#p=")) { const id = decodeURIComponent(h.slice(3)); if (!S.paper || S.paper.id !== id) { await loadDay(S.day).catch(() => { }); S.paper = findPaper(id); } if (S.paper) { setTab(""); document.getElementById("tabs").hidden = true; document.body.classList.add("reading"); return renderPaper(); } nav("#today", true); return; }
   document.getElementById("tabs").hidden = false; document.body.classList.remove("reading"); S.paper = null;
-  const v = h.slice(1).split("?")[0]; S.view = v; setTab(v);
+  let v = h.slice(1).split("?")[0];
+  if (v.startsWith("f=")) { S.focus = decodeURIComponent(v.slice(2)); v = "today"; try { localStorage.setItem("vfm:mode:ai-today", '"deck"'); } catch (e) { } }
+  S.view = v; setTab(v);
   if (v === "terms") renderTerms(); else if (v === "box") renderBox(); else if (v === "know") renderKnow(); else renderToday();
 }
 /* 화면 이동: 브라우저 기록은 쌓지 않고(replaceState) 앱 안에 '앞 화면' 목록만 둠. 뒤로가기는 assets/shell.js → vfmApp.back */
