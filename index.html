@@ -26,6 +26,7 @@
   .ic.iyagi{background:linear-gradient(160deg,#FFC24D 0%,#FF9500 55%,#F26B00 100%)}
   .ic.ai{background:linear-gradient(160deg,#D68CFF 0%,#A346F0 55%,#6E2BD9 100%)}
   .ic.history{background:linear-gradient(160deg,#C9A57A 0%,#A2845E 55%,#7A5F3E 100%)}
+  .ic.tools{background:linear-gradient(160deg,#6FDCEB 0%,#30B0C7 55%,#0A7A8C 100%)}
   .nm{font:700 20px/1.2 var(--ap-display);letter-spacing:-.02em;margin:0}
   .ds{font-size:14px;color:var(--ap-label2);margin:3px 0 0;line-height:1.35}
   .st{display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;font-size:13px;color:var(--ap-label2);margin:7px 0 0}
@@ -72,6 +73,11 @@
       <span><p class="nm">역사</p><p class="ds">세계 역사 이야기, 나라·시대별</p><p class="st" id="st-history"><i></i><span>불러오는 중</span></p></span>
       <span class="chev">›</span>
     </button>
+    <button class="app" data-app="tools">
+      <span class="ic tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0 5 5l-8.4 8.4a2.1 2.1 0 0 1-3-3z"/><path d="M14.7 6.3L17 4l3 3-2.3 2.3"/><path d="M4 4l5 5M3 7.5L7.5 3"/></svg></span>
+      <span><p class="nm">도구</p><p class="ds">요즘 뜨는 AI 도구·오픈소스·활용법</p><p class="st" id="st-tools"><i></i><span>불러오는 중</span></p></span>
+      <span class="chev">›</span>
+    </button>
   </div>
   <p class="last" id="last"></p>
 
@@ -105,7 +111,8 @@
   j("data/iyagi/_meta.json").then(function (m) { paint("iyagi", m && m.updatedAt, m ? "<b>새 이야기 " + n(m.stories) + "편</b>" : "", 30); });
   j("data/ai/_index.json").then(function (x) { var c = (x && x.counts) || {}; paint("ai", x && x.at, x ? "<b>추천 논문 " + n(c.hf) + "편</b>" : "", 30); });
   j("data/history/_index.json").then(function (x) { var c = (x && x.counts) || {}; paint("history", x && x.at, x ? "<b>" + n(c.total) + "편</b>" + (x.queue ? " · 받는 중" : "") : "", 30); });
-  var NAME = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사" }, lastApp = null;
+  j("data/tools/_index.json").then(function (x) { paint("tools", x && x.at, x ? "<b>새 것 " + n(x.new) + "개</b>" : "", 12); });
+  var NAME = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구" }, lastApp = null;
   try { lastApp = localStorage.getItem("vfm:tab"); } catch (e) { }
   if (NAME[lastApp]) document.getElementById("last").innerHTML = "&nbsp;지난번에 본 곳: " + NAME[lastApp];
 
