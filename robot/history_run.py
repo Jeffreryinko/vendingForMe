@@ -730,6 +730,10 @@ def classify(page, ent, kind, C, L, hint, CL):
         m = LEAD_YEAR.search((page.get("lead") or "")[:400])
         if m: y = ya = -int(m.group(2)) if m.group(1) else int(m.group(2)); rough = True
         if kind == "person" and y is not None: ya = y + 40 if y < 1990 else y
+    NOW_Y = datetime.now(KST).year                                   # 미래 연도(위키데이터 오류)는 버림
+    if y is not None and y > NOW_Y + 1: y = ya = None; md = ""
+    if y2 is not None and y2 > NOW_Y + 1: y2 = None
+    if ya is not None and ya > NOW_Y + 1: ya = y
     if y2 is not None and y is not None and y2 < y: y2 = None
     # 역할별 나라: 인물 = 활동지 → 출생지 → 국적 / 사건 = 일어난 곳 → 나라 / 나라·왕조 = 그 나라
     if kind == "person": ROLE = (("work", cv(ent, "P937")[:3], 0), ("born", cv(ent, "P19")[:1], 0), ("nat", cv(ent, "P27")[:3], 1))
