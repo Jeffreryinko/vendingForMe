@@ -8,7 +8,7 @@
 
 환경변수 WORK = 작업 폴더 (기본 /tmp/sv/work)
 """
-import json
+import hashlib, json
 import os
 import time
 from datetime import datetime
@@ -100,6 +100,10 @@ def cmd_build(ed, prev, ko, label):
         elif not s2.get("kind"):
             s2["kind"] = "global" if len(s2["countries"]) >= 2 else "local"
         s2["delta"] = "grown" if added else "same"; s2["grow"] = len(added)
+        # 해설(key·why3.now) 뒤에 붙은 새 글: 편집장이 해설을 고치면(글자가 바뀌면) 다시 0부터 (토큰 0, 화면에 '해설 뒤 새 소식' 표시용)
+        kh = hashlib.md5(((s.get("key") or "") + ((s.get("why3") or {}).get("now") or "")).encode()).hexdigest()[:8]
+        since = [] if s.get("keyh") != kh else [i for i in s.get("since", []) if i in ids]
+        s2["keyh"] = kh; s2["since"] = since + [i for i in added if i not in since]
         out.append(s2)
     # 새 판의 단어 묶음 중 어디에도 안 붙은 큰 묶음은 '새 이슈 후보'로 남김 (해설은 다음 정리 때)
     cand = []

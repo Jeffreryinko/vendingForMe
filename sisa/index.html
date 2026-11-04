@@ -1,4 +1,5 @@
-<!doctype html><html lang="ko" class="ap ap-sisa"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="ko" class="ap ap-sisa"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.since{margin:8px 0 0;padding:9px 12px;border-radius:12px;background:color-mix(in srgb,var(--ap-orange,#f90) 14%,transparent);font-size:14px;line-height:1.5}.since .lnk{border:0;background:none;padding:0;font:inherit;font-weight:700;color:var(--ap-orange-t,#b60);cursor:pointer}b.aft{color:var(--ap-orange-t,#b60)}
+</style></head><body>
 <script>window.VFM_APP="sisa";</script>
 <script src="../assets/claude-shim.js"></script>
 <script src="../assets/deck.js"></script>
@@ -1778,9 +1779,9 @@ function issueInner(s, inDeck){
       ${(s.bg||[]).length ? `<ol class="ibg">${s.bg.map(b => `<li>${entText(b)}</li>`).join("")}</ol>` : ""}
       ${(s.terms||[]).length ? `<div class="iterms">${s.terms.map(t => `<div class="iterm"><b>${esc(t.t)}</b><span>${esc(t.d)}</span></div>`).join("")}</div>` : ""}
       ${(s.qa||[]).length ? `<div class="iqa"><span class="note">궁금한 질문을 누르면 답이 펼쳐져요</span>${s.qa.map(x => `<details class="qa"><summary>${esc(x.q)}</summary><p>${esc(x.a)}</p></details>`).join("")}</div>` : ""}` : "";
-  const tlBody = timeline.length >= 2 ? `<ol class="itl">${tlShown.map(i => `<li class="${isNewIt(i) ? "nw" : ""}"><button type="button" data-open="${i.id}"><span class="tl-t">${esc(ago(i.p))}${isNewIt(i) ? ' · <b class="new">이번 판 새 글</b>' : ""}</span><span class="tl-b">${flag(ctry(i))} ${esc(koOf(i)||i.t)}</span></button></li>`).join("")}</ol>${timeline.length > 6 ? `<button type="button" class="linkbtn more" data-more="tl">${S.more.tl ? "최근 6개만" : `처음부터 ${timeline.length}개 모두 보기`}</button>` : ""}<p class="note">기사 게시 시각 순서예요.${newIts.length ? ` 이번 판에 새로 붙은 글 ${newIts.length}개는 '새 글'로 표시했어요. 새 글이 곧 새 사실은 아니에요.` : ""}</p>` : "";
+  const tlBody = timeline.length >= 2 ? `<ol class="itl">${tlShown.map(i => `<li class="${isNewIt(i) ? "nw" : ""}"><button type="button" data-open="${i.id}"><span class="tl-t">${esc(ago(i.p))}${isNewIt(i) ? ' · <b class="new">이번 판 새 글</b>' : ""}${(s.since || []).includes(i.id) ? ' · <b class="aft">해설 뒤</b>' : ""}</span><span class="tl-b">${flag(ctry(i))} ${esc(koOf(i)||i.t)}</span></button></li>`).join("")}</ol>${timeline.length > 6 ? `<button type="button" class="linkbtn more" data-more="tl">${S.more.tl ? "최근 6개만" : `처음부터 ${timeline.length}개 모두 보기`}</button>` : ""}<p class="note">기사 게시 시각 순서예요.${newIts.length ? ` 이번 판에 새로 붙은 글 ${newIts.length}개는 '새 글'로 표시했어요. 새 글이 곧 새 사실은 아니에요.` : ""}</p>` : "";
   const angBody = ((s.angles||[]).length || comm.length) ? `
-      ${(s.angles||[]).length ? `<div class="angles">${s.angles.map(a => `<span class="ang"><span class="ang-f">${flag(a.c)}</span><span><b>${esc(cname(a.c))}</b>${a.f ? `<span class="fchip">${esc(a.f)}</span>` : ""} ${esc(a.t)}</span></span>`).join("")}</div><p class="note">기사 제목을 비교해 무엇을 강조했는지 정리했어요(본문 비교 아님).</p>` : ""}
+      ${(s.angles||[]).length ? `<div class="angles">${s.angles.map(a => `<span class="ang"><span class="ang-f">${flag(a.c)}</span><span><b>${esc(cname(a.c))} 매체 ${new Set(its.filter(i => ctry(i) === a.c).map(i => i.s)).size || 1}곳</b>${a.f ? `<span class="fchip">${esc(a.f)}</span>` : ""} ${esc(a.t)}</span></span>`).join("")}</div><p class="note">기사 제목을 비교해 무엇을 강조했는지 정리했어요(본문 비교 아님).</p>` : ""}
       ${""}` : "";
   return `
       <span class="st-top">${cat ? `<span class="cat"><i aria-hidden="true"></i>${CAT[cat]}</span>` : ""}<span class="meta">${s.delta==="new" ? '<b class="new">새 이슈</b>' : newIts.length ? `<button type="button" class="dbtn" data-jump="sec-tl">지난 판보다 글 +${newIts.length} ›</button>` : ""}</span></span>
@@ -1790,13 +1791,13 @@ function issueInner(s, inDeck){
         <div class="mtabs" role="tablist">${[["loc","사건 위치"],["rel","관련 관계"],["rep","보도 분포"]].filter(([m]) => m !== "loc" || (s.geo && s.geo.box)).map(([m,l]) => `<button type="button" role="tab" data-mapmode="${sid}:${m}" aria-selected="${mode===m}">${l}</button>`).join("")}</div>
         <div class="imap-hit" data-mapfull="${sid}" role="button" tabindex="0" aria-label="지도 크게 보기">${issueMap(s, mode, countries, its)}<span class="imap-big">⤢ 크게 보기</span></div>
       </div>
-      ${sec("무슨 일이 있었나", `<p class="ibody">${entText(s.key || s.sum || "")}</p>`)}
+      ${sec("무슨 일이 있었나", `<p class="ibody">${entText(s.key || s.sum || "")}</p>${(s.since || []).length ? `<p class="since">이 해설을 쓴 뒤 새 기사 ${s.since.length}개가 붙었어요. 지금 상황과 다를 수 있으니 <button type="button" class="lnk" data-jump="sec-tl">최신 기사부터 확인 ›</button></p>` : ""}`)}
       ${sec("먼저 알아 둘 이름", entCards(entsOf(storyTexts(s))), "sec-ent")}
       ${sec("왜 중요한가", whyBody)}
       ${sec("이해하려면 알아야 할 것", knowBody)}
       ${sec("어떻게 흘러왔나", tlBody, "sec-tl")}
-      ${sec("나라별로 무엇을 강조했나", angBody)}
-      ${sec("세계의 여론", opinionCompare(s, its), "sec-op")}
+      ${sec("나라별 매체가 강조한 점", angBody)}
+      ${sec("수집한 커뮤니티 반응", opinionCompare(s, its), "sec-op")}
       ${sec("먼저 읽을 기사", first.length ? `<div class="irows">${first.map(rowItem).join("")}</div>` : (its.length ? `<div class="irows">${its.slice(0,3).map(rowItem).join("")}</div>` : ""))}
       ${s.watch ? sec("앞으로 지켜볼 것", `<p class="ibody">${entText(s.watch)}</p>`) : ""}
       ${rest.length ? `<details class="origd"><summary>나머지 기사 ${rest.length}개 (${countries.length}개국)</summary><div class="irows">${rest.map(rowItem).join("")}</div></details>` : ""}
@@ -1854,7 +1855,7 @@ function recapHtml(tops){
   const learned = [...openedIssues, ...viaItems];
   const leftTop = tops.filter(s => !issueOpened(s));
   if(!learned.length && !openedItems.length){
-    return `<div class="recap guide"><b>5분이면 오늘 세계가 잡혀요</b><ol><li>꼭 알아야 할 다섯 가지 — 이슈마다 배경까지</li><li>세계의 여론 — 각 나라 사람들의 실제 댓글</li><li>나라 탭 — 궁금한 나라만 골라서</li></ol></div>`;
+    return `<div class="recap guide"><b>5분이면 오늘 세계가 잡혀요</b><ol><li>꼭 알아야 할 다섯 가지 — 이슈마다 배경까지</li><li>커뮤니티 반응 — 수집한 게시판의 실제 댓글</li><li>나라 탭 — 궁금한 나라만 골라서</li></ol></div>`;
   }
   return `<div class="recap"><div class="rc-h"><b>오늘 읽은 것</b><span>이슈 ${learned.length}개 · 글 ${openedItems.length}개</span></div>
     ${learned.length ? `<ul class="rc-list">${learned.slice(0,6).map(s => `<li><button type="button" data-issue="${s.id}"><b>${esc(s.title)}</b><span>${esc(s.key || s.sum || "")}</span></button></li>`).join("")}</ul>` : ""}
@@ -1892,12 +1893,12 @@ function countryHtml(){
       <div class="cp-map">${mapSvg([open], [], false, true)}</div>
       <p class="ibody">${esc(dg[open])}</p>
       ${inIssues.length ? `<div class="cp-iss"><span class="note">이 나라도 다룬 공통 이슈</span>${inIssues.map(s => `<button type="button" class="cchip${s.cat ? " t-"+s.cat : ""}" data-issue="${s.id}"><i aria-hidden="true"></i>${esc(s.title.split(/[,，…]/)[0])}</button>`).join("")}</div>` : ""}
-      ${(() => { const ops = S.items.filter(i => i.k==="community" && ctry(i)===open && cmOf(i.id) && cmOf(i.id).picks).slice(0,3); return ops.length ? `<div class="cp-op"><b class="cm-h">이 나라 게시판 여론</b>${ops.map(i => { const c = cmOf(i.id); const p = c.picks.find(x => x.type==="top") || c.picks[0]; return `<button type="button" class="opr" data-open="${i.id}"><span class="opc-src">${esc(srcOf(i.s).n)} · ${esc(koOf(i))}</span><span class="opc-mood">${esc(c.mood)}</span><span class="oc-q">“${esc(pickText(p))}”</span></button>`; }).join("")}</div>` : ""; })()}
+      ${(() => { const ops = S.items.filter(i => i.k==="community" && ctry(i)===open && cmOf(i.id) && cmOf(i.id).picks).slice(0,3); return ops.length ? `<div class="cp-op"><b class="cm-h">이 나라 게시판 반응</b>${ops.map(i => { const c = cmOf(i.id); const p = c.picks.find(x => x.type==="top") || c.picks[0]; return `<button type="button" class="opr" data-open="${i.id}"><span class="opc-src">${esc(srcOf(i.s).n)} · ${esc(koOf(i))}</span><span class="opc-mood">${esc(c.mood)}</span><span class="oc-q">“${esc(pickText(p))}”</span></button>`; }).join("")}</div>` : ""; })()}
       <b class="cm-h">주요 기사</b>
       ${heads.length ? `<div class="irows">${heads.map(i => `<button type="button" class="irow" data-open="${i.id}"><span class="meta"><span class="src">${esc(srcOf(i.s).n)}</span><span>${esc(KIND[i.k])}</span>${whenHtml(i)}${stOf(i.id).opened?'<span>봄</span>':""}</span><span class="irow-t">${esc(koOf(i))}</span></button>`).join("")}</div>` : '<p class="note">이 카테고리 글이 없어요.</p>'}
     </div>`;
   }
-  return `<div class="stack"><p class="note">나라를 누르면 오늘 그 나라에서 무슨 일이 있었는지, 게시판 여론은 어떤지 보여줘요.</p>
+  return `<div class="stack"><p class="note">나라를 누르면 오늘 그 나라에서 무슨 일이 있었는지, 게시판 반응은 어떤지 보여줘요.</p>
     <div class="cgrid">${list.map(c => { const k = cnt(c); return `<button type="button" class="cbtn${open===c ? " on" : ""}" data-country="${c}" aria-expanded="${open===c}" ${k ? "" : "disabled"}><span class="cb-f">${flag(c)}</span><span class="cb-n">${esc(cname(c))}</span><span class="cb-c">${k}</span></button>`; }).join("")}</div>
     ${panel}</div>`;
 }
@@ -1995,12 +1996,12 @@ function opinionCards(){
 function opinionStrip(){
   const all = opinionCards(); if(!all.length) return "";
   const out = all.slice(0, 12);
-  return `<section class="blk"><div class="blk-h"><h2 class="ttl2">세계의 여론 <span class="cnt">${all.length}</span></h2><span class="snav"><button type="button" data-snav="-1" aria-label="이전 카드">‹</button><button type="button" data-snav="1" aria-label="다음 카드">›</button></span><button type="button" class="linkbtn" data-opall>전부 보기 ›</button></div>
+  return `<section class="blk"><div class="blk-h"><h2 class="ttl2">수집한 커뮤니티 반응 <span class="cnt">${all.length}</span></h2><span class="snav"><button type="button" data-snav="-1" aria-label="이전 카드">‹</button><button type="button" data-snav="1" aria-label="다음 카드">›</button></span><button type="button" class="linkbtn" data-opall>전부 보기 ›</button></div>
     <div class="ostrip">${out.map(c => {
       if(c.kind==="talk"){ const p = c.t.picks.find(x => x.type==="top") || c.t.picks[0];
         return `<button type="button" class="ocard" data-issue="${c.s.id}"><span class="oc-h">${flag(c.t.c)} <b>${esc(c.t.sub)}</b></span><span class="oc-q">“${esc(p.ko)}”</span><span class="oc-m">${esc(c.t.mood)}</span><span class="oc-f">${esc(c.s.title.split(/[,，…]/)[0])}</span></button>`; }
       const cm = cmOf(c.i.id); const p = cm.picks.find(x => x.type==="top") || cm.picks[0];
-      return `<button type="button" class="ocard" data-open="${c.i.id}"><span class="oc-h">${flag(ctry(c.i))} <b>${esc(srcOf(c.i.s).n)}</b></span><span class="oc-q">“${esc(p.ko)}”</span><span class="oc-m">${esc(cm.mood)}</span><span class="oc-f">${esc(c.s ? c.s.title.split(/[,，…]/)[0] : (koOf(c.i)||"").slice(0,40))}</span></button>`; }).join("")}${all.length > out.length ? `<button type="button" class="ocard more" data-opall><span class="oc-q">여론 ${all.length - out.length}장 더</span><span class="oc-m">나라·커뮤니티별 댓글을 한 화면에서 끝까지 볼 수 있어요</span><span class="oc-f">전부 보기 ›</span></button>` : ""}</div></section>`;
+      return `<button type="button" class="ocard" data-open="${c.i.id}"><span class="oc-h">${flag(ctry(c.i))} <b>${esc(srcOf(c.i.s).n)}</b></span><span class="oc-q">“${esc(p.ko)}”</span><span class="oc-m">${esc(cm.mood)}</span><span class="oc-f">${esc(c.s ? c.s.title.split(/[,，…]/)[0] : (koOf(c.i)||"").slice(0,40))}</span></button>`; }).join("")}${all.length > out.length ? `<button type="button" class="ocard more" data-opall><span class="oc-q">반응 ${all.length - out.length}장 더</span><span class="oc-m">나라·커뮤니티별 댓글을 한 화면에서 끝까지 볼 수 있어요</span><span class="oc-f">전부 보기 ›</span></button>` : ""}</div></section>`;
 }
 // 흐름 탭 '여론': 모든 여론 카드를 댓글까지 펼쳐서
 function opinionAll(){
@@ -2169,7 +2170,7 @@ function nationDeckView(){
     ${natDeck(S.natC).html()}`;
 }
 // ── 흐름 ──
-const FLOW_TABS = [["story","이야기"],["op","여론"],["ent","이름 사전"],["time","시간순"],["rank","순위"],["cat","카테고리"],["trend","검색어"],["theme","테마"]];
+const FLOW_TABS = [["story","이야기"],["op","반응"],["ent","이름 사전"],["time","시간순"],["rank","순위"],["cat","카테고리"],["trend","검색어"],["theme","테마"]];
 function flowTabs(){ return `<div class="ftabs" role="tablist">${FLOW_TABS.map(([k,l]) => `<button type="button" role="tab" data-ftab="${k}" aria-selected="${(S.flowTab||"story")===k}">${l}</button>`).join("")}</div>`; }
 function viewFlow(){
   const t = S.flowTab || "story";

@@ -71,17 +71,30 @@
             var art = function (i) { return '<a href="' + esc(D.koUrl(i.u, i.l)) + '" target="_blank" rel="noopener">' + esc(i.ko || i.t) + "<small>" + flag(i.c) + " " + esc(cname(i.c)) + (i.p ? " · " + when(i.p) : "") + "</small></a>"; };
             return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag sisa">시사</span>' + (CAT[s.cat] ? "<span>" + CAT[s.cat] + "</span>" : "") + "<span>" + cs.slice(0, 6).map(flag).join("") + "</span><span>" + (brief ? "단신" : cs.length + "개국 · 기사 " + (s.items || []).length) + "</span>" + (s.delta === "new" ? '<b class="new">새 소식</b>' : "") + "</div>" +
               '<h2 class="vdk-t">' + esc(s.title) + "</h2>" +
-              sec("무슨 일이 있었나", '<p class="vdk-p">' + esc(s.key || s.sum) + "</p>") +
+              sec("무슨 일이 있었나", '<p class="vdk-p">' + esc(s.key || s.sum) + "</p>" + ((s.since || []).length ? '<p class="vdk-note mx-since">이 해설을 쓴 뒤 새 기사 ' + s.since.length + "개가 붙었어요 · 지금 상황과 다를 수 있어요 (아래 ‘어떻게 흘러왔나’의 최신 글 확인)</p>" : "")) +
               sec("왜 중요한가", (w3.link ? '<p class="vdk-p"><b>어떤 연결이 있나요?</b><br>' + esc(w3.link) + "</p>" : "") + (w3.now ? '<p class="vdk-p"><b>지금 확인된 영향</b><br>' + esc(w3.now) + "</p>" : "") + (s.why && !w3.now ? '<p class="vdk-p">' + esc(s.why) + "</p>" : "") + (w3.korea ? '<p class="vdk-p"><b>한국과는?</b><br>' + esc(w3.korea) + "</p>" : "")) +
               sec("이해하려면 알아야 할 것", ((s.bg || []).length ? '<ol class="vdk-ol">' + li(s.bg.map(esc)) + "</ol>" : "") + ((s.terms || []).length ? '<ol class="vdk-ol">' + li(s.terms.map(function (t) { return "<b>" + esc(t.t) + "</b> — " + esc(t.d); })) + "</ol>" : "") + ((s.qa || []).length ? s.qa.map(function (x) { return '<details class="mx-sec"><summary>' + esc(x.q) + '</summary><p class="vdk-p">' + esc(x.a) + "</p></details>"; }).join("") : "")) +
               sec("어떻게 흘러왔나", tl.length >= 2 ? '<ol class="vdk-ol">' + li(tl.slice(-8).map(function (i) { return "<small>" + when(i.p) + "</small> " + flag(i.c) + " " + esc(i.ko || i.t); })) + "</ol>" : "") +
-              sec("나라별로 무엇을 강조했나", (s.angles || []).length ? '<ol class="vdk-ol">' + li(s.angles.map(function (a) { return flag(a.c) + " <b>" + esc(cname(a.c)) + "</b>" + (a.f ? " [" + esc(a.f) + "]" : "") + " " + esc(a.t); })) + "</ol>" : "") +
-              sec("세계의 여론", ops.length ? ops.map(function (i) { var c = CM[i.id], pk = c.picks.filter(function (x) { return x.type === "top"; })[0] || c.picks[0]; return '<p class="vdk-p">' + flag(i.c) + " <b>" + esc(cname(i.c)) + "</b> " + esc(c.mood || "") + "<br>“" + esc(pk.ko || pk.raw || pk.orig) + "”</p>"; }).join("") : "") +
+              sec("나라별 매체가 강조한 점", (s.angles || []).length ? '<ol class="vdk-ol">' + li(s.angles.map(function (a) { return flag(a.c) + " <b>" + esc(cname(a.c)) + " 매체 " + Math.max(1, its.filter(function (i) { return i.c === a.c; }).map(function (i) { return i.s; }).filter(function (v, k, arr) { return arr.indexOf(v) === k; }).length) + "곳</b>" + (a.f ? " [" + esc(a.f) + "]" : "") + " " + esc(a.t); })) + "</ol>" : "") +
+              sec("수집한 커뮤니티 반응", ops.length ? ops.map(function (i) { var c = CM[i.id], pk = c.picks.filter(function (x) { return x.type === "top"; })[0] || c.picks[0]; return '<p class="vdk-p">' + flag(i.c) + " <b>" + esc(cname(i.c)) + "</b> " + esc(c.mood || "") + "<br>“" + esc(pk.ko || pk.raw || pk.orig) + "”</p>"; }).join("") : "") +
               sec("기사", its.length ? '<div class="vdk-links">' + its.slice(0, 12).map(art).join("") + "</div>" + (its.length > 12 ? '<p class="vdk-note">기사 ' + its.length + "개 중 12개</p>" : "") : FEEDBY ? "" : '<p class="vdk-note">기사 목록을 불러오는 중…</p>') +
               sec("앞으로 지켜볼 것", s.watch ? '<p class="vdk-p">' + esc(s.watch) + "</p>" : "") +
               '<button type="button" class="vdk-more"' + go("sisa/#issue-" + s.id) + ">지도와 함께 시사에서 보기 ›</button></div>";
           } };
       }));
+      // 본 이슈에 새 기사가 3개 넘게 붙으면 '지난번 이후 바뀐 점' 카드로 한 번 더 (본 것 전체를 다시 보여 주진 않음)
+      var again = st.filter(function (s) { var k = "i:" + s.title, n = SI[k]; return s.kind !== "brief" && n && D.Seen.has("sisa", k) && (s.items || []).length - n >= 3; }).map(function (s) {
+        var k = "i:" + s.title, n0 = SI[k], add = (s.items || []).length - n0;
+        return { key: k + "@" + s.items.length, base: k, nItems: s.items.length, sa: "sisa", kind: "sisa", title: "바뀐 점 · " + s.title, url: location.origin + location.pathname + "sisa/#issue-" + s.id, shareText: s.title, q: s.title, s: s, ed: m.edition,
+          html: function () {
+            var its = (s.items || []).map(function (x) { return FEEDBY && FEEDBY[x]; }).filter(Boolean).sort(function (a, b) { return String(b.p || "").localeCompare(String(a.p || "")); }).slice(0, Math.min(add, 8));
+            return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag sisa">시사</span><b class="new">지난번 이후 새 기사 ' + add + '개</b></div><h2 class="vdk-t">' + esc(s.title) + "</h2>" +
+              '<p class="vdk-h">지금 해설</p><p class="vdk-p">' + esc(s.key || s.sum || "") + "</p>" + ((s.since || []).length ? '<p class="vdk-note mx-since">해설을 쓴 뒤 붙은 기사도 ' + s.since.length + "개 있어요 · 해설이 지금 상황과 다를 수 있어요</p>" : "") +
+              '<p class="vdk-h">새로 붙은 기사</p>' + (its.length ? '<div class="vdk-links">' + its.map(function (i) { return '<a href="' + esc(D.koUrl(i.u, i.l)) + '" target="_blank" rel="noopener">' + esc(i.ko || i.t) + "<small>" + flag(i.c) + " " + esc(cname(i.c)) + "</small></a>"; }).join("") + "</div>" : FEEDBY ? "" : '<p class="vdk-note">기사 목록을 불러오는 중…</p>') +
+              '<button type="button" class="vdk-more"' + go("sisa/#issue-" + s.id) + ">시사에서 전부 보기 ›</button></div>";
+          } };
+      });
+      if (again.length) add("sisa", again);
       var dg = ed.countryDigest || {};
       add("nation", Object.keys(dg).map(function (c) {
         return { key: "n:" + c + ":" + dg[c].slice(0, 24), sa: "sisa", kind: "nation", title: cname(c) + "의 오늘", url: location.origin + location.pathname + "sisa/#nation", shareText: cname(c) + "의 오늘\n" + dg[c], q: cname(c) + " " + dg[c],
@@ -188,6 +201,14 @@
 
   /* ── 카드가 보일 때만 더 받아 오기: 시사 기사 목록(그 판), 역사 글 전체 ── */
   var FEEDBY = null, feedP = null, HD = {}, CM = {};
+  var SI = (function () { try { return JSON.parse(localStorage.getItem("vfm:mix:si") || "{}"); } catch (e) { return {}; } })();   // 이슈를 볼 때 붙어 있던 기사 수
+  function markItems(x) {
+    var k = x.base || (x.kind === "sisa" && x.s && x.s.kind !== "brief" ? x.key : null); if (!k) return;
+    SI[k] = x.nItems || (x.s.items || []).length;
+    var ks = Object.keys(SI); if (ks.length > 400) ks.slice(0, ks.length - 300).forEach(function (q) { delete SI[q]; });
+    try { localStorage.setItem("vfm:mix:si", JSON.stringify(SI)); } catch (e) { }
+    if (x.base) D.Seen.add("sisa", x.key);
+  }
   function loadFeedOf(ed) {
     if (!feedP) feedP = j("data/sisa/feed/_index.json").then(function (ids) {
       return Promise.all((ids || []).filter(function (x) { return x.indexOf(ed + "__") === 0; }).map(function (x) { return j("data/sisa/feed/" + x + ".json"); }));
@@ -195,7 +216,7 @@
       return j("data/sisa/brief/" + ed + "__cm.json").then(function (cm) { CM = (cm && cm.map) || {}; return docs; });
     }).then(function (docs) {
       FEEDBY = {};
-      (docs || []).forEach(function (d) { (d && d.items || []).forEach(function (it) { FEEDBY[it.id] = { id: it.id, t: it.t, ko: it.ko || (d.lang === "ko" ? it.t : ""), u: it.u, c: it.c, l: d.lang, p: it.p, k: it.k }; }); });
+      (docs || []).forEach(function (d) { (d && d.items || []).forEach(function (it) { FEEDBY[it.id] = { id: it.id, s: it.s, t: it.t, ko: it.ko || (d.lang === "ko" ? it.t : ""), u: it.u, c: it.c, l: d.lang, p: it.p, k: it.k }; }); });
     });
     return feedP;
   }
@@ -205,6 +226,7 @@
     return j("data/history/pages/" + pid.slice(0, 2).padStart(2, "0") + "/" + id + ".json").then(function (d) { if (d) HD[id] = d; return d; });
   }
   function more(x) {
+    markItems(x);
     var again = function () { ["mix-home", "mix-search"].forEach(function (id) { var d = D.get(id); if (d && d.el() && d.curKey() === x.key) d.paint(); }); };
     if (x.kind === "sisa" && !FEEDBY && x.ed) loadFeedOf(x.ed).then(again);
     if (x.hid && !HD[x.hid]) loadHist(x.hid).then(again);
