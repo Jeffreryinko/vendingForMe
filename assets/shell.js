@@ -27,6 +27,7 @@
     "font:600 15px/1 var(--ap-font);-webkit-user-select:none;user-select:none}" +
     ".vfm-bar .h{flex:none;width:40px;height:40px;border-radius:12px;border:0;background:var(--ap-fill);display:grid;place-items:center;color:var(--ap-label);cursor:pointer}" +
     ".vfm-bar .h svg{width:20px;height:20px}" +
+    ".vfm-bar .h.home{width:auto;padding:0 12px 0 10px;display:flex;gap:5px;align-items:center;font:inherit;font-size:15px;font-weight:700}" +
     ".vfm-seg{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:3px;border-radius:12px;background:var(--ap-fill);height:40px}" +
     ".vfm-seg button{border:0;border-radius:9px;background:transparent;color:var(--ap-label);font:inherit;font-size:14.5px;letter-spacing:-.02em;white-space:nowrap;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;-webkit-tap-highlight-color:transparent}" +
     ".vfm-seg button i{width:8px;height:8px;border-radius:50%;display:inline-block}" +
@@ -95,7 +96,7 @@
   if (!HOME) {
     bar = document.createElement("div"); bar.className = "vfm-bar"; bar.setAttribute("role", "navigation"); bar.setAttribute("aria-label", "자판기 앱");
     bar.innerHTML =
-      '<button class="h" type="button" data-vfm="home" aria-label="자판기 홈"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7.5" height="7.5" rx="2.2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2.2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2.2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2.2"/></svg></button>' +
+      '<button class="h home" type="button" data-vfm="home" aria-label="자판기 홈"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7.5" height="7.5" rx="2.2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2.2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2.2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2.2"/></svg>홈</button>' +
       '<div class="vfm-seg">' + APPS.map(function (a) {
         return '<button type="button" data-vfm="' + a[0] + '"' + (a[0] === APP ? ' aria-current="page"' : "") + ">" + (a[0] === APP ? '<span class="vfm-dot none"></span>' : "") + a[1] + "</button>";
       }).join("") + "</div>" +
@@ -127,6 +128,19 @@
     history[k] = function () { var r = orig.apply(history, arguments); curUrl = location.href; return r; };
   });
   window.addEventListener("hashchange", function () { curUrl = location.href; });
+  // 홈 랜덤 카드에서 '자세히'로 들어온 첫 화면 (assets/mix.js 가 적어 둠)
+  var entryHash = null;
+  if (!HOME) { try { if (sessionStorage.getItem("vfm:fromHome") === "1" && sessionStorage.getItem("vfm:fromCard") === (location.hash || "")) entryHash = location.hash; sessionStorage.removeItem("vfm:fromCard"); } catch (e) { } }
+  function backToCard(h) {
+    if (!entryHash || (h === undefined ? location.hash : h) !== entryHash) return false;
+    entryHash = null; goHome(); return true;
+  }
+  window.vfm = window.vfm || {}; window.vfm.backToCard = function () { return backToCard(); };
+  // 화면 안의 '뒤로'·'닫기' 단추도 같은 규칙
+  if (!HOME) document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-close],[data-act='back']"); if (!b) return;
+    if (backToCard()) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
   if (!HOME) {
     try { if (!(history.state && (history.state.vfm === "top" || history.state.vfm === "base"))) history.replaceState({ vfm: "base" }, "", location.href); } catch (e) { }
     // 브라우저는 사람이 화면을 누른 뒤에 만든 기록만 뒤로가기에서 인정함 → 첫 터치 때 한 칸 깔아 둠
@@ -140,6 +154,8 @@
       if (st === "top") return;
       if (st !== "base") { if (window.vfmApp && window.vfmApp.route) window.vfmApp.route(); return; }
       if (location.href !== curUrl) { var shown = curUrl; try { history.replaceState({ vfm: "base" }, "", shown); } catch (x) { } }
+      // 홈 카드의 '자세히'로 들어온 화면이면, 뒤로가기 = 그 홈 카드로
+      if (backToCard(new URL(curUrl).hash)) return;
       var done = false;
       var sh = document.querySelector(".vfm-back"); if (sh) { sh.remove(); done = true; }
       if (!done && window.vfmApp && window.vfmApp.back) { try { done = !!window.vfmApp.back(); } catch (x) { done = false; } }
