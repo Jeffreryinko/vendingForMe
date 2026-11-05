@@ -306,6 +306,28 @@
   }
   window.vfm.think = think; window.vfm.box = BOX;
 
+  /* ── X(트위터) 링크는 X 앱 말고 크롬으로 ──
+       안드로이드: intent 주소로 크롬을 지정해 열기 (크롬이 없으면 원래 주소)
+       아이폰: googlechromes:// 로 크롬 열기, 1.2초 안에 안 넘어가면(크롬 없음) 원래 주소
+       PC: 그대로 (원래 브라우저 탭으로 열림) */
+  var UA = navigator.userAgent || "", ANDROID = /Android/i.test(UA), IOS = /iPhone|iPad|iPod/i.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
+  var XRE = /^https?:\/\/(?:www\.|mobile\.)?(?:x|twitter)\.com\//i;
+  function openInChrome(u) {
+    if (ANDROID) { location.href = "intent://" + u.replace(/^https?:\/\//, "") + "#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" + encodeURIComponent(u) + ";end"; return true; }
+    if (IOS && !/CriOS/.test(UA)) {
+      var gone = false, t = setTimeout(function () { if (!gone) location.href = u; }, 1200);
+      var off = function () { if (document.hidden) { gone = true; clearTimeout(t); document.removeEventListener("visibilitychange", off); } };
+      document.addEventListener("visibilitychange", off);
+      location.href = "googlechromes://" + u.replace(/^https?:\/\//, ""); return true;
+    }
+    return false;                                                     // PC·아이폰 크롬 안: 그대로
+  }
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[href]"); if (!a || !XRE.test(a.href)) return;
+    if (openInChrome(a.href)) e.preventDefault();
+  }, true);
+  window.vfm.openX = openInChrome;
+
   /* ── 구글 로그인 (assets/sync.js) — 설정(sync-config.js)이 있을 때만 보임 ── */
   function syncHtml() {
     var S = window.vfmSync;
