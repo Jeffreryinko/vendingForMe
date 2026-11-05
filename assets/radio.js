@@ -7,6 +7,10 @@
   "use strict";
   var BASE = "data/radio/", KEY = "vfm:radio";
   var R = null, i = 0, au = new Audio(); au.preload = "auto";
+  var SPEEDS = [1, 1.25, 1.5, 1.75, 2, 0.75], speed = 1;
+  try { speed = +localStorage.getItem("vfm:radio:speed") || 1; } catch (e) { }
+  function applySpeed() { au.defaultPlaybackRate = speed; au.playbackRate = speed; try { au.preservesPitch = true; } catch (e) { } }   // 빨라도 목소리 높이는 그대로
+  applySpeed();
   var st = (function () { try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { return {}; } })();
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
   var toast = function (m) { if (window.vfm && vfm.toast) vfm.toast(m); };
@@ -23,6 +27,7 @@
     b.hidden = false; document.body.classList.add("rd-on");
     b.innerHTML = '<div class="rd-info"><span class="rd-k">' + esc(KIND[it.kind] || "") + " · " + (i + 1) + "/" + R.items.length + " · " + esc(R.label || "") + '</span><b class="rd-t">' + esc(it.title || "") + "</b></div>" +
       '<div class="rd-btns"><button type="button" data-rd="prev" aria-label="이전">⏮</button><button type="button" data-rd="toggle" class="rd-play" aria-label="' + (playing ? "멈춤" : "재생") + '">' + (playing ? "⏸" : "▶") + '</button><button type="button" data-rd="next" aria-label="다음">⏭</button>' +
+      '<button type="button" data-rd="speed" class="rd-speed" aria-label="재생 속도">' + speed + "×</button>" +
       (it.link ? '<button type="button" data-rd="card" aria-label="카드 보기">카드</button>' : "") + '<button type="button" data-rd="close" aria-label="라디오 닫기">✕</button></div>';
     var btn = document.getElementById("rdBtn"); if (btn) btn.textContent = playing ? "⏸ 라디오" : "▶ 라디오";
   }
@@ -37,7 +42,7 @@
   function playAt(k, from) {
     if (!R) return;
     i = Math.max(0, Math.min(R.items.length - 1, k));
-    au.src = BASE + R.items[i].file; au.currentTime = 0;
+    au.src = BASE + R.items[i].file; au.currentTime = 0; applySpeed();
     if (from) au.addEventListener("loadedmetadata", function f() { au.currentTime = from; au.removeEventListener("loadedmetadata", f); });
     au.play().catch(function () { toast("재생을 시작하지 못했어요. 한 번 더 눌러 주세요"); });
     media(); bar(); save();
@@ -62,6 +67,7 @@
     var b = e.target.closest && e.target.closest("#rdBtn,[data-rd]"); if (!b) return;
     if (b.id === "rdBtn") return start();
     var a = b.getAttribute("data-rd");
+    if (a === "speed") { speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]; try { localStorage.setItem("vfm:radio:speed", speed); } catch (x) { } applySpeed(); bar(); toast(speed + "배속"); return; }
     if (a === "toggle") { if (au.paused) au.play(); else au.pause(); }
     else if (a === "next") playAt(i + 1);
     else if (a === "prev") playAt(au.currentTime > 4 ? i : i - 1);
@@ -80,8 +86,8 @@
   css.textContent = "#rdBtn{flex:none;border:0;border-radius:12px;padding:0 12px;font:inherit;font-weight:700;background:var(--ap-blue);color:#fff;white-space:nowrap}" +
     ".rd-bar{position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);z-index:9500;display:flex;align-items:center;gap:8px;padding:10px 10px 10px 14px;border-radius:16px;" +
     "background:var(--ap-bar,rgba(249,249,249,.92));-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:0 6px 24px rgba(0,0,0,.18);max-width:560px;margin:0 auto}" +
-    ".rd-info{flex:1;min-width:0;display:flex;flex-direction:column}.rd-k{font-size:11.5px;color:var(--ap-label2)}.rd-t{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
+    ".rd-bar{flex-wrap:wrap}.rd-info{flex:1 1 100%;min-width:0;display:flex;flex-direction:column}.rd-btns{width:100%;justify-content:space-between}.rd-btns button{flex:1}.rd-k{font-size:11.5px;color:var(--ap-label2)}.rd-t{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
     ".rd-btns{display:flex;gap:4px;flex:none}.rd-btns button{border:0;border-radius:10px;min-width:36px;height:36px;background:var(--ap-fill);color:var(--ap-label);font:inherit;font-size:15px}" +
-    ".rd-btns .rd-play{background:var(--ap-blue);color:#fff}body.rd-on{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 96px)!important}";
+    ".rd-btns .rd-speed{min-width:44px;font-size:13px;font-weight:700}.rd-btns .rd-play{background:var(--ap-blue);color:#fff}body.rd-on{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 130px)!important}";
   document.head.appendChild(css);
 })();
