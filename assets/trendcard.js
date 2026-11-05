@@ -32,9 +32,12 @@
     });
     return out;
   }
+  // 유튜브 썸네일: 영상 번호(vid)만 있으면 주소가 정해져 있음 (API·토큰 0)
+  function ytId(it) { return it.vid || (String(it.url || "").match(/(?:v=|youtu\.be\/|shorts\/)([\w-]{11})/) || [])[1] || ""; }
+  function thumb(it) { var v = ytId(it); return v ? '<a class="vdk-yt" href="' + esc(it.url) + '" target="_blank" rel="noopener" aria-label="유튜브에서 보기"><img src="https://i.ytimg.com/vi/' + v + '/hqdefault.jpg" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest(\'a\').remove()"><span>▶</span></a>' : ""; }
   function video(it) {
     var desc = it.dko || it.desc, cap = it.capko || it.cap;
-    return '<p class="vdk-h">영상 정보</p><p class="vdk-p">' + esc(it.sub || "") + " 채널" + (it.n ? " · 조회 " + esc(it.n) : "") + "</p>" +
+    return thumb(it) + '<p class="vdk-h">영상 정보</p><p class="vdk-p">' + esc(it.sub || "") + " 채널" + (it.n ? " · 조회 " + esc(it.n) : "") + "</p>" +
       (desc ? '<p class="vdk-h">설명란' + (it.dko ? " (기계번역)" : "") + '</p><p class="vdk-p">' + esc(desc) + "</p>" : '<p class="vdk-note">설명란이 비어 있거나 아직 못 가져왔어요.</p>') +
       (cap ? '<p class="vdk-h">자막 앞부분' + (it.capko ? " (기계번역)" : "") + '</p><p class="vdk-p">' + esc(cap.slice(0, 700)) + (cap.length > 700 ? "…" : "") + "</p>" : "") +
       '<a class="vdk-more" href="' + esc(it.url) + '" target="_blank" rel="noopener">유튜브에서 영상 보기 ↗</a>';
@@ -73,7 +76,9 @@
     return '<div class="vdk-body dk">' + h + (o.extra || "") + b + "</div>";
   }
   var css = document.createElement("style");
-  css.textContent = ".vdk-img{display:block;margin:4px 0 10px;border-radius:12px;overflow:hidden;background:rgba(118,118,128,.12)}.vdk-img img{display:block;width:100%;max-height:60vh;object-fit:contain}";
+  css.textContent = ".vdk-yt{position:relative;display:block;margin:2px 0 12px;border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:rgba(118,118,128,.12)}.vdk-yt img{display:block;width:100%;height:100%;object-fit:cover}" +
+    ".vdk-yt span{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;font-size:17px;padding-left:3px;box-sizing:border-box}" +
+    ".vdk-img{display:block;margin:4px 0 10px;border-radius:12px;overflow:hidden;background:rgba(118,118,128,.12)}.vdk-img img{display:block;width:100%;max-height:60vh;object-fit:contain}";
   document.head.appendChild(css);
-  window.VfmTrend = { card: card, items: items, wikiFor: wikiFor, WK: WK, flag: flag, esc: esc, ADULT: ADULT };
+  window.VfmTrend = { thumb: thumb, ytId: ytId, card: card, items: items, wikiFor: wikiFor, WK: WK, flag: flag, esc: esc, ADULT: ADULT };
 })();

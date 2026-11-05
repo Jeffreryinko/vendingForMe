@@ -22,6 +22,8 @@
   .hot-row{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;background:none;border:0;padding:9px 14px;border-top:1px solid var(--line)}
   .hot-row .rank{width:18px;flex:none;padding-top:3px}.hot-row .hb{flex:1;min-width:0}.hot-row .ht{font-size:15px;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
   .hot-row .ho{font-size:12px;color:var(--muted);display:block;overflow-wrap:anywhere}.hot-row .hm{font-size:11.5px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+  .hot-row.has-th .ht{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.hot-row.has-th .ho{display:none}
+  .hot-row .hot-th{flex:none;width:88px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;background:var(--line)}
   .hot-row .hn{flex:none;font-family:var(--f-mono);font-size:11px;color:var(--muted);padding-top:4px}
   .hot-x{padding:4px 14px 12px 42px;display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line)}
   .hot-x a{font-size:13px;color:var(--ink);text-decoration:none;line-height:1.4}.hot-x a small{color:var(--muted)}
@@ -64,14 +66,16 @@
     const main = hide ? `<span class="ht hot-blur">${esc(it.ko || it.kw)}</span><span class="ho">가려진 검색어 · 누르면 보여요</span>`
       : `<span class="ht">${esc(it.ko || it.kw)}</span>${it.ko && it.ko !== it.kw ? `<span class="ho">${esc(it.kw)}</span>` : ""}`;
     const meta = [it.sub ? esc(it.sub) : "", tag, iss ? `<button type="button" class="pill coin" data-hotiss="${esc(iss.id)}">이슈 보기</button>` : ""].filter(Boolean).join("");
+    const yv = (src === "yt" || src === "ytfun") && !hide && window.VfmTrend && window.VfmTrend.ytId ? window.VfmTrend.ytId(it) : "";
     const x = open && !hide ? `<div class="hot-x">
         ${(it.news || []).map(n => `<a href="${esc(ku(n.u))}" target="_blank" rel="noopener">${esc(n.ko || n.t)} <small>· ${esc(n.s || "")}</small>${n.sn ? `<small style="display:block">${esc(n.sn)}</small>` : ""}</a>`).join("")}
+        ${yv && window.VfmTrend.thumb ? window.VfmTrend.thumb(it) : ""}
         ${src === "yt" && (it.dko || it.desc) ? `<p class="note" style="color:var(--ink);margin:0">${esc(it.dko || it.desc)}</p>` : ""}
         ${src === "yt" && (it.capko || it.cap) ? `<p class="note" style="margin:0"><b>자막</b> ${esc((it.capko || it.cap).slice(0, 300))}…</p>` : ""}
         <div class="btnrow"><a class="btn" href="${esc(it.url)}" target="_blank" rel="noopener">${src === "yt" ? "유튜브에서 보기" : src === "wiki" ? "문서 열기" : "검색 결과"}</a>
           <button type="button" class="btn ${isStar(cc, src, it.kw) ? "on" : ""}" data-hotstar="${id}">${isStar(cc, src, it.kw) ? "★ 보관됨" : "☆ 보관"}</button>
           <button type="button" class="btn" data-hotshare="${id}">공유</button></div></div>` : "";
-    return `<button type="button" class="hot-row" data-hotrow="${id}" ${hide ? `data-hotreveal="${id}"` : ""}><span class="rank">${i + 1}</span><span class="hb">${main}<span class="hm">${meta}</span></span>${it.n ? `<span class="hn">${esc(it.n)}</span>` : ""}</button>${x}`;
+    return `<button type="button" class="hot-row${yv ? " has-th" : ""}" data-hotrow="${id}" ${hide ? `data-hotreveal="${id}"` : ""}><span class="rank">${i + 1}</span>${yv ? `<img class="hot-th" src="https://i.ytimg.com/vi/${yv}/mqdefault.jpg" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}<span class="hb">${main}<span class="hm">${meta}</span></span>${it.n ? `<span class="hn">${esc(it.n)}</span>` : ""}</button>${x}`;
   }
   function srcCard(cc, src, b) {
     const items = b.items || [], n = H.more[src] ? 20 : 5, more = items.length > 5;
