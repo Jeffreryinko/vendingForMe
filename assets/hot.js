@@ -72,7 +72,7 @@
         ${yv && window.VfmTrend.thumb ? window.VfmTrend.thumb(it) : ""}
         ${src === "yt" && (it.dko || it.desc) ? `<p class="note" style="color:var(--ink);margin:0">${esc(it.dko || it.desc)}</p>` : ""}
         ${src === "yt" && (it.capko || it.cap) ? `<p class="note" style="margin:0"><b>자막</b> ${esc((it.capko || it.cap).slice(0, 300))}…</p>` : ""}
-        <div class="btnrow"><a class="btn" href="${esc(it.url)}" target="_blank" rel="noopener">${src === "yt" ? "유튜브에서 보기" : src === "wiki" ? "문서 열기" : "검색 결과"}</a>
+        <div class="btnrow"><a class="btn" href="https://www.google.com/search?q=${encodeURIComponent(it.kw)}" target="_blank" rel="noopener">🔍 구글 검색</a>${src === "google" ? "" : `<a class="btn" href="${esc(it.url)}" target="_blank" rel="noopener">${src === "yt" ? "유튜브에서 보기" : src === "wiki" ? "문서 열기" : "그 사이트 검색"}</a>`}
           <button type="button" class="btn ${isStar(cc, src, it.kw) ? "on" : ""}" data-hotstar="${id}">${isStar(cc, src, it.kw) ? "★ 보관됨" : "☆ 보관"}</button>
           <button type="button" class="btn" data-hotshare="${id}">공유</button></div></div>` : "";
     return `<button type="button" class="hot-row${yv ? " has-th" : ""}" data-hotrow="${id}" ${hide ? `data-hotreveal="${id}"` : ""}><span class="rank">${i + 1}</span>${yv ? `<img class="hot-th" src="https://i.ytimg.com/vi/${yv}/mqdefault.jpg" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}<span class="hb">${main}<span class="hm">${meta}</span></span>${it.n ? `<span class="hn">${esc(it.n)}</span>` : ""}</button>${x}`;

@@ -1,0 +1,56 @@
+name: 자판기 라디오 (하루 2번, 무료 음성 MeloTTS, 토큰 0)
+
+# 그날 시사·트렌드·AI 카드를 오픈소스 음성(MeloTTS, MIT)으로 읽어 data/radio/ 에 소리 파일로 저장해요.
+# 홈의 '▶ 라디오' 단추가 이 파일을 차례로 틀어 줘요 (화면을 꺼도 계속).
+on:
+  schedule:
+    - cron: "20 23,11 * * *"     # 한국시간 08:20, 20:20 (편집장 07·19시 해설이 끝난 뒤)
+  workflow_dispatch:
+    inputs:
+      engine:
+        description: "melo (기본, 오픈소스) 또는 edge (MS 온라인 음성, 비공식)"
+        required: false
+        default: "melo"
+
+concurrency:
+  group: data-radio
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  radio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: 음성 모델 캐시
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/huggingface
+            ~/.cache/pip
+          key: melotts-kr-v1
+      - name: 프로그램 설치
+        id: inst
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          ENGINE="${{ inputs.engine || 'melo' }}"
+          if [ "$ENGINE" = "melo" ]; then
+            if pip install -q "git+https://github.com/myshell-ai/MeloTTS.git" && python -m unidic download; then echo "engine=melo" >> $GITHUB_OUTPUT;
+            else echo "MeloTTS 설치 실패 → edge-tts 로"; pip install -q edge-tts; echo "engine=edge" >> $GITHUB_OUTPUT; fi
+          else pip install -q edge-tts; echo "engine=edge" >> $GITHUB_OUTPUT; fi
+      - name: 라디오 만들기
+        run: python robot/radio_run.py --engine ${{ steps.inst.outputs.engine }}
+      - name: 저장소에 올리기
+        run: |
+          git config user.name "radio-robot"
+          git config user.email "robot@users.noreply.github.com"
+          git add -A data/radio
+          git diff --cached --quiet && echo "변경 없음" && exit 0
+          git commit -m "라디오: $(TZ=Asia/Seoul date '+%m월 %d일 %H시')판"
+          for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 10; done
