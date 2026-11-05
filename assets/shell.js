@@ -340,14 +340,15 @@
       "<small>등록된 구글 계정만 들어올 수 있어요. 처음이면 주현에게 메일 주소를 알려 주세요.<br>로그인하면 폰과 PC에서 같은 기록을 봐요.</small></div>";
   }
   function hideGate() { document.documentElement.classList.remove("vfm-locked"); if (gateEl) { gateEl.remove(); gateEl = null; } }
+  var REQ = function () { return !!(window.VFM_SYNC && window.VFM_SYNC.required); };   // sync-config.js 의 required: true 일 때만 잠금 (지금은 선택)
   function gate() {
-    var S = window.vfmSync; if (!S || !S.ready) return;
+    var S = window.vfmSync; if (!S || !S.ready || !REQ()) return;
     var cb = /[?&#](code|access_token)=/.test(location.href), err = /[?&#]error(_description)?=([^&#]*)/.exec(location.href);
     if (err) return showGate("로그인이 안 됐어요. 등록된 계정인지 확인해 주세요.");
     if (cb) return showGate("", true);
     if (!hasToken()) showGate("");
   }
-  window.vfmGate = { show: function (m) { showGate(m || ""); }, hide: hideGate };
+  window.vfmGate = { show: function (m) { if (REQ()) showGate(m || ""); }, hide: hideGate };
   document.addEventListener("click", function (e) {
     if (!e.target.closest("[data-gate=login]")) return;
     showGate("", true);
