@@ -315,9 +315,44 @@
     return '<div><span>' + escH((u.user_metadata && (u.user_metadata.name || u.user_metadata.full_name)) || u.email || "로그인됨") + '</span><span class="v">' + escH(S.status || "") + "</span></div>" +
       '<button type="button" data-act="syncnow"><span class="tint">지금 맞추기</span><span class="v">›</span></button><button type="button" data-act="logout"><span>로그아웃</span><span class="v">›</span></button>';
   }
-  [ROOT + "assets/sync-config.js?t=" + Math.floor(Date.now() / 60000), ROOT + "assets/sync.js?v=2"]   // 설정은 늘 새로 받음 (브라우저가 10분 묵혀 두지 않게).reduce(function (p, src) {
+  // 설정 파일은 늘 새로 받음 (브라우저가 10분 묵혀 두지 않게)
+  [ROOT + "assets/sync-config.js?t=" + Math.floor(Date.now() / 60000), ROOT + "assets/sync.js?v=3"].reduce(function (p, src) {
     return p.then(function () { return new Promise(function (ok) { var sc = document.createElement("script"); sc.src = src; sc.onload = sc.onerror = ok; document.head.appendChild(sc); }); });
-  }, Promise.resolve()).then(function () { if (window.vfmSync) window.vfmSync.render = syncHtml; });
+  }, Promise.resolve()).then(function () { if (window.vfmSync) { window.vfmSync.render = syncHtml; gate(); } });
+
+  /* ── 로그인해야 쓸 수 있게 (가족·지인 전용) — 구글 '테스트 사용자'에 등록한 계정만 들어옴 ──
+       로그인 기록(sb-…-auth-token)이 이 기기에 있으면 바로 열고, 서버가 '로그인 아님'이라 하면 다시 잠금 */
+  var LOCK = document.createElement("style");
+  LOCK.textContent = "html.vfm-locked,html.vfm-locked body{overflow:hidden}html.vfm-locked body>*:not(.vfm-gate){visibility:hidden}" +
+    ".vfm-gate{position:fixed;inset:0;z-index:99999;background:var(--ap-bg,#F2F2F7);color:var(--ap-label,#000);display:flex;align-items:center;justify-content:center;padding:24px;font:16px/1.5 var(--ap-font,system-ui)}" +
+    ".vfm-gate .in{width:100%;max-width:340px;text-align:center}.vfm-gate h2{font-size:34px;font-weight:800;letter-spacing:-.03em;margin:0 0 6px}.vfm-gate p{margin:0 0 22px;color:var(--ap-label2,#6E6E73);font-size:15px}" +
+    ".vfm-gate button{width:100%;border:0;border-radius:14px;padding:15px;font:inherit;font-weight:700;font-size:17px;background:var(--ap-blue,#007AFF);color:#fff;display:flex;gap:10px;align-items:center;justify-content:center}" +
+    ".vfm-gate button svg{width:20px;height:20px;background:#fff;border-radius:50%;padding:2px}.vfm-gate small{display:block;margin-top:14px;color:var(--ap-label2,#6E6E73);font-size:12.5px;line-height:1.5}.vfm-gate .err{color:var(--ap-red,#d33);margin:14px 0 0;font-size:14px}";
+  document.head.appendChild(LOCK);
+  function hasToken() { try { for (var i = 0; i < localStorage.length; i++) if (/^sb-.+-auth-token$/.test(localStorage.key(i))) return true; } catch (e) { } return false; }
+  var gateEl = null;
+  function showGate(msg, busy) {
+    document.documentElement.classList.add("vfm-locked");
+    if (!gateEl) { gateEl = document.createElement("div"); gateEl.className = "vfm-gate"; document.body.appendChild(gateEl); }
+    gateEl.innerHTML = '<div class="in"><h2>자판기</h2><p>가족·지인만 쓰는 자판기예요.<br>구글 계정으로 들어와 주세요.</p>' +
+      (busy ? '<p style="margin:0">로그인하는 중…</p>' : '<button type="button" data-gate="login"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9z"/><path fill="#EA4335" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3.1 7.5L6.4 10C7.2 7.8 9.4 6 12 6z"/></svg>구글로 로그인</button>') +
+      (msg ? '<p class="err">' + escH(msg) + "</p>" : "") +
+      "<small>등록된 구글 계정만 들어올 수 있어요. 처음이면 주현에게 메일 주소를 알려 주세요.<br>로그인하면 폰과 PC에서 같은 기록을 봐요.</small></div>";
+  }
+  function hideGate() { document.documentElement.classList.remove("vfm-locked"); if (gateEl) { gateEl.remove(); gateEl = null; } }
+  function gate() {
+    var S = window.vfmSync; if (!S || !S.ready) return;
+    var cb = /[?&#](code|access_token)=/.test(location.href), err = /[?&#]error(_description)?=([^&#]*)/.exec(location.href);
+    if (err) return showGate("로그인이 안 됐어요. 등록된 계정인지 확인해 주세요.");
+    if (cb) return showGate("", true);
+    if (!hasToken()) showGate("");
+  }
+  window.vfmGate = { show: function (m) { showGate(m || ""); }, hide: hideGate };
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest("[data-gate=login]")) return;
+    showGate("", true);
+    window.vfmSync.login().catch(function (x) { showGate((x && x.message) || "로그인을 시작하지 못했어요"); });
+  });
   css.textContent += ".vfm-tk-src{margin:-6px 4px 10px;color:var(--ap-label2);font-size:14px}.vfm-tk-qs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}" +
     ".vfm-tk-qs button{border:0;border-radius:999px;padding:8px 12px;background:var(--ap-fill);color:var(--ap-label);font:inherit;font-size:14px}.vfm-tk-qs button[aria-pressed=true]{background:var(--ap-blue);color:#fff;font-weight:700}" +
     ".vfm-think input,.vfm-think textarea{width:100%;box-sizing:border-box;border:0;border-radius:12px;padding:10px 12px;background:var(--ap-fill);color:var(--ap-label);font:inherit;font-size:16px;margin:4px 0 10px;resize:vertical}" +

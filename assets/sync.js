@@ -55,7 +55,7 @@
     if (!api.ready) return Promise.reject(new Error("아직 준비 중이에요"));
     return load().then(function (c) { return c.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } }); });
   }
-  function logout() { return load().then(function (c) { return c.auth.signOut(); }).then(function () { user = null; localStorage.removeItem(META); paint(); }); }
+  function logout() { return load().then(function (c) { return c.auth.signOut(); }).then(function () { user = null; localStorage.removeItem(META); paint(); if (window.vfmGate) window.vfmGate.show(); }); }
 
   function run(manual) {
     if (!user || busy) return Promise.resolve();
@@ -93,10 +93,11 @@
   var hasSession = false; for (var i = 0; i < localStorage.length; i++) if (/^sb-.*-auth-token/.test(localStorage.key(i))) hasSession = true;
   if (api.ready && (hasSession || /[?&#](code|access_token)=/.test(location.href))) {
     load().then(function (c) {
-      c.auth.onAuthStateChange(function (ev, s) { user = s && s.user || null; paint(); if (user && ev === "SIGNED_IN") run(); });
+      c.auth.onAuthStateChange(function (ev, s) { user = s && s.user || null; paint(); if (user && window.vfmGate) window.vfmGate.hide(); if (user && ev === "SIGNED_IN") run(); if (!user && ev === "SIGNED_OUT" && window.vfmGate) window.vfmGate.show(); });
       return c.auth.getSession();
     }).then(function (r) {
       user = (r && r.data && r.data.session && r.data.session.user) || null; paint();
+      if (window.vfmGate) { if (user) window.vfmGate.hide(); else window.vfmGate.show(); }      // 로그인 기록이 만료됐으면 다시 잠금
       if (!user) return;
       run();
       timer = setInterval(run, 120000);
