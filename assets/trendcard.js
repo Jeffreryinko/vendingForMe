@@ -71,9 +71,12 @@
       var g = ((((o.country || {}).src || {}).google || {}).items) || [];
       var k = (it.ko || it.kw).toLowerCase(), hit = g.filter(function (x) { var t = (x.ko || x.kw).toLowerCase(); return t.indexOf(k) >= 0 || k.indexOf(t) >= 0; })[0];
       b = (it.sub ? '<p class="vdk-p">' + esc(it.sub) + "</p>" : "") + (hit && (hit.news || []).length ? '<p class="vdk-h">관련 뉴스 (구글 급상승)</p><div class="vdk-links">' + hit.news.map(function (n) { return '<a href="' + esc(ku(n.u)) + '" target="_blank" rel="noopener">' + esc(n.ko || n.t) + "<small>" + esc(n.s || "") + "</small></a>"; }).join("") + "</div>" : '<p class="vdk-note">이 출처는 검색어만 알려 줘요. 이유는 검색 결과에서 확인해요.</p>') +
-        '<a class="vdk-more" href="' + esc(it.url) + '" target="_blank" rel="noopener">검색 결과 보기 ↗</a>';
+        '<a class="vdk-more" href="' + esc(it.url) + '" target="_blank" rel="noopener">그 사이트 검색 결과 보기 ↗</a>';
     }
-    return '<div class="vdk-body dk">' + h + (o.extra || "") + b + "</div>";
+    // 모든 트렌드 카드에 구글 검색 단추 (검색어 원문 그대로)
+    var gq = src === "wiki" ? String(it.kw || "").replace(/_/g, " ") : (it.kw || "");
+    var gs = '<a class="vdk-more vdk-gsearch" href="https://www.google.com/search?q=' + encodeURIComponent(gq) + '" target="_blank" rel="noopener">🔍 구글에서 검색 ↗</a>';
+    return '<div class="vdk-body dk">' + h + (o.extra || "") + b + gs + "</div>";
   }
   var css = document.createElement("style");
   css.textContent = ".vdk-yt{position:relative;display:block;margin:2px 0 12px;border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:rgba(118,118,128,.12)}.vdk-yt img{display:block;width:100%;height:100%;object-fit:cover}" +
