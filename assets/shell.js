@@ -315,7 +315,7 @@
     return '<div><span>' + escH((u.user_metadata && (u.user_metadata.name || u.user_metadata.full_name)) || u.email || "로그인됨") + '</span><span class="v">' + escH(S.status || "") + "</span></div>" +
       '<button type="button" data-act="syncnow"><span class="tint">지금 맞추기</span><span class="v">›</span></button><button type="button" data-act="logout"><span>로그아웃</span><span class="v">›</span></button>';
   }
-  [ROOT + "assets/sync-config.js", ROOT + "assets/sync.js"].reduce(function (p, src) {
+  [ROOT + "assets/sync-config.js?t=" + Math.floor(Date.now() / 60000), ROOT + "assets/sync.js?v=2"]   // 설정은 늘 새로 받음 (브라우저가 10분 묵혀 두지 않게).reduce(function (p, src) {
     return p.then(function () { return new Promise(function (ok) { var sc = document.createElement("script"); sc.src = src; sc.onload = sc.onerror = ok; document.head.appendChild(sc); }); });
   }, Promise.resolve()).then(function () { if (window.vfmSync) window.vfmSync.render = syncHtml; });
   css.textContent += ".vfm-tk-src{margin:-6px 4px 10px;color:var(--ap-label2);font-size:14px}.vfm-tk-qs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}" +
