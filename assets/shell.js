@@ -367,6 +367,8 @@
   if (!document.querySelector('link[rel="manifest"]')) {
     var l = document.createElement("link"); l.rel = "manifest"; l.href = ROOT + "manifest.webmanifest"; document.head.appendChild(l);
   }
+  // 라디오: 모든 화면에 재생기를 넣어, 다른 화면으로 옮겨도 듣던 라디오가 이어지게 (assets/radio.js)
+  if (!window.__vfmRadio) { var rs = document.createElement("script"); rs.src = ROOT + "assets/radio.js"; document.body.appendChild(rs); }
   loadMeta();
   setInterval(loadMeta, 15 * 60 * 1000);
 })();
