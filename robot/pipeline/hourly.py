@@ -119,12 +119,28 @@ def cmd_build(ed, prev, ko, label):
         if k in P and k not in E:
             E[k] = P[k]
     E["carriedFrom"] = prev
+    # 대표 기사 사진: RSS 사진이 있으면 그것, 없으면 앞쪽 뉴스 기사 2개까지 og:image (한 번 본 기사는 _og.json 에 기억, 한 번에 새로 80건까지)
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "builder"))
+    from build_edition import og_image, OG_CACHE
+    try: og = json.loads(OG_CACHE.read_text())
+    except Exception: og = {}
+    tried = 0
+    BAD = ("news.google.", "reddit.com", "youtube.com", "x.com/", "twitter.com")
     for k, s in enumerate(E["stories"]):
         s["id"] = f"g{k+1}"
-        # 대표 기사 사진 하나 (홈 카드처럼 글 목록 없이 그리는 곳에서 씀). 뉴스 기사 사진을 먼저
-        ph = sorted([items[i] for i in s["items"] if i in items and (items[i].get("m") or {}).get("img")], key=lambda it: it["k"] != "news")
-        if ph: s["ph"] = {"u": ph[0]["m"]["img"], "s": ph[0]["s"], "i": ph[0]["id"]}
-        else: s.pop("ph", None)
+        its = [items[i] for i in s["items"] if i in items]
+        ph = sorted([it for it in its if (it.get("m") or {}).get("img")], key=lambda it: it["k"] != "news")
+        if ph:
+            s["ph"] = {"u": ph[0]["m"]["img"], "s": ph[0]["s"], "i": ph[0]["id"]}; continue
+        s.pop("ph", None)
+        for it in [x for x in its if x["k"] == "news" and not any(b in (x.get("u") or "") for b in BAD)][:2]:
+            if it["id"] not in og and tried < 80:
+                og[it["id"]] = og_image(it["u"]); tried += 1
+            if og.get(it["id"]):
+                s["ph"] = {"u": og[it["id"]], "s": it["s"], "i": it["id"]}; break
+    if len(og) > 4000: og = dict(list(og.items())[-3000:])
+    OG_CACHE.write_text(json.dumps(og, ensure_ascii=False))
+    print(f"대표 사진: 이슈 {sum(1 for s in E['stories'] if s.get('ph'))}/{len(E['stories'])}개 (og:image 새로 확인 {tried}건)")
     (SEED / f"editions__{ed}.json").write_text(json.dumps(E, ensure_ascii=False))
     for lang, arr in carried.items():
         f = SEED / f"feed__{ed}__{lang}.json"
