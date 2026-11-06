@@ -135,6 +135,8 @@ def cmd_build(ed, prev, ko, label):
         fit = lambda it: sum(1 for w in stt if w in (title(it) or it.get("t") or "").lower())   # 조사가 붙어도 맞게 '들어 있나'로 셈
         # 이슈 제목과 낱말이 겹치는 뉴스 기사 위쪽 3개 중에서 사진을 찾음(RSS 사진 → 없으면 og:image). 엉뚱한 기사 사진보다는 차라리 지도
         cand = sorted([x for x in its if x["k"] == "news" and fit(x) >= 1], key=lambda it: (-fit(it), -cnt.get(ctry(it), 0)))[:3]
+        if not cand:   # 제목이 아직 번역 안 된 외국어 기사뿐이면: 처음부터 이 이슈로 묶인(목록 앞쪽) 뉴스 기사 2개
+            cand = [x for x in its if x["k"] == "news"][:2]
         s.pop("ph", None)
         for it in cand:
             u = (it.get("m") or {}).get("img")
