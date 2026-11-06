@@ -19,6 +19,18 @@ CHANNELS = [
 
 YT_QUERIES = ["클로드 코드", "바이브코딩", "AI 오픈소스 추천", "AI 자동화 툴", "깃허브 오픈소스 AI"]
 
+# 영어 유튜브 (칸 '영어 유튜브') — 채널 RSS(한도 0) + 하루 한 번 검색(미국·영어). 채널 ID가 틀리면 로봇이 건너뛰고 상태에 남김
+CHANNELS_EN = [
+    ("Fireship", "UCsBjURrPoezykLs9EqgamOA"),
+    ("Matt Wolfe", "UChpleBmo18P08aKCIgti38g"),
+    ("AI Explained", "UCNJ1Ymd5yFuUPtn21xtRbbw"),
+    ("Matthew Berman", "UCawZsQWqfGSbCI5yjkdVkTA"),
+    ("Theo - t3.gg", "UCbRP3c757lWg9M-U7TyEkXA"),
+    ("Two Minute Papers", "UCbfYPyITQ-7l4upoX8nvctg"),
+]
+YT_QUERIES_EN = ["claude code", "vibe coding", "AI coding agent", "open source AI tools", "MCP server tutorial"]
+YT_KEEP_EN = r"\bai\b|claude|anthropic|gpt|openai|gemini|llm|agent|coding|\bcode\b|codex|cursor|copilot|open.?source|github|\bmcp\b|automat|no.?code|prompt|deepseek|vibe|tool|app|model"
+
 AWESOME = [  # (id, 이름, 저장소, 파일, 전체 보관)
     ("claude-code", "클로드 코드 모음", "hesreallyhim/awesome-claude-code", "README.md", True),
     ("claude-skills", "클로드 스킬 모음", "travisvn/awesome-claude-skills", "README.md", True),

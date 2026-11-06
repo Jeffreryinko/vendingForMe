@@ -43,9 +43,10 @@ BLOCK = re.compile(T.BLOCK, re.I)
 CATS = [(c, n, re.compile(rx, re.I)) for c, n, rx in T.CATS]
 HN_KEEP = re.compile(T.HN_KEEP, re.I)
 YT_KEEP = re.compile(T.YT_KEEP, re.I)
+YT_KEEP_EN = re.compile(T.YT_KEEP_EN, re.I)
 HAN = re.compile(r"[\u3040-\u30ff\u4e00-\u9fff]{3,}")
-SEC_NAME = {"gh": "GitHub 급상승", "gn": "긱뉴스", "hn": "해커뉴스", "yt": "유튜브 해설", "list": "모음집 새 항목", "hf": "써 보는 AI 앱", "rd": "레딧"}
-SEC_HOME = {"gh": "https://github.com/trending", "gn": "https://news.hada.io", "hn": "https://news.ycombinator.com/show", "yt": "https://www.youtube.com",
+SEC_NAME = {"gh": "GitHub 급상승", "gn": "긱뉴스", "hn": "해커뉴스", "yt": "유튜브 해설", "ye": "영어 유튜브", "list": "모음집 새 항목", "hf": "써 보는 AI 앱", "rd": "레딧"}
+SEC_HOME = {"gh": "https://github.com/trending", "gn": "https://news.hada.io", "hn": "https://news.ycombinator.com/show", "yt": "https://www.youtube.com", "ye": "https://www.youtube.com",
             "list": "https://github.com/hesreallyhim/awesome-claude-code", "hf": "https://huggingface.co/spaces", "rd": "https://www.reddit.com/r/ClaudeAI/"}
 
 
@@ -197,10 +198,11 @@ def iso_dur(s):
     d, h, mi, se = (int(x or 0) for x in m.groups()); return d * 86400 + h * 3600 + mi * 60 + se
 
 
-def src_yt_channels(health):
+def src_yt_channels(health, chans=None, keep=None):
+    chans = chans or T.CHANNELS; keep = keep or YT_KEEP
     out = []
     ns = {"a": "http://www.w3.org/2005/Atom", "yt": "http://www.youtube.com/xml/schemas/2015", "m": "http://search.yahoo.com/mrss/"}
-    for name, cid in T.CHANNELS:
+    for name, cid in chans:
         try:
             x = ET.fromstring(get(f"https://www.youtube.com/feeds/videos.xml?channel_id={cid}").content); health.pop(f"yt/{cid}", None)
         except Exception as e:
@@ -211,22 +213,23 @@ def src_yt_channels(health):
             g = e.find("m:group", ns); desc = clean(g.findtext("m:description", namespaces=ns) if g is not None else "", 300)
             st = g.find("m:community/m:statistics", ns) if g is not None else None
             date = A.parse_date(e.findtext("a:published", namespaces=ns) or "")
-            if not vid or ago_days(date) > 14 or not YT_KEEP.search(title) or BLOCK.search(title): continue
+            if not vid or ago_days(date) > 14 or not keep.search(title) or BLOCK.search(title): continue
             out.append({"vid": vid, "title": title, "ch": name, "sum": desc, "date": date, "views": int(st.get("views") or 0) if st is not None else 0, "short": "/shorts/" in link})
         time.sleep(0.3)
     return out
 
 
-def src_yt_search(cache):
+def src_yt_search(cache, queries=None, lang="ko", region="KR"):
+    queries = queries or T.YT_QUERIES
     key = os.environ.get("YOUTUBE_API_KEY")
     if not key: return cache.get("items", [])
     if cache.get("day") == today(): return cache.get("items", [])                      # 검색은 하루 한 번만 (한도 아끼기)
     after = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
     items, seen = [], set()
-    for q in T.YT_QUERIES:
+    for q in queries:
         try:
-            r = requests.get("https://www.googleapis.com/youtube/v3/search", params={"part": "snippet", "q": q, "type": "video", "maxResults": 12, "key": key, "relevanceLanguage": "ko",
-                             "regionCode": "KR", "order": "viewCount", "publishedAfter": after, "safeSearch": "strict"}, timeout=30)
+            r = requests.get("https://www.googleapis.com/youtube/v3/search", params={"part": "snippet", "q": q, "type": "video", "maxResults": 12, "key": key, "relevanceLanguage": lang,
+                             "regionCode": region, "order": "viewCount", "publishedAfter": after, "safeSearch": "strict"}, timeout=30)
             r.raise_for_status()
         except Exception as e:
             log(f"유튜브 검색 실패 ({q}): {str(e)[:80]}"); break
@@ -251,15 +254,17 @@ def src_yt_search(cache):
     return items
 
 
-def collect_yt(health):
-    yc = rj(ST / "yt.json", {})
-    vids = src_yt_channels(health) + src_yt_search(yc)
-    wj(ST / "yt.json", yc)
+def collect_yt(health, en=False):
+    """en=False: 한국어 해설(칸 yt) / en=True: 영어 유튜브(칸 ye, 제목·설명은 NLLB 기계번역)"""
+    sid = "ye" if en else "yt"; yc = rj(ST / f"{sid}.json", {})
+    vids = src_yt_channels(health, T.CHANNELS_EN, YT_KEEP_EN) + src_yt_search(yc, T.YT_QUERIES_EN, "en", "US") if en else src_yt_channels(health) + src_yt_search(yc)
+    if en: vids = [v for v in vids if not HAN.search(v["title"]) and not re.search(r"[가-힣]", v["title"])]   # 영어 칸엔 영어 영상만
+    wj(ST / f"{sid}.json", yc)
     out, seen = [], set()
     for v in vids:
         if v["vid"] in seen: continue
         seen.add(v["vid"])
-        out.append({"id": "y" + v["vid"], "sec": "yt", "kind": "쇼츠" if v.get("short") else "영상", "title": v["title"], "ch": v["ch"], "vid": v["vid"], "sum": v.get("sum", ""),
+        out.append({"id": "y" + v["vid"], "sec": sid, "en": en, "kind": "쇼츠" if v.get("short") else "영상", "title": v["title"], "ch": v["ch"], "vid": v["vid"], "sum": v.get("sum", ""),
                     "url": f"https://www.youtube.com/{'shorts/' if v.get('short') else 'watch?v='}{v['vid']}", "date": v.get("date") or today(), "views": v.get("views", 0),
                     "cats": cats_of(v["title"])})                                             # 설명은 광고·링크가 많아 제목만
     out.sort(key=lambda o: -(o["views"] or 0) / max(ago_days(o["date"]) + 0.5, 0.5))      # 하루당 조회수 (새것 우대)
@@ -368,7 +373,7 @@ def A_fail(health, key, e):
     log(f"실패 {key}: {err}")
 
 
-HEAT_W = {"gh": 1.0, "hn": .9, "gn": .9, "yt": .85, "list": .75, "hf": .6, "rd": .7}
+HEAT_W = {"gh": 1.0, "hn": .9, "gn": .9, "yt": .85, "ye": .8, "list": .75, "hf": .6, "rd": .7}
 def heat(sec, items):
     """구역 안 순위 → 0~100 열기. 오래된 것은 깎음"""
     n = len(items)
@@ -395,6 +400,8 @@ def main():
     have = {p["id"] for p in sec["gn"]}
     sec["gn"] = sorted(sec["gn"] + [p for p in prev.get("gn", []) if p["id"] not in have and ago_days(p.get("date", "")) <= 7], key=lambda p: p.get("date", ""), reverse=True)[:80]
     sec["yt"] = collect_yt(health) or prev.get("yt", [])
+    sec["ye"] = collect_yt(health, en=True) or prev.get("ye", [])
+    ko_ids = {p["id"] for p in sec["yt"]}; sec["ye"] = [p for p in sec["ye"] if p["id"] not in ko_ids]
     sec["list"], lists_meta = collect_lists(health)
     try:
         rd = src_reddit()
@@ -419,7 +426,7 @@ def main():
         for p in lst:
             if not p.get("en"): continue
             if HAN.search(p.get("title", "") + p.get("sum", "")): continue                 # 중국어·일본어 글은 NLLB(영어→한) 대신 화면의 번역 링크로
-            if k in ("hn", "rd"): jobs.append((p, "ko", p["title"]))
+            if k in ("hn", "rd", "ye"): jobs.append((p, "ko", p["title"]))
             if p.get("sum"): jobs.append((p, "ksum", p["sum"][:400]))
     full_lists = {}
     for m in lists_meta:
@@ -464,7 +471,7 @@ def main():
     counts = {k: len(v) for k, v in sec.items()}
     idx = {"at": now_iso(), "today": day, "days": sorted(f.stem for f in DAYS.glob("????-??-??.json")), "broken": broken, "counts": counts,
            "new": sum(1 for lst in sec.values() for p in lst if p.get("new")), "secs": {k: [SEC_NAME[k], SEC_HOME[k]] for k in sec}, "lists": lists_meta,
-           "cats": [[c, n] for c, n, _ in CATS] + [["etc", "기타"]], "channels": [n for n, _ in T.CHANNELS], "ytKey": bool(os.environ.get("YOUTUBE_API_KEY")), "translated": run is not None}
+           "cats": [[c, n] for c, n, _ in CATS] + [["etc", "기타"]], "channels": [n for n, _ in T.CHANNELS], "channelsEn": [n for n, _ in T.CHANNELS_EN], "ytKey": bool(os.environ.get("YOUTUBE_API_KEY")), "translated": run is not None}
     wj(OUT / "_index.json", idx); wj(OUT / "_health.json", health)
     wj(OUT / "_meta.json", {"updatedAt": now_iso(), "by": "tools-robot", "label": datetime.now(KST).strftime("%m월 %d일 %H시판")})
     log(f"끝 {round(time.time() - t0)}초 · " + " · ".join(f"{k} {v}" for k, v in counts.items()) + f" · 고장 {len(broken)}곳")
