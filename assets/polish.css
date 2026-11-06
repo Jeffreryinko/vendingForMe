@@ -94,3 +94,8 @@ html.ap.ap-home h1{font-size:38px;font-weight:800;letter-spacing:-.045em;margin-
 
 /* 움직임 줄이기 설정이면 꾸밈 움직임 끔 */
 @media (prefers-reduced-motion:reduce){html.ap *{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* 홈 시사 카드: 대표 기사 사진 */
+html.ap .mx-ph{margin:0 0 14px;border-radius:14px;overflow:hidden;background:var(--ap-fill);position:relative}
+html.ap .mx-ph img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+html.ap .mx-ph figcaption{position:absolute;left:8px;bottom:8px;font-size:11px;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:3px 8px;border-radius:999px}

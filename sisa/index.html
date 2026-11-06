@@ -88,6 +88,13 @@ h2.sec .n{font-family:var(--f-mono);font-weight:500}
 
 
 /* 대표 기사 사진 (사진이 있으면 지도 대신, 못 불러오면 지도로 돌아감) */
+.th-x{background:var(--sunk);object-fit:cover;flex:none}
+.sr.has-th,.tc2.has-th{position:relative;padding-right:104px}
+.sr.has-th>.th-x,.tc2.has-th>.th-x{position:absolute;right:12px;top:12px;width:80px;height:80px;border-radius:12px}
+.hc>.th-x{width:40px;height:40px;border-radius:8px;margin-right:2px}
+.irow{position:relative}.irow:has(.th-x){padding-right:84px;min-height:76px}
+.irow>.th-x{position:absolute;right:8px;top:8px;width:66px;height:66px;border-radius:8px}
+.ri-main.has-th{position:relative;padding-right:84px;min-height:84px}.ri-main>.th-x{position:absolute;right:10px;top:10px;width:64px;height:64px;border-radius:10px}
 .tc-map.has-ph{aspect-ratio:16/9}
 .tc-ph{display:block;width:100%;height:100%;object-fit:cover;background:var(--sunk)}
 .tc-cap{position:absolute;left:8px;bottom:8px;font-size:11px;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:3px 8px;border-radius:999px;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1003,7 +1010,7 @@ function itemCard(it){
   const state = st.read ? " is-read" : (st.opened ? " is-seen" : "");
   const smKo = S.tr[it.id+"__sm"];
   return `<div class="row-item${state}${exp?" exp":""}" data-row="${it.id}">
-    <button type="button" class="ri-main" data-tap="${it.id}" aria-expanded="${exp}">
+    <button type="button" class="ri-main${thI(it) ? " has-th" : ""}" data-tap="${it.id}" aria-expanded="${exp}">${thI(it)}
       <span class="ri-dot" aria-hidden="true"></span>
       <span class="ri-body">
         <span class="ri-t">${esc(ko || it.t)}</span>
@@ -1026,8 +1033,12 @@ function itemCard(it){
 function storyPhoto(s){
   const its = storyItems(s).filter(i => i.m && i.m.img);
   const i = its.find(x => x.k === "news") || its[0];
-  return i ? { u: i.m.img, i } : null;
+  if (i) return { u: i.m.img, i };
+  const h = s.ph && S.byId[s.ph.i];                                  // 로봇이 이슈에 붙여 둔 대표 사진
+  return s.ph && s.ph.u ? { u: s.ph.u, i: h || { s: s.ph.s, u: "", t: "" } } : null;
 }
+const thS = s => { const p = storyPhoto(s); return p ? `<img class="th-x" src="${esc(p.u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""; };
+const thI = i => i && i.m && i.m.img ? `<img class="th-x" src="${esc(i.m.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : "";
 function phImg(u, cls){ return `<img class="${cls}" src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`; }
 function storyItems(s){ return s.items.filter(id => S.byId[id] && !S.fb[s.id+"__"+id]).map(id=>S.byId[id]); }
 const isBrief = s => s.kind === "brief";
@@ -1788,7 +1799,7 @@ function issueInner(s, inDeck){
   const rest = its.filter(i => !(s.first||[]).includes(i.id) && i.k !== "community");
   let n = 0;
   const sec = (title, body, id) => { if(!body) return ""; n++; return `<section class="isec" data-sec="${n}"${id ? ` id="${id}"` : ""}><h3 class="ih"><span class="inum">${n}</span>${title}</h3>${body}</section>`; };
-  const rowItem = i => `<button type="button" class="irow" data-open="${i.id}"><span class="meta"><span>${flag(ctry(i))} ${esc(cname(ctry(i)))}</span><span class="src">${esc(srcOf(i.s).n)}</span>${whenHtml(i)}${isNewIt(i) ? '<b class="new">새 글</b>' : ""}${i.k==="community" ? "" : PAYWALL.has(i.s) ? '<span>구독 기사일 수 있음</span>' : '<span class="ok">무료</span>'}${stOf(i.id).opened?'<span>봄</span>':""}</span><span class="irow-t">${esc(koOf(i)||i.t)}</span></button>`;
+  const rowItem = i => `<button type="button" class="irow" data-open="${i.id}"><span class="meta"><span>${flag(ctry(i))} ${esc(cname(ctry(i)))}</span><span class="src">${esc(srcOf(i.s).n)}</span>${whenHtml(i)}${isNewIt(i) ? '<b class="new">새 글</b>' : ""}${i.k==="community" ? "" : PAYWALL.has(i.s) ? '<span>구독 기사일 수 있음</span>' : '<span class="ok">무료</span>'}${stOf(i.id).opened?'<span>봄</span>':""}</span><span class="irow-t">${esc(koOf(i)||i.t)}</span>${thI(i)}</button>`;
   const w3 = s.why3;
   const whyBody = w3 ? `<div class="why3">
       <div class="w3"><b>어떤 연결이 있나요?</b><p>${entText(w3.link)}</p></div>
@@ -1806,7 +1817,7 @@ function issueInner(s, inDeck){
       <span class="st-top">${cat ? `<span class="cat"><i aria-hidden="true"></i>${CAT[cat]}</span>` : ""}<span class="meta">${s.delta==="new" ? '<b class="new">새 이슈</b>' : newIts.length ? `<button type="button" class="dbtn" data-jump="sec-tl">지난 판보다 글 +${newIts.length} ›</button>` : ""}</span></span>
       ${seenBefore && newIts.length ? `<div class="ibanner"><span>마지막으로 읽으신 뒤 새 글 ${newIts.length}개가 붙었어요.</span><button type="button" data-jump="sec-tl">바뀐 것부터 보기</button></div>` : ""}
       <h2 class="ititle">${esc(s.title || storyTitle(s, its))}</h2>
-      ${(() => { const ph = storyPhoto(s); return ph ? `<figure class="iphoto has-ph"><a href="${esc(ph.i.u)}" target="_blank" rel="noopener" aria-label="사진이 실린 기사 열기">${phImg(ph.u, "ip-img")}</a>
+      ${(() => { const ph = storyPhoto(s); return ph ? `<figure class="iphoto has-ph"><a href="${esc(ph.i.u || "#")}" target="_blank" rel="noopener" aria-label="사진이 실린 기사 열기">${phImg(ph.u, "ip-img")}</a>
         <figcaption><span>사진: ${esc(srcOf(ph.i.s).n)} 기사${koOf(ph.i) ? ` 「${esc(koOf(ph.i).slice(0, 40))}${koOf(ph.i).length > 40 ? "…" : ""}」` : ""}</span><button type="button" class="ip-map" data-mapfull="${sid}">🗺 지도</button></figcaption></figure>` : ""; })()}
       <div class="imap${storyPhoto(s) ? " ph-fb" : ""}">
         <div class="mtabs" role="tablist">${[["loc","사건 위치"],["rel","관련 관계"],["rep","보도 분포"]].filter(([m]) => m !== "loc" || (s.geo && s.geo.box)).map(([m,l]) => `<button type="button" role="tab" data-mapmode="${sid}:${m}" aria-selected="${mode===m}">${l}</button>`).join("")}</div>
@@ -1983,7 +1994,7 @@ function sinceHero(){
     ${seenAll ? `<h2 class="h-big">새로 들어온 건<br>아직 없어요</h2><p class="h-sub">${since} 이후로 본 그대로예요. 다음 갱신은 ${nextRefresh()}이에요. 그동안 안 본 것부터 보세요.</p>`
       : `<h2 class="h-big"><span class="h-num">${nf(newItems)}</span><span class="h-unit">개의 새 소식</span></h2>
          <p class="h-sub">${S.lastSeen ? `마지막으로 보신 ${since} 이후` : "지난 판 이후"} 새 이슈 <b>${nNew}</b> · 커진 이슈 <b>${nGrow}</b></p>`}
-    ${changed.length ? `<div class="h-changes">${changed.map(s => `<button type="button" class="hc" data-issue="${s.id}">${catDot(s.cat)}<span class="hc-t">${esc(s.title)}</span><span class="hc-b ${s.delta}">${s.delta==="new" ? "새 이슈" : `+${s.grow||0}`}</span></button>`).join("")}</div>` : ""}
+    ${changed.length ? `<div class="h-changes">${changed.map(s => `<button type="button" class="hc" data-issue="${s.id}">${thS(s) || catDot(s.cat)}<span class="hc-t">${esc(s.title)}</span><span class="hc-b ${s.delta}">${s.delta==="new" ? "새 이슈" : `+${s.grow||0}`}</span></button>`).join("")}</div>` : ""}
   </section>`;
 }
 
@@ -2051,7 +2062,8 @@ function opinionAll(){
 function homeTopCard(s, n){
   const countries = issueCountries(s); const done = issueOpened(s);
   const place = s.geo && s.geo.spots && s.geo.spots[0] ? s.geo.spots[0][2] : (s.where||[]).map(cname).join("·");
-  return `<button type="button" class="tc2 t-${s.cat||"pol"}${done ? " done" : ""}" data-issue="${s.id}">
+  const th = thS(s);
+  return `<button type="button" class="tc2 t-${s.cat||"pol"}${done ? " done" : ""}${th ? " has-th" : ""}" data-issue="${s.id}">${th}
     <span class="tc2-n">${n}</span>
     <span class="tc2-b">
       <span class="tc2-m">${catDot(s.cat)}${CAT[s.cat]||""}${place ? ` · ${esc(place)}` : ""} · ${countries.length}개국${done ? ' · <span class="ok">읽음</span>' : s.delta==="new" ? ' · <b class="new">새 이슈</b>' : s.delta==="grown" ? ` · <b class="acc">+${s.grow||0}</b>` : ""}</span>
@@ -2065,7 +2077,8 @@ function homeTopCard(s, n){
 function storyRow(s){
   const cs = issueCountries(s); const done = issueOpened(s);
   const fresh = s.delta==="new" ? `<b class="new">${isBrief(s) ? "새 단신" : "새 이야기"}</b>` : s.delta==="grown" ? `<b class="acc">+${s.grow||0} 새 글</b>` : "";
-  return `<button type="button" class="sr t-${s.cat||"pol"}${done ? " done" : ""}${isBrief(s) ? " bf" : ""}" data-issue="${s.id}">
+  const th = thS(s);
+  return `<button type="button" class="sr t-${s.cat||"pol"}${done ? " done" : ""}${isBrief(s) ? " bf" : ""}${th ? " has-th" : ""}" data-issue="${s.id}">${th}
     <span class="sr-m">${catDot(s.cat)}${CAT[s.cat]||"기타"}<span class="sr-f">${cs.slice(0,5).map(flag).join("")}</span>${fresh}${done ? '<span class="ok">읽음</span>' : ""}</span>
     <span class="sr-t">${esc(s.title || storyTitle(s, storyItems(s)))}</span>
     ${s.key || s.sum ? `<span class="sr-k">${esc(s.key || s.sum)}</span>` : ""}
@@ -2869,6 +2882,6 @@ window.SISA = {S, render, esc, ago, toast, replaceTo(h){ hashSwap(h); }};   // �
 <script src="../assets/hot.js"></script>
 <script src="../assets/shell.js"></script>
 <script>
-document.addEventListener("error", e => { const t = e.target; if (t && t.tagName === "IMG" && (t.classList.contains("tc-ph") || t.classList.contains("ip-img"))) (t.closest(".has-ph") || t).classList.add("ph-bad"); }, true);
+document.addEventListener("error", e => { const t = e.target; if (t && t.tagName === "IMG" && (t.classList.contains("tc-ph") || t.classList.contains("ip-img"))) (t.closest(".has-ph") || t).classList.add("ph-bad"); if (t && t.classList && t.classList.contains("th-x")) { const p = t.parentElement; t.remove(); p && p.classList.remove("has-th"); } }, true);
 </script>
 </body></html>

@@ -111,6 +111,10 @@ def add_story_photos(out_stories, items):
                 cache[k] = og_image(i["url"]); tried += 1
             if cache.get(k):
                 i["metric"] = dict(i.get("metric") or {}, img=cache[k]); break
+    for s in out_stories:                                    # 사건마다 대표 사진 하나 (홈 카드처럼 글 목록 없이 그리는 곳에서 씀)
+        its = [by[x] for x in s["items"] if x in by and (by[x].get("metric") or {}).get("img")]
+        its.sort(key=lambda i: i.get("kind") != "news")
+        if its: s["ph"] = {"u": its[0]["metric"]["img"], "s": its[0]["source_id"], "i": its[0]["guid_hash"][:12]}
     if len(cache) > 4000: cache = dict(list(cache.items())[-3000:])
     try: OG_CACHE.write_text(json.dumps(cache, ensure_ascii=False))
     except Exception: pass

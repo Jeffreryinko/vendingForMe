@@ -121,6 +121,10 @@ def cmd_build(ed, prev, ko, label):
     E["carriedFrom"] = prev
     for k, s in enumerate(E["stories"]):
         s["id"] = f"g{k+1}"
+        # 대표 기사 사진 하나 (홈 카드처럼 글 목록 없이 그리는 곳에서 씀). 뉴스 기사 사진을 먼저
+        ph = sorted([items[i] for i in s["items"] if i in items and (items[i].get("m") or {}).get("img")], key=lambda it: it["k"] != "news")
+        if ph: s["ph"] = {"u": ph[0]["m"]["img"], "s": ph[0]["s"], "i": ph[0]["id"]}
+        else: s.pop("ph", None)
     (SEED / f"editions__{ed}.json").write_text(json.dumps(E, ensure_ascii=False))
     for lang, arr in carried.items():
         f = SEED / f"feed__{ed}__{lang}.json"
