@@ -78,7 +78,7 @@ h1.title{font:800 calc(26px*var(--fs))/1.25 var(--ap-display);letter-spacing:-.0
 .secs details{background:var(--surface);border-radius:12px;margin:0 0 8px;padding:0 14px}.secs details summary{list-style:none;cursor:pointer;padding:12px 0;font-weight:600;font-size:calc(15.5px*var(--fs));display:flex;justify-content:space-between;gap:8px}
 .secs details summary::-webkit-details-marker{display:none}.secs details summary::after{content:"›";color:var(--ap-label3);font-size:20px;transform:rotate(90deg);flex:none}.secs details[open] summary::after{transform:rotate(-90deg)}.secs details summary small{color:var(--muted);font-weight:400;font-size:12px;margin-left:auto;padding-right:8px}
 .secs details p{padding-bottom:4px}
-.rel{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}.rel button{text-align:left;padding:12px 14px;border-radius:12px;border:0;background:var(--surface);font-size:14px;font-weight:600}
+.rel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0}.rel button{min-width:0}.rel button{text-align:left;padding:12px 14px;border-radius:12px;border:0;background:var(--surface);font-size:14px;font-weight:600}
 .rel button small{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rel button[disabled]{opacity:.45}
 .src{font-size:12.5px;color:var(--muted);border-top:.5px solid var(--ap-sep);padding:12px 0;margin-top:18px}
 .memo{width:100%;min-height:90px;border:0;border-radius:12px;background:var(--surface);color:inherit;font:inherit;padding:10px;resize:vertical}
@@ -216,6 +216,13 @@ async function sameTime(e, n) {
   return res;
 }
 
+/* 편집 이야기를 탐색 화면에 끼워 넣기 (원문 자료와 구별해서) */
+async function edInto(boxId, test, label) {
+  const X = await HP.index(); const box = document.getElementById(boxId); if (!box) return;
+  const l = label ? (X.episodes || []).filter(test) : [];
+  box.innerHTML = l.length ? `<p class="srcl" style="margin-top:14px">${label}</p>${l.slice(0, 4).map(e => HP.card(e)).join("")}<p class="srcl">원문 자료</p>` : "";
+}
+
 /* ───── 화면: 탐색 ───── */
 const F = { region: "", country: "", era: -2, theme: -2, kind: "", tag: "", sort: "fame", q: "", shown: 0, timeline: false, all: false, mode: "find", se: 4, sfrom: null, lc: "KR" };
 let exploreList = [], exploreKey = "";
@@ -237,10 +244,13 @@ async function renderExplore() {
   if (F.mode === "sync") return renderSync();
   if (F.mode === "life") return renderLife();
   const app = document.getElementById("app"); const c = S.idx.counts || {};
-  const regs = (S.idx.regions || []).filter(([k]) => (c.region || {})[k]);
+  const GEO = ["na", "eu", "me", "ea", "la", "af", "sa", "oc", "xx"];   // 지도처럼: 위줄 북반구 서→동, 아래줄 남쪽
+  const regs = (S.idx.regions || []).filter(([k]) => (c.region || {})[k]).sort((a, b) => GEO.indexOf(a[0]) - GEO.indexOf(b[0]));
+  const X = await HP.index(); const edN = r => (X.episodes || []).filter(e => e.r === r).length;
   app.innerHTML = head("세계 탐색") + xmodeBar() + `<input class="search" id="xq" type="search" value="${esc(F.q)}" placeholder="제목으로 찾기 (전체 ${(c.total || 0).toLocaleString()}편)">
     <div id="qres"></div>
-    <p class="lbl">어디</p><div class="tiles">${regs.map(([k, n]) => `<button data-f="region" data-val="${k}" class="${F.region === k ? "on" : ""}">${esc(n)}<small>${(c.region[k] || 0).toLocaleString()}</small></button>`).join("")}</div>
+    <p class="lbl">어디 <span class="sub" style="font-weight:400">· 대략 지도 위치대로 놓았어요</span></p><div class="tiles geo">${regs.map(([k, n]) => `<button data-f="region" data-val="${k}" class="${F.region === k ? "on" : ""}">${esc(n)}<small>원문 ${(c.region[k] || 0).toLocaleString()}${edN(k) ? ` · <b class="edn">이야기 ${edN(k)}</b>` : ""}</small></button>`).join("")}</div>
+    <div id="edR"></div>
     <div class="chips scroll" id="cbox"></div>
     <p class="lbl">언제</p><div class="chips scroll">${(S.idx.eras || []).map((n, i) => `<button data-f="era" data-val="${i}" class="${F.era === i ? "on" : ""}">${esc(n)} <small>${((c.era || {})[i] || 0).toLocaleString()}</small></button>`).join("")}<button data-f="era" data-val="-1" class="${F.era === -1 ? "on" : ""}">연도 미상</button></div>
     <p class="lbl">무슨 이야기</p><div class="chips scroll">${(S.idx.themes || []).map((t, i) => `<button data-f="theme" data-val="${i}" class="${F.theme === i ? "on" : ""}">${esc(t)} <small>${((c.theme || {})[i] || 0).toLocaleString()}</small></button>`).join("")}</div>
@@ -278,6 +288,7 @@ function filtered(l) {
 }
 async function runExplore() {
   const res = document.getElementById("xres"); if (!res) return;
+  edInto("edR", e => (F.country ? (e.ctx || {}).c === F.country : F.region && e.r === F.region), F.country ? cko(F.country) + "의 편집 이야기" : F.region ? regName(F.region) + "의 편집 이야기" : "");
   const base = await sourceList(); if (!document.getElementById("xres")) return;
   const cnt = {}; base.forEach(e => (e.c || []).slice(0, 1).forEach(x => cnt[x] = (cnt[x] || 0) + 1));
   let cs = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 40);
@@ -306,7 +317,8 @@ async function renderSync() {
     <div class="chips scroll">${SYNC_ERAS.map((x, i) => `<button data-se="${i}" class="${F.se === i ? "on" : ""}">${esc(x[0])} <small>${esc(winLabel(x[1], x[2]))}</small></button>`).join("")}</div>
     <div class="swin"><button data-sw="-1" aria-label="앞 시기" ${a <= er[1] ? "disabled" : ""}>‹</button><div><b>${esc(winLabel(a, b))}</b><input type="range" id="swr" min="${er[1]}" max="${er[2] - er[3]}" step="${er[3]}" value="${a}"></div><button data-sw="1" aria-label="다음 시기" ${b >= er[2] ? "disabled" : ""}>›</button></div>
     <p class="note">같은 시기에 있었던 일을 지역별로 나란히 놓았어요. 같은 때일 뿐 서로 영향을 줬다는 뜻은 아니에요 — 실제로 이어진 일은 글 안 ‘이어 읽기’에 있어요.</p>
-    <div id="sres"><p class="empty">불러오는 중…</p></div>`;
+    <div id="edS"></div><div id="sres"><p class="empty">불러오는 중…</p></div>`;
+  edInto("edS", e => e.y != null && e.y >= er[1] && e.y < er[2], esc(er[0]) + " 무렵의 편집 이야기");
   const rg = document.getElementById("swr"); rg.addEventListener("change", () => { F.sfrom = +rg.value; renderSync(); });
   const keys = (S.idx.decades || []).filter(k => +k < b && +k + bLen(k) > a);
   let l = []; for (const k of keys) l = l.concat(await rows("dec/" + k + ".json"));
@@ -327,7 +339,8 @@ async function renderLife() {
   const top = Object.entries(cc).sort((a, b) => b[1] - a[1]).slice(0, 30).map(x => x[0]);
   if (!top.includes(F.lc)) top.unshift(F.lc);
   app.innerHTML = head("세계 탐색") + xmodeBar() + `<p class="lbl" style="margin-top:4px">어느 나라의 일생을 볼까요?</p>
-    <div class="chips scroll">${top.map(c => `<button data-lc="${c}" class="${F.lc === c ? "on" : ""}">${esc(cko(c))}</button>`).join("")}</div><div id="lres"><p class="empty">불러오는 중…</p></div>`;
+    <div class="chips scroll">${top.map(c => `<button data-lc="${c}" class="${F.lc === c ? "on" : ""}">${esc(cko(c))}</button>`).join("")}</div><div id="edL"></div><div id="lres"><p class="empty">불러오는 중…</p></div>`;
+  edInto("edL", e => (e.ctx || {}).c === F.lc, cko(F.lc) + "이(가) 무대인 편집 이야기");
   const l = notHidden((await rows("cty/" + F.lc + ".json")).filter(x => x.k !== "c"));
   const box = document.getElementById("lres"); if (!box) return;
   // 나라·왕조 막대: 시작·끝 해가 다 있는 것, 유명한 것부터 16개
@@ -365,7 +378,10 @@ async function renderSeries() {
   const app = document.getElementById("app"); const X = await HP.index(); const eps = X.episodes || [];
   const th = S.idx.themes || [];
   const packs = [["B", "야사·전설"], ["P", "대명사 역사"], ...["기묘한 사건록", "그림자 전쟁", "사랑과 배신", "믿음과 금기", "골목길 미시사"].map(n => ["t" + th.indexOf(n), n])].filter(([k]) => k !== "t-1");
-  app.innerHTML = head("시리즈") + Object.entries(X.programs || {}).filter(([k]) => eps.some(e => e.program === k)).map(([k, p]) =>
+  const prog = id => { const s = S.ep[id] || {}; return s.done ? "✓" : s.last ? "…" : ""; };
+  app.innerHTML = head("시리즈") + (X.series || []).map(sr => { const n = sr.eps.filter(id => (S.ep[id] || {}).done).length;
+    return `<div class="ser"><div class="ser-h"><b>${esc(sr.name)}</b><small>${n}/${sr.eps.length}</small></div><p>${esc(sr.note)}</p><ol>${sr.eps.map(id => HP.meta(id)).filter(Boolean).map(m => `<li><button data-ep-open="${esc(m.id)}" data-mood="${esc(m.mood)}"><span>${esc(m.title)}</span><em>${prog(m.id)}</em></button></li>`).join("")}</ol></div>`; }).join("") +
+    `<h2 class="sec" style="margin-top:30px">코너별로 보기</h2>` + Object.entries(X.programs || {}).filter(([k]) => eps.some(e => e.program === k)).map(([k, p]) =>
     `<h2 class="sec">${esc(p.name)} <small>${esc(p.promise)}</small></h2>${eps.filter(e => e.program === k).map(e => HP.card(e)).join("")}`).join("") +
     `<h2 class="sec">나라의 일생 <small>이름·연도를 다 외우지 않아도 한 나라의 변화를</small></h2><button class="prog" data-ep-xm="life" data-se="" data-from=""><b>나라 고르기</b><p>시대별 굵은 줄기와 오래 이어진 나라들을 한 줄로 봐요.</p><small>원문 자료로 만든 개요</small></button>
     <h2 class="sec">원문 자료 묶음 <small>위키백과에서 모은 글 · 편집 전이라 사실 확인은 출처에서</small></h2>
@@ -610,6 +626,7 @@ document.addEventListener("selectionchange", () => {
 function setTab(v) { document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-current", b.dataset.v === v ? "page" : "false")); }
 async function route() {
   const h = location.hash || "#today"; document.querySelector(".rbar")?.remove();
+  setTimeout(() => HP.pill(), 80);                                    // 이야기에서 나왔으면 ‘돌아가기’ 단추
   if (h.startsWith("#p=")) { setTab(""); document.getElementById("tabs").hidden = true; return renderPage(decodeURIComponent(h.slice(3))); }
   if (h.startsWith("#ep=")) { setTab(""); document.getElementById("tabs").hidden = true; S.page = null; return HP.render(decodeURIComponent(h.slice(4))); }
   document.getElementById("tabs").hidden = false; document.body.classList.remove("reading"); S.page = null;

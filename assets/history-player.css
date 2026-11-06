@@ -81,3 +81,24 @@ button.ep-nx::after{content:"›";position:absolute;right:16px;color:var(--ap-la
 .ep-src ol{padding-left:20px;margin:6px 0 10px}.ep-src li{margin:0 0 10px;font-size:14px}.ep-src li small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
 .ep-src li:target{background:var(--ep-soft);border-radius:8px}
 @media (prefers-reduced-motion:reduce){.epc,.ep-opt{transition:none}}
+
+/* ── 4단계: 관계 · 시리즈 · 돌아오기 · 지역 지도 ── */
+.ep-rel{display:grid;gap:8px;margin:4px 0 14px}
+.ep-rl{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px}
+.ep-node{background:var(--surface);border-radius:12px;padding:10px 8px;text-align:center;font-weight:700;font-size:14px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ep) 25%,transparent)}
+.ep-edge{font-size:12px;color:var(--ep);font-weight:700;text-align:center;max-width:110px;line-height:1.3;position:relative;padding:0 10px 10px}
+.ep-edge::after{content:"";position:absolute;left:0;right:0;bottom:2px;height:2px;background:var(--ep);border-radius:2px}
+.ep-edge::before{content:"";position:absolute;right:-1px;bottom:-2px;border:5px solid transparent;border-left:7px solid var(--ep);border-right:0}
+.ser{background:var(--surface);border-radius:18px;padding:14px 16px 8px;margin:0 0 12px}
+.ser-h{display:flex;justify-content:space-between;align-items:baseline}.ser-h b{font-size:17px}.ser-h small{color:var(--muted);font-variant-numeric:tabular-nums}
+.ser>p{margin:2px 0 8px;font-size:13.5px;color:var(--muted)}
+.ser ol{list-style:none;margin:0;padding:0;counter-reset:s}
+.ser li{counter-increment:s;border-top:.5px solid var(--ap-sep)}
+.ser li button{width:100%;display:flex;gap:10px;align-items:center;text-align:left;border:0;background:none;padding:11px 0;font:inherit;color:inherit;min-height:44px}
+.ser li button::before{content:counter(s);flex:none;width:22px;height:22px;border-radius:50%;background:var(--ep);color:var(--ep-paper);display:grid;place-items:center;font-size:12px;font-weight:700}
+.ser li span{flex:1;font-weight:600;font-size:15px}.ser li em{font-style:normal;color:var(--ep);font-weight:800}
+.ep-pill{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h,58px) + 14px + env(safe-area-inset-bottom,0px));z-index:9300;display:flex;align-items:center;background:var(--ink);color:var(--bg);border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:calc(100vw - 32px)}
+.ep-pill button{border:0;background:none;color:inherit;font:600 14px var(--ap-font);padding:11px 6px 11px 16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ep-pill .x{padding:11px 14px 11px 8px;opacity:.7;font-size:18px}
+body.reading .ep-pill,.rbar~.ep-pill{bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+.tiles.geo button small b.edn{color:var(--accent);font-weight:700}

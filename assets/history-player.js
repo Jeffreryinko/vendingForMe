@@ -49,6 +49,9 @@ window.HP = (function () {
     if (sc.h) out += '<h2 class="ep-sh">' + esc(sc.h) + "</h2>";
     if (sc.note) out += '<p class="ep-note">' + esc(sc.note) + "</p>";
     if (sc.text) out += '<div class="ep-txt">' + fmt(sc.text) + "</div>";
+    if (sc.rel) out += '<div class="ep-rel" role="list">' + sc.rel.map(function (r) {   // 관계: 처음엔 몇 개만, 선에 관계 종류를 적음
+      return '<div class="ep-rl" role="listitem"><span class="ep-node">' + esc(r[0]) + '</span><span class="ep-edge">' + esc(r[1]) + '</span><span class="ep-node">' + esc(r[2]) + "</span></div>";
+    }).join("") + "</div>";
     if (sc.items) out += '<div class="ep-doc">' + sc.items.map(function (it, i) {
       return '<details' + (full ? " open" : "") + '><summary><span class="ep-dn">' + (i + 1) + "</span>" + esc(it.label) + '</summary><div class="ep-txt">' + fmt(it.text) + "</div></details>";
     }).join("") + "</div>";
@@ -110,7 +113,11 @@ window.HP = (function () {
   }
   function endHtml(e, s) {
     var k = "ep:" + e.id;
-    return '<section class="ep-end"><h2 class="sec">다음 질문</h2><div class="ep-next" id="epNext">' + (e.next || []).map(function (n, i) {
+    var ser = ((IDX || EMPTY).series || []).filter(function (x) { return x.eps.indexOf(e.id) >= 0; }).map(function (x) {
+      var rest = x.eps.slice(x.eps.indexOf(e.id) + 1).concat(x.eps.slice(0, x.eps.indexOf(e.id))).filter(function (id) { return !(S.ep[id] || {}).done && id !== e.id; });
+      return rest.length && meta(rest[0]) ? '<p class="srcl">시리즈 「' + esc(x.name) + "」의 다음 편</p>" + card(meta(rest[0])) : "";
+    }).filter(Boolean).slice(0, 1).join("");
+    return '<section class="ep-end">' + ser + '<h2 class="sec">다음 질문</h2><div class="ep-next" id="epNext">' + (e.next || []).map(function (n, i) {
       return '<div class="ep-nx" data-nx="' + i + '"><small>' + esc(n.dir) + "</small><b>" + esc(n.q) + '</b><span class="sub">찾는 중…</span></div>';
     }).join("") + "</div>" +
       '<div class="ep-acts"><button class="btn sm" data-ep="star">' + (S.star[k] ? "★ 저장됨" : "☆ 저장") + '</button><button class="btn sm" data-ep="share">공유</button><button class="btn sm" data-ep="think">생각 남기기</button><button class="btn sm" data-ep="restart">처음부터</button></div>' +
@@ -118,6 +125,7 @@ window.HP = (function () {
       '<section class="ep-src" id="epSrc"><h2 class="sec">출처와 표시</h2><ol>' + (e.sources || []).map(function (x) {
         return '<li id="src-' + x.n + '"><a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.title) + " ↗</a><small>뒷받침: " + esc(x.supports) + "</small></li>";
       }).join("") + "</ol>" + (e.extra ? '<p class="sub">' + esc(e.extra) + "</p>" : "") +
+      ((e.log || []).length ? '<p class="sub">수정 이력: ' + e.log.map(function (l) { return esc(l.v + " " + l.what); }).join(" · ") + "</p>" : "") +
       '<p class="sub">확인한 날 ' + esc(e.ver || "") + ". 틀린 곳을 발견하면 ‘생각 남기기’에 적어 주세요. 고칠 때 이 주소는 그대로 둡니다.</p></section></section>";
   }
   function resolveNext(e) {
@@ -196,5 +204,23 @@ window.HP = (function () {
     document.body.appendChild(back);
   }
 
-  return { index: index, ep: ep, render: render, card: card, meta: meta, progName: progName };
+  var FROM = "vfm:history:from";
+  document.addEventListener("click", function (ev) {
+    var t = ev.target.closest && ev.target.closest("article.ep [data-open], article.ep [data-ep-xm], article.ep [data-ep-open]");
+    if (t && CUR && !t.closest(".ep-end > .epc")) try { sessionStorage.setItem(FROM, JSON.stringify({ id: CUR.id, t: CUR.title, at: Date.now() })); } catch (x) { }
+  }, true);
+  function pill() {
+    var old = document.getElementById("epBackPill"); if (old) old.remove();
+    var f = null; try { f = JSON.parse(sessionStorage.getItem(FROM) || "null"); } catch (x) { }
+    if (!f || Date.now() - f.at > 3600e3) return;
+    if (location.hash === "#ep=" + f.id) { try { sessionStorage.removeItem(FROM); } catch (x) { } return; }
+    var b = document.createElement("div"); b.id = "epBackPill"; b.className = "ep-pill";
+    b.innerHTML = '<button type="button" data-ep-open="' + esc(f.id) + '">‹ 「' + esc(f.t) + '」로 돌아가기</button><button type="button" class="x" aria-label="닫기">×</button>';
+    b.querySelector(".x").addEventListener("click", function () { try { sessionStorage.removeItem(FROM); } catch (x) { } b.remove(); });
+    document.body.appendChild(b);
+  }
+  window.addEventListener("hashchange", function () { setTimeout(pill, 60); });
+  setTimeout(pill, 400);
+
+  return { pill: pill, index: index, ep: ep, render: render, card: card, meta: meta, progName: progName };
 })();
