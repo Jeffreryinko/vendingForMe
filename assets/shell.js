@@ -277,6 +277,9 @@
       '<div class="vfm-sheet" role="dialog" aria-label="자판기 설정"><div class="grab"></div><h3>설정</h3>' +
       '<div class="cap">마지막 갱신</div><div class="grp" id="vfmUpd">' + APPS.map(function (a) { return '<div data-u="' + a[0] + '"><span>' + a[1] + '</span><span class="v">…</span></div>'; }).join("") + "</div>" +
       '<div class="cap">폰·PC 이어 보기</div><div class="grp" id="vfmSync">' + syncHtml() + "</div>" +
+      '<div class="cap">유튜브 내 계정으로 보기</div><div class="grp">' +
+      '<button type="button" data-act="ytlogin"><span class="tint">크롬에서 유튜브 로그인</span><span class="v">한 번만 ↗</span></button></div>' +
+      '<p class="foot">크롬에서 유튜브에 로그인해 두면, 카드 안에서 영상을 틀 때도 내 계정으로 재생돼요(프리미엄이면 광고 없음 · 시청 기록 남음). 아이폰 사파리는 안 돼요.</p>' +
       '<div class="cap">내 기록</div><div class="grp">' +
       '<button type="button" data-act="box"><span class="tint">보관함 — 모든 앱에서 저장한 것 · 내 질문 · 이번 주 생각</span><span class="v">›</span></button>' +
       '<button type="button" data-act="export"><span class="tint">기록 내보내기</span><span class="v">파일 하나로</span></button>' +
@@ -305,6 +308,7 @@
       var b = e.target.closest("[data-act]"); if (!b) return;
       var act = b.getAttribute("data-act");
       if (act === "box") { location.href = ROOT + "box/"; return; }
+      if (act === "ytlogin") { var yu = "https://accounts.google.com/ServiceLogin?service=youtube&continue=" + encodeURIComponent("https://www.youtube.com/"); if (!openInChrome(yu)) window.open(yu, "_blank", "noopener"); return; }
       if (act === "login") { window.vfmSync.login().catch(function (x) { toast(x.message || "로그인 실패"); }); return; }
       if (act === "logout") { if (confirm("로그아웃할까요? 이 기기의 기록은 그대로 남아요.")) window.vfmSync.logout(); return; }
       if (act === "syncnow") { window.vfmSync.now(); return; }
