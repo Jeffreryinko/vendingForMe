@@ -150,7 +150,7 @@ async function loadAll() {
     for (const r of RL) { if (!hasAtom(r, key)) continue; const n = r.atoms.length + (r.lv === 1 ? 0.5 : 0); if (n < bn) { bn = n; best = r.id; } }
     A.best[key] = best;
   }
-  getJ("_index.json").then(x => { IDX = x; }).catch(() => { });
+  getJ("_index.json").then(x => { IDX = x; if ((location.hash || "").startsWith("#news") && NEWS) paint(); }).catch(() => { });
   getJ("news.json").then(x => { NEWS = x; if (/^#(today|news)?$/.test(location.hash || "") || (location.hash || "").startsWith("#news")) paint(); }).catch(() => { NEWS = { items: [] }; });
   getJ("wiki.json").then(x => { WIKI = x; }).catch(() => { WIKI = {}; });
 }
