@@ -1801,7 +1801,7 @@ function issueInner(s, inDeck){
       ${sec("먼저 읽을 기사", first.length ? `<div class="irows">${first.map(rowItem).join("")}</div>` : (its.length ? `<div class="irows">${its.slice(0,3).map(rowItem).join("")}</div>` : ""))}
       ${s.watch ? sec("앞으로 지켜볼 것", `<p class="ibody">${entText(s.watch)}</p>`) : ""}
       ${rest.length ? `<details class="origd"><summary>나머지 기사 ${rest.length}개 (${countries.length}개국)</summary><div class="irows">${rest.map(rowItem).join("")}</div></details>` : ""}
-      ${D && !inDeck ? D.bar("sisa", storyKey(s), {title:s.title || "", url:appUrl("#issue-" + s.id), hash:"#issue-" + s.id, text:(s.title || "") + (s.key ? "\n" + s.key : "")}) : ""}
+      ${D && !inDeck ? D.bar("sisa", storyKey(s), {kw:(s.terms || []).map(t => t.t), title:s.title || "", url:appUrl("#issue-" + s.id), hash:"#issue-" + s.id, text:(s.title || "") + (s.key ? "\n" + s.key : "")}) : ""}
       <p class="note">AI가 이번 판 기사 제목들과 일반 배경지식으로 정리했어요. 기사에서 확인되지 않은 영향은 쓰지 않았어요. 세부 사실은 원문으로 확인해 주세요.</p>`;
 }
 

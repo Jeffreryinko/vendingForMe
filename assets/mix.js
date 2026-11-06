@@ -16,6 +16,8 @@
   var RK = null; try { RK = new Intl.DisplayNames(["ko"], { type: "region" }); } catch (e) { }
   var cname = function (c) { if (c === "WW") return "세계"; try { return RK ? RK.of(c) : c; } catch (e) { return c; } };
   var HAN = /[가-힣]/;
+  // 영문 원제목에서 고유명사(대문자로 시작) 뽑기 — 번역문보다 원문이 정확 (나무위키 링크용 키워드)
+  function KWOF(ko, en) { return D.keywords ? D.keywords({ title: en || "", text: "" }).concat(D.keywords({ title: ko || "", text: "" })) : []; }
   // 글자 수로 잘린 요약을 낱말 끝에서 다시 자르고 … 를 붙임 (예: '저장공' → '…')
   function tidy(t, cut) {
     t = String(t || "").trim(); if (!t) return "";
@@ -60,7 +62,7 @@
       st.sort(function (a, b) { return rank(a) - rank(b); });
       add("sisa", st.map(function (s) {
         var brief = s.kind === "brief", key = brief ? "b:" + (s.items[0] || s.id) : "i:" + s.title, cs = s.countries || [];
-        return { key: key, sa: "sisa", kind: "sisa", title: s.title, url: location.origin + location.pathname + "sisa/#issue-" + s.id, shareText: s.title + (s.key ? "\n" + s.key : ""),
+        return { key: key, sa: "sisa", kind: "sisa", kw: (s.terms || []).map(function (t) { return t.t; }), title: s.title, url: location.origin + location.pathname + "sisa/#issue-" + s.id, shareText: s.title + (s.key ? "\n" + s.key : ""),
           q: s.title + " " + (s.key || ""), s: s, ed: m.edition, html: function () {
             var w3 = s.why3 || {}, li = function (a) { return a.map(function (b) { return "<li>" + b + "</li>"; }).join(""); }, n = 0;
             var sec = function (t, body) { if (!body) return ""; n++; return '<p class="mx-ih"><span>' + n + "</span>" + t + "</p>" + body; };
@@ -85,7 +87,7 @@
       // 본 이슈에 새 기사가 3개 넘게 붙으면 '지난번 이후 바뀐 점' 카드로 한 번 더 (본 것 전체를 다시 보여 주진 않음)
       var again = st.filter(function (s) { var k = "i:" + s.title, n = SI[k]; return s.kind !== "brief" && n && D.Seen.has("sisa", k) && (s.items || []).length - n >= 3; }).map(function (s) {
         var k = "i:" + s.title, n0 = SI[k], add = (s.items || []).length - n0;
-        return { key: k + "@" + s.items.length, base: k, nItems: s.items.length, sa: "sisa", kind: "sisa", title: "바뀐 점 · " + s.title, url: location.origin + location.pathname + "sisa/#issue-" + s.id, shareText: s.title, q: s.title, s: s, ed: m.edition,
+        return { key: k + "@" + s.items.length, base: k, nItems: s.items.length, sa: "sisa", kind: "sisa", kw: (s.terms || []).map(function (t) { return t.t; }), title: "바뀐 점 · " + s.title, url: location.origin + location.pathname + "sisa/#issue-" + s.id, shareText: s.title, q: s.title, s: s, ed: m.edition,
           html: function () {
             var its = (s.items || []).map(function (x) { return FEEDBY && FEEDBY[x]; }).filter(Boolean).sort(function (a, b) { return String(b.p || "").localeCompare(String(a.p || "")); }).slice(0, Math.min(add, 8));
             return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag sisa">시사</span><b class="new">지난번 이후 새 기사 ' + add + '개</b></div><h2 class="vdk-t">' + esc(s.title) + "</h2>" +
@@ -97,7 +99,7 @@
       if (again.length) add("sisa", again);
       var dg = ed.countryDigest || {};
       add("nation", Object.keys(dg).map(function (c) {
-        return { key: "n:" + c + ":" + dg[c].slice(0, 24), sa: "sisa", kind: "nation", title: cname(c) + "의 오늘", url: location.origin + location.pathname + "sisa/#nation", shareText: cname(c) + "의 오늘\n" + dg[c], q: cname(c) + " " + dg[c],
+        return { key: "n:" + c + ":" + dg[c].slice(0, 24), sa: "sisa", kind: "nation", kw: [cname(c)], title: cname(c) + "의 오늘", url: location.origin + location.pathname + "sisa/#nation", shareText: cname(c) + "의 오늘\n" + dg[c], q: cname(c) + " " + dg[c],
           html: function () { return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag nation">나라별 오늘</span><span>' + esc(ed.label || "") + '</span></div><h2 class="vdk-t">' + flag(c) + " " + esc(cname(c)) + '의 오늘</h2><p class="vdk-p">' + esc(dg[c]) + '</p><button type="button" class="vdk-more"' + go("sisa/#nation-" + c) + ">이 나라 뉴스 넘겨 보기 ›</button></div>"; } };
       }));
     });
@@ -116,7 +118,7 @@
         if (!d) return;
         var tr = [], mm = [];
         T.items(d).forEach(function (x) {
-          var item = { key: "t:" + cc + ":" + x.src + ":" + x.it.kw, sa: "sisa", kind: x.src === "reddit" || x.src === "ytfun" ? "meme" : "trend", title: x.it.ko || x.it.kw,
+          var item = { key: "t:" + cc + ":" + x.src + ":" + x.it.kw, kw: x.src === "yt" || x.src === "ytfun" || x.src === "reddit" ? KWOF(x.it.ko || x.it.kw, x.it.kw) : [x.it.ko || x.it.kw], sa: "sisa", kind: x.src === "reddit" || x.src === "ytfun" ? "meme" : "trend", title: x.it.ko || x.it.kw,
             url: x.it.url, rank: x.rank, shareText: flag(cc) + " " + d.name + " " + x.srcName + " " + (x.rank + 1) + "위 · " + (x.it.ko || x.it.kw), q: (x.it.ko || "") + " " + x.it.kw + " " + d.name, src: x.src, it: x.it,
             html: function () { return T.card({ cc: cc, cname: d.name, src: x.src, srcName: x.srcName, it: x.it, rank: x.rank, country: d }); } };
           item.ready = !!(x.it.ko || HAN.test(x.it.kw) || /^[\x00-\x7F\u00C0-\u024F\s]+$/.test(x.it.kw));
@@ -133,7 +135,7 @@
     add("ai", list.map(function (p) {
       var f = FE[p.id], vid = !!p.vid, ks = p.ksum || (HAN.test(p.sum || "") ? p.sum : ""), one = tidy((f && f.one) || ks, !(f && f.one) && (p.sum || "").length >= 290);
       var enOnly = !ks && !!p.sum && !(f && f.one);
-      return { key: p.id, sa: "ai", kind: "ai", ready: !!(p.ko || HAN.test(p.title)), title: p.ko || p.title, url: p.url, shareText: (p.ko || p.title) + "\n" + p.url, q: (p.ko || "") + " " + p.title + " " + (p.name || ""),
+      return { key: p.id, kw: KWOF(p.ko, p.title), sa: "ai", kind: "ai", ready: !!(p.ko || HAN.test(p.title)), title: p.ko || p.title, url: p.url, shareText: (p.ko || p.title) + "\n" + p.url, q: (p.ko || "") + " " + p.title + " " + (p.name || ""),
         html: function () {
           return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag ai">AI</span><span>' + esc(p.name || p.ch || "") + "</span><span>" + esc(p.date || "") + "</span></div>" +
             '<h2 class="vdk-t">' + esc(p.ko || p.title) + "</h2>" + (p.ko ? '<p class="vdk-note" style="margin:-6px 0 10px">' + esc(p.title) + "</p>" : "") +
@@ -155,7 +157,7 @@
     POOL.tool = out.map(function (p) {
       var ko = p.sec === "gh" ? "" : (p.ko && p.ko !== p.title ? p.ko : ""), sum = p.ksum || p.sum || "";
       var m = p.sec === "gh" ? "★ " + n(p.stars) + (p.gain ? " · 하루 +" + n(p.gain) : "") : p.pts ? "▲ " + n(p.pts) : p.views ? "조회 " + n(p.views) + " · " + (p.ch || "") : p.likes ? "♥ " + n(p.likes) : "";
-      return { key: p.id, sa: "tools", kind: "tool", title: ko || p.title, url: p.url, shareText: (ko || p.title) + "\n" + p.url, q: [p.title, ko, sum, p.owner, p.ch].join(" "),
+      return { key: p.id, kw: p.sec === "gh" ? [p.title] : KWOF(ko, p.title), sa: "tools", kind: "tool", title: ko || p.title, url: p.url, shareText: (ko || p.title) + "\n" + p.url, q: [p.title, ko, sum, p.owner, p.ch].join(" "),
         html: function () {
           return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag tool">도구</span><span>' + esc(SN[p.sec] || "") + "</span>" + (m ? "<span>" + esc(m) + "</span>" : "") + "</div>" +
             (p.sec === "gh" && p.owner ? '<p class="vdk-note" style="margin:0">' + esc(p.owner) + " /</p>" : "") +
@@ -173,7 +175,7 @@
       if (!Array.isArray(a)) return;
       add("story", a.map(function (s) {
         var d1 = ((s.depths || {}).d1 || {}).body || [];
-        return { key: s.id, sa: "iyagi", kind: "story", title: s.title, url: location.origin + location.pathname + "iyagi/#read-" + s.id, shareText: s.title + (s.hook ? "\n" + s.hook : ""), q: s.title + " " + (s.orig || "") + " " + (s.hook || ""),
+        return { key: s.id, kw: [s.orig || s.title].concat((s.tags || []).slice(-2)), sa: "iyagi", kind: "story", title: s.title, url: location.origin + location.pathname + "iyagi/#read-" + s.id, shareText: s.title + (s.hook ? "\n" + s.hook : ""), q: s.title + " " + (s.orig || "") + " " + (s.hook || ""),
           html: function () {
             return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag story">이야기</span><span>' + esc(s.kind || "") + "</span><span>" + esc(s.region || "") + '</span></div><h2 class="vdk-t">' + esc(s.title) + '</h2><p class="vdk-note">' + esc(s.orig || "") + "</p>" +
               d1.filter(function (x) { return typeof x === "string"; }).map(function (x) { return '<p class="vdk-p">' + esc(x) + "</p>"; }).join("") +
@@ -186,7 +188,7 @@
       if (!h || !h.all) return;
       add("story", h.all.slice(0, 400).map(function (r) {
         var id = r[0], title = r[1], y = r[2], sum = (window.vfmClean || String)(r[14] || "");
-        return { key: "h:" + id, sa: "history", kind: "story", hid: id, title: title, url: location.origin + location.pathname + "history/#p=" + id, shareText: title, q: title + " " + sum,
+        return { key: "h:" + id, kw: [title], sa: "history", kind: "story", hid: id, title: title, url: location.origin + location.pathname + "history/#p=" + id, shareText: title, q: title + " " + sum,
           html: function () {
             var hd = HD[id];
             return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag story">역사</span>' + (y != null ? "<span>" + (y < 0 ? "기원전 " + (-y) : y) + "년" + (String(r[9] || "").indexOf("~") >= 0 ? "경" : "") + "</span>" : "") + "<span>" + (r[6] || []).slice(0, 4).map(flag).join("") + '</span></div><h2 class="vdk-t">' + esc(title) + "</h2>" +
@@ -272,7 +274,7 @@
   }
   function histItem(r) {                                               // 제목 색인 한 줄 [제목, id, 연도, 종류, 권역] → 카드 (본문은 보일 때 받음)
     var id = r[1], title = r[0], y = r[2];
-    return { key: "h:" + id, sa: "history", kind: "story", hid: id, title: title, url: location.origin + location.pathname + "history/#p=" + id, shareText: title, q: title,
+    return { key: "h:" + id, kw: [title], sa: "history", kind: "story", hid: id, title: title, url: location.origin + location.pathname + "history/#p=" + id, shareText: title, q: title,
       html: function () {
         var hd = HD[id];
         return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag story">역사</span>' + (y != null && y !== "" ? "<span>" + (y < 0 ? "기원전 " + (-y) : y) + "년</span>" : "") + '</div><h2 class="vdk-t">' + esc(title) + "</h2>" +

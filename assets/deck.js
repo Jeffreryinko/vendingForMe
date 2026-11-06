@@ -63,13 +63,51 @@
     else toast("공유하지 못했어요");
   }
   // 좋아요·공유 단추 (카드 밖에서도 씀: 이슈 해설·이야기 읽기 화면 등)
+  /* ── 중요 키워드 3개 → 나무위키 (규칙으로 뽑음, 토큰 0) ──
+       1) 앱이 준 kw(시사 '꼭 알 낱말', 역사 제목 등)  2) 따옴표 안 말  3) 영문 고유명사(대문자로 시작·줄임말)  4) 짧은 한글 제목 */
+  var STOPW = /^(Did|Has|Have|Had|Was|Were|Been|Get|Got|Just|Really|Very|The|A|An|How|Why|What|When|This|That|These|Those|I|It|Is|Are|We|You|My|Our|Your|New|Best|Top|And|Or|For|With|From|In|On|Of|To|At|By|Just|Now|Do|Does|Can|Will|Use|Using|Make|Get|Full|Free|Guide|Tutorial|Video|Videos|Part|Latest|Full|Movie|Movies|Official|Trailer|Episode|Music|Live|Shorts|Short|Funny|Comedy|Song|News|Watch|Must|See|Season|Film|Ft|Feat|Inc|Ltd|Co|Corp|LLC|Day|Week|Year|Here|Why|Who|Not|No|Yes|All|Every|One|Two|Three|Ep|Vs|Hot|Amazing|Insane|Ultimate|Complete)$/;
+  // 이름 사전(시사 로봇이 매시간 모으는 인물·기관·지역·용어 600여 개)으로 한글 제목 속 이름 찾기
+  var ENTS = null, ENT_RX = null;
+  try {
+    var base = (document.currentScript && document.currentScript.src) || location.href;
+    fetch(new URL("../data/sisa/brief/ents.json", base).href).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!j || !j.map) return; ENTS = {}; var names = [];
+      Object.keys(j.map).forEach(function (k) { var e = j.map[k] || {}; if (e.t === "org" && /신문|일간|방송|통신|매체|언론|잡지|주간지|뉴스|채널|TV|라디오/.test(e.r || "")) return; [k].concat(e.a || []).forEach(function (n) { n = String(n).trim(); if (n.length >= 2 && !ENTS[n]) { ENTS[n] = k; names.push(n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")); } }); });
+      names.sort(function (x, y) { return y.length - x.length; });
+      ENT_RX = new RegExp(names.join("|"), "g");
+    }).catch(function () { });
+  } catch (e) { }
+  var BRAND = /^(Claude|Anthropic|OpenAI|ChatGPT|GPT[-\d.o]*|Gemini|Google|Microsoft|Apple|Meta|Nvidia|NVIDIA|Tesla|Amazon|AWS|Azure|GitHub|Cursor|Copilot|DeepSeek|Llama|Mistral|Grok|Perplexity|Python|JavaScript|TypeScript|React|Rust|Linux|Windows|Android|iPhone|Samsung|YouTube|TikTok|Netflix|Reddit|Figma|Notion|Supabase|Vercel|Docker|Kubernetes|Excel|Codex|Sora|Midjourney|Bitcoin|Ethereum|SpaceX|Starlink|Trump|Musk|Altman|Zuckerberg)$/;
+  function keywords(info) {
+    var out = [], seen = {}, add = function (w) { w = String(w || "").replace(/\s*[\(（][^)）]*[\)）]/g, "").replace(/^[#\s'"‘’“”·]+|[\s'"‘’“”·,.!?:]+$/g, "").trim(); var k = w.toLowerCase(); if (w.length < 2 || w.length > 24 || seen[k] || out.some(function (o) { return o.toLowerCase().indexOf(k) >= 0; }) || /[%↓↑→←~$€£¥]/.test(w) || /["“”'‘’!?#|…\u3040-\u30ff\u4e00-\u9fff\uff00-\uffef\u{1F000}-\u{1FAFF}]/u.test(w)) return; seen[k] = 1; out.push(w); };
+    (info.kw || []).forEach(add);
+    var t = (String(info.title || "") + " " + String(info.text || "").split("\n").slice(0, 2).join(" "))
+      .replace(/#\S+/g, " ").replace(/https?:\/\/\S+/g, " ").replace(/[\u{1F000}-\u{1FAFF}\u2600-\u27BF]/gu, " ");
+    var tt = String(info.title || "");
+    [tt, t].forEach(function (src) { if (out.length < 3 && ENT_RX) { var m; ENT_RX.lastIndex = 0; while ((m = ENT_RX.exec(src)) && out.length < 3) { if (/^[A-Za-z0-9 .&-]+$/.test(m[0]) && (/[A-Za-z0-9]/.test(src.charAt(m.index - 1)) || /[A-Za-z0-9]/.test(src.charAt(m.index + m[0].length)))) continue; add(ENTS[m[0]] || m[0]); } } });   // 제목 먼저, 그다음 본문 · 영문 이름은 낱말 경계에서만
+    if (out.length < 3) (t.match(/['‘"“]([^'’"”]{2,18})['’"”]/g) || []).forEach(function (q) { add(q.slice(1, -1)); });
+    // 영문 고유명사 — 제목에서만. 제목이 '단어마다 대문자'(Title Case)면 이름 사전·잘 알려진 이름·약어만
+    var words = tt.match(/[\p{Script=Latin}]+/gu) || [], caps = words.filter(function (w) { return /^\p{Lu}/u.test(w); }).length, titleCase = words.length >= 3 && caps / words.length > 0.6;
+    if (out.length < 3) (tt.match(/(?<![\p{L}\p{N}])\p{Lu}[\p{Script=Latin}\p{N}.+#-]*(?:\s\p{Lu}[\p{Script=Latin}\p{N}.+#-]*){0,2}/gu) || []).forEach(function (w) {
+      w = w.trim(); if (STOPW.test(w) || w.length < 2) return;
+      if (/^[\p{Lu}\p{N} .+#-]+$/u.test(w) && (w.length > 6 || /\s/.test(w))) return;      // 대문자만 이어진 긴 덩어리(외침)는 버림
+      if (titleCase) { w.split(" ").forEach(function (x) { if (BRAND.test(x) || /^[\p{Lu}]{2,5}\d*$/u.test(x) || /\p{Ll}\p{Lu}/u.test(x)) add(x); }); return; }
+      add(w);
+    });
+    if (out.length < 1 && info.title && info.title.length <= 14 && !/[#!?]/.test(info.title)) add(info.title);
+    return out.slice(0, 3);
+  }
+  function kwRow(info) {
+    var k = keywords(info); if (!k.length) return "";
+    var nm = window.vfm && window.vfm.namu ? window.vfm.namu : function (q) { return "https://namu.wiki/Go?q=" + encodeURIComponent(q); };
+    return '<div class="vdk-kw">' + k.map(function (w) { return '<a href="' + esc(nm(w)) + '" target="_blank" rel="noopener">' + esc(w) + "</a>"; }).join("") + "</div>";
+  }
   function bar(app, key, info) {
     var on = Like.has(app, key);
-    return '<div class="vdk-react"><button type="button" class="vdk-like' + (on ? " on" : "") + '" data-vdk-like="' + esc(app + "|" + key) + '" data-vdk-t="' + esc(info.title || "") + '" data-vdk-u="' + esc(info.url || "") + '" data-vdk-h="' + esc(info.hash || "") + '" aria-pressed="' + on + '">' +
+    return kwRow(info) + '<div class="vdk-react"><button type="button" class="vdk-like' + (on ? " on" : "") + '" data-vdk-like="' + esc(app + "|" + key) + '" data-vdk-t="' + esc(info.title || "") + '" data-vdk-u="' + esc(info.url || "") + '" data-vdk-h="' + esc(info.hash || "") + '" aria-pressed="' + on + '">' +
       '<span aria-hidden="true">' + (on ? "♥" : "♡") + "</span> 좋아요</button>" +
       '<button type="button" class="vdk-share" data-vdk-think="' + esc(app + "|" + key) + '" data-vdk-t="' + esc(info.title || "") + '" data-vdk-u="' + esc(info.url || "") + '"><span aria-hidden="true">✎</span> 생각</button>' +
-      '<button type="button" class="vdk-share" data-vdk-share="1" data-vdk-t="' + esc(info.title || "") + '" data-vdk-u="' + esc(info.url || "") + '" data-vdk-x="' + esc(info.text || "") + '"><span aria-hidden="true">↗</span> 공유</button>' +
-      '<a class="vdk-share vdk-namu" href="' + esc((window.vfm && window.vfm.namu ? window.vfm.namu : function (q) { return "https://namu.wiki/Go?q=" + encodeURIComponent(q); })(info.q || info.title || "")) + '" target="_blank" rel="noopener">나무위키</a></div>';
+      '<button type="button" class="vdk-share" data-vdk-share="1" data-vdk-t="' + esc(info.title || "") + '" data-vdk-u="' + esc(info.url || "") + '" data-vdk-x="' + esc(info.text || "") + '"><span aria-hidden="true">↗</span> 공유</button></div>';
   }
 
   /* ── 덱 ── */
@@ -148,7 +186,7 @@
     var body = ""; try { body = it.html(); } catch (e) { body = '<p class="vdk-note">이 카드를 그리지 못했어요.</p>'; }
     var left = this.left();
     return '<div class="vdk-card" data-vdk-card="' + esc(this.id) + '">' + body +
-      bar(this.sa(k), k, { title: it.title, url: it.url, hash: it.hash, text: it.shareText }) +
+      bar(this.sa(k), k, { title: it.title, url: it.url, hash: it.hash, text: it.shareText, kw: it.kw }) +
       '<div class="vdk-nav"><button type="button" data-vdk-act="prev" data-vdk="' + esc(this.id) + '" ' + (this.pos <= 0 ? "disabled" : "") + ' aria-label="이전 카드">‹</button>' +
       '<span class="vdk-left">' + (left ? "안 본 카드 " + left + "장 남음" : "마지막 카드") + '<small>옆으로 밀면 다음</small></span>' +
       '<button type="button" data-vdk-act="next" data-vdk="' + esc(this.id) + '" aria-label="다음 카드">›</button></div></div>';
@@ -369,7 +407,8 @@
     ".vdk-btn{border:0;border-radius:12px;padding:12px 14px;font:inherit;font-weight:600;background:var(--ap-tint,#0A84FF);color:#fff;cursor:pointer}" +
     ".vdk-btn.ghost{background:var(--ap-fill,rgba(118,118,128,.12));color:var(--ink,var(--ap-label,#111))}" +
     ".vdk-react{display:flex;gap:8px;margin:14px 0 4px}" +
-    ".vdk-react .vdk-namu{display:flex;align-items:center;justify-content:center;text-decoration:none;flex:1;border-radius:12px;padding:10px 6px;font-size:14.5px;font-weight:600;background:var(--ap-fill,rgba(118,118,128,.12))}.vdk-react button{flex:1;border:0;border-radius:12px;padding:10px 8px;font:inherit;font-size:14.5px;font-weight:600;background:var(--ap-fill,rgba(118,118,128,.12));color:var(--ink,var(--ap-label,#111));cursor:pointer}" +
+    ".vdk-kw{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0}.vdk-kw a{font-size:13.5px;font-weight:600;padding:6px 11px;border-radius:999px;text-decoration:none;color:#00897B;background:rgba(0,164,149,.12)}.vdk-kw a::after{content:'\\00a0↗';font-size:11px;opacity:.7}" +
+    "@media (prefers-color-scheme:dark){.vdk-kw a{color:#5FD3C4;background:rgba(0,164,149,.2)}}.vdk-react button{flex:1;border:0;border-radius:12px;padding:10px 8px;font:inherit;font-size:14.5px;font-weight:600;background:var(--ap-fill,rgba(118,118,128,.12));color:var(--ink,var(--ap-label,#111));cursor:pointer}" +
     ".vdk-like.on{color:var(--ap-pink,#FF2D55);background:color-mix(in srgb,var(--ap-pink,#FF2D55) 13%,transparent)}" +
     ".vdk-nav{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:.5px solid var(--ap-sep,rgba(60,60,67,.29))}" +
     ".vdk-nav button{flex:none;width:48px;height:44px;border:0;border-radius:12px;background:var(--ap-fill,rgba(118,118,128,.12));font-size:24px;line-height:1;color:var(--ink,var(--ap-label,#111));cursor:pointer}" +
@@ -390,5 +429,5 @@
     ".vdk-more{display:block;text-align:left;margin-top:6px;font-weight:600;color:var(--ap-tint-t,var(--accent,#0066D6));background:none;border:0;padding:6px 0;font:inherit;cursor:pointer;text-decoration:none}";
   document.head.appendChild(css);
 
-  window.VfmDeck = { stale: function (app) { Object.keys(decks).forEach(function (k) { if (decks[k].app === app) decks[k].queue = null; }); }, create: function (o) { if (decks[o.id]) { decks[o.id].o = o; return decks[o.id]; } return new Deck(o); }, get: function (id) { return decks[id]; }, mode: mode, modeSwitch: modeSwitch, bar: bar, share: share, koUrl: koUrl, Seen: Seen, Like: Like, esc: esc };
+  window.VfmDeck = { stale: function (app) { Object.keys(decks).forEach(function (k) { if (decks[k].app === app) decks[k].queue = null; }); }, create: function (o) { if (decks[o.id]) { decks[o.id].o = o; return decks[o.id]; } return new Deck(o); }, get: function (id) { return decks[id]; }, mode: mode, modeSwitch: modeSwitch, bar: bar, kwRow: kwRow, keywords: keywords, share: share, koUrl: koUrl, Seen: Seen, Like: Like, esc: esc };
 })();

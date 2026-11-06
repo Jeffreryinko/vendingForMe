@@ -333,11 +333,16 @@
   /* ── 나무위키 바로가기 ── 제목·이름·낱말 어디서든. namu.wiki/Go 는 문서가 있으면 바로, 없으면 찾기 결과로 감 (긁어오지 않음, 링크만) */
   function namu(q) { q = String(q || "").replace(/^(바뀐 점|이번 주) · /, "").replace(/\s*[\(（][^)）]*[\)）]\s*$/, "").trim(); return "https://namu.wiki/Go?q=" + encodeURIComponent(q); }
   window.vfm.namu = namu;
+  window.vfm.kwChips = function (list) {                              // 중요 키워드(최대 3개) → 나무위키 칩
+    var seen = {}, k = (list || []).map(function (w) { return String(w || "").replace(/\s*[\(（][^)）]*[\)）]/g, "").trim(); }).filter(function (w) { var l = w.toLowerCase(); if (w.length < 2 || w.length > 24 || seen[l]) return false; seen[l] = 1; return true; }).slice(0, 3);
+    return k.length ? '<div class="vdk-kw">' + k.map(function (w) { return '<a href="' + escH(namu(w)) + '" target="_blank" rel="noopener">' + escH(w) + "</a>"; }).join("") + "</div>" : "";
+  };
   // 글자를 길게 눌러(또는 끌어서) 고르면 그 근처에 '나무위키 ↗' — 1~40자, 한 줄일 때만
   var npill = document.createElement("a"); npill.className = "vfm-namu"; npill.target = "_blank"; npill.rel = "noopener"; npill.textContent = "나무위키 ↗"; npill.hidden = true;
   document.addEventListener("DOMContentLoaded", function () { document.body.appendChild(npill); });
   css.textContent += ".vfm-namu{position:absolute;z-index:9998;transform:translate(-50%,0);background:#00A495;color:#fff;font:700 14px/1 var(--ap-font);padding:9px 13px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.22);text-decoration:none;white-space:nowrap}" +
-    ".vdk-namu{color:#00A495!important}";
+    ".vdk-kw{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0}.vdk-kw a{font-size:13.5px;font-weight:600;padding:6px 11px;border-radius:999px;text-decoration:none;color:#00897B;background:rgba(0,164,149,.12)}.vdk-kw a::after{content:'\\00a0↗';font-size:11px;opacity:.7}" +
+    "@media (prefers-color-scheme:dark){.vdk-kw a{color:#5FD3C4;background:rgba(0,164,149,.2)}}";
   var nT = null;
   function placeNamu() {
     var sel = window.getSelection && window.getSelection(), t = sel ? String(sel).trim() : "";

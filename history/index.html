@@ -406,6 +406,12 @@ function rolesHtml(p) {
   const nm = (x, k) => x[1] && (!x[0] || cko(x[0]) !== x[1]) ? (x[0] && k !== "nat" && k !== "side" ? `${x[1]} (지금 ${cko(x[0])})` : x[1]) : cko(x[0]);
   return `<p class="roles">${keys.map(k => `<span><b>${ROLE_NAME[k]}</b> ${esc([...new Set(r[k].slice(0, 3).map(x => nm(x, k)))].join(" · "))}</span>`).join("")}</p>`;
 }
+function kwHist(p) {                                                // 중요 키워드 3개: 제목 → 원인·결과로 기록된 것 → 관련 나라
+  if (!window.vfm || !window.vfm.kwChips) return "";
+  const r = p.rel || {}, rel = [].concat(r.cause || [], r.effect || [], ...Object.keys(r).filter(k => k !== "cause" && k !== "effect").map(k => r[k] || [])).map(x => x[1] || x[0]).filter(x => x && !/^Q\d+$/.test(x));
+  const ro = p.roles || {}, ctry = [].concat(ro.at || [], ro.nat || [], ro.work || []).map(x => x[1] || (x[0] ? cko(x[0]) : "")).filter(Boolean);
+  return window.vfm.kwChips([p.title, ...rel.slice(0, 2), ...ctry]);
+}
 function causeHtml(p) {
   const r = p.rel || {}, c = (r.cause || []).slice(0, 3), f = (r.effect || []).slice(0, 3); if (!c.length && !f.length) return "";
   const nm = l => l.map(x => esc(x[1] || x[0])).join(" · ");
@@ -433,7 +439,7 @@ async function renderPage(id) {
   app.innerHTML = `<div class="read-top"><button class="ib" data-act="back" aria-label="뒤로">‹</button><span class="sp"></span><span class="bd kd">${KIND[e.k] || ""}</span>${p.n ? `<span class="bd" title="이 글이 있는 위키백과 언어판 수">${p.n}개 언어</span>` : ""}</div>
     <h1 class="title">${esc(p.title)}</h1>${p.en ? `<p class="title-en">${esc(p.en)}</p>` : ""}
     <div class="meta">${badges(e)}${p.roles ? "" : ((p.s || []).length ? `<span class="bd">당시: ${esc(p.s.join(" · "))}</span>` : "") + (p.c || []).slice(1).map(c => `<span class="bd">${esc(cko(c))}</span>`).join("")}${occ.filter(o => /[가-힣]/.test(o)).map(o => `<span class="tag">${esc(o)}</span>`).join("")}</div>
-    ${rolesHtml(p)}${causeHtml(p)}
+    ${rolesHtml(p)}${causeHtml(p)}${kwHist(p)}
     ${p.desc && /[가-힣]/.test(p.desc) ? `<p class="note" style="margin-top:6px">${esc(p.desc)}</p>` : ""}
     ${S.cfg.pics && p.img ? `<img class="hero" src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}
     <div class="depth">${[["short", "짧게"], ["more", "자세히"], ["deep", "깊게"]].map(([k, n]) => `<button data-depth="${k}" class="${d === k ? "on" : ""}">${n}</button>`).join("")}</div>
@@ -444,7 +450,7 @@ async function renderPage(id) {
     <div class="src">출처: <a href="${esc(p.src.url)}" target="_blank" rel="noopener">한국어 위키백과 ‘${esc(p.title)}’</a> (${esc(p.src.license)}) · 위키백과 글 고친 날 ${esc(p.src.edited || "")} · 로봇이 받은 날 ${esc(p.at || "")}${p.qid ? ` · <a href="https://www.wikidata.org/wiki/${esc(p.qid)}" target="_blank" rel="noopener">위키데이터</a>` : ""}${p.en ? ` · <a href="https://en.wikipedia.org/wiki/${encodeURIComponent(p.en.replace(/ /g, "_"))}" target="_blank" rel="noopener">영문판</a>` : ""}<br>
       <span class="sub">분류: ${esc((p.cats || []).slice(0, 8).join(" · "))}</span><br><span class="sub">위키백과 글을 로봇이 토큰 없이 잘라 둔 것이에요. 연도·나라·테마는 위키데이터 속성으로 자동으로 붙여 틀릴 수 있어요.</span></div>
     <div style="height:70px"></div>
-    <div class="rbar"><button data-act="star" class="${sv ? "on" : ""}"><b>${sv ? "★" : "☆"}</b>별표</button><button data-act="hide"><b>⊘</b>숨기기</button><button data-act="tag"><b>#</b>태그</button><button data-act="think"><b>✎</b>생각</button><a class="namu" href="${esc(window.vfm.namu(p.title))}" target="_blank" rel="noopener"><b>N</b>나무위키</a><button data-act="share"><b>↗</b>공유</button></div>`;
+    <div class="rbar"><button data-act="star" class="${sv ? "on" : ""}"><b>${sv ? "★" : "☆"}</b>별표</button><button data-act="hide"><b>⊘</b>숨기기</button><button data-act="tag"><b>#</b>태그</button><button data-act="think"><b>✎</b>생각</button><button data-act="share"><b>↗</b>공유</button></div>`;
   window.scrollTo(0, 0);
   document.getElementById("memo").addEventListener("change", ev => { const v = ev.target.value.trim(); if (v) S.memo[id] = v; else delete S.memo[id]; save("memo"); if (S.star[id]) { S.star[id].memo = v; save("star"); } toast("메모 저장"); });
   if (!p.full && d !== "short") loadLive(p, d === "deep");

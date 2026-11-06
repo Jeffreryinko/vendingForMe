@@ -142,6 +142,11 @@ function buildRx() {
   parts.sort((a, b) => b.length - a.length);
   termRx = new RegExp("(?<![\\w-])(" + parts.join("|") + ")(?![\\w-])", "gi");
 }
+function aiKw(p) {                                                  // 글에 나온 용어장 낱말 앞 3개 (한국어 이름) → 나무위키
+  if (!termRx) buildRx(); const out = [];
+  for (const m of String(p.title + " " + (p.abs || p.sum || "").slice(0, 600)).matchAll(termRx)) { const id = aliasToId(m[0]), t = id && S.termById[id]; if (t && !out.includes(t.ko)) out.push(t.ko); if (out.length >= 3) break; }
+  return out.length ? out : (D && D.keywords ? D.keywords({ title: p.title }) : []);
+}
 function aliasToId(a) { const k = a.toLowerCase().replace(/[\s-]+/g, " "); for (const t of S.terms) if (t.aliases.some(x => x.toLowerCase().replace(/[\s-]+/g, " ") === k)) return t.id; return null; }
 function underline(text) {   // 영문 글에서 용어 찾기 (한글 번역문은 영문 용어가 섞여 있을 때만 잡힘)
   if (!termRx) buildRx();
@@ -318,7 +323,7 @@ function renderPaper() {
     <div class="meta">${(p.authors || []).map(esc).join(", ")}${p.authors && p.authors.length >= 4 ? " 외" : ""} · ${fmtDay(p.pub || p.daily || p.day || S.day)}${(p.cats || []).length ? " · " + p.cats.join(" ") : ""}${(S.tags[p.id] || []).map(t => ` <span class="tag">${esc(t)}</span>`).join("")}</div>
     ${p.ksum ? `<p class="note" style="margin-top:10px"><b>한 줄:</b> ${esc(p.ksum)}</p>` : ""}
     <div id="ezbox">${S.easy[p.id] ? easyHtml(p, S.easy[p.id]) : hasEasy(p.id) ? "" : machineHtml(p)}</div>
-    ${D ? D.bar("ai", p.id, { title: p.ko || p.title, url: p.url, text: (p.ko || p.title) + "\n" + p.title }) : ""}
+    ${D ? D.bar("ai", p.id, { title: p.ko || p.title, url: p.url, text: (p.ko || p.title) + "\n" + p.title, kw: aiKw(p) }) : ""}
     <div class="abs${S.cfg.underline ? "" : " nou"}${absKo ? "" : " en"}" id="abs">${body}</div>
     ${absKo ? `<details class="fold"><summary>원문 보기</summary><div class="abs en">${underline(p.abs || "")}</div></details>` : `<p class="note">이 편은 번역 안 됨 — <a href="${esc(p.url)}" target="_blank" rel="noopener">원문 보기</a></p>`}
     <div class="links"><a href="${esc(p.url)}" target="_blank" rel="noopener">arXiv</a>${p.pdf ? `<a href="${esc(p.pdf)}" target="_blank" rel="noopener">PDF</a>` : ""}${p.hf ? `<a href="${esc(p.hf)}" target="_blank" rel="noopener">HF 토론 ${p.cm ? p.cm : ""}</a>` : ""}${p.code ? `<a href="${esc(p.code)}" target="_blank" rel="noopener">코드${p.stars ? " ★" + p.stars : ""}</a>` : ""}${p.page ? `<a href="${esc(p.page)}" target="_blank" rel="noopener">프로젝트</a>` : ""}</div>
@@ -326,7 +331,7 @@ function renderPaper() {
     ${(p.terms || []).length ? `<h2 class="sec">이 글의 용어 <small>${p.terms.length}개</small></h2><div class="chips">${p.terms.map(([id, n]) => { const t = S.termById[id]; return t ? `<button data-term="${id}" class="${S.myterms[id] ? "on" : ""}">${esc(t.ko)} <small>${n}</small></button>` : ""; }).join("")}</div>` : ""}
     <h2 class="sec">내 메모</h2><textarea class="memo" id="memo" placeholder="내 말로 적어 두기">${esc(S.memo[p.id] || "")}</textarea>
     <div style="height:70px"></div>
-    <div class="rbar"><button data-act="star" class="${sv ? "on" : ""}"><b>${sv ? "★" : "☆"}</b>별표</button><button data-act="hide"><b>⊘</b>숨기기</button><button data-act="tag"><b>#</b>태그</button><button data-act="think"><b>✎</b>생각</button><a class="namu" href="${esc(window.vfm.namu(p.ko || p.title))}" target="_blank" rel="noopener"><b>N</b>나무위키</a><button data-act="share"><b>↗</b>공유</button></div>`;
+    <div class="rbar"><button data-act="star" class="${sv ? "on" : ""}"><b>${sv ? "★" : "☆"}</b>별표</button><button data-act="hide"><b>⊘</b>숨기기</button><button data-act="tag"><b>#</b>태그</button><button data-act="think"><b>✎</b>생각</button><button data-act="share"><b>↗</b>공유</button></div>`;
   window.scrollTo(0, 0);
   if (D) D.Seen.add("ai", p.id);
   knowPaper(p, !!S.easy[p.id]);
