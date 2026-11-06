@@ -166,7 +166,8 @@ function card(p) {
 }
 function liRow(p, kind) {
   const my = myCount(p);
-  return `<a class="li" href="${esc(p.url)}" target="_blank" rel="noopener" data-visit="${esc(p.id)}"><p class="t">${esc(p.ko || p.title || p.name)}${p.new ? ' <span class="bd kr">NEW</span>' : ""}</p>
+  const th = kind !== "repo" && window.vfm && vfm.pic ? (p.img ? vfm.pic(p.img, 132, 132, "lth") : vfm.logo(p.url, "lth")) : "";   // 사진 · 없으면 회사 로고
+  return `<a class="li${th ? " has-lth" : ""}" href="${esc(p.url)}" target="_blank" rel="noopener" data-visit="${esc(p.id)}">${th}<p class="t">${esc(p.ko || p.title || p.name)}${p.new ? ' <span class="bd kr">NEW</span>' : ""}</p>
     <p class="s">${kind === "repo" ? `★ ${p.stars.toLocaleString()} · ${esc(p.lang || "")} · ${esc(p.ksum || p.sum || "")}` : `${esc(p.name)} · ${fmtDay(p.date)}${p.ko && p.title ? " · " + esc(p.title) : ""}`}${my ? ` · <span class="mine">내 용어 ${my}</span>` : ""}</p></a>`;
 }
 async function renderToday() {
@@ -240,6 +241,7 @@ function deckCardAi(p) {
   const e = S.easy[p.id];
   if (hasEasy(p.id) && e === undefined) loadEasy(p.id).then(() => { ["ai-today", "ai-feed"].forEach(n => { const d = D.get(n); if (d && d.curKey() === p.id) d.paint(); }); });
   return `<div class="vdk-body"><div class="vdk-k">${srcBadge(p)}${p.up ? `<span class="up">▲ ${p.up}</span>` : ""}${hasEasy(p.id) ? '<span class="bd ez">쉬운 풀이</span>' : ""}</div>
+    ${p.img && window.vfm && vfm.pic ? `<span class="vdk-img vfm-picw">${vfm.pic(p.img, 820)}</span>` : ""}
     <h2 class="vdk-t">${esc(e && e.title || p.ko || p.title)}</h2>${p.ko || e ? `<p class="en">${esc(p.title)}</p>` : ""}
     ${e ? easyHtml(p, e) : hasEasy(p.id) ? '<p class="sub">풀이를 불러오는 중…</p>' : machineHtml(p)}
     <button class="vdk-more" data-open="${esc(p.id)}">초록 번역·링크·메모 ›</button></div>`;
@@ -252,6 +254,8 @@ function featCard(p, kind) {
   const f = FEAT[p.id];
   const one = f && f.one || p.ksum || p.sum || "";
   return `<div class="vdk-body"><div class="vdk-k"><span class="bd ${kind === "vid" ? "yt" : kind === "news" ? "kr" : "hf"}">${kind === "vid" ? "해설 영상" : kind === "news" ? "국내 소식" : "새 기능·발표"}</span><span>${esc(p.name || p.ch || "")}</span><span>${esc(p.date || "")}</span>${p.new ? '<b class="up">NEW</b>' : ""}</div>
+    ${kind === "vid" && p.vid ? `<span class="vdk-img vdk-play" data-yt="${esc(p.vid)}" role="button" aria-label="여기서 영상 재생"><img src="https://i.ytimg.com/vi/${esc(p.vid)}/hqdefault.jpg" alt="" loading="lazy" referrerpolicy="no-referrer"><i>▶</i></span>` : ""}
+    ${kind !== "vid" && window.vfm && vfm.pic ? (p.img ? `<span class="vdk-img vfm-picw">${vfm.pic(p.img, 820)}</span>` : `<p class="vdk-logo">${vfm.logo(p.url)}<span>${esc(p.name || "")}</span></p>`) : ""}
     <h2 class="vdk-t">${esc(p.ko || p.title)}</h2>${p.ko ? `<p class="en">${esc(p.title)}</p>` : ""}
     ${one ? `<p class="ez-k">뭐가 생겼나${f && f.one ? "" : ' <span class="sub">(발표문 요약' + (p.ksum ? " · 기계번역" : "") + ')</span>'}</p><p class="vdk-p">${esc(one)}</p>` : ""}
     ${f && f.how ? `<p class="ez-k">나는 어떻게 써 보나</p><p class="vdk-p">${esc(f.how)}</p>` : kind === "post" ? '<p class="sub">\'어떻게 써 보나\'는 그날 큰 소식 3~5개만 아침에 정리돼요.</p>' : ""}

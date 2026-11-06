@@ -35,7 +35,15 @@
   // 유튜브 썸네일: 영상 번호(vid)만 있으면 주소가 정해져 있음 (API·토큰 0)
   function ytId(it) { return it.vid || (String(it.url || "").match(/(?:v=|youtu\.be\/|shorts\/)([\w-]{11})/) || [])[1] || ""; }
   function isShort(it) { return !!it.short || /\/shorts\//.test(it.url || "") || /#shorts?\b/i.test((it.kw || "") + " " + (it.desc || "")); }   // 세로 영상
-  function thumb(it) { var v = ytId(it); return v ? '<a class="vdk-yt" data-yt="' + v + '"' + (isShort(it) ? " data-short" : "") + ' href="' + esc(it.url) + '" target="_blank" rel="noopener" aria-label="유튜브에서 보기"><img src="https://i.ytimg.com/vi/' + v + '/hqdefault.jpg" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest(\'a\').remove()"><span>▶</span></a>' : ""; }
+  function wikiOf(u) { var m = /^https?:\/\/([a-z\-]+)\.(?:m\.)?wikipedia\.org\/wiki\/([^#?]+)/.exec(u || ""); if (!m) return ""; try { return m[1] + ":" + decodeURIComponent(m[2]).replace(/_/g, " "); } catch (e) { return ""; } }
+  // 유튜브가 아니면: 로봇이 받아 둔 기사 사진(it.img) → 위키 급상승이면 그 문서 사진
+  function photo(it) {
+    var P = window.vfm && window.vfm.pic;
+    if (it.img && P) return '<span class="vdk-img vfm-picw">' + P(it.img, 820) + "</span>";
+    var w = wikiOf(it.url); if (w) return '<span class="vdk-img vfm-picw"><img data-wt="' + esc(w) + '" alt="" loading="lazy" decoding="async"></span>';
+    return "";
+  }
+  function thumb(it) { var v = ytId(it); return !v ? photo(it) : '<a class="vdk-yt" data-yt="' + v + '"' + (isShort(it) ? " data-short" : "") + ' href="' + esc(it.url) + '" target="_blank" rel="noopener" aria-label="유튜브에서 보기"><img src="https://i.ytimg.com/vi/' + v + '/hqdefault.jpg" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest(\'a\').remove()"><span>▶</span></a>'; }
   function video(it) {
     var desc = it.dko || it.desc, cap = it.capko || it.cap;
     return thumb(it) + '<p class="vdk-h">영상 정보</p><p class="vdk-p">' + esc(it.sub || "") + " 채널" + (it.n ? " · 조회 " + esc(it.n) : "") + "</p>" +
@@ -49,6 +57,7 @@
     var h = '<div class="vdk-k"><span>' + flag(cc) + " " + esc(o.cname || cc) + "</span><span>" + esc(o.srcName || src) + (o.rank != null ? " " + (o.rank + 1) + "위" : "") + "</span>" +
       (it.n && src !== "wiki" ? "<span>" + esc(it.n) + "</span>" : "") + (it.tag === "NEW" || isNew ? '<b class="new">NEW</b>' : it.tag ? "<span>" + esc(it.tag) + "</span>" : "") + "</div>" +
       '<h2 class="vdk-t">' + esc(it.ko || it.kw) + "</h2>" + (it.ko && it.ko !== it.kw ? '<p class="vdk-note" style="margin:-6px 0 10px">' + esc(it.kw) + "</p>" : "");
+    if (!ytId(it)) h += photo(it);                                    // 기사 사진 · 위키 문서 사진
     var b = "";
     if (src === "google") {
       var ns = it.news || [];
@@ -80,7 +89,8 @@
     return '<div class="vdk-body dk">' + h + (o.extra || "") + b + gs + "</div>";
   }
   var css = document.createElement("style");
-  css.textContent = ".vdk-yt{position:relative;display:block;margin:2px 0 12px;border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:rgba(118,118,128,.12)}.vdk-yt img{display:block;width:100%;height:100%;object-fit:cover}" +
+  css.textContent = ".vdk-img{display:block;margin:2px 0 12px;border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:rgba(118,118,128,.12)}.vdk-img img{display:block;width:100%;height:100%;object-fit:cover}" +
+    ".vdk-yt{position:relative;display:block;margin:2px 0 12px;border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:rgba(118,118,128,.12)}.vdk-yt img{display:block;width:100%;height:100%;object-fit:cover}" +
     ".vdk-yt span{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;font-size:17px;padding-left:3px;box-sizing:border-box}" +
     ".vdk-img{display:block;margin:4px 0 10px;border-radius:12px;overflow:hidden;background:rgba(118,118,128,.12)}.vdk-img img{display:block;width:100%;max-height:60vh;object-fit:contain}";
   document.head.appendChild(css);

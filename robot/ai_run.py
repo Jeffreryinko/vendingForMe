@@ -361,10 +361,19 @@ def translate_texts(run, texts, mem, deadline):
 # ───────── 보관 정리 ─────────
 def write_feed(data):
     """AI 탭 첫 화면과 자판기 홈 랜덤이 쓰는 가벼운 파일 (논문 초록 없이): 새 기능 소식·국내 소식·해설 영상·인기 논문 2편"""
-    keep = ("id", "sid", "name", "title", "ko", "ksum", "sum", "url", "date", "new", "ch", "vid")
+    keep = ("id", "sid", "name", "title", "ko", "ksum", "sum", "url", "date", "new", "ch", "vid", "img")
+    try:                                                          # 대표 사진 (og:image, 토큰 0, 한 번 본 글은 기억)
+        sys.path.insert(0, str(Path(__file__).resolve().parent)); from ogimg import Photos
+        ph = Photos(OUT / "_img.json", budget=150)
+        for lst in (data["posts"][:60], data["news"][:25], data["papers"]):
+            for p in lst:
+                if not p.get("img"): p["img"] = ph.get(p.get("url"))
+            Photos.drop_logos(lst)
+        ph.save()
+    except Exception as e: print("대표 사진 실패 — 건너뜀:", e)
     slim = lambda lst, n: [{k: p[k] for k in keep if p.get(k)} for p in lst[:n]]
     hf = sorted([p for p in data["papers"] if p.get("src") == "hf"], key=lambda p: -(p.get("up") or 0))[:2]
-    papers = [{k: p[k] for k in ("id", "title", "ko", "ksum", "one", "url", "up", "src") if p.get(k)} for p in hf]
+    papers = [{k: p[k] for k in ("id", "title", "ko", "ksum", "one", "url", "up", "src", "img") if p.get(k)} for p in hf]
     wj(OUT / "feed.json", {"day": data["day"], "at": data["at"], "posts": slim(data["posts"], 60), "news": slim(data["news"], 25),
                            "vids": slim(data.get("vids", []), 20), "papers": papers})
 

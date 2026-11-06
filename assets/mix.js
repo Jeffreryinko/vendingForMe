@@ -27,6 +27,12 @@
     var sp = t.lastIndexOf(" "); return (sp > t.length * 0.7 ? t.slice(0, sp) : t).replace(/[,·\s]+$/, "") + "…";
   }
   var go = function (h) { return ' data-mixgo="' + esc(h) + '"'; };
+  // 사진 한 장: 유튜브면 눌러서 바로 재생, 아니면 로봇이 받아 둔 대표 사진 (shell.js 의 vfm.pic)
+  function media(p) {
+    if (p.vid) return '<span class="vdk-img vdk-play" data-yt="' + esc(p.vid) + '" role="button" aria-label="여기서 영상 재생"><img src="https://i.ytimg.com/vi/' + esc(p.vid) + '/hqdefault.jpg" alt="" loading="lazy" referrerpolicy="no-referrer"><i>▶</i></span>';
+    if (p.img && window.vfm && vfm.pic) return '<span class="vdk-img vfm-picw' + (/opengraph\.githubassets/.test(p.img) ? " gh" : "") + '">' + vfm.pic(p.img, 820) + "</span>";
+    return "";
+  }
   // 처음 자료를 다 받을 때까지(최대 6초) 카드를 고르지 않음 → 홈에 돌아오면 보던 카드가 그대로 나옴
   var READY = false, pending = 0;
   function ready() { if (READY) return; READY = true; D.stale("mix"); var d = D.get("mix-home"); if (d && !(document.getElementById("mxq") || {}).value) d.paint(); }
@@ -99,9 +105,10 @@
       });
       if (again.length) add("sisa", again);
       var dg = ed.countryDigest || {};
+      var natPh = function (c) { var s = (ed.stories || []).filter(function (x) { return x.ph && (x.where || []).indexOf(c) >= 0; })[0]; return s ? s.ph.u : ""; };
       add("nation", Object.keys(dg).map(function (c) {
         return { key: "n:" + c + ":" + dg[c].slice(0, 24), sa: "sisa", kind: "nation", kw: [cname(c)], title: cname(c) + "의 오늘", url: location.origin + location.pathname + "sisa/#nation", shareText: cname(c) + "의 오늘\n" + dg[c], q: cname(c) + " " + dg[c],
-          html: function () { return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag nation">나라별 오늘</span><span>' + esc(ed.label || "") + '</span></div><h2 class="vdk-t">' + flag(c) + " " + esc(cname(c)) + '의 오늘</h2><p class="vdk-p">' + esc(dg[c]) + '</p><button type="button" class="vdk-more"' + go("sisa/#nation-" + c) + ">이 나라 뉴스 넘겨 보기 ›</button></div>"; } };
+          html: function () { return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag nation">나라별 오늘</span><span>' + esc(ed.label || "") + '</span></div><h2 class="vdk-t">' + flag(c) + " " + esc(cname(c)) + '의 오늘</h2>' + media({ img: natPh(c) }) + '<p class="vdk-p">' + esc(dg[c]) + '</p><button type="button" class="vdk-more"' + go("sisa/#nation-" + c) + ">이 나라 뉴스 넘겨 보기 ›</button></div>"; } };
       }));
     });
   });
@@ -138,7 +145,7 @@
       var enOnly = !ks && !!p.sum && !(f && f.one);
       return { key: p.id, kw: KWOF(p.ko, p.title), sa: "ai", kind: "ai", ready: !!(p.ko || HAN.test(p.title)), title: p.ko || p.title, url: p.url, shareText: (p.ko || p.title) + "\n" + p.url, q: (p.ko || "") + " " + p.title + " " + (p.name || ""),
         html: function () {
-          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag ai">AI</span><span>' + esc(p.name || p.ch || "") + "</span><span>" + esc(p.date || "") + "</span></div>" +
+          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag ai">AI</span><span>' + esc(p.name || p.ch || "") + "</span><span>" + esc(p.date || "") + "</span></div>" + media(p) +
             '<h2 class="vdk-t">' + esc(p.ko || p.title) + "</h2>" + (p.ko ? '<p class="vdk-note" style="margin:-6px 0 10px">' + esc(p.title) + "</p>" : "") +
             (one ? '<p class="vdk-h">뭐가 생겼나</p><p class="vdk-p">' + esc(one) + "</p>" : "") + (f && f.one && ks ? '<p class="vdk-h">발표 내용</p><p class="vdk-p">' + esc(tidy(ks)) + "</p>" : "") + (enOnly ? '<p class="vdk-note">발표 요약은 아직 영어로만 있어요 · 아래 ‘원문 보기’는 번역해서 열려요.</p>' : "") + (f && f.how ? '<p class="vdk-h">나는 어떻게 써 보나</p><p class="vdk-p">' + esc(f.how) + "</p>" : "") +
             '<a class="vdk-more" href="' + esc(vid ? p.url : D.koUrl(p.url)) + '" target="_blank" rel="noopener">' + (vid ? "유튜브에서 보기 ↗" : "원문 보기 ↗") + "</a>" +
@@ -160,7 +167,7 @@
       var m = p.sec === "gh" ? "★ " + n(p.stars) + (p.gain ? " · 하루 +" + n(p.gain) : "") : p.pts ? "▲ " + n(p.pts) : p.views ? "조회 " + n(p.views) + " · " + (p.ch || "") : p.likes ? "♥ " + n(p.likes) : "";
       return { key: p.id, kw: p.sec === "gh" ? [p.title] : KWOF(ko, p.title), sa: "tools", kind: "tool", title: ko || p.title, url: p.url, shareText: (ko || p.title) + "\n" + p.url, q: [p.title, ko, sum, p.owner, p.ch].join(" "),
         html: function () {
-          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag tool">도구</span><span>' + esc(SN[p.sec] || "") + "</span>" + (m ? "<span>" + esc(m) + "</span>" : "") + "</div>" +
+          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag tool">도구</span><span>' + esc(SN[p.sec] || "") + "</span>" + (m ? "<span>" + esc(m) + "</span>" : "") + "</div>" + media(p) +
             (p.sec === "gh" && p.owner ? '<p class="vdk-note" style="margin:0">' + esc(p.owner) + " /</p>" : "") +
             '<h2 class="vdk-t">' + (p.sec === "gh" ? "<span>" + esc(p.title) + "</span>" : esc(ko || p.title)) + "</h2>" + (ko ? '<p class="vdk-note" style="margin:-6px 0 10px">' + esc(p.title) + "</p>" : "") +   // 저장소 이름은 자동 번역 안 함
             (sum ? '<p class="vdk-h">' + (p.sec === "yt" || p.sec === "ye" ? "영상 설명" : "무엇인가") + '</p><p class="vdk-p">' + esc(sum.slice(0, 360)) + "</p>" : "") +
@@ -178,7 +185,8 @@
         var d1 = ((s.depths || {}).d1 || {}).body || [];
         return { key: s.id, kw: [s.orig || s.title].concat((s.tags || []).slice(-2)), sa: "iyagi", kind: "story", title: s.title, url: location.origin + location.pathname + "iyagi/#read-" + s.id, shareText: s.title + (s.hook ? "\n" + s.hook : ""), q: s.title + " " + (s.orig || "") + " " + (s.hook || ""),
           html: function () {
-            return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag story">이야기</span><span>' + esc(s.kind || "") + "</span><span>" + esc(s.region || "") + '</span></div><h2 class="vdk-t">' + esc(s.title) + '</h2><p class="vdk-note">' + esc(s.orig || "") + "</p>" +
+            var wt = ""; (s.sources || []).some(function (x) { var m = /^https?:\/\/([a-z-]+)\.(?:m\.)?wikipedia\.org\/wiki\/([^#?]+)/.exec(x.u || ""); if (m) { try { wt = m[1] + ":" + decodeURIComponent(m[2]).replace(/_/g, " "); } catch (e) { } } return !!wt; });
+            return '<div class="vdk-body">' + (wt ? '<span class="vdk-img vfm-picw"><img data-wt="' + esc(wt) + '" alt="" loading="lazy"></span>' : "") + '<div class="vdk-k"><span class="mx-tag story">이야기</span><span>' + esc(s.kind || "") + "</span><span>" + esc(s.region || "") + '</span></div><h2 class="vdk-t">' + esc(s.title) + '</h2><p class="vdk-note">' + esc(s.orig || "") + "</p>" +
               d1.filter(function (x) { return typeof x === "string"; }).map(function (x) { return '<p class="vdk-p">' + esc(x) + "</p>"; }).join("") +
               ((s.parts || []).length ? '<p class="vdk-h">요즘 이렇게 써요</p><ol class="vdk-ol">' + s.parts.map(function (x) { return "<li><b>" + esc(x.t) + "</b> — " + esc(x.b) + "</li>"; }).join("") + "</ol>" : "") +
               '<button type="button" class="vdk-more"' + go("iyagi/#read-" + s.id) + ">" + ((s.depths || {}).d2 ? "더 자세한 이야기 읽기 ›" : "이야기 화면으로 ›") + "</button></div>";
@@ -192,7 +200,7 @@
         return { key: "h:" + id, kw: [title], sa: "history", kind: "story", hid: id, title: title, url: location.origin + location.pathname + "history/#p=" + id, shareText: title, q: title + " " + sum,
           html: function () {
             var hd = HD[id];
-            return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag story">역사</span>' + (y != null ? "<span>" + (y < 0 ? "기원전 " + (-y) : y) + "년" + (String(r[9] || "").indexOf("~") >= 0 ? "경" : "") + "</span>" : "") + "<span>" + (r[6] || []).slice(0, 4).map(flag).join("") + '</span></div><h2 class="vdk-t">' + esc(title) + "</h2>" +
+            return '<div class="vdk-body">' + (r[12] ? '<span class="vdk-img vfm-picw"><img data-wt="ko:' + esc(title) + '" alt="" loading="lazy"></span>' : "") + '<div class="vdk-k"><span class="mx-tag story">역사</span>' + (y != null ? "<span>" + (y < 0 ? "기원전 " + (-y) : y) + "년" + (String(r[9] || "").indexOf("~") >= 0 ? "경" : "") + "</span>" : "") + "<span>" + (r[6] || []).slice(0, 4).map(flag).join("") + '</span></div><h2 class="vdk-t">' + esc(title) + "</h2>" +
               (hd ? (hd.desc ? '<p class="vdk-note">' + esc(hd.desc) + "</p>" : "") + '<p class="vdk-p">' + esc((window.vfmClean || String)(hd.lead || sum)) + "</p>" + (hd.secs || []).map(function (x, i) {
                 return '<details class="mx-sec"' + (i < 2 ? " open" : "") + "><summary>" + esc(x.h) + "</summary><p class=\"vdk-p\">" + esc(x.t) + "</p></details>"; }).join("") + '<p class="vdk-note">위키백과(한국어) 글을 정리했어요 · CC BY-SA</p>'
                 : '<p class="vdk-p">' + esc(tidy(sum, true)) + '</p><p class="vdk-note">글을 불러오는 중…</p>') +

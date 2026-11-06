@@ -452,6 +452,20 @@ def main():
         per[p["sec"]] = per.get(p["sec"], 0) + 1; hot.append(p["id"])
         if len(hot) >= 18: break
 
+    try:                                                          # 대표 사진 (토큰 0, 한 번 본 글은 _state/img.json 에 기억)
+        sys.path.insert(0, str(Path(__file__).resolve().parent)); from ogimg import Photos
+        ph = Photos(OUT / "_state/img.json", budget=150)
+        for k, lst in sec.items():
+            for p in lst:
+                if p.get("vid") or p.get("img"): continue
+                m = re.match(r"https://github\.com/([^/]+/[^/#?]+)", p.get("url") or "")
+                if k == "gh" and m: p["img"] = f"https://opengraph.githubassets.com/1/{m.group(1)}"   # 깃허브가 만들어 주는 저장소 카드 그림
+                else:
+                    u = ph.get(p.get("url"))
+                    if u: p["img"] = u
+            if k != "gh": Photos.drop_logos(lst)
+        ph.save()
+    except Exception as e: log(f"대표 사진 실패 — 건너뜀: {e}")
     now = {"at": now_iso(), "day": day, "hot": hot, "sec": sec}
     wj(OUT / "now.json", now)
 

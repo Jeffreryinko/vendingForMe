@@ -2175,6 +2175,7 @@ function articleDeckCard(i){
   return `<div class="vdk-body dk">
     <div class="vdk-k"><span>${flag(ctry(i))} ${esc(cname(ctry(i)))}</span><span>${esc(srcOf(i.s).n)}</span><span>${esc(KIND[i.k] || "")}</span>${i.p ? `<span>${esc(ago(i.p))}</span>` : ""}${PAYWALL.has(i.s) ? "<span>구독 기사일 수 있음</span>" : ""}</div>
     <h2 class="vdk-t">${entText(koOf(i) || i.t)}</h2>
+    ${i.m && i.m.img ? `<figure class="iphoto has-ph">${phImg(i.m.img, "ip-img")}<figcaption><span>사진: ${esc(srcOf(i.s).n)}</span></figcaption></figure>` : ""}
     ${b ? `<p class="vdk-p">${esc(b.sum || "")}</p>` : i.sm ? `<p class="vdk-p dk-orig">${esc(i.sm)}</p><p class="note">기사 설명 원문이에요. 원문 보기를 누르면 한국어로 번역돼 열려요.</p>` : '<p class="note">제목만 있는 글이에요.</p>'}
     ${story && !isBrief(story) ? `<button type="button" class="vdk-more" data-issue="${story.id}">이 글이 속한 이야기: ${esc(story.title || "")} ›</button>` : ""}
     ${p ? `<p class="vdk-h">현지 반응${c.mood ? " · " + esc(c.mood) : ""}</p><p class="vdk-p">“${esc(pickText(p))}”</p>` : ""}
@@ -2191,7 +2192,7 @@ function natDeck(c){
         const iss = (S.ed.stories||[]).filter(okStory).filter(s => !isBrief(s) && storyItems(s).some(i => ctry(i)===c)).slice(0, 6);
         out.push({key:"n:" + c + ":" + dg.slice(0, 24), title:cname(c) + "의 오늘", url:appUrl("#nation"), shareText:cname(c) + "의 오늘\n" + dg, html:() => `<div class="vdk-body dk">
           <div class="vdk-k"><span>${flag(c)} 나라 요약</span><span>${esc(S.ed.label)}</span></div>
-          <h2 class="vdk-t">${esc(cname(c))}의 오늘</h2><p class="vdk-p">${entText(dg)}</p>
+          <h2 class="vdk-t">${esc(cname(c))}의 오늘</h2>${(() => { const s = iss.find(x => storyPhoto(x)) || (S.ed.stories||[]).find(x => (x.where||[]).includes(c) && storyPhoto(x)); const ph = s && storyPhoto(s); return ph ? `<figure class="iphoto has-ph">${phImg(ph.u, "ip-img")}<figcaption><span>사진: ${esc(srcOf(ph.i.s).n)} · ${esc((s.title||"").slice(0, 30))}</span></figcaption></figure>` : ""; })()}<p class="vdk-p">${entText(dg)}</p>
           ${iss.length ? `<p class="vdk-h">이 나라도 다룬 이야기</p><div class="vdk-links">${iss.map(s => `<button type="button" data-issue="${s.id}">${esc(s.title || "")}<small>${issueCountries(s).length}개국</small></button>`).join("")}</div>` : ""}
           <p class="note">옆으로 밀면 이 나라 뉴스가 한 장씩 나와요.</p></div>`});
       }

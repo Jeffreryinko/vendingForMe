@@ -75,7 +75,10 @@
         <div class="btnrow"><a class="btn" href="https://www.google.com/search?q=${encodeURIComponent(it.kw)}" target="_blank" rel="noopener">🔍 구글 검색</a>${src === "google" ? "" : `<a class="btn" href="${esc(it.url)}" target="_blank" rel="noopener">${src === "yt" ? "유튜브에서 보기" : src === "wiki" ? "문서 열기" : "그 사이트 검색"}</a>`}
           <button type="button" class="btn ${isStar(cc, src, it.kw) ? "on" : ""}" data-hotstar="${id}">${isStar(cc, src, it.kw) ? "★ 보관됨" : "☆ 보관"}</button>
           <button type="button" class="btn" data-hotshare="${id}">공유</button></div></div>` : "";
-    return `<button type="button" class="hot-row${yv ? " has-th" : ""}" data-hotrow="${id}" ${hide ? `data-hotreveal="${id}"` : ""}><span class="rank">${i + 1}</span>${yv ? `<img class="hot-th" src="https://i.ytimg.com/vi/${yv}/mqdefault.jpg" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}<span class="hb">${main}<span class="hm">${meta}</span></span>${it.n ? `<span class="hn">${esc(it.n)}</span>` : ""}</button>${x}`;
+    const wk = !yv && !it.img && /wikipedia\.org\/wiki\//.test(it.url || "") ? (() => { try { const m = /^https?:\/\/([a-z-]+)\.(?:m\.)?wikipedia\.org\/wiki\/([^#?]+)/.exec(it.url); return m[1] + ":" + decodeURIComponent(m[2]).replace(/_/g, " "); } catch (e) { return ""; } })() : "";
+    const th = yv ? `<img class="hot-th" src="https://i.ytimg.com/vi/${yv}/mqdefault.jpg" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">`
+      : it.img && window.vfm && vfm.pic ? vfm.pic(it.img, 176, 99, "hot-th") : wk ? `<img class="hot-th" data-wt="${esc(wk)}" alt="" loading="lazy">` : "";   // 기사 사진 · 위키 문서 사진
+    return `<button type="button" class="hot-row${th ? " has-th" : ""}" data-hotrow="${id}" ${hide ? `data-hotreveal="${id}"` : ""}><span class="rank">${i + 1}</span>${th}<span class="hb">${main}<span class="hm">${meta}</span></span>${it.n ? `<span class="hn">${esc(it.n)}</span>` : ""}</button>${x}`;
   }
   function srcCard(cc, src, b) {
     const items = b.items || [], n = H.more[src] ? 20 : 5, more = items.length > 5;

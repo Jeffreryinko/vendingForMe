@@ -6,6 +6,7 @@
  */
 (function () {
   "use strict";
+  if (window.WT) return;                              // 두 번 실려도 한 번만
   var KEY = "vfm:wt", MEM = {};
   try { MEM = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { MEM = {}; }
   var saveT = null;

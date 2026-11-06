@@ -71,7 +71,7 @@
     "@keyframes vfmUp{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}@keyframes vfmFade{from{opacity:0}to{opacity:1}}" +
     ".vfm-pill{display:none!important}";
   document.head.appendChild(css);
-  (function () { var l = document.createElement("link"); l.rel = "stylesheet"; l.href = ROOT + "assets/polish.css?v=3"; document.head.appendChild(l); })();   // 전체 마감 (assets/polish.css)
+  (function () { var l = document.createElement("link"); l.rel = "stylesheet"; l.href = ROOT + "assets/polish.css?v=4"; document.head.appendChild(l); })();   // 전체 마감 (assets/polish.css)
 
   function toast(msg) { var t = document.createElement("div"); t.className = "vfm-toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2200); }
   function ago(iso) {
@@ -428,6 +428,26 @@
   /* ── 나무위키 바로가기 ── 제목·이름·낱말 어디서든. namu.wiki/Go 는 문서가 있으면 바로, 없으면 찾기 결과로 감 (긁어오지 않음, 링크만) */
   function namu(q) { q = String(q || "").replace(/^(바뀐 점|이번 주) · /, "").replace(/\s*[\(（][^)）]*[\)）]\s*$/, "").trim(); return "https://namu.wiki/Go?q=" + encodeURIComponent(q); }
   window.vfm.namu = namu;
+  /* ── 사진 공용 도우미 (모든 탭) ──
+     vfm.pic(원본, 가로, 세로?, class) : 무료 축소 서비스로 작게 받아 데이터 절약, 안 되면 원본, 그래도 안 되면 사라짐
+     vfm.logo(글 주소, class)          : 사진이 없는 글은 그 사이트 로고(파비콘 128px)
+     <img data-wt="ko:제목">            : 위키백과 대표 사진 (assets/wikithumb.js) */
+  var picUrl = function (u, w, h) { return "https://wsrv.nl/?url=" + encodeURIComponent(u) + "&w=" + w + (h ? "&h=" + h + "&fit=cover" : "") + "&output=webp&q=72"; };
+  window.vfm.pic = function (u, w, h, cls) {
+    if (!u) return "";
+    var e = function (x) { return String(x).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+    return '<img class="vfm-pic ' + (cls || "") + '" src="' + e(picUrl(u, w, h)) + '" data-orig="' + e(u) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">';
+  };
+  window.vfm.logo = function (url, cls) {
+    var m = /^https?:\/\/([^/]+)/.exec(url || ""); if (!m) return "";
+    return '<img class="vfm-pic vfm-logo ' + (cls || "") + '" src="https://www.google.com/s2/favicons?domain=' + m[1] + '&sz=128" alt="" loading="lazy" decoding="async">';
+  };
+  document.addEventListener("error", function (ev) {
+    var t = ev.target; if (!t || t.tagName !== "IMG" || !t.classList.contains("vfm-pic")) return;
+    if (t.dataset.orig && t.src !== t.dataset.orig) { t.src = t.dataset.orig; return; }
+    var w = t.closest(".vfm-picw"); (w || t).remove();
+  }, true);
+  if (!window.WT) { var wt = document.createElement("script"); wt.src = ROOT + "assets/wikithumb.js"; wt.defer = true; document.head.appendChild(wt); }
   window.vfm.kwChips = function (list) {                              // 중요 키워드(최대 3개) → 나무위키 칩
     var seen = {}, k = (list || []).map(function (w) { return String(w || "").replace(/\s*[\(（][^)）]*[\)）]/g, "").trim(); }).filter(function (w) { var l = w.toLowerCase(); if (w.length < 2 || w.length > 24 || seen[l]) return false; seen[l] = 1; return true; }).slice(0, 3);
     return k.length ? '<div class="vdk-kw">' + k.map(function (w) { return '<a href="' + escH(namu(w)) + '" target="_blank" rel="noopener">' + escH(w) + "</a>"; }).join("") + "</div>" : "";

@@ -99,3 +99,16 @@ html.ap.ap-home h1{font-size:38px;font-weight:800;letter-spacing:-.045em;margin-
 html.ap .mx-ph{margin:0 0 14px;border-radius:14px;overflow:hidden;background:var(--ap-fill);position:relative}
 html.ap .mx-ph img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
 html.ap .mx-ph figcaption{position:absolute;left:8px;bottom:8px;font-size:11px;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:3px 8px;border-radius:999px}
+
+/* 사진 공용 (트렌드·AI·도구·홈) */
+html.ap .vdk-img{display:block;margin:2px 0 12px;border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:var(--ap-fill)}
+html.ap .vdk-img img{display:block;width:100%;height:100%;object-fit:cover}
+html.ap .vdk-img.gh{aspect-ratio:2/1}html.ap .vdk-img.gh img{object-fit:contain;background:#fff}
+html.ap .vdk-logo{display:flex;align-items:center;gap:10px;margin:2px 0 10px;font-size:13px;font-weight:700;color:var(--ap-label2)}
+html.ap .vdk-logo img{width:40px;height:40px;border-radius:10px;background:#fff;padding:4px;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.1)}
+html.ap .li.has-lth{position:relative;padding-right:84px;min-height:78px}
+html.ap .li .lth{position:absolute;right:12px;top:12px;width:60px;height:60px;border-radius:10px;object-fit:cover;background:var(--ap-fill)}
+html.ap .li .lth.vfm-logo{object-fit:contain;background:#fff;padding:8px;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.1)}
+img[data-wt]{visibility:hidden}
+html.ap .vdk-play{position:relative;cursor:pointer}html.ap .vdk-play i{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;font-style:normal;font-size:18px}
+html.ap .vdk-img.wt-none,html.ap .vfm-picw:empty{display:none}

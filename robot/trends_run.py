@@ -350,6 +350,27 @@ def translate_all(data, tr):
 
 YT_DETAIL = int(os.environ.get("TRENDS_YT_DETAIL", "8"))      # 나라마다 설명·자막을 번역해 붙일 영상 수
 CAP_TRY = int(os.environ.get("TRENDS_CAP_TRY", "3"))         # 나라마다 자막을 시도할 영상 수
+def trend_photos(data):
+    """급상승 낱말마다 대표 사진: 구글 = 함께 뜬 뉴스 기사의 대표 사진(og:image). X·네이버는 같은 낱말 구글 사진을 빌림.
+    유튜브는 원래 썸네일, 위키는 화면이 위키백과에서 직접 받음. 토큰 0, 한 번 본 기사는 _img.json 에 기억"""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from ogimg import Photos
+    ph = Photos(OUT / "_img.json", budget=160)
+    for cc, d in data.items():
+        g = (d["src"].get("google") or {}).get("items") or []
+        for it in g[:20]:
+            for n in (it.get("news") or [])[:2]:
+                u = ph.get(n.get("u"))
+                if u: it["img"] = u; break
+        Photos.drop_logos(g)
+        byk = {re.sub(r"\s+", "", (it.get("kw") or "").lower()): it.get("img") for it in g if it.get("img")}
+        for s in ("x", "signal"):
+            for it in (d["src"].get(s) or {}).get("items") or []:
+                k = re.sub(r"\s+|#", "", (it.get("kw") or "").lower())
+                if k and byk.get(k): it["img"] = byk[k]
+    ph.save()
+
+
 def enrich(data, tr):
     """급상승 이유(구글 관련 뉴스 제목)와 유튜브 설명·자막을 한국어로. 이미 한 것은 _ytdesc.json 에 기억."""
     mem = rj(OUT / "_ytdesc.json", {})
@@ -493,6 +514,8 @@ def main():
     try: memes = world_memes(tr)
     except Exception as e: log(f"세계 밈 실패: {e}"); memes = rj(OUT / "_index.json", {}).get("memes", [])
     mark_seen(data)
+    try: trend_photos(data)
+    except Exception as e: log(f"대표 사진 실패 — 건너뜀: {e}")
     for cc, d in data.items(): wj(OUT / f"{cc}.json", d)
     broken = {k: v for k, v in health.items() if v.get("n", 0) >= 3 * RUNS_PER_DAY}   # 3일 넘게 계속 실패
     idx = {"at": now_iso(), "wikiDay": datetime.now(KST).strftime("%Y-%m-%d"), "countries": [[cc, v[0]] for cc, v in C.items()],
