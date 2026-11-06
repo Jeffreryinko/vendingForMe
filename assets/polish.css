@@ -1,0 +1,96 @@
+/* polish.css — 자판기 전체 마감 (모든 화면 공통, shell.js 가 맨 마지막에 붙임)
+   원칙: 한국어 줄바꿈은 낱말 단위 · 제목은 크고 단단하게, 본문은 숨 쉬게 · 누르는 것은 눌리는 느낌 · 어두운 화면은 그림자 대신 가는 테두리 */
+
+/* ── 글자 ── */
+html.ap body{word-break:keep-all;overflow-wrap:anywhere;text-rendering:optimizeLegibility;-webkit-text-size-adjust:100%;font-feature-settings:"ss01","tnum" 0}
+html.ap h1,html.ap .ph,html.ap h1.title,html.ap .big-title{letter-spacing:-.035em!important}
+html.ap p,html.ap li{text-wrap:pretty}
+html.ap h1,html.ap h2,html.ap h3,html.ap .vdk-t{text-wrap:balance}
+
+/* ── 누르는 느낌 ── */
+html.ap button,html.ap a,html.ap [role=button]{-webkit-tap-highlight-color:transparent}
+html.ap button:not(:disabled):active,html.ap .card:active,html.ap .vdk-react a:active,html.ap .vdk-kw a:active{transform:scale(.97);transition:transform .08s}
+html.ap button,html.ap .card{transition:transform .18s cubic-bezier(.2,.8,.2,1),background-color .2s,box-shadow .2s}
+
+/* ── 위 막대 (홈 · 앱 고르기 · 설정) ── */
+html.ap .vfm-bar .h{width:38px;height:38px;border-radius:12px;background:var(--ap-fill)}
+html.ap .vfm-seg{height:38px;border-radius:12px;padding:3px}
+html.ap .vfm-seg button{border-radius:9px;font-size:13.5px;font-weight:500;color:var(--ap-label2)}
+html.ap .vfm-seg button[aria-current=page]{color:var(--ap-label);font-weight:700;background:var(--ap-seg-on);box-shadow:0 2px 8px rgba(0,0,0,.10),0 0 0 .5px rgba(0,0,0,.04)}
+@media (prefers-color-scheme:dark){html.ap:not([data-theme=light]) .vfm-seg button[aria-current=page]{background:#3A3A3C;box-shadow:none}}
+html.ap[data-theme=dark] .vfm-seg button[aria-current=page]{background:#3A3A3C;box-shadow:none}
+
+/* ── 넘겨보기 카드 ── */
+html.ap .vdk-card{border-radius:24px;padding:22px 20px 14px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 12px 32px -8px rgba(0,0,0,.10)}
+@media (prefers-color-scheme:dark){html.ap:not([data-theme=light]) .vdk-card{box-shadow:inset 0 0 0 .5px rgba(255,255,255,.08)}}
+html.ap[data-theme=dark] .vdk-card{box-shadow:inset 0 0 0 .5px rgba(255,255,255,.08)}
+html.ap .vdk-k{font-size:12.5px;gap:6px 8px;margin-bottom:10px}
+html.ap .vdk-t{font-size:23px;line-height:1.32;font-weight:800;letter-spacing:-.03em;margin:2px 0 14px}
+html.ap .vdk-p{font-size:16.5px;line-height:1.74;color:color-mix(in srgb,var(--ap-label) 90%,transparent);margin:0 0 12px}
+html.ap .vdk-h{font-size:13px;font-weight:700;letter-spacing:-.01em;color:var(--ap-tint-t,var(--ap-label2));margin:22px 0 8px}
+html.ap .vdk-note{font-size:13.5px;line-height:1.55}
+html.ap .vdk-ol{font-size:15.5px;line-height:1.65}
+html.ap .vdk-links a,html.ap .vdk-links button{padding:12px 0;font-size:15px}
+html.ap .vdk-more{font-size:15px;padding:8px 0}
+/* 키워드 칩 */
+html.ap .vdk-kw{gap:8px;margin:18px 0 0}
+html.ap .vdk-kw a{font-size:14px;padding:8px 13px;border-radius:12px;font-weight:600;letter-spacing:-.01em}
+/* 좋아요 · 생각 · 공유 */
+html.ap .vdk-react{gap:8px;margin:12px 0 2px}
+html.ap .vdk-react button{height:46px;border-radius:14px;font-size:14.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 6px}
+html.ap .vdk-react button span{font-size:16px}
+/* 아래 넘기기 줄 */
+html.ap .vdk-nav{margin-top:12px;padding-top:12px}
+html.ap .vdk-nav button{width:46px;height:46px;border-radius:50%;font-size:22px;display:grid;place-items:center}
+html.ap .vdk-left{font-size:13px;font-variant-numeric:tabular-nums}
+/* 넘겨보기 · 목록 */
+html.ap .vdk-mode{height:36px;padding:2px;border-radius:10px;margin:6px 0 12px}
+html.ap .vdk-mode button{border-radius:8px;font-size:13.5px;padding:0}
+html.ap .vdk-mode button[aria-pressed=true]{box-shadow:0 2px 6px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
+@media (prefers-color-scheme:dark){html.ap:not([data-theme=light]) .vdk-mode button[aria-pressed=true]{background:#636366;box-shadow:none}}
+html.ap[data-theme=dark] .vdk-mode button[aria-pressed=true]{background:#636366;box-shadow:none}
+
+/* ── 창(시트): 설정·생각·낱말·메뉴 ── */
+html.ap .vfm-back,html.ap body>.back,html.ap #sheet.sheet{background:rgba(0,0,0,.42);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+html.ap .vfm-sheet,html.ap body>.back>.sheet,html.ap #sheet.sheet>*{border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18);animation:vfmSheetIn .38s cubic-bezier(.16,1,.3,1)}
+@keyframes vfmSheetIn{from{transform:translateY(100%)}to{transform:none}}
+html.ap .vfm-sheet{padding-top:10px}
+html.ap .vfm-sheet h3{font-size:24px;font-weight:800;letter-spacing:-.03em;margin:6px 4px 12px}
+html.ap .vfm-sheet .grp{border-radius:14px}
+html.ap .vfm-sheet .grp>*{min-height:48px}
+html.ap .vfm-sheet .cap{font-size:12.5px;font-weight:600;letter-spacing:.01em;margin:22px 16px 7px}
+@media (prefers-color-scheme:dark){html.ap:not([data-theme=light]) .vfm-sheet,html.ap:not([data-theme=light]) body>.back>.sheet{background:#1C1C1E}html.ap:not([data-theme=light]) .vfm-sheet .grp{background:#2C2C2E}}
+html.ap[data-theme=dark] .vfm-sheet,html.ap[data-theme=dark] body>.back>.sheet{background:#1C1C1E}
+html.ap[data-theme=dark] .vfm-sheet .grp{background:#2C2C2E}
+
+/* ── 알림 ── */
+html.ap .vfm-toast,html.ap .toast{border-radius:999px;padding:11px 18px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.22)}
+
+/* ── 아래 탭 ── */
+html.ap nav.tabs,html.ap .tabbar{box-shadow:0 -.5px 0 var(--ap-sep)}
+html.ap nav.tabs button,html.ap .tabbar button{font-size:10.5px;font-weight:600;letter-spacing:-.01em}
+
+/* ── 목록 카드 · 검색창 · 칩 ── */
+html.ap .card{border-radius:18px}
+html.ap input[type=search],html.ap input[type=text],html.ap .search{min-height:40px;border-radius:12px;font-size:16px}
+html.ap .chips button,html.ap .chip{border-radius:999px}
+html.ap .note,html.ap .sub{line-height:1.55}
+
+/* ── 홈 ── */
+/* 찾기는 한 줄 전체, 라디오·비율은 그 아래 작은 알약 — 비좁던 첫 줄 정리 */
+html.ap.ap-home .mx-top{flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.ap.ap-home .mx-top input{order:1;flex:1 1 100%;min-height:44px;padding-left:40px;
+  background:var(--ap-fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%238E8E93' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cpath d='m12.5 12.5 4 4'/%3E%3C/svg%3E") no-repeat 14px 50%}
+html.ap.ap-home .mx-top button{order:2;flex:none;height:34px;padding:0 14px;border-radius:999px;font-size:14px;font-weight:600}
+html.ap.ap-home .mx-top #rdBtn{padding:0 15px 0 13px}
+html.ap.ap-home .mx-note{font-size:12.5px;color:var(--ap-label2);margin:0 4px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.ap.ap-home .app{border-radius:22px;padding:14px 16px}
+html.ap.ap-home .ic{border-radius:16px;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12),0 4px 12px -4px rgba(0,0,0,.3)}
+
+/* 시사: 다른 앱처럼 큰 제목 */
+html.ap.ap-sisa .logo{font-size:30px!important;font-weight:800!important;letter-spacing:-.035em!important}
+html.ap.ap-sisa .logo .mark{width:26px;height:26px}
+html.ap.ap-home h1{font-size:38px;font-weight:800;letter-spacing:-.045em;margin-bottom:12px}
+
+/* 움직임 줄이기 설정이면 꾸밈 움직임 끔 */
+@media (prefers-reduced-motion:reduce){html.ap *{animation-duration:.01ms!important;transition-duration:.01ms!important}}

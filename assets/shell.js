@@ -71,6 +71,7 @@
     "@keyframes vfmUp{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}@keyframes vfmFade{from{opacity:0}to{opacity:1}}" +
     ".vfm-pill{display:none!important}";
   document.head.appendChild(css);
+  (function () { var l = document.createElement("link"); l.rel = "stylesheet"; l.href = ROOT + "assets/polish.css?v=2"; document.head.appendChild(l); })();   // 전체 마감 (assets/polish.css)
 
   function toast(msg) { var t = document.createElement("div"); t.className = "vfm-toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2200); }
   function ago(iso) {
@@ -141,7 +142,7 @@
   /* ── 뒤로가기 (한 단계 위로) ── */
   var touched = false;
   function arm() {
-    try { if (!(history.state && history.state.vfm === "top")) history.pushState({ vfm: "top" }, "", location.href); } catch (e) { }
+    try { if (!(history.state && (history.state.vfm === "top" || history.state.vfm === "ov"))) history.pushState({ vfm: "top" }, "", location.href); } catch (e) { }
   }
   // 지금 보이는 화면 주소를 늘 기억 (뒤로가기 때 브라우저가 옛 주소로 되돌려 놓는 것을 바로잡으려고)
   var curUrl = location.href;
@@ -166,7 +167,7 @@
   if (!HOME) {
     try { if (!(history.state && (history.state.vfm === "top" || history.state.vfm === "base"))) history.replaceState({ vfm: "base" }, "", location.href); } catch (e) { }
     // 브라우저는 사람이 화면을 누른 뒤에 만든 기록만 뒤로가기에서 인정함 → 첫 터치 때 한 칸 깔아 둠
-    var onTouch = function () { touched = true; if (!(history.state && history.state.vfm === "top")) arm(); };
+    var onTouch = function () { touched = true; arm(); };
     document.addEventListener("click", onTouch, true);
     document.addEventListener("touchend", onTouch, { capture: true, passive: true });
     window.addEventListener("popstate", function (e) {
@@ -185,6 +186,67 @@
       goHome();                                         // 앱 첫 화면에서 뒤로 → 자판기 홈
     });
   }
+
+  /* ── 창(시트) 관리: 열면 기록 한 칸 → 뒤로가기·뒤로 스와이프 = 창 닫기 / 끌어내려 닫기 / 뒤 화면 스크롤 잠금 ──
+       대상: 설정·생각 남기기(.vfm-back), 앱의 낱말·메뉴 창(body > .back), 이야기 #sheet. 시사 기사 창은 주소(#item-)로 이미 됨 */
+  var OV = { n: 0, skip: 0 };
+  function ovList() { return [].slice.call(document.querySelectorAll("body > .vfm-back, body > .back, #sheet.sheet:not([hidden])")).filter(function (el) { return !el.classList.contains("vfm-closing"); }); }
+  function ovPanel(el) { return el.querySelector(".vfm-sheet, .sheet, [role=dialog]") || el.firstElementChild; }
+  function ovClose(el, anim) {
+    if (!el) return;
+    var done = function () { if (el.id === "sheet") { el.hidden = true; el.innerHTML = ""; el.classList.remove("vfm-closing"); } else el.remove(); };
+    var pn = ovPanel(el);
+    if (anim && pn && pn.animate) {
+      el.classList.add("vfm-closing");
+      var cur = getComputedStyle(pn).transform; pn.style.transition = "none";
+      pn.animate([{ transform: cur === "none" ? "translateY(0)" : cur }, { transform: "translateY(105%)" }], { duration: 220, easing: "cubic-bezier(.3,0,.8,.15)", fill: "forwards" });
+      el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, fill: "forwards" }).onfinish = done;
+    } else done();
+  }
+  function ovSync() {
+    var l = ovList(), n = l.length;
+    document.documentElement.classList.toggle("vfm-ovl", n > 0);
+    if (n > OV.n) { for (var i = OV.n; i < n; i++) { try { history.pushState({ vfm: "ov" }, "", location.href); } catch (e) { } } l.forEach(ovDrag); }
+    else if (n < OV.n && history.state && history.state.vfm === "ov") { OV.skip++; history.back(); }   // 단추·바깥 눌러 닫았으면 그 기록 칸도 지움
+    OV.n = n;
+  }
+  new MutationObserver(function () { clearTimeout(OV.t); OV.t = setTimeout(ovSync, 0); }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
+  window.addEventListener("popstate", function (e) {
+    if (OV.skip) { OV.skip--; e.stopImmediatePropagation(); return; }
+    var l = ovList();
+    if (!l.length) { if (e.state && e.state.vfm === "ov") { e.stopImmediatePropagation(); OV.skip++; history.back(); } return; }   // 이미 닫힌 창의 남은 칸은 건너뜀
+    e.stopImmediatePropagation();                                     // 앱의 뒤로가기(화면 이동)는 하지 않음
+    OV.n = l.length - 1; ovClose(l[l.length - 1], true);
+    setTimeout(function () { document.documentElement.classList.toggle("vfm-ovl", ovList().length > 0); }, 240);
+  }, true);
+  // 끌어내려 닫기: 손잡이·제목을 잡거나, 창 안이 맨 위일 때 아래로 끌기
+  function ovDrag(el) {
+    var pn = ovPanel(el); if (!pn || pn.__vfmDrag) return; pn.__vfmDrag = 1;
+    if (!pn.querySelector(".grab")) { var g = document.createElement("div"); g.className = "grab vfm-grab"; pn.insertBefore(g, pn.firstChild); }
+    var y0 = 0, x0 = 0, dy = 0, t0 = 0, on = false, lock = null;
+    pn.addEventListener("touchstart", function (e) {
+      if (e.touches.length !== 1) return; var t = e.target;
+      if (t.closest("input,textarea,select,[contenteditable]")) return;
+      var sc = t.closest(".vfm-sheet, .sheet, [role=dialog]") || pn;
+      on = sc.scrollTop <= 0 || !!t.closest(".grab,h3"); y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; dy = 0; t0 = Date.now(); lock = null;
+    }, { passive: true });
+    pn.addEventListener("touchmove", function (e) {
+      if (!on) return; var d = e.touches[0].clientY - y0, dx = e.touches[0].clientX - x0;
+      if (lock === null && (Math.abs(d) > 6 || Math.abs(dx) > 6)) lock = Math.abs(d) > Math.abs(dx) && d > 0 ? "y" : "no";
+      if (lock !== "y") { if (lock === "no") on = false; return; }
+      dy = Math.max(0, d); e.preventDefault(); pn.style.transition = "none"; pn.style.transform = "translateY(" + dy + "px)";
+      el.style.backgroundColor = "rgba(0,0,0," + Math.max(0, .4 - dy / 900) + ")";
+    }, { passive: false });
+    pn.addEventListener("touchend", function () {
+      if (!on || lock !== "y") return; on = false;
+      var v = dy / Math.max(1, Date.now() - t0);
+      if (dy > Math.min(140, pn.offsetHeight * .3) || v > .6) { if (history.state && history.state.vfm === "ov") history.back(); else ovClose(el, true); }
+      else { pn.style.transition = "transform .3s cubic-bezier(.2,.9,.3,1.15)"; pn.style.transform = ""; el.style.backgroundColor = ""; }
+    });
+  }
+  css.textContent += "html.vfm-ovl,html.vfm-ovl body{overflow:hidden;overscroll-behavior:none}" +
+    ".vfm-back .vfm-sheet,body>.back>.sheet,#sheet.sheet>*{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;will-change:transform}" +
+    ".vfm-grab{width:36px;height:5px;border-radius:3px;background:var(--ap-label3,rgba(60,60,67,.3));margin:-4px auto 10px;flex:none}";
 
   /* ── 바깥 링크 갔다 오면 그 자리로 (앱이 go 를 내놓으면 기록 없이 이동) ── */
   window.vfm = window.vfm || {};
