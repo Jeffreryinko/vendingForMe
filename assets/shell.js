@@ -223,29 +223,42 @@
   function ovDrag(el) {
     var pn = ovPanel(el); if (!pn || pn.__vfmDrag) return; pn.__vfmDrag = 1;
     if (!pn.querySelector(".grab")) { var g = document.createElement("div"); g.className = "grab vfm-grab"; pn.insertBefore(g, pn.firstChild); }
-    var y0 = 0, x0 = 0, dy = 0, t0 = 0, on = false, lock = null;
+    var y0 = 0, x0 = 0, dy = 0, t0 = 0, top = false, lock = null, sc = null, last = 0, vy = 0;
+    function scroller(t) { for (var n = t; n && n !== el; n = n.parentElement) { if (n.scrollHeight > n.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(n).overflowY)) return n; } return pn; }
     pn.addEventListener("touchstart", function (e) {
-      if (e.touches.length !== 1) return; var t = e.target;
-      if (t.closest("input,textarea,select,[contenteditable]")) return;
-      var sc = t.closest(".vfm-sheet, .sheet, [role=dialog]") || pn;
-      on = sc.scrollTop <= 0 || !!t.closest(".grab,h3"); y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; dy = 0; t0 = Date.now(); lock = null;
+      if (e.touches.length !== 1) { lock = "no"; return; }
+      var t = e.target; if (t.closest("input,textarea,select,[contenteditable],iframe")) { lock = "no"; return; }
+      sc = scroller(t); top = sc.scrollTop <= 0 || !!t.closest(".grab,h3");
+      y0 = last = e.touches[0].clientY; x0 = e.touches[0].clientX; dy = 0; vy = 0; t0 = Date.now(); lock = null;
+      pn.getAnimations && pn.getAnimations().forEach(function (a) { a.finish(); });   // 올라오는 중이면 끝내 놓고 시작
     }, { passive: true });
     pn.addEventListener("touchmove", function (e) {
-      if (!on) return; var d = e.touches[0].clientY - y0, dx = e.touches[0].clientX - x0;
-      if (lock === null && (Math.abs(d) > 6 || Math.abs(dx) > 6)) lock = Math.abs(d) > Math.abs(dx) && d > 0 ? "y" : "no";
-      if (lock !== "y") { if (lock === "no") on = false; return; }
-      dy = Math.max(0, d); e.preventDefault(); pn.style.transition = "none"; pn.style.transform = "translateY(" + dy + "px)";
-      el.style.backgroundColor = "rgba(0,0,0," + Math.max(0, .4 - dy / 900) + ")";
+      if (lock === "no") return;
+      var y = e.touches[0].clientY, d = y - y0, dx = e.touches[0].clientX - x0;
+      if (lock === null) {
+        if (Math.abs(d) < 2 && Math.abs(dx) < 2) return;
+        lock = top && d > 0 && Math.abs(d) >= Math.abs(dx) ? "y" : "no";            // 맨 위에서 아래로 = 창 끌기, 그 밖 = 보통 스크롤
+        if (lock === "no") return;
+        sc.style.overflowY = "hidden"; pn.style.transition = "none"; y0 = y;     // 끄는 동안 안쪽 스크롤 멈춤
+      }
+      e.preventDefault();
+      var now = Date.now(); vy = (y - last) / Math.max(1, now - t0); last = y; t0 = now;
+      d = y - y0; dy = d > 0 ? d : d / 4;                                            // 위로 당기면 살짝만 따라옴
+      pn.style.transform = "translateY(" + dy + "px)";
+      el.style.backgroundColor = "rgba(0,0,0," + Math.max(0, .42 - Math.max(0, dy) / 900) + ")";
     }, { passive: false });
-    pn.addEventListener("touchend", function () {
-      if (!on || lock !== "y") return; on = false;
-      var v = dy / Math.max(1, Date.now() - t0);
-      if (dy > Math.min(140, pn.offsetHeight * .3) || v > .6) { if (history.state && history.state.vfm === "ov") history.back(); else ovClose(el, true); }
-      else { pn.style.transition = "transform .3s cubic-bezier(.2,.9,.3,1.15)"; pn.style.transform = ""; el.style.backgroundColor = ""; }
-    });
+    function end() {
+      if (lock !== "y") { lock = null; return; } lock = null;
+      if (sc) sc.style.overflowY = "";
+      if (dy > Math.min(150, pn.offsetHeight * .28) || (vy > .5 && dy > 20)) {
+        if (history.state && history.state.vfm === "ov") history.back(); else ovClose(el, true);
+      } else { pn.style.transition = "transform .32s cubic-bezier(.2,.9,.3,1.1)"; pn.style.transform = ""; el.style.backgroundColor = ""; }
+    }
+    pn.addEventListener("touchend", end); pn.addEventListener("touchcancel", end);
   }
   css.textContent += "html.vfm-ovl,html.vfm-ovl body{overflow:hidden;overscroll-behavior:none}" +
     ".vfm-back .vfm-sheet,body>.back>.sheet,#sheet.sheet>*{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;will-change:transform}" +
+    ".vfm-sheet .grab,.vfm-grab,.vfm-sheet h3,body>.back>.sheet>h3{touch-action:none}.vfm-sheet .grab,.vfm-grab{box-sizing:content-box;padding:8px 40px;background-clip:content-box!important}" +
     ".vfm-grab{width:36px;height:5px;border-radius:3px;background:var(--ap-label3,rgba(60,60,67,.3));margin:-4px auto 10px;flex:none}";
 
   /* ── 바깥 링크 갔다 오면 그 자리로 (앱이 go 를 내놓으면 기록 없이 이동) ── */
@@ -391,6 +404,19 @@
     if (openInChrome(a.href)) e.preventDefault();
   }, true);
   window.vfm.openX = openInChrome;
+
+  /* ── 유튜브: 썸네일([data-yt])을 누르면 유튜브로 나가지 않고 그 자리에서 재생 (영상은 유튜브 서버 → 폰, 토큰·서버 0) ── */
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest && e.target.closest("[data-yt]"); if (!t || t.classList.contains("vfm-yt-on")) return;
+    var id = t.getAttribute("data-yt"); if (!/^[\w-]{11}$/.test(id)) return;
+    e.preventDefault(); e.stopPropagation();
+    var box = document.createElement("div"); box.className = "vfm-yt vfm-yt-on";
+    box.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&playsinline=1&rel=0&modestbranding=1" title="유튜브 영상" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>' +
+      '<a class="vfm-yt-out" href="https://www.youtube.com/watch?v=' + id + '" target="_blank" rel="noopener">재생이 안 되면 유튜브에서 보기 ↗</a>';
+    t.replaceWith(box);
+  }, true);
+  css.textContent += ".vfm-yt{margin:2px 0 12px}.vfm-yt iframe{display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#000}" +
+    ".vfm-yt-out{display:inline-block;margin-top:6px;font-size:12.5px;color:var(--ap-label2);text-decoration:none}";
 
   /* ── 나무위키 바로가기 ── 제목·이름·낱말 어디서든. namu.wiki/Go 는 문서가 있으면 바로, 없으면 찾기 결과로 감 (긁어오지 않음, 링크만) */
   function namu(q) { q = String(q || "").replace(/^(바뀐 점|이번 주) · /, "").replace(/\s*[\(（][^)）]*[\)）]\s*$/, "").trim(); return "https://namu.wiki/Go?q=" + encodeURIComponent(q); }

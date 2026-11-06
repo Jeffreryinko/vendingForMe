@@ -34,7 +34,7 @@
   }
   // 유튜브 썸네일: 영상 번호(vid)만 있으면 주소가 정해져 있음 (API·토큰 0)
   function ytId(it) { return it.vid || (String(it.url || "").match(/(?:v=|youtu\.be\/|shorts\/)([\w-]{11})/) || [])[1] || ""; }
-  function thumb(it) { var v = ytId(it); return v ? '<a class="vdk-yt" href="' + esc(it.url) + '" target="_blank" rel="noopener" aria-label="유튜브에서 보기"><img src="https://i.ytimg.com/vi/' + v + '/hqdefault.jpg" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest(\'a\').remove()"><span>▶</span></a>' : ""; }
+  function thumb(it) { var v = ytId(it); return v ? '<a class="vdk-yt" data-yt="' + v + '" href="' + esc(it.url) + '" target="_blank" rel="noopener" aria-label="유튜브에서 보기"><img src="https://i.ytimg.com/vi/' + v + '/hqdefault.jpg" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest(\'a\').remove()"><span>▶</span></a>' : ""; }
   function video(it) {
     var desc = it.dko || it.desc, cap = it.capko || it.cap;
     return thumb(it) + '<p class="vdk-h">영상 정보</p><p class="vdk-p">' + esc(it.sub || "") + " 채널" + (it.n ? " · 조회 " + esc(it.n) : "") + "</p>" +
