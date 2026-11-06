@@ -410,13 +410,16 @@
     var t = e.target.closest && e.target.closest("[data-yt]"); if (!t || t.classList.contains("vfm-yt-on")) return;
     var id = t.getAttribute("data-yt"); if (!/^[\w-]{11}$/.test(id)) return;
     e.preventDefault(); e.stopPropagation();
-    var box = document.createElement("div"); box.className = "vfm-yt vfm-yt-on";
+    var box = document.createElement("div"); box.className = "vfm-yt vfm-yt-on" + (t.hasAttribute("data-short") ? " short" : "");   // 쇼츠는 세로 화면
     box.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&playsinline=1&rel=0&modestbranding=1" title="유튜브 영상" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>' +
       '<a class="vfm-yt-out" href="https://www.youtube.com/watch?v=' + id + '" target="_blank" rel="noopener">재생이 안 되면 유튜브에서 보기 ↗</a>';
     t.replaceWith(box);
   }, true);
   css.textContent += ".vfm-yt{margin:2px 0 12px}.vfm-yt iframe{display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#000}" +
-    ".vfm-yt-out{display:inline-block;margin-top:6px;font-size:12.5px;color:var(--ap-label2);text-decoration:none}";
+    ".vfm-yt-out{display:inline-block;margin-top:6px;font-size:12.5px;color:var(--ap-label2);text-decoration:none}" +
+    /* 쇼츠(세로 9:16): 가로 상자에 넣으면 작게 찌그러지므로, 가운데 세로 상자로 (화면 높이의 64%까지) */
+    ".vfm-yt.short{text-align:center}.vfm-yt.short iframe{aspect-ratio:9/16;width:min(100%,calc(64vh*9/16),300px);margin:0 auto}" +
+    "[data-yt][data-short].vdk-yt,[data-yt][data-short].vdk-thumb{aspect-ratio:9/16;width:min(62%,calc(52vh*9/16),240px);margin-left:auto;margin-right:auto}";
 
   /* ── 나무위키 바로가기 ── 제목·이름·낱말 어디서든. namu.wiki/Go 는 문서가 있으면 바로, 없으면 찾기 결과로 감 (긁어오지 않음, 링크만) */
   function namu(q) { q = String(q || "").replace(/^(바뀐 점|이번 주) · /, "").replace(/\s*[\(（][^)）]*[\)）]\s*$/, "").trim(); return "https://namu.wiki/Go?q=" + encodeURIComponent(q); }

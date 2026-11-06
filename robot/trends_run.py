@@ -390,6 +390,13 @@ def enrich(data, tr):
             if mem.get("c:" + vid): it["cap"] = mem["c:" + vid][:1200]
             if mem.get("dk:" + vid): it["dko"] = mem["dk:" + vid]
             if mem.get("ck:" + vid): it["capko"] = mem["ck:" + vid]
+            # 쇼츠(세로 영상)인지: youtube.com/shorts/ID 가 그대로 열리면 쇼츠, 일반 영상이면 watch 로 돌려보냄 (API·토큰 0, 한 번 알면 기억)
+            if ("s:" + vid) not in mem:
+                try:
+                    r = requests.head(f"https://www.youtube.com/shorts/{vid}", allow_redirects=False, timeout=8, headers={"User-Agent": "Mozilla/5.0"})
+                    if r.status_code in (200, 301, 302, 303, 307): mem["s:" + vid] = 1 if r.status_code == 200 else 0
+                except Exception: pass
+            if mem.get("s:" + vid): it["short"] = 1
     # 오래된 기억 정리 (4000개 넘으면 앞쪽부터)
     keys = list(mem)
     if len(keys) > 4000:
