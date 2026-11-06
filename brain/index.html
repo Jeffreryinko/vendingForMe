@@ -98,6 +98,7 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
 .dex .b5,.dex .b6,.dex .b7{background:var(--accent);color:var(--accent-ink)}
 .stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}.stat div{background:var(--surface);border-radius:12px;padding:10px;text-align:center}.stat b{display:block;font:800 22px var(--ap-display)}.stat small{color:var(--muted);font-size:12px}
 .board .li .t{display:flex;justify-content:space-between}
+.chips .t3chip{font-weight:800}.t3go{margin-top:10px}
 #three{width:100%;height:58vh;border-radius:16px;background:#141416;touch-action:none;display:block}
 .legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--muted);margin:4px 2px}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 </style></head><body>
@@ -184,7 +185,7 @@ function mapSvg(view, o = {}) {
   return s;
 }
 function viewChips(cur, list, act = "view") {
-  return `<div class="chips">${list.map(v => `<button data-${act}="${v.id}" class="${v.id === cur ? "on" : ""}">${esc(v.name)}</button>`).join("")}<button data-${act}="3d" class="${cur === "3d" ? "on" : ""}">3D 돌려보기</button></div>`;
+  return `<div class="chips"><button data-${act}="3d" class="t3chip ${cur === "3d" ? "on" : ""}">🧠 3D 돌려보기</button>${list.map(v => `<button data-${act}="${v.id}" class="${v.id === cur ? "on" : ""}">${esc(v.name)}</button>`).join("")}</div>`;
 }
 function legend() { return `<div class="legend">${["frontal", "parietal", "temporal", "occipital", "insula", "limbic", "basal", "dien", "stem", "cerebellum"].map(k => `<span><i style="background:${LOBE_COL[k]}"></i>${A.lobes[k]}</span>`).join("")}</div>`; }
 
@@ -223,6 +224,7 @@ function renderToday() {
   h += `</div>`;
   const show = nw.length ? nw : due.slice(0, 5);
   if (show.length) { const v = bestView(show[0]); h += `<div class="mini">${mapSvg(v, { hl: atomsOf(show[0]), hl2: show.slice(1).flatMap(atomsOf), capx: R[show[0]].ko + (show.length > 1 ? " 외 " + (show.length - 1) + "곳 (노랑)" : "") })}</div>`; }
+  h += `<button class="btn wide t3go" data-go="#3d${show.length ? "=" + show[0] : ""}">🧠 3D로 돌려 보기 ›</button>`;
   h += boardBox(true);
   h += newsSection(8);
   return h;
@@ -484,7 +486,7 @@ function render3d(id) {
   const r = id && R[id];
   let h = r ? `<div class="top"><button class="ib" data-act="back" aria-label="뒤로">‹</button></div>` : head("지도", "손가락으로 돌리고, 두 손가락으로 키워 보세요");
   if (!r) h += viewChips("3d", A.views);
-  h += `<canvas id="three"></canvas><div class="row" style="margin:8px 0"><button class="btn sm" data-t3="half">반쪽 보기</button><button class="btn sm" data-t3="glass">겉 투명하게</button><button class="btn sm" data-t3="reset">처음 자리</button>${r ? `<button class="btn sm" data-r="${id}">${esc(r.ko)} 설명 ›</button>` : ""}</div>`;
+  h += `<canvas id="three"></canvas><div class="row" style="margin:8px 0"><button class="btn sm" data-t3="half">반쪽 보기</button><button class="btn sm" data-t3="glass">겉 투명하게</button><button class="btn sm" data-t3="reset">처음 자리 · 다시 돌기</button>${r ? `<button class="btn sm" data-r="${id}">${esc(r.ko)} 설명 ›</button>` : ""}</div>`;
   h += `<p class="note" id="t3sel">${r ? `<b style="color:var(--accent)">${esc(r.ko)}</b> 를 분홍으로 칠했어요` : "부위를 누르면 이름이 떠요"} · 처음 열 때 약 1MB 받아요</p>`;
   h += `<select class="search" id="t3pick"><option value="">부위 골라 칠하기…</option>${GROUPS.map(([g, ids]) => `<optgroup label="${esc(g)}">${ids.map(x => `<option value="${x}" ${x === id ? "selected" : ""}>${esc(R[x].ko)}</option>`).join("")}</optgroup>`).join("")}</select>` + legend();
   return h;
@@ -516,8 +518,15 @@ async function mount3d(id) {
       m.userData = { a: p.a, cortex: ["frontal", "parietal", "temporal", "occipital", "insula"].includes(lobe) || ["acc", "mcc", "pcc", "parahipp", "cerebellum"].includes(base) };
       sc.add(m); return m;
     });
-    const ctl = new OrbitControls(cam, cv); ctl.enableDamping = true; ctl.target.set(0, 18, 0);
-    const home = () => { cam.position.set(-300, 70, -40); ctl.target.set(0, 18, 0); ctl.update(); };
+    const ctl = new OrbitControls(cam, cv); ctl.enableDamping = true;
+    // 뇌 전체가 화면에 들어오는 거리 (가로·세로 중 좁은 쪽 기준)
+    const box = new THREE.Box3(); meshes.forEach(m => box.expandByObject(m));
+    const sph = box.getBoundingSphere(new THREE.Sphere()), ctr = sph.center;
+    const vf = cam.fov * Math.PI / 360, hf = Math.atan(Math.tan(vf) * cam.aspect), dist = sph.radius / Math.sin(Math.min(vf, hf)) * 0.78;   // 구는 대각선까지 감싸 실제 뇌보다 커서 조금 당김
+    ctl.minDistance = sph.radius * 0.6; ctl.maxDistance = dist * 2.2;
+    ctl.autoRotate = true; ctl.autoRotateSpeed = 1.6;                   // 손대기 전까지 천천히 돎
+    ctl.addEventListener("start", () => { ctl.autoRotate = false; });
+    const home = () => { const d = new THREE.Vector3(-300, 70, -40).normalize().multiplyScalar(dist); cam.position.copy(ctr).add(d); ctl.target.copy(ctr); ctl.autoRotate = true; ctl.update(); };
     home();
     const st = { half: false, glass: false, sel: id || "" };
     function apply() {

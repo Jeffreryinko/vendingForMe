@@ -83,7 +83,7 @@ def main():
     if bad:
         print(f"틀린 곳 {bad}개 — 색인은 그대로 둠"); sys.exit(1)
     order = {k: i for i, k in enumerate(idx.get("featured", []))}
-    idx["episodes"] = sorted([{k: e.get(k) for k in ("id", "program", "mood", "mins", "title", "hook", "cover", "place", "when", "ctx", "ver", "r", "y")} | {"scenes": len(e["scenes"])} for e in eps],
+    idx["episodes"] = sorted([{k: e.get(k) for k in ("id", "program", "mood", "mins", "title", "hook", "cover", "place", "when", "ctx", "ver", "r", "y", "wt")} | {"scenes": len(e["scenes"])} for e in eps],
                              key=lambda m: order.get(m["id"], 99))
     idx["v"] = max(e["ver"] for e in eps)
     json.dump(idx, open(ED / "index.json", "w"), ensure_ascii=False, indent=1)

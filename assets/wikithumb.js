@@ -1,0 +1,72 @@
+/* wikithumb.js — 위키백과 대표 사진을 카드에 붙이기 (토큰 0, 서버 0)
+ *  <img data-wt="ko:문서 제목"> 처럼 써 두면, 화면에 보일 때 위키백과에 50개씩 묶어 물어 작은 사진(썸네일)을 채움
+ *  · 사진이 없거나 못 받으면 그 img 를 지움 (원래 그림·자리 그대로)
+ *  · 한 번 알아낸 결과는 이 폰에 기억 (vfm:wt, 최대 4,000개) → 다시 물어보지 않음
+ *  · 위키백과 사진은 대부분 위키미디어 공용의 자유 이용 사진
+ */
+(function () {
+  "use strict";
+  var KEY = "vfm:wt", MEM = {};
+  try { MEM = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { MEM = {}; }
+  var saveT = null;
+  function save() {
+    clearTimeout(saveT); saveT = setTimeout(function () {
+      var ks = Object.keys(MEM); if (ks.length > 4000) ks.slice(0, ks.length - 3000).forEach(function (k) { delete MEM[k]; });
+      try { localStorage.setItem(KEY, JSON.stringify(MEM)); } catch (e) { }
+    }, 500);
+  }
+  var queue = {}, timer = null, WANT = [];           // queue[lang] = Set(제목)
+  function apply(img) {
+    var k = img.getAttribute("data-wt"), v = MEM[k];
+    if (v === undefined) return false;
+    if (v) { img.src = v; img.removeAttribute("data-wt"); img.classList.add("wt-on"); }
+    else { var p = img.parentElement; img.remove(); if (p) p.classList.add("wt-none"); }
+    return true;
+  }
+  function flush() {
+    timer = null;
+    Object.keys(queue).forEach(function (lang) {
+      var titles = Array.from(queue[lang]); delete queue[lang];
+      for (var i = 0; i < titles.length; i += 50) ask(lang, titles.slice(i, i + 50));
+    });
+  }
+  function ask(lang, titles) {
+    var u = "https://" + lang + ".wikipedia.org/w/api.php?action=query&prop=pageimages&piprop=thumbnail&pithumbsize=320&redirects=1&format=json&formatversion=2&origin=*&titles=" + encodeURIComponent(titles.join("|"));
+    fetch(u).then(function (r) { return r.json(); }).then(function (j) {
+      var q = j.query || {}, map = {};
+      (q.normalized || []).forEach(function (n) { map[n.to] = (map[n.to] || []).concat([n.from]); });
+      (q.redirects || []).forEach(function (n) { map[n.to] = (map[n.to] || []).concat([n.from], map[n.from] || []); });
+      var got = {};
+      (q.pages || []).forEach(function (p) {
+        var src = p.thumbnail && p.thumbnail.source || "";
+        [p.title].concat(map[p.title] || []).forEach(function (t) { got[t] = src; });
+      });
+      titles.forEach(function (t) { MEM[lang + ":" + t] = got[t] || ""; });
+      save(); paint();
+    }).catch(function () { });                       // 실패하면 그대로 (다음에 다시)
+  }
+  function want(img) {
+    if (apply(img)) return;
+    var k = img.getAttribute("data-wt"), i = k.indexOf(":"); if (i < 1) return;
+    var lang = k.slice(0, i), t = k.slice(i + 1);
+    (queue[lang] = queue[lang] || new Set()).add(t);
+    if (!timer) timer = setTimeout(flush, 120);
+  }
+  var io = "IntersectionObserver" in window ? new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { io.unobserve(e.target); want(e.target); } });
+  }, { rootMargin: "600px 0px" }) : null;
+  function paint() {
+    document.querySelectorAll("img[data-wt]").forEach(function (img) {
+      if (apply(img)) return;
+      if (img._wtSeen) return; img._wtSeen = 1;
+      if (io) io.observe(img); else want(img);
+    });
+  }
+  new MutationObserver(function () { clearTimeout(paint._t); paint._t = setTimeout(paint, 60); }).observe(document.documentElement, { childList: true, subtree: true });
+  document.addEventListener("error", function (e) { var t = e.target; if (t && t.classList && t.classList.contains("wt-on")) { var p = t.parentElement; t.remove(); if (p) p.classList.add("wt-none"); } }, true);
+  window.WT = { paint: paint, wikiOf: function (url) {             // 위키백과 주소 → "ko:제목"
+    var m = /^https?:\/\/([a-z\-]+)\.(?:m\.)?wikipedia\.org\/wiki\/([^#?]+)/.exec(url || ""); if (!m) return "";
+    try { return m[1] + ":" + decodeURIComponent(m[2]).replace(/_/g, " "); } catch (e) { return ""; }
+  } };
+  if (document.readyState !== "loading") paint(); else document.addEventListener("DOMContentLoaded", paint);
+})();

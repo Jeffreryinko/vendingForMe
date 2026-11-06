@@ -735,8 +735,9 @@ def classify(page, ent, kind, C, L, hint, CL):
     if y2 is not None and y2 > NOW_Y + 1: y2 = None
     if ya is not None and ya > NOW_Y + 1: ya = y
     if y2 is not None and y is not None and y2 < y: y2 = None
-    # 역할별 나라: 인물 = 활동지 → 출생지 → 국적 / 사건 = 일어난 곳 → 나라 / 나라·왕조 = 그 나라
-    if kind == "person": ROLE = (("work", cv(ent, "P937")[:3], 0), ("born", cv(ent, "P19")[:1], 0), ("nat", cv(ent, "P27")[:3], 1))
+    # 역할별 나라: 인물 = 국적(속한 나라·왕조) → 활동지 → 출생지 / 사건 = 일어난 곳 → 나라 / 나라·왕조 = 그 나라
+    # (출생지가 먼저면 백제 무령왕이 '일본'(섬에서 태어났다는 기록), 동로마 황제가 '튀르키예'가 되던 문제)
+    if kind == "person": ROLE = (("nat", cv(ent, "P27")[:3], 1), ("work", cv(ent, "P937")[:3], 0), ("born", cv(ent, "P19")[:1], 0))
     elif kind == "state": ROLE = (("at", [ent.get("id")] + cv(ent, "P17")[:2], 1), ("at", cv(ent, "P30")[:1], 0))
     else: ROLE = (("at", cv(ent, "P17")[:4], 1), ("at", cv(ent, "P276")[:6], 0), ("at", cv(ent, "P131")[:1], 0), ("side", [q for q in cv(ent, "P710")[:8] if q in C.c], 1))
     isos, thens, region, roles, at_regs, cont_reg = [], [], "", {}, [], ""
@@ -818,7 +819,7 @@ def retheme_people(st):
     st.seeds["retheme"] = "v2"; log(f"사람 테마 다시 매김: {n:,}편")
 
 
-RECLASS = "reclass5"          # 분류 규칙을 바꾸면 이름을 올림 → 받은 글 전부를 위키데이터로 다시 분류 (본문은 안 받음, 토큰 0)
+RECLASS = "reclass6"          # 분류 규칙을 바꾸면 이름을 올림 → 받은 글 전부를 위키데이터로 다시 분류 (본문은 안 받음, 토큰 0)
 def reclass(st, C, L, CL, cp):
     """받은 글 전부 다시 분류: 개념 종류 · 대략 연도(~경) · 역할별 나라 · 권역. 끊겨도 다음 회차에 이어서."""
     if st.seeds.get(RECLASS) == "done": return

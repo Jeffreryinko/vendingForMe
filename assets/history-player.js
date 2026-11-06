@@ -100,6 +100,7 @@ window.HP = (function () {
         '<article class="ep" data-mood="' + esc(e.mood) + '">' +
         '<header class="ep-h"><p class="ep-prog">' + esc(pg) + " · 약 " + e.mins + "분</p><h1>" + esc(e.title) + '</h1><p class="ep-hook">' + esc(e.hook) + "</p>" +
         '<p class="ep-meta">' + esc([e.place, e.when].filter(Boolean).join(" · ")) + ' · <button type="button" class="lnk" data-ep="srcs">출처 ' + nSrc + "개</button></p>" +
+        (e.wt ? '<figure class="ep-cover"><img data-wt="' + esc(e.wt) + '" alt=""><figcaption>사진: 위키백과 「' + esc(e.wt.split(":").slice(1).join(":")) + '」 문서의 대표 그림</figcaption></figure>' : "") +
         '<p class="ep-legend">작은 번호는 출처예요. 꾸민 장면은 <span class="ep-mark ep-mark-recon">재구성 장면</span>, 풀이는 <span class="ep-mark ep-mark-interp">해석</span>으로 따로 표시해요.</p></header>' +
         vis.map(function (sc) { return scene(sc, e, s, full); }).join("") +
         (end ? endHtml(e, s) : '<p class="ep-wait">고르면 다음 장면이 이어져요 · 위의 ‘전체 글’로 한 번에 읽어도 돼요</p>') +
@@ -147,6 +148,7 @@ window.HP = (function () {
     if (!m) return "";
     var c = m.cover || {}, sl = stateLabel(m.id), s = S.ep[m.id] || {};
     return '<button type="button" class="epc epc-' + esc(c.kind || "scene") + (big ? " big" : "") + '" data-ep-open="' + esc(m.id) + '" data-mood="' + esc(m.mood) + '">' +
+      (m.wt ? '<img class="epc-img" data-wt="' + esc(m.wt) + '" alt="" loading="lazy" decoding="async">' : "") +
       '<span class="epc-top"><span class="epc-stamp">' + esc(c.stamp || "") + '</span><span class="epc-line">' + esc(c.line || "") + "</span></span>" +
       '<b class="epc-t">' + esc(m.title) + '</b><span class="epc-hook">' + esc(m.hook) + "</span>" +
       '<span class="epc-m">' + esc(progName(m.program)) + " · 약 " + m.mins + "분" + (sl ? ' · <em>' + sl + "</em>" : "") + "</span>" +

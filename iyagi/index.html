@@ -236,6 +236,10 @@ details.part p{font-family:var(--f-read);font-size:calc(var(--read) - 1px);line-
 .art img{aspect-ratio:16/10}
 .art.cov svg{aspect-ratio:320/140}
 .art figcaption{font-size:11.5px;color:var(--ink-2)}
+.thumb{position:relative;overflow:hidden}.thumb .wth{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.wtbox{position:relative}.wtbox .wtp{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:4px}
+.wtf.wt-none .wtc,.wtf:has(.wtbox.wt-none) .wtc{display:none}
+img[data-wt]{visibility:hidden}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .art img{filter:brightness(.9)}}
 :root[data-theme="dark"] .art img{filter:brightness(.9)}
 .litem{margin-top:52px;padding-top:22px;border-top:3px double var(--rule)}
@@ -954,12 +958,20 @@ function cleanArt(x){
 function artFig(s){
   const a=cleanArt(s.art);
   if(a)return `<figure class="art"><img alt="${esc(s.title)} 삽화" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(a)}"><figcaption>그림: Claude가 이야기의 한 장면을 그렸어요</figcaption></figure>`;
+  const wt=wtOf(s);
+  if(wt)return `<figure class="art cov wtf"><div class="wtbox">${cover(s,320,140)}<img class="wtp" data-wt="${esc(wt)}" alt="${esc(s.title)} 관련 사진" decoding="async"></div><figcaption class="wtc">사진: 위키백과 「${esc(wt.split(":").slice(1).join(":"))}」 문서의 대표 그림</figcaption></figure>`;
   return `<figure class="art cov">${cover(s,320,140)}</figure>`;
 }
 const robotTag=s=>s.robot?`<span class="robotag">${s.web?"웹 수집 · 출처 있음":"Claude 작성 · 검수 전"}</span>`:"";
+// 위키백과 대표 사진: 출처에 위키백과 문서가 있으면 그 문서, 없으면 원작 이름으로 (못 찾으면 원래 그림 그대로)
+function wtOf(s){
+  for(const x of (s.sources||[])){const m=/^https?:\/\/([a-z-]+)\.(?:m\.)?wikipedia\.org\/wiki\/([^#?]+)/.exec(x.u||x.url||"");if(m){try{return m[1]+":"+decodeURIComponent(m[2]).replace(/_/g," ")}catch(e){}}}
+  const o=String(s.orig||"").split(" · ")[0].trim();
+  return o&&o.length<=30?"ko:"+o:"";
+}
 function card(s){
-  const L=lvl(s.id);
-  return `<article class="card has-thumb"><div class="thumb">${cover(s,60,80)}</div><div class="cbody"><h3><button class="tbtn" data-act="open" data-id="${s.id}" data-d="d1">${esc(s.title)}</button></h3>
+  const L=lvl(s.id), wt=wtOf(s);
+  return `<article class="card has-thumb"><div class="thumb">${cover(s,60,80)}${wt?`<img class="wth" data-wt="${esc(wt)}" alt="" loading="lazy" decoding="async">`:""}</div><div class="cbody"><h3><button class="tbtn" data-act="open" data-id="${s.id}" data-d="d1">${esc(s.title)}</button></h3>
   <p class="hook">${esc(s.hook)}</p>
   <div class="meta"><span>${esc(s.kind)}</span><span>·</span><span>${esc(s.region)}</span><span>·</span><span>약 ${s.depths.d1.min}분부터</span>${robotTag(s)}${L?`<span class="lvl">${LV[L]}</span>`:""}</div>
   <div class="acts"><button class="link" data-act="open" data-id="${s.id}" data-d="d1">이야기 읽기</button><button class="link quiet ${isSaved(s.id)?"on":""}" data-act="save" data-id="${s.id}">${isSaved(s.id)?"담아둠":"담아두기"}</button></div></div></article>`;
@@ -3237,5 +3249,6 @@ route();
 </script>
 
 
+<script src="../assets/wikithumb.js"></script>
 <script src="../assets/shell.js"></script>
 </body></html>

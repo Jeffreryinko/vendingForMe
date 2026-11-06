@@ -103,6 +103,7 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
   <button data-v="series"><b>▤</b>시리즈</button>
   <button data-v="shelf"><b>☆</b>내 기록</button>
 </nav>
+<script src="../assets/wikithumb.js"></script>
 <script src="../assets/history-player.js"></script>
 <script>
 "use strict";
@@ -151,7 +152,7 @@ function badges(e) {
   return `${e.y != null ? `<span class="bd yr">${span(e)}</span>` : ""}${e.e >= 0 ? `<span class="bd">${esc(eraShort(e.e))}</span>` : ""}${(e.g || "").includes("W") ? `<span class="bd">${esc(regName(e.r) || "")} 외 여러 권역</span>` : e.r && e.r !== "xx" ? `<span class="bd">${esc(regName(e.r))}${e.c && e.c.length ? " · " + esc(cko(e.c[0])) : ""}</span>` : ""}${e.h >= 0 ? `<span class="bd th">${esc(themeName(e.h))}</span>` : ""}
     ${e.g.includes("B") ? `<span class="bd bk">${e.k === "l" ? "전설·설화" : "뒤편 이야기"}</span>` : ""}${e.g.includes("P") ? '<span class="bd pr">대명사</span>' : ""}<span class="bd kd">${KIND[e.k] || ""}</span>${(S.tags[e.i] || []).map(t => `<span class="tag">${esc(t)}</span>`).join("")}${S.star[e.i] ? '<span class="bd pr">★</span>' : ""}`;
 }
-function card(e) { return `<button type="button" class="card${S.read[e.i] ? " read" : ""}${S.star[e.i] ? " star" : ""}" data-open="${esc(e.i)}"><p class="t">${esc(e.t)}</p>${e.o ? `<p class="one">${esc((window.vfmClean || (x => x))(e.o))}</p>` : ""}<div class="meta">${badges(e)}</div></button>`; }
+function card(e) { return `<button type="button" class="card${S.read[e.i] ? " read" : ""}${S.star[e.i] ? " star" : ""}" data-open="${esc(e.i)}">${S.cfg.pics && e.m ? `<img class="cth" data-wt="ko:${esc(e.t)}" alt="" loading="lazy" decoding="async">` : ""}<p class="t">${esc(e.t)}</p>${e.o ? `<p class="one">${esc((window.vfmClean || (x => x))(e.o))}</p>` : ""}<div class="meta">${badges(e)}</div></button>`; }
 function liRow(e) { return `<button class="li${S.read[e.i] ? " read" : ""}" data-open="${esc(e.i)}"><p class="t">${esc(e.t)}${S.star[e.i] ? " ★" : ""}</p><p class="s">${[e.y != null ? span(e) : "", e.r && e.r !== "xx" ? regName(e.r) : "", e.c && e.c[0] ? cko(e.c[0]) : "", e.h >= 0 ? themeName(e.h) : "", KIND[e.k] || ""].filter(Boolean).map(esc).join(" · ")}</p></button>`; }
 const notHidden = l => l.filter(e => !S.hide[e.i]);
 const notRead = l => l.filter(e => !S.read[e.i] && !S.hide[e.i]);
@@ -284,6 +285,10 @@ function filtered(l) {
   if (F.sort === "year" || F.timeline) l = l.slice().sort((a, b) => ((a.ya ?? a.y) ?? 99999) - ((b.ya ?? b.y) ?? 99999) || b.n - a.n);
   else if (F.sort === "views") l = l.slice().sort((a, b) => b.v - a.v || b.n - a.n);
   else l = l.slice().sort((a, b) => b.n - a.n);
+  if (!F.kind && !F.timeline) {                                       // 종류를 안 골랐으면: '역사'·'기독교' 같은 개념과 지금 있는 나라(미국 등)는 뒤로
+    const low = e => e.k === "c" || (e.k !== "p" && e.y == null) || (e.k === "s" && (e.y ?? 0) >= 1700 && e.y2 == null);
+    l = l.filter(e => !low(e)).concat(l.filter(low));
+  }
   return l;
 }
 async function runExplore() {
