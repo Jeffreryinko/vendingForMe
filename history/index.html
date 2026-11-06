@@ -5,6 +5,7 @@
 <title>역사 자판기</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="../assets/apple.css">
+<link rel="stylesheet" href="../assets/history-player.css">
 <style>
 /* 역사 탭 — 로봇이 위키백과에서 긁어 온 역사 글 수만 편. 오늘 · 탐색 · 뒤편 · 서재. 읽기는 짧게 → 자세히 → 깊게.
    자료는 조각으로 나뉘어 있어 필요한 것만 불러옴 (data/history/_index.json 의 설명 참고). */
@@ -97,11 +98,12 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
 </style></head><body>
 <div class="wrap" id="app"></div>
 <nav class="tabs" id="tabs">
-  <button data-v="today" aria-current="page"><b>☀︎</b>오늘</button>
-  <button data-v="explore"><b>◎</b>탐색</button>
-  <button data-v="back"><b>◑</b>뒤편</button>
-  <button data-v="shelf"><b>☆</b>보관함</button>
+  <button data-v="today" aria-current="page"><b>☀︎</b>오늘의 사건</button>
+  <button data-v="explore"><b>◎</b>세계 탐색</button>
+  <button data-v="series"><b>▤</b>시리즈</button>
+  <button data-v="shelf"><b>☆</b>내 기록</button>
 </nav>
+<script src="../assets/history-player.js"></script>
 <script>
 "use strict";
 /* ───── 저장 (폰 브라우저). 키 vfm:history:* → 자판기 공통 내보내기에 포함 ───── */
@@ -109,7 +111,8 @@ const LS = { g(k, d) { try { const v = localStorage.getItem("vfm:history:" + k);
              s(k, v) { try { localStorage.setItem("vfm:history:" + k, JSON.stringify(v)); } catch (e) { toast("저장 공간이 꽉 찼어요"); } } };
 const S = { idx: null, top: null, cache: {}, buckets: {}, page: null, depth: LS.g("depth", "short"), recent: LS.g("recent", []),
   cfg: LS.g("cfg", { fs: 1, pics: true, hideRead: false }), star: LS.g("star", {}), memo: LS.g("memo", {}), tags: LS.g("tags", {}), tagdefs: LS.g("tagdefs", ["다시 읽기", "상식", "아이들에게", "재밌음"]),
-  read: LS.g("read", {}), hide: LS.g("hide", {}), tmemo: LS.g("tmemo", {}), words: LS.g("words", {}), live: {} };
+  read: LS.g("read", {}), hide: LS.g("hide", {}), tmemo: LS.g("tmemo", {}), words: LS.g("words", {}), live: {},
+  ep: LS.g("ep", {}), mood: LS.g("mood", "odd") };   // ep = 편집 에피소드 진행 (기존 기록과 따로)
 function save(k) { LS.s(k, S[k]); }
 document.documentElement.style.setProperty("--fs", S.cfg.fs || 1);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -156,34 +159,50 @@ const ICON = { search: '<svg viewBox="0 0 24 24" width="18" height="18" fill="no
   cfg: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>' };
 function head(title, extra) { return `<div class="top"><h1 class="lt">${title}</h1><div class="r">${extra || ""}<button class="ib" data-act="search" aria-label="찾기">${ICON.search}</button><button class="ib" data-act="cfg" aria-label="역사 탭 설정">${ICON.cfg}</button></div></div>`; }
 
-/* ───── 화면: 오늘 ───── */
+/* ───── 화면: 오늘의 사건 (기획: 들어오자마자 사건이 시작된 화면) ─────
+   순서: 대표작 → 이어서 보기 → 기분별 입구 → 짧은 발견 → 고정 코너 → 세계 탐색 → 역사 속 오늘
+   자료 수·출처 고장 같은 숫자판은 ‘내 기록’·설정으로 옮김 */
 async function renderToday() {
-  const app = document.getElementById("app"); const c = S.idx.counts || {}; const key = todayKey(); const now = new Date().getFullYear();
+  const app = document.getElementById("app"); const key = todayKey(); const now = new Date().getFullYear();
+  const X = await HP.index(); const eps = X.episodes || []; const byId = Object.fromEntries(eps.map(e => [e.id, e]));
+  const done = id => !!(S.ep[id] || {}).done;
+  const feat = (X.featured || []).map(id => byId[id]).filter(Boolean);
+  const F0 = feat.find(e => !done(e.id)) || eps.find(e => e.program !== "short" && !done(e.id)) || feat[0];
+  const cont = Object.entries(S.ep).filter(([id, s]) => byId[id] && !s.done && s.last && id !== (F0 || {}).id).sort((a, b) => (b[1].at || 0) - (a[1].at || 0))[0];
+  const shorts = eps.filter(e => e.program === "short").sort((a, b) => done(a.id) - done(b.id)).slice(0, 2);
+  const progs = Object.entries(X.programs || {}).filter(([k]) => k !== "short" && eps.some(e => e.program === k));
   let days = []; try { days = await getJ("days/" + key + ".json"); } catch (e) { }
   const rowsD = days.slice().sort((a, b) => (b.id ? 1 : 0) - (a.id ? 1 : 0) || Math.abs(now - 100 - a.y) - Math.abs(now - 100 - b.y));
-  const hundred = days.find(r => r.y === now - 100);
   const li = r => `<li><b>${yr(r.y)}</b>${r.id ? `<button class="has" data-open="${r.id}">${esc(r.t)}</button>` : `<span>${esc(r.t)}</span>`}</li>`;
-  const todayHtml = days.length ? `<div class="today"><p class="d">${+key.slice(0, 2)}월 ${+key.slice(3)}일, 역사 속 오늘${hundred ? ` · 100년 전 오늘: ${esc(hundred.t.slice(0, 30))}` : ""}</p><ul>${rowsD.slice(0, 7).map(li).join("")}</ul>${days.length > 7 ? `<details><summary class="sub" style="cursor:pointer;padding:8px 0;color:var(--accent);font-weight:600">${days.length - 7}건 더 (연도순)</summary><ul>${days.map(li).join("")}</ul></details>` : ""}</div>` : "";
-  const all = (S.top.all || []).map(E);
-  const rec = pick(notRead(all).slice(0, 200), 8, 1);
-  const world = Object.entries(S.top.region || {}).filter(([r]) => r !== "xx").map(([r, l], i) => { const cand = notRead(l.map(E)); return cand.length ? cand[(seed() + i) % cand.length] : null; }).filter(Boolean);
-  const korea = pick(notRead((S.top.korea || []).map(E)), 3, 4);
-  const back = pick(notRead((S.top.back || []).map(E)), 4, 2), pron = pick((S.top.pron || []).map(E), 12, 3);
-  const broken = Object.keys(S.idx.broken || {});
+  const todayHtml = days.length ? `<div class="today"><p class="d">${+key.slice(0, 2)}월 ${+key.slice(3)}일의 지난 일들</p><ul>${rowsD.slice(0, 5).map(li).join("")}</ul>${days.length > 5 ? `<details><summary class="sub" style="cursor:pointer;padding:8px 0;color:var(--accent);font-weight:600">${days.length - 5}건 더 (연도순)</summary><ul>${days.map(li).join("")}</ul></details>` : ""}</div>` : '<p class="note">오늘 날짜의 기록을 아직 못 받았어요.</p>';
+  const lastEp = Object.entries(S.ep).filter(([id]) => byId[id]).sort((a, b) => (b[1].at || 0) - (a[1].at || 0))[0];
+  const ctx = lastEp ? byId[lastEp[0]].ctx || {} : {};
   app.innerHTML = head("역사") + `
-    ${broken.length ? `<p class="health">3번 넘게 실패한 출처: ${esc(broken.slice(0, 4).join(", "))} — 클로드에게 '역사 출처 고쳐줘'</p>` : ""}
-    ${todayHtml}
-    <div class="stat"><div><b>${(c.total || 0).toLocaleString()}</b><small>편</small></div><div><b>${Object.keys(c.country || {}).length.toLocaleString()}</b><small>나라</small></div><div><b>${Object.keys(S.read).length.toLocaleString()}</b><small>읽음</small></div></div>
-    <h2 class="sec">언제의 세계를 구경할까요? <small>고르면 같은 시기 여러 지역을 나란히</small></h2><div class="chips scroll">${SYNC_ERAS.map((x, i) => `<button data-goera="${i}">${esc(x[0])}</button>`).join("")}</div>
-    ${S.recent.length ? `<h2 class="sec">이어서 읽기 <small>마지막에 읽은 글과 같은 시기, 다른 나라</small></h2><div id="nearBox"><p class="note">찾는 중…</p></div>` : ""}
-    <h2 class="sec">추천 <small>여러 나라 말로 많이 쓰인 글 · 날마다 바뀜</small></h2>${rec.map(card).join("") || '<p class="empty">아직 없어요</p>'}
-    <h2 class="sec">세계 한 바퀴 <small>권역마다 하나씩</small></h2>${world.map(card).join("")}
-    ${korea.length ? `<h2 class="sec">우리 역사 <small>한국사</small><button data-goc="KR">모두</button></h2>${korea.map(card).join("")}` : ""}
-    <h2 class="sec">역사 뒤편 <small>전설·설·미스터리가 섞인 글</small><button data-v="back">모두</button></h2>${back.map(card).join("") || '<p class="note">아직 없어요.</p>'}
-    <h2 class="sec">대명사 역사 <small>말로 쓰이는 사건·인물</small></h2><div class="chips">${pron.map(e => `<button data-open="${e.i}" class="${S.read[e.i] ? "" : "on"}">${esc(e.t)}</button>`).join("")}</div>
-    <h2 class="sec">새로 들어온 글 <small>로봇이 최근에 받은 것</small></h2><div class="list">${(S.top.recent || []).slice(0, 8).map(E).map(liRow).join("")}</div>
-    <p class="note" style="margin-top:16px">${esc(S.idx.license || "")} · 마지막 갱신 ${esc((S.idx.at || "").slice(0, 16).replace("T", " "))}${S.idx.queue ? ` · 받을 차례 ${S.idx.queue.toLocaleString()}편` : ""}</p>`;
-  if (S.recent.length) { const e = S.recent[0]; const near = await sameTime(e, 5); const box = document.getElementById("nearBox"); if (box) box.innerHTML = near.length ? `<p class="lbl" style="margin-top:0">${esc(e.t)} (${span(e)}) 무렵</p>${near.map(card).join("")}` : `<p class="note">${esc(e.t)}와 같은 시기의 다른 나라 글이 아직 없어요.</p>`; }
+    ${F0 ? HP.card(F0, true) : '<p class="empty">편집 이야기를 불러오지 못했어요. 아래 탐색은 그대로 쓸 수 있어요.</p>'}
+    ${cont ? `<button class="cont" data-ep-open="${esc(cont[0])}"><span><small>이어서 보기 · ${esc(byId[cont[0]].title)}</small><b>${esc(cont[1].cue || "읽던 곳")}부터</b></span><span class="go">›</span></button>` : ""}
+    <h2 class="sec">지금 기분은? <small>고르면 세 편을 골라 드려요</small></h2>
+    <div class="moods">${Object.entries(X.moods || {}).map(([k, m]) => `<button data-mood="${k}" data-hmood="${k}" aria-pressed="${S.mood === k}"><b>${esc(m.name)}</b><small>${esc(m.note)}</small></button>`).join("")}</div>
+    <div id="moodBox"></div>
+    ${shorts.length ? `<h2 class="sec">짧은 발견 <small>1분, 결말까지</small></h2>${shorts.map(e => HP.card(e)).join("")}` : ""}
+    ${progs.length ? `<h2 class="sec">고정 코너 <small>형식마다 약속이 달라요</small><button data-v="series">모두</button></h2>${progs.slice(0, 3).map(([k, p]) => `<button class="prog" data-v="series"><b>${esc(p.name)}</b><p>${esc(p.promise)}</p><small>${eps.filter(e => e.program === k).length}편 · ${esc(p.verb)}</small></button>`).join("")}` : ""}
+    <h2 class="sec">세계 탐색 <small>${ctx.c ? `방금 본 이야기의 무대, ${esc(cko(ctx.c))}에서 시작` : "어디부터 볼까요"}</small></h2>
+    <div class="row" style="margin:0 0 8px">${ctx.c ? `<button class="btn sm" data-goc="${esc(ctx.c)}">${esc(cko(ctx.c))}의 원문 자료</button>` : ""}<button class="btn sm" data-ep-xm="sync" data-se="${ctx.sync ?? ""}" data-from="">같은 시기 나란히 보기</button><button class="btn sm" data-ep-xm="life" data-se="" data-from="">나라의 일생</button><button class="btn sm" data-v="explore">찾아보기</button></div>
+    <div class="chips scroll">${SYNC_ERAS.map((x, i) => `<button data-goera="${i}">${esc(x[0])}</button>`).join("")}</div>
+    ${S.recent.length ? `<div id="nearBox"></div>` : ""}
+    <h2 class="sec">역사 속 오늘 <small>날짜로 이어지는 원문 자료</small></h2>${todayHtml}
+    <p class="note" style="margin-top:16px">${esc(X.note || "")} 원문 자료: ${esc(S.idx.license || "")}</p>`;
+  moodList();
+  if (S.recent.length) { const e = S.recent[0]; const near = await sameTime(e, 3); const box = document.getElementById("nearBox"); if (box && near.length) box.innerHTML = `<p class="srcl">마지막에 읽은 「${esc(e.t)}」(${span(e)}) 무렵, 다른 나라 · 원문 자료</p>${near.map(card).join("")}`; }
+}
+async function moodList() {
+  const box = document.getElementById("moodBox"); if (!box) return;
+  const X = await HP.index(); const m = (X.moods || {})[S.mood]; if (!m) { box.innerHTML = ""; return; }
+  const mine = (X.episodes || []).filter(e => e.mood === S.mood && e.program !== "short").sort((a, b) => !!(S.ep[a.id] || {}).done - !!(S.ep[b.id] || {}).done).slice(0, 3);
+  let raw = [];
+  if (mine.length < 3) for (const t of m.themes || []) { const i = (S.idx.themes || []).indexOf(t); if (i >= 0) raw = raw.concat(notRead(await rows("th/" + i + ".json")).slice(0, 120)); }
+  raw = pick(raw, 3 - mine.length, 5);
+  if (document.getElementById("moodBox") !== box) return;
+  box.innerHTML = mine.map(e => HP.card(e)).join("") + (raw.length ? `<p class="srcl">원문 자료에서 (위키백과 글 · 편집 전)</p>${raw.map(card).join("")}` : "");
 }
 async function sameTime(e, n) {
   const y = e.ya != null ? e.ya : e.y; if (y == null) return [];
@@ -219,7 +238,7 @@ async function renderExplore() {
   if (F.mode === "life") return renderLife();
   const app = document.getElementById("app"); const c = S.idx.counts || {};
   const regs = (S.idx.regions || []).filter(([k]) => (c.region || {})[k]);
-  app.innerHTML = head("탐색") + xmodeBar() + `<input class="search" id="xq" type="search" value="${esc(F.q)}" placeholder="제목으로 찾기 (전체 ${(c.total || 0).toLocaleString()}편)">
+  app.innerHTML = head("세계 탐색") + xmodeBar() + `<input class="search" id="xq" type="search" value="${esc(F.q)}" placeholder="제목으로 찾기 (전체 ${(c.total || 0).toLocaleString()}편)">
     <div id="qres"></div>
     <p class="lbl">어디</p><div class="tiles">${regs.map(([k, n]) => `<button data-f="region" data-val="${k}" class="${F.region === k ? "on" : ""}">${esc(n)}<small>${(c.region[k] || 0).toLocaleString()}</small></button>`).join("")}</div>
     <div class="chips scroll" id="cbox"></div>
@@ -283,7 +302,7 @@ async function renderSync() {
   const app = document.getElementById("app"); const er = SYNC_ERAS[F.se] || SYNC_ERAS[4];
   if (F.sfrom == null || F.sfrom < er[1] || F.sfrom >= er[2]) F.sfrom = er[1];
   const a = F.sfrom, b = Math.min(er[2], a + er[3]);
-  app.innerHTML = head("탐색") + xmodeBar() + `<p class="lbl" style="margin-top:4px">언제의 세계를 볼까요?</p>
+  app.innerHTML = head("세계 탐색") + xmodeBar() + `<p class="lbl" style="margin-top:4px">언제의 세계를 볼까요?</p>
     <div class="chips scroll">${SYNC_ERAS.map((x, i) => `<button data-se="${i}" class="${F.se === i ? "on" : ""}">${esc(x[0])} <small>${esc(winLabel(x[1], x[2]))}</small></button>`).join("")}</div>
     <div class="swin"><button data-sw="-1" aria-label="앞 시기" ${a <= er[1] ? "disabled" : ""}>‹</button><div><b>${esc(winLabel(a, b))}</b><input type="range" id="swr" min="${er[1]}" max="${er[2] - er[3]}" step="${er[3]}" value="${a}"></div><button data-sw="1" aria-label="다음 시기" ${b >= er[2] ? "disabled" : ""}>›</button></div>
     <p class="note">같은 시기에 있었던 일을 지역별로 나란히 놓았어요. 같은 때일 뿐 서로 영향을 줬다는 뜻은 아니에요 — 실제로 이어진 일은 글 안 ‘이어 읽기’에 있어요.</p>
@@ -307,7 +326,7 @@ async function renderLife() {
   const app = document.getElementById("app"); const cc = S.idx.counts.country || {};
   const top = Object.entries(cc).sort((a, b) => b[1] - a[1]).slice(0, 30).map(x => x[0]);
   if (!top.includes(F.lc)) top.unshift(F.lc);
-  app.innerHTML = head("탐색") + xmodeBar() + `<p class="lbl" style="margin-top:4px">어느 나라의 일생을 볼까요?</p>
+  app.innerHTML = head("세계 탐색") + xmodeBar() + `<p class="lbl" style="margin-top:4px">어느 나라의 일생을 볼까요?</p>
     <div class="chips scroll">${top.map(c => `<button data-lc="${c}" class="${F.lc === c ? "on" : ""}">${esc(cko(c))}</button>`).join("")}</div><div id="lres"><p class="empty">불러오는 중…</p></div>`;
   const l = notHidden((await rows("cty/" + F.lc + ".json")).filter(x => x.k !== "c"));
   const box = document.getElementById("lres"); if (!box) return;
@@ -341,12 +360,25 @@ async function renderLife() {
     <p class="note">‘유명한’ = 여러 나라 말로 쓰인 글. 글 수는 수집한 글 기준이라 실제 역사 비중과 다를 수 있어요.</p>`;
 }
 
-/* ───── 화면: 역사 뒤편 ───── */
+/* ───── 화면: 시리즈 (고정 코너 + 큰 흐름 + 원문 자료 묶음) ───── */
+async function renderSeries() {
+  const app = document.getElementById("app"); const X = await HP.index(); const eps = X.episodes || [];
+  const th = S.idx.themes || [];
+  const packs = [["B", "야사·전설"], ["P", "대명사 역사"], ...["기묘한 사건록", "그림자 전쟁", "사랑과 배신", "믿음과 금기", "골목길 미시사"].map(n => ["t" + th.indexOf(n), n])].filter(([k]) => k !== "t-1");
+  app.innerHTML = head("시리즈") + Object.entries(X.programs || {}).filter(([k]) => eps.some(e => e.program === k)).map(([k, p]) =>
+    `<h2 class="sec">${esc(p.name)} <small>${esc(p.promise)}</small></h2>${eps.filter(e => e.program === k).map(e => HP.card(e)).join("")}`).join("") +
+    `<h2 class="sec">나라의 일생 <small>이름·연도를 다 외우지 않아도 한 나라의 변화를</small></h2><button class="prog" data-ep-xm="life" data-se="" data-from=""><b>나라 고르기</b><p>시대별 굵은 줄기와 오래 이어진 나라들을 한 줄로 봐요.</p><small>원문 자료로 만든 개요</small></button>
+    <h2 class="sec">원문 자료 묶음 <small>위키백과에서 모은 글 · 편집 전이라 사실 확인은 출처에서</small></h2>
+    <div class="chips">${packs.map(([k, n]) => `<button data-bmgo="${esc(k)}">${esc(n)}</button>`).join("")}</div>
+    <h2 class="sec">새로 들어온 원문 자료 <small>로봇이 최근에 받은 것</small></h2><div class="list">${(S.top.recent || []).slice(0, 8).map(E).map(liRow).join("")}</div>`;
+}
+
+/* ───── 화면: 역사 뒤편 (원문 자료 묶음) ───── */
 let backMode = "B";
 async function renderBack() {
   const app = document.getElementById("app"); const th = S.idx.themes || [];
   const modes = [["B", "야사"], ["P", "대명사 역사"], ...["기묘한 사건록", "그림자 전쟁", "사랑과 배신", "믿음과 금기"].map(n => ["t" + th.indexOf(n), n])];
-  app.innerHTML = head("역사 뒤편") + `<p class="note">전설·설·미스터리가 섞인 글(야사), 말로 쓰이는 사건(대명사), 그리고 기묘한 사건·그림자 전쟁·사랑과 배신·믿음과 금기. 야사 꼬리표는 로봇이 분류 이름으로 붙인 것이라 참고용이에요.</p>
+  app.innerHTML = `<div class="top"><button class="ib" data-v="series" aria-label="시리즈로">‹</button><h1 class="lt" style="flex:1;font-size:26px">원문 자료 묶음</h1></div>` + `<p class="note">전설·설·미스터리가 섞인 글(야사), 말로 쓰이는 사건(대명사), 그리고 기묘한 사건·그림자 전쟁·사랑과 배신·믿음과 금기. 야사 꼬리표는 로봇이 분류 이름으로 붙인 것이라 참고용이에요.</p>
     <div class="chips">${modes.map(([k, n]) => `<button data-bm="${esc(k)}" class="${backMode === k ? "on" : ""}">${n}</button>`).join("")}</div><div id="bres"><p class="empty">불러오는 중…</p></div>`;
   const l = notHidden(backMode.startsWith("t") ? await rows("th/" + backMode.slice(1) + ".json") : await rows("tag/" + backMode + ".json"));
   const box = document.getElementById("bres"); if (!box) return;
@@ -354,13 +386,21 @@ async function renderBack() {
 }
 
 /* ───── 화면: 내 서재 ───── */
-let shelfMode = "star";
+let shelfMode = "ep";
 function renderShelf() {
   const app = document.getElementById("app");
-  app.innerHTML = head("보관함", '<button class="ib" data-act="export" aria-label="내 기록 내보내기">⤓</button>') + `<div class="chips">${[["star", "별표"], ["memo", "메모"], ["read", "읽은 글"], ["tag", "태그"], ["book", "도감"], ["words", "낱말"]].map(([k, n]) => `<button data-sm="${k}" class="${shelfMode === k ? "on" : ""}">${n}</button>`).join("")}</div><div id="sres"></div>`;
+  const c = S.idx.counts || {};
+  app.innerHTML = head("내 기록", '<button class="ib" data-act="export" aria-label="내 기록 내보내기">⤓</button>') + `<div class="stat"><div><b>${Object.values(S.ep).filter(x => x.done).length}</b><small>끝낸 이야기</small></div><div><b>${Object.keys(S.read).length.toLocaleString()}</b><small>읽은 원문</small></div><div><b>${(c.total || 0).toLocaleString()}</b><small>모은 원문</small></div></div><div class="chips">${[["ep", "이야기"], ["star", "저장"], ["memo", "메모"], ["read", "읽은 글"], ["tag", "태그"], ["book", "도감"], ["words", "낱말"]].map(([k, n]) => `<button data-sm="${k}" class="${shelfMode === k ? "on" : ""}">${n}</button>`).join("")}</div><div id="sres"></div>`;
   const b = document.getElementById("sres");
-  const entry = id => (S.read[id] && S.read[id].e) || (S.star[id] || {}).item || S.recent.find(e => e.i === id) || null;
-  if (shelfMode === "star") { const l = Object.values(S.star).sort((a, b) => b.at - a.at); b.innerHTML = l.length ? l.map(s => card(s.item)).join("") : '<p class="empty">별표한 글이 없어요.</p>'; }
+  const entry = id => (id.startsWith("ep:") && (S.star[id] || {}).item) || (id.startsWith("ep:") && HP.meta(id.slice(3)) && { i: id, t: HP.meta(id.slice(3)).title, c: [], g: "", h: -1, e: -1, r: "xx" }) || (S.read[id] && S.read[id].e) || (S.star[id] || {}).item || S.recent.find(e => e.i === id) || null;
+  if (shelfMode === "ep") {
+    HP.index().then(X => { const box = document.getElementById("sres"); if (!box || shelfMode !== "ep") return;
+      const l = Object.entries(S.ep).filter(([id]) => HP.meta(id)).sort((a, b) => (b[1].at || 0) - (a[1].at || 0));
+      const pickCount = s => Object.values(s.ch || {}).filter(v => v && v !== "_skip").length;
+      box.innerHTML = l.length ? l.map(([id, s]) => HP.card(HP.meta(id)) + `<p class="sub" style="margin:-4px 4px 12px">${s.done ? "끝까지 봄" : "‘" + esc(s.cue || "") + "’까지"} · 고른 판단 ${pickCount(s)}개${S.memo["ep:" + id] ? " · 메모 있음" : ""}</p>`).join("") : '<p class="empty">아직 본 편집 이야기가 없어요. ‘오늘의 사건’에서 시작해 보세요.</p>'; });
+    b.innerHTML = '<p class="empty">불러오는 중…</p>';
+  }
+  else if (shelfMode === "star") { const l = Object.values(S.star).sort((a, b) => b.at - a.at); b.innerHTML = l.length ? l.map(s => card(s.item)).join("") : '<p class="empty">별표한 글이 없어요.</p>'; }
   else if (shelfMode === "memo") { const ids = Object.keys(S.memo); b.innerHTML = ids.length ? ids.map(id => { const e = entry(id); return `<div class="card"><p class="t">${esc(e ? e.t : id)}</p><p class="one" style="-webkit-line-clamp:6">${esc(S.memo[id])}</p><div class="row"><button class="btn sm" data-open="${esc(id)}">열기</button></div></div>`; }).join("") : '<p class="empty">메모가 없어요.</p>'; }
   else if (shelfMode === "read") { const ids = Object.entries(S.read).sort((a, b) => (b[1].at || 0) - (a[1].at || 0)).slice(0, 300); b.innerHTML = ids.length ? `<div class="list">${ids.map(([id]) => { const e = entry(id); return e ? liRow(e) : ""; }).join("")}</div>` : '<p class="empty">아직 읽은 글이 없어요.</p>'; }
   else if (shelfMode === "tag") { const cnt = {}; Object.values(S.tags).flat().forEach(t => cnt[t] = (cnt[t] || 0) + 1); b.innerHTML = `<div class="chips">${S.tagdefs.map(t => `<button data-stag="${esc(t)}" class="${F.stag === t ? "on" : ""}">${esc(t)} ${cnt[t] || 0}</button>`).join("")}</div><div>${F.stag ? Object.entries(S.tags).filter(([, l]) => l.includes(F.stag)).map(([id]) => { const e = entry(id); return e ? card(e) : ""; }).join("") || '<p class="empty">없어요</p>' : '<p class="note">태그를 고르세요.</p>'}</div>`; }
@@ -385,7 +425,7 @@ async function liveSections(title) {
 const navStack = [];
 function nav(h, isBack) {
   const cur = location.hash || "#today"; if (h === cur) return route();
-  if (!isBack) { if (h.startsWith("#p=")) { navStack.push({ h: cur, y: scrollY }); if (navStack.length > 40) navStack.shift(); } else navStack.length = 0; }
+  if (!isBack) { if (h.startsWith("#p=") || h.startsWith("#ep=")) { navStack.push({ h: cur, y: scrollY }); if (navStack.length > 40) navStack.shift(); } else navStack.length = 0; }
   try { history.replaceState(history.state, "", location.pathname + location.search + h); } catch (e) { location.hash = h; return; }
   route();
 }
@@ -395,7 +435,7 @@ function histBack() {
   const h = location.hash || "#today"; if (h !== "#today") { nav("#today", true); return true; }
   return false;
 }
-function openPage(id) { nav("#p=" + id); }
+function openPage(id) { if (String(id).startsWith("ep:")) return nav("#ep=" + id.slice(3)); nav("#p=" + id); }
 function entryOf(p) { return { i: p.id, t: p.title, y: p.y, y2: p.y2, ya: p.ya, e: p.e, r: ({ "동아시아": "ea", "남·동남아시아": "sa", "중동·중앙아시아": "me", "유럽": "eu", "아프리카": "af", "북미": "na", "중남미": "la", "오세아니아": "oc" })[p.r] || "xx", c: p.c || [], h: (S.idx.themes || []).indexOf(p.h), k: ({ person: "p", event: "e", state: "s", period: "t", lore: "l", concept: "c" })[p.k] || "o", g: p.g || "", n: p.n || 0, o: p.one }; }
 const LORE = /전설|설화|일화|야사|민담|민간 ?전승|전승|음모론|의혹|논란|미스터리|진위|소문|비화|괴담|가설/;
 const ROLE_NAME = { work: "활동", born: "출생", nat: "국적", at: "일어난 곳", side: "참여" };
@@ -550,7 +590,7 @@ function cfgSheet() {
   });
 }
 function exportMine() {
-  const out = { app: "vendingForMe", part: "history", exportedAt: new Date().toISOString(), star: S.star, memo: S.memo, tags: S.tags, tagdefs: S.tagdefs, read: S.read, recent: S.recent, words: S.words, tmemo: S.tmemo };
+  const out = { app: "vendingForMe", part: "history", exportedAt: new Date().toISOString(), star: S.star, memo: S.memo, tags: S.tags, tagdefs: S.tagdefs, read: S.read, recent: S.recent, words: S.words, tmemo: S.tmemo, ep: S.ep };
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: "application/json" })); a.download = "자판기-역사-기록-" + new Date().toISOString().slice(0, 10) + ".json"; a.click(); toast("내보냈어요");
 }
 
@@ -571,15 +611,19 @@ function setTab(v) { document.querySelectorAll("nav.tabs button").forEach(b => b
 async function route() {
   const h = location.hash || "#today"; document.querySelector(".rbar")?.remove();
   if (h.startsWith("#p=")) { setTab(""); document.getElementById("tabs").hidden = true; return renderPage(decodeURIComponent(h.slice(3))); }
+  if (h.startsWith("#ep=")) { setTab(""); document.getElementById("tabs").hidden = true; S.page = null; return HP.render(decodeURIComponent(h.slice(4))); }
   document.getElementById("tabs").hidden = false; document.body.classList.remove("reading"); S.page = null;
   const v = h.slice(1).split("?")[0]; setTab(v);
-  if (v === "explore") renderExplore(); else if (v === "back") renderBack(); else if (v === "shelf") renderShelf(); else renderToday();
+  if (v === "back") setTab("series");
+  if (v === "explore") renderExplore(); else if (v === "back") renderBack(); else if (v === "series") renderSeries(); else if (v === "shelf") renderShelf(); else renderToday();
 }
 window.vfmApp = { back: histBack, go: h => nav(h, true), route, top: () => nav("#today") };
 window.addEventListener("hashchange", route);
 document.addEventListener("click", async e => {
-  const t = e.target.closest("[data-v],[data-open],[data-act],[data-f],[data-bm],[data-sm],[data-stag],[data-depth],[data-rel],[data-word],[data-goc],[data-xm],[data-se],[data-sw],[data-lc],[data-life-era],[data-goera]"); if (!t) return;
+  const t = e.target.closest("[data-v],[data-open],[data-act],[data-f],[data-bm],[data-sm],[data-stag],[data-depth],[data-rel],[data-word],[data-goc],[data-xm],[data-se],[data-sw],[data-lc],[data-life-era],[data-goera],[data-hmood],[data-bmgo]"); if (!t) return;
   const d = t.dataset;
+  if (d.hmood) { S.mood = d.hmood; save("mood"); document.querySelectorAll("[data-hmood]").forEach(b => b.setAttribute("aria-pressed", b.dataset.hmood === S.mood)); return moodList(); }
+  if (d.bmgo) { backMode = d.bmgo; nav("#back"); return; }
   if (d.xm) { F.mode = d.xm; return renderExplore(); }
   if (d.se) { F.se = +d.se; F.sfrom = null; return renderSync(); }
   if (d.sw) { const er = SYNC_ERAS[F.se]; F.sfrom = Math.max(er[1], Math.min(er[2] - er[3], F.sfrom + (+d.sw) * er[3])); return renderSync(); }
