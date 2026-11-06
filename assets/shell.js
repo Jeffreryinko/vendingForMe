@@ -411,7 +411,7 @@
     var id = t.getAttribute("data-yt"); if (!/^[\w-]{11}$/.test(id)) return;
     e.preventDefault(); e.stopPropagation();
     var box = document.createElement("div"); box.className = "vfm-yt vfm-yt-on" + (t.hasAttribute("data-short") ? " short" : "");   // 쇼츠는 세로 화면
-    box.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&playsinline=1&rel=0&modestbranding=1" title="유튜브 영상" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>' +
+    box.innerHTML = '<iframe src="https://www.youtube.com/embed/' + id + '?autoplay=1&playsinline=1&rel=0&modestbranding=1" title="유튜브 영상" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>' +
       '<a class="vfm-yt-out" href="https://www.youtube.com/watch?v=' + id + '" target="_blank" rel="noopener">재생이 안 되면 유튜브에서 보기 ↗</a>';
     t.replaceWith(box);
   }, true);

@@ -290,7 +290,7 @@ function openItem(id) {
   const sum = p.ksum || p.sum || "";
   const mine = S.memo[id] || "";
   let body = "";
-  if (p.vid) body += `<iframe class="vid${p.kind === "쇼츠" ? " short" : ""}" src="https://www.youtube-nocookie.com/embed/${esc(p.vid)}" allow="encrypted-media;picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
+  if (p.vid) body += `<iframe class="vid${p.kind === "쇼츠" ? " short" : ""}" src="https://www.youtube.com/embed/${esc(p.vid)}" allow="encrypted-media;picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
   if (sum) body += `<div class="body"><p>${esc(sum).replace(/ · /g, "</p><p>")}</p>${p.ksum && p.sum && p.ksum !== p.sum ? `<p class="orig" style="margin-top:8px">원문: ${esc(p.sum)}</p>` : ""}</div>`;
   if (p.topics && p.topics.length) body += `<p class="note">${p.topics.map(t => "#" + esc(t)).join(" ")}</p>`;
   const acts = [`<a class="btn pri" href="${esc(p.url)}" target="_blank" rel="noopener">${OPEN_LBL(p)}</a>`];
