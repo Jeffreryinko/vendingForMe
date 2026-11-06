@@ -129,7 +129,12 @@ def cmd_build(ed, prev, ko, label):
     for k, s in enumerate(E["stories"]):
         s["id"] = f"g{k+1}"
         its = [items[i] for i in s["items"] if i in items]
-        ph = sorted([it for it in its if (it.get("m") or {}).get("img")], key=lambda it: it["k"] != "news")
+        cnt = {}
+        for x in its: cnt[ctry(x)] = cnt.get(ctry(x), 0) + 1
+        # 이슈를 가장 많이 다룬 나라의 뉴스 기사 사진을 먼저 (엉뚱하게 묶인 기사 사진을 피함)
+        rank = lambda it: (it["k"] != "news", -cnt.get(ctry(it), 0))
+        its.sort(key=rank)
+        ph = [it for it in its if (it.get("m") or {}).get("img")]
         if ph:
             s["ph"] = {"u": ph[0]["m"]["img"], "s": ph[0]["s"], "i": ph[0]["id"]}; continue
         s.pop("ph", None)

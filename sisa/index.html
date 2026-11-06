@@ -1031,8 +1031,10 @@ function itemCard(it){
 }
 // 사건의 대표 기사 사진: 사진이 있는 글 중 뉴스 기사를 먼저 (로봇이 RSS·og:image 에서 받아 둔 m.img)
 function storyPhoto(s){
-  const its = storyItems(s).filter(i => i.m && i.m.img);
-  const i = its.find(x => x.k === "news") || its[0];
+  // 이슈를 가장 많이 다룬 나라의 기사 사진을 먼저 (엉뚱하게 묶인 기사 사진을 피하려고)
+  const all = storyItems(s), cnt = {}; all.forEach(x => { const c = ctry(x); cnt[c] = (cnt[c] || 0) + 1; });
+  const its = all.filter(i => i.m && i.m.img).map((x, n) => [x, (x.k === "news" ? 100 : 0) + (cnt[ctry(x)] || 0) * 10 - n / 100]).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+  const i = its[0];
   if (i) return { u: i.m.img, i };
   const h = s.ph && S.byId[s.ph.i];                                  // 로봇이 이슈에 붙여 둔 대표 사진
   return s.ph && s.ph.u ? { u: s.ph.u, i: h || { s: s.ph.s, u: "", t: "" } } : null;
