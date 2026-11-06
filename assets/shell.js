@@ -330,6 +330,27 @@
   }, true);
   window.vfm.openX = openInChrome;
 
+  /* ── 나무위키 바로가기 ── 제목·이름·낱말 어디서든. namu.wiki/Go 는 문서가 있으면 바로, 없으면 찾기 결과로 감 (긁어오지 않음, 링크만) */
+  function namu(q) { q = String(q || "").replace(/^(바뀐 점|이번 주) · /, "").replace(/\s*[\(（][^)）]*[\)）]\s*$/, "").trim(); return "https://namu.wiki/Go?q=" + encodeURIComponent(q); }
+  window.vfm.namu = namu;
+  // 글자를 길게 눌러(또는 끌어서) 고르면 그 근처에 '나무위키 ↗' — 1~40자, 한 줄일 때만
+  var npill = document.createElement("a"); npill.className = "vfm-namu"; npill.target = "_blank"; npill.rel = "noopener"; npill.textContent = "나무위키 ↗"; npill.hidden = true;
+  document.addEventListener("DOMContentLoaded", function () { document.body.appendChild(npill); });
+  css.textContent += ".vfm-namu{position:absolute;z-index:9998;transform:translate(-50%,0);background:#00A495;color:#fff;font:700 14px/1 var(--ap-font);padding:9px 13px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.22);text-decoration:none;white-space:nowrap}" +
+    ".vdk-namu{color:#00A495!important}";
+  var nT = null;
+  function placeNamu() {
+    var sel = window.getSelection && window.getSelection(), t = sel ? String(sel).trim() : "";
+    if (!t || t.length > 40 || /\n/.test(t) || !sel.rangeCount || (document.activeElement && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName))) { npill.hidden = true; return; }
+    var r = sel.getRangeAt(0).getBoundingClientRect(); if (!r.width && !r.height) { npill.hidden = true; return; }
+    npill.href = namu(t); npill.hidden = false;
+    var below = r.bottom + 54 < window.innerHeight;                  // 폰은 위쪽에 시스템 메뉴가 뜨니 아래에
+    npill.style.left = Math.max(60, Math.min(window.innerWidth - 60, r.left + r.width / 2)) + window.scrollX + "px";
+    npill.style.top = (below ? r.bottom + 10 : r.top - 46) + window.scrollY + "px";
+  }
+  document.addEventListener("selectionchange", function () { clearTimeout(nT); nT = setTimeout(placeNamu, 250); });
+  npill.addEventListener("click", function () { setTimeout(function () { npill.hidden = true; try { window.getSelection().removeAllRanges(); } catch (e) { } }, 100); });
+
   /* ── 구글 로그인 (assets/sync.js) — 설정(sync-config.js)이 있을 때만 보임 ── */
   function syncHtml() {
     var S = window.vfmSync;

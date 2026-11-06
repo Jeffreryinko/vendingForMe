@@ -296,7 +296,7 @@ function openItem(id) {
   const acts = [`<a class="btn pri" href="${esc(p.url)}" target="_blank" rel="noopener">${OPEN_LBL(p)}</a>`];
   if (p.disc && p.disc !== p.url) acts.push(`<a class="btn" href="${esc(p.disc)}" target="_blank" rel="noopener">댓글 토론 ↗</a>`);
   if (p.sec === "gh") acts.push(`<a class="btn" href="https://www.youtube.com/results?search_query=${encodeURIComponent(p.title)}" target="_blank" rel="noopener">유튜브 해설 찾기 ↗</a>`);
-  acts.push(`<button class="btn" data-act="star">${S.star[id] ? "★ 별표 해제" : "☆ 별표"}</button>`, `<button class="btn" data-act="think">✎ 생각</button>`, `<button class="btn" data-act="share">공유</button>`, `<button class="btn" data-act="hide">숨기기</button>`);
+  acts.push(`<button class="btn" data-act="star">${S.star[id] ? "★ 별표 해제" : "☆ 별표"}</button>`, `<button class="btn" data-act="think">✎ 생각</button>`, `<a class="btn" href="${esc(window.vfm.namu(p.ko || p.title))}" target="_blank" rel="noopener">나무위키 ↗</a>`, `<button class="btn" data-act="share">공유</button>`, `<button class="btn" data-act="hide">숨기기</button>`);
   const back = document.createElement("div"); back.className = "back"; back.dataset.id = id;
   back.innerHTML = `<div class="sheet" role="dialog"><div class="grab"></div>
     <div class="meta" style="margin-bottom:6px"><span class="bd src">${esc(SEC[p.sec] || "")}</span>${p.kind && p.kind !== SEC[p.sec] ? `<span class="bd">${esc(p.kind)}</span>` : ""}${metaOf(p).map(x => `<span>${x}</span>`).join("")}<span>${dayLbl(p.date)}</span></div>

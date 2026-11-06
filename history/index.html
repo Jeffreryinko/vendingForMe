@@ -82,7 +82,7 @@ h1.title{font:800 calc(26px*var(--fs))/1.25 var(--ap-display);letter-spacing:-.0
 .src{font-size:12.5px;color:var(--muted);border-top:.5px solid var(--ap-sep);padding:12px 0;margin-top:18px}
 .memo{width:100%;min-height:90px;border:0;border-radius:12px;background:var(--surface);color:inherit;font:inherit;padding:10px;resize:vertical}
 .rbar{position:fixed;left:0;right:0;bottom:0;background:var(--ap-bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--ap-sep);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));display:flex;gap:6px;justify-content:space-around;z-index:6}
-.rbar button{flex:1;border:0;background:none;display:grid;justify-items:center;gap:2px;font-size:10.5px;font-weight:500;color:var(--accent);padding:4px 0}.rbar button b{font-size:21px;font-weight:400}.rbar button.on{color:var(--ap-orange)}
+.rbar a.namu{flex:1;display:grid;justify-items:center;gap:2px;font-size:10.5px;font-weight:500;color:#00A495;padding:4px 0;text-decoration:none}.rbar a.namu b{font-size:20px;line-height:1.2}.rbar button{flex:1;border:0;background:none;display:grid;justify-items:center;gap:2px;font-size:10.5px;font-weight:500;color:var(--accent);padding:4px 0}.rbar button b{font-size:21px;font-weight:400}.rbar button.on{color:var(--ap-orange)}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);display:flex;z-index:6}
 nav.tabs button{flex:1;border:0;background:none;display:grid;justify-items:center;align-content:center;gap:1px}
 nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
@@ -444,7 +444,7 @@ async function renderPage(id) {
     <div class="src">출처: <a href="${esc(p.src.url)}" target="_blank" rel="noopener">한국어 위키백과 ‘${esc(p.title)}’</a> (${esc(p.src.license)}) · 위키백과 글 고친 날 ${esc(p.src.edited || "")} · 로봇이 받은 날 ${esc(p.at || "")}${p.qid ? ` · <a href="https://www.wikidata.org/wiki/${esc(p.qid)}" target="_blank" rel="noopener">위키데이터</a>` : ""}${p.en ? ` · <a href="https://en.wikipedia.org/wiki/${encodeURIComponent(p.en.replace(/ /g, "_"))}" target="_blank" rel="noopener">영문판</a>` : ""}<br>
       <span class="sub">분류: ${esc((p.cats || []).slice(0, 8).join(" · "))}</span><br><span class="sub">위키백과 글을 로봇이 토큰 없이 잘라 둔 것이에요. 연도·나라·테마는 위키데이터 속성으로 자동으로 붙여 틀릴 수 있어요.</span></div>
     <div style="height:70px"></div>
-    <div class="rbar"><button data-act="star" class="${sv ? "on" : ""}"><b>${sv ? "★" : "☆"}</b>별표</button><button data-act="hide"><b>⊘</b>숨기기</button><button data-act="tag"><b>#</b>태그</button><button data-act="think"><b>✎</b>생각</button><button data-act="share"><b>↗</b>공유</button></div>`;
+    <div class="rbar"><button data-act="star" class="${sv ? "on" : ""}"><b>${sv ? "★" : "☆"}</b>별표</button><button data-act="hide"><b>⊘</b>숨기기</button><button data-act="tag"><b>#</b>태그</button><button data-act="think"><b>✎</b>생각</button><a class="namu" href="${esc(window.vfm.namu(p.title))}" target="_blank" rel="noopener"><b>N</b>나무위키</a><button data-act="share"><b>↗</b>공유</button></div>`;
   window.scrollTo(0, 0);
   document.getElementById("memo").addEventListener("change", ev => { const v = ev.target.value.trim(); if (v) S.memo[id] = v; else delete S.memo[id]; save("memo"); if (S.star[id]) { S.star[id].memo = v; save("star"); } toast("메모 저장"); });
   if (!p.full && d !== "short") loadLive(p, d === "deep");
@@ -487,7 +487,7 @@ function openWord(word) {
   back.innerHTML = `<div class="sheet"><h3>${esc(w)}</h3><p class="k">${saved ? "낱말장에 있어요." : "이 말을 메모하거나, 찾아보거나, 낱말장에 저장할 수 있어요."}</p>
     <div class="acts"><button data-a="memo">메모<small>이 말에 내 메모</small></button><button data-a="save">${saved ? "낱말장에 있음 ✓" : "낱말장 저장"}<small>보관함 › 낱말</small></button>
       <button data-a="wiki">위키 미리보기<small>첫 문단만</small></button><button data-a="pages">이 말이 든 글<small>역사 자판기 안에서</small></button><button data-a="tag">태그로 추가<small>${S.page ? "이 글에 #" + esc(w) : "(읽기 화면에서)"}</small></button><button data-a="copy">복사</button></div>
-    <div class="row"><a class="btn sm" href="https://ko.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(w)}" target="_blank" rel="noopener">위키백과</a><a class="btn sm" href="https://www.google.com/search?q=${encodeURIComponent(w + " 역사")}" target="_blank" rel="noopener">구글</a><a class="btn sm" href="https://encykorea.aks.ac.kr/Article/Search/${encodeURIComponent(w)}" target="_blank" rel="noopener">민족문화대백과</a></div><div id="wsub"></div></div>`;
+    <div class="row"><a class="btn sm" href="${esc(window.vfm.namu(w))}" target="_blank" rel="noopener">나무위키</a><a class="btn sm" href="https://ko.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(w)}" target="_blank" rel="noopener">위키백과</a><a class="btn sm" href="https://www.google.com/search?q=${encodeURIComponent(w + " 역사")}" target="_blank" rel="noopener">구글</a><a class="btn sm" href="https://encykorea.aks.ac.kr/Article/Search/${encodeURIComponent(w)}" target="_blank" rel="noopener">민족문화대백과</a></div><div id="wsub"></div></div>`;
   document.body.appendChild(back); const sub = back.querySelector("#wsub");
   const saveWord = () => { const e = S.words[key] || { at: Date.now(), w, pages: {} }; if (S.page) e.pages[S.page.id] = S.page.title; S.words[key] = e; save("words"); };
   back.addEventListener("click", async ev => {

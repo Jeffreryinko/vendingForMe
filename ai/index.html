@@ -69,7 +69,7 @@ u.tm{text-decoration:none;border-bottom:1.5px dotted var(--term);color:inherit;c
 .yt{margin:6px 0}.yt{background:var(--surface);border-radius:var(--r);padding:0 16px}.yt a{display:block;padding:11px 0;border-bottom:.5px solid var(--ap-sep);text-decoration:none;color:inherit;font-size:14px}
 .yt a small{display:block;color:var(--muted);font-size:12px}
 .rbar{position:fixed;left:0;right:0;bottom:0;background:var(--ap-bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--ap-sep);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));display:flex;gap:6px;justify-content:space-around;z-index:6}
-.rbar button{flex:1;border:0;background:none;display:grid;justify-items:center;gap:2px;font-size:10.5px;font-weight:500;color:var(--ap-tint-t);padding:4px 0}.rbar button b{font-size:21px;font-weight:400}.rbar button.on{color:var(--ap-orange)}
+.rbar a.namu{flex:1;display:grid;justify-items:center;gap:2px;font-size:10.5px;font-weight:500;color:#00A495;padding:4px 0;text-decoration:none}.rbar a.namu b{font-size:20px;line-height:1.2}.rbar button{flex:1;border:0;background:none;display:grid;justify-items:center;gap:2px;font-size:10.5px;font-weight:500;color:var(--ap-tint-t);padding:4px 0}.rbar button b{font-size:21px;font-weight:400}.rbar button.on{color:var(--ap-orange)}
 /* 하단 탭 */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);background:var(--surface);border-top:1px solid var(--line);display:flex;z-index:6}
 nav.tabs button{flex:1;border:0;background:none;display:grid;justify-items:center;align-content:center;gap:2px;font-size:11.5px;color:var(--muted)}
@@ -326,7 +326,7 @@ function renderPaper() {
     ${(p.terms || []).length ? `<h2 class="sec">이 글의 용어 <small>${p.terms.length}개</small></h2><div class="chips">${p.terms.map(([id, n]) => { const t = S.termById[id]; return t ? `<button data-term="${id}" class="${S.myterms[id] ? "on" : ""}">${esc(t.ko)} <small>${n}</small></button>` : ""; }).join("")}</div>` : ""}
     <h2 class="sec">내 메모</h2><textarea class="memo" id="memo" placeholder="내 말로 적어 두기">${esc(S.memo[p.id] || "")}</textarea>
     <div style="height:70px"></div>
-    <div class="rbar"><button data-act="star" class="${sv ? "on" : ""}"><b>${sv ? "★" : "☆"}</b>별표</button><button data-act="hide"><b>⊘</b>숨기기</button><button data-act="tag"><b>#</b>태그</button><button data-act="think"><b>✎</b>생각</button><button data-act="share"><b>↗</b>공유</button></div>`;
+    <div class="rbar"><button data-act="star" class="${sv ? "on" : ""}"><b>${sv ? "★" : "☆"}</b>별표</button><button data-act="hide"><b>⊘</b>숨기기</button><button data-act="tag"><b>#</b>태그</button><button data-act="think"><b>✎</b>생각</button><a class="namu" href="${esc(window.vfm.namu(p.ko || p.title))}" target="_blank" rel="noopener"><b>N</b>나무위키</a><button data-act="share"><b>↗</b>공유</button></div>`;
   window.scrollTo(0, 0);
   if (D) D.Seen.add("ai", p.id);
   knowPaper(p, !!S.easy[p.id]);
@@ -352,7 +352,7 @@ function openWord(word, termId) {
       <button data-a="tag">태그로 추가<small>${S.paper ? "이 논문에 #" + esc(t ? t.ko : w) : "(읽기 화면에서)"}</small></button>
       <button data-a="copy">복사</button>
     </div>
-    <div class="row"><a class="btn sm" href="https://ko.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(t && t.wiki_ko ? t.wiki_ko : w)}" target="_blank" rel="noopener">위키백과</a>
+    <div class="row"><a class="btn sm" href="${esc(window.vfm.namu(t ? t.ko : w))}" target="_blank" rel="noopener">나무위키</a><a class="btn sm" href="https://ko.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(t && t.wiki_ko ? t.wiki_ko : w)}" target="_blank" rel="noopener">위키백과</a>
       <a class="btn sm" href="https://www.google.com/search?q=${encodeURIComponent(w + (t ? " AI" : ""))}" target="_blank" rel="noopener">구글</a>
       <a class="btn sm" href="https://arxiv.org/search/?query=${encodeURIComponent(w)}&searchtype=all" target="_blank" rel="noopener">arXiv</a>
       ${t && t.wiki_en ? `<a class="btn sm" href="https://en.wikipedia.org/wiki/${encodeURIComponent(t.wiki_en)}" target="_blank" rel="noopener">영문 위키</a>` : ""}</div>

@@ -923,7 +923,7 @@ function after(s,k){
   <div class="row">${deepLv?`<button class="btn primary" data-act="deepen" data-id="${s.id}" data-lv="${deepLv}">${deepLv===3?"더 깊이 읽기 · Claude가 이어 쓰기":"조금 더 자세히"}</button>`:""}${nx?`<button class="btn ${deepLv?"":"primary"}" data-act="open" data-id="${s.id}" data-d="${nx}" data-mark="${k}">${nxLabel}</button>`:""}
   <button class="btn" data-act="other" data-id="${s.id}">다른 이야기</button>
   ${D?D.bar("iyagi",s.id,{title:s.title,url:appUrl("#read-"+s.id),text:s.title+(s.hook?"\n"+s.hook:"")}):""}
-  <button class="btn ${isSaved(s.id)?"saved":""}" data-act="save" data-id="${s.id}">${isSaved(s.id)?"담아둠":"담아두기"}</button></div></div>`;
+  <button class="btn ${isSaved(s.id)?"saved":""}" data-act="save" data-id="${s.id}">${isSaved(s.id)?"담아둠":"담아두기"}</button><a class="btn" href="${esc(window.vfm?window.vfm.namu(s.title):"#")}" target="_blank" rel="noopener">나무위키 ↗</a></div></div>`;
 }
 /* ───────── 그림: 이야기마다 자동으로 그리는 표지 + Claude가 그린 삽화 ───────── */
 function hashStr(x){let h=2166136261;for(const c of String(x)){h^=c.codePointAt(0);h=Math.imul(h,16777619)}return h>>>0}
@@ -2732,7 +2732,7 @@ function listItem(key){
     <div class="row lact">${btn}
       <button class="btn" data-act="ldone" data-key="${key}">다 읽었어요</button>
       <button class="btn" data-act="open" data-id="${s.id}" data-d="beyond">이야기 너머</button>
-      <button class="btn ${isSaved(s.id)?"saved":""}" data-act="save" data-id="${s.id}">${isSaved(s.id)?"담아둠":"담아두기"}</button></div>
+      <button class="btn ${isSaved(s.id)?"saved":""}" data-act="save" data-id="${s.id}">${isSaved(s.id)?"담아둠":"담아두기"}</button><a class="btn" href="${esc(window.vfm?window.vfm.namu(s.title):"#")}" target="_blank" rel="noopener">나무위키 ↗</a></div>
   </article>`;
 }
 function readStories(){

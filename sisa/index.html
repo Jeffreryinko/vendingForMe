@@ -1621,7 +1621,7 @@ function entsAll(){
   const tc = {}; Object.keys(cnt).forEach(n => { const t = S.ents[n].t; tc[t] = (tc[t] || 0) + 1; });
   return `<p class="note">오늘 이야기에 나오는 사람·정당·지역·용어를 미리 알아 두면 기사가 훨씬 쉽게 읽혀요. 기사 속 밑줄 친 이름을 눌러도 같은 설명이 떠요.</p>
     <div class="ftabs inl">${[["all", `전체 ${Object.keys(cnt).length}`], ...ENT_ORDER.filter(t => tc[t]).map(t => [t, `${ENT_T[t]} ${tc[t]}`])].map(([k, l]) => `<button type="button" data-entf="${k}" aria-selected="${f === k}">${l}</button>`).join("")}</div>
-    <div class="ents all">${names.map(n => `<div class="entw">${entCard(n)}${S.entsFull ? "" : '<p class="note">설명 불러오는 중…</p>'}<button type="button" class="linkbtn" data-ent="${esc(n)}">이 이름이 나오는 이야기 ${cnt[n]}개 ›</button></div>`).join("")}</div>`;
+    <div class="ents all">${names.map(n => `<div class="entw">${entCard(n)}${S.entsFull ? "" : '<p class="note">설명 불러오는 중…</p>'}<button type="button" class="linkbtn" data-ent="${esc(n)}">이 이름이 나오는 이야기 ${cnt[n]}개 ›</button><a class="linkbtn" href="${esc(window.vfm.namu(n))}" target="_blank" rel="noopener">나무위키 ↗</a></div>`).join("")}</div>`;
 }
 
 // ───────── 컴퓨터(마우스·키보드)용 조작 ─────────

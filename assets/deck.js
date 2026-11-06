@@ -68,7 +68,8 @@
     return '<div class="vdk-react"><button type="button" class="vdk-like' + (on ? " on" : "") + '" data-vdk-like="' + esc(app + "|" + key) + '" data-vdk-t="' + esc(info.title || "") + '" data-vdk-u="' + esc(info.url || "") + '" data-vdk-h="' + esc(info.hash || "") + '" aria-pressed="' + on + '">' +
       '<span aria-hidden="true">' + (on ? "♥" : "♡") + "</span> 좋아요</button>" +
       '<button type="button" class="vdk-share" data-vdk-think="' + esc(app + "|" + key) + '" data-vdk-t="' + esc(info.title || "") + '" data-vdk-u="' + esc(info.url || "") + '"><span aria-hidden="true">✎</span> 생각</button>' +
-      '<button type="button" class="vdk-share" data-vdk-share="1" data-vdk-t="' + esc(info.title || "") + '" data-vdk-u="' + esc(info.url || "") + '" data-vdk-x="' + esc(info.text || "") + '"><span aria-hidden="true">↗</span> 공유</button></div>';
+      '<button type="button" class="vdk-share" data-vdk-share="1" data-vdk-t="' + esc(info.title || "") + '" data-vdk-u="' + esc(info.url || "") + '" data-vdk-x="' + esc(info.text || "") + '"><span aria-hidden="true">↗</span> 공유</button>' +
+      '<a class="vdk-share vdk-namu" href="' + esc((window.vfm && window.vfm.namu ? window.vfm.namu : function (q) { return "https://namu.wiki/Go?q=" + encodeURIComponent(q); })(info.q || info.title || "")) + '" target="_blank" rel="noopener">나무위키</a></div>';
   }
 
   /* ── 덱 ── */
@@ -368,7 +369,7 @@
     ".vdk-btn{border:0;border-radius:12px;padding:12px 14px;font:inherit;font-weight:600;background:var(--ap-tint,#0A84FF);color:#fff;cursor:pointer}" +
     ".vdk-btn.ghost{background:var(--ap-fill,rgba(118,118,128,.12));color:var(--ink,var(--ap-label,#111))}" +
     ".vdk-react{display:flex;gap:8px;margin:14px 0 4px}" +
-    ".vdk-react button{flex:1;border:0;border-radius:12px;padding:10px 8px;font:inherit;font-size:14.5px;font-weight:600;background:var(--ap-fill,rgba(118,118,128,.12));color:var(--ink,var(--ap-label,#111));cursor:pointer}" +
+    ".vdk-react .vdk-namu{display:flex;align-items:center;justify-content:center;text-decoration:none;flex:1;border-radius:12px;padding:10px 6px;font-size:14.5px;font-weight:600;background:var(--ap-fill,rgba(118,118,128,.12))}.vdk-react button{flex:1;border:0;border-radius:12px;padding:10px 8px;font:inherit;font-size:14.5px;font-weight:600;background:var(--ap-fill,rgba(118,118,128,.12));color:var(--ink,var(--ap-label,#111));cursor:pointer}" +
     ".vdk-like.on{color:var(--ap-pink,#FF2D55);background:color-mix(in srgb,var(--ap-pink,#FF2D55) 13%,transparent)}" +
     ".vdk-nav{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:.5px solid var(--ap-sep,rgba(60,60,67,.29))}" +
     ".vdk-nav button{flex:none;width:48px;height:44px;border:0;border-radius:12px;background:var(--ap-fill,rgba(118,118,128,.12));font-size:24px;line-height:1;color:var(--ink,var(--ap-label,#111));cursor:pointer}" +
