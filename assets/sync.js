@@ -11,7 +11,7 @@
   var SKIP = /^vfm:(mode:|deck:|tab$|trc|mix:si$)/;               // 화면 상태·임시 값은 올리지 않음
   var EXTRA = ["iyagi-library-v1", "iyagi-extra-v1"];
   var client = null, user = null, busy = false, timer = null;
-  var api = window.vfmSync = { ready: !!(CFG.url && CFG.key && CFG.google), user: function () { return user; }, login: login, logout: logout, now: function () { return run(true); }, status: "" };
+  var api = window.vfmSync = { ready: !!(CFG.url && CFG.key && CFG.google), user: function () { return user; }, client: function () { return client; }, login: login, logout: logout, now: function () { return run(true); }, status: "" };
 
   function syncKeys() {
     var out = [];

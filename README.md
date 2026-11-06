@@ -1,11 +1,11 @@
 # 자판기 (vendingForMe)
 
-시사 자판기 + 이야기 도서관 + AI 논문 + 역사 + 도구. 서버 없이 GitHub 하나로 돌아갑니다 (카드 결제 0원).
+시사 자판기 + 이야기 도서관 + AI 논문 + 역사 + 도구 + 뇌. 서버 없이 GitHub 하나로 돌아갑니다 (카드 결제 0원).
 
 | 부품 | 무엇 | 어디서 |
 |---|---|---|
 | 첫 화면(홈) | `index.html` — 앱 고르는 곳(시사·이야기·AI 카드, 갱신 상태, 설정) | GitHub Pages |
-| 사이트 | `sisa/`, `iyagi/`, `ai/`, `history/`, `tools/` | GitHub Pages |
+| 사이트 | `sisa/`, `iyagi/`, `ai/`, `history/`, `tools/`, `brain/` | GitHub Pages |
 | 돼지코(shim) | `assets/claude-shim.js` — 아티팩트 전용 부품을 파일+폰 저장소로 대체 | 사이트 안 |
 | 껍데기 | `assets/shell.js` — 위쪽 앱 전환 막대(홈·시사·이야기·AI·설정), 공통 뒤로가기, 설정 시트, PWA | 사이트 안 |
 | 넘겨보기 | `assets/deck.js` — 세 앱 공통: 카드 한 장씩 옆으로 밀기, 본 것은 다시 안 나옴(폰 저장소), 좋아요·공유, 원문을 한국어 번역(`*.translate.goog`)으로 열기 | 사이트 안 |
@@ -16,6 +16,7 @@
 | 트렌드 로봇 | `robot/trends_run.py` — 22개국 구글·위키·유튜브·X·현지 검색 순위 (3시간마다) → `assets/hot.js` 화면 | GitHub Actions `trends.yml` |
 | AI 로봇 | `robot/ai_run.py` — HF 추천 논문·arXiv 신규·회사 발표·GitHub·국내 소식 (매일 04:30), NLLB 번역·용어 밑줄, 토큰 0 → `ai/` 화면. 용어 목록 `robot/ai_terms.py` | GitHub Actions `ai.yml` |
 | 도구 로봇 | `robot/tools_run.py` — 요즘 뜨는 AI·개발 도구·오픈소스·활용법: GitHub 급상승(오늘의 인기+새 저장소+별 증가)·긱뉴스·해커뉴스(Show HN·화제)·유튜브 해설 채널 RSS(+하루 한 번 검색)·모음 목록(awesome-*) 새 줄·허깅페이스 인기 앱 (하루 4번 06:40·12:40·18:40·23:40, NLLB 번역, 토큰 0) → `tools/` 화면. 채널·모음 목록·분류 낱말은 `robot/tools_sources.py` | GitHub Actions `tools.yml` |
+| 뇌 로봇 | `robot/brain_run.py` — 뇌과학 소식: 한국어 기사(구글 뉴스 RSS) + 영문 대중 매체 4곳(ScienceDaily·Neuroscience News·Science News·The Transmitter, NLLB 번역), 기사에 나온 부위를 찾아 붙임, 위키백과 첫 문단 7일마다 (하루 2번 07:20·19:20, 토큰 0) → `brain/` 화면. 부위 52개 표 `robot/brain_regions.py`, 그림 만들기 `robot/brain_build.py`(한 번만) | GitHub Actions `brain.yml` |
 | 이야기 위키 로봇 | `robot/iyagi_wiki.py` — 목록 약 1,500개를 위키백과에서 한 번에 모아 정리(토큰 0, 손으로 실행) | GitHub Actions `iyagi-wiki.yml` |
 | 요청함 | 앱의 "풀어 주세요" 버튼 → GitHub 이슈 → `data/requests.json` → 다음 루틴 때 만들기 | GitHub Actions `requests.yml` |
 | AI 쉬운 풀이 | `robot/AI_RUNBOOK.md`, `robot/easy_tools.py` — 하루 최대 3편, 요청 먼저 → `data/ai/easy/` | 편집장 루틴 07시 회차 |
@@ -23,7 +24,7 @@
 | 원문 번역 로봇 | `robot/iyagi_translate.py` — 토큰 0 기계번역 (주 2회) | GitHub Actions `iyagi-orig.yml` |
 | 시사 편집장 | `robot/EDITOR_RUNBOOK.md` — 이슈·해설·단신·이름 사전 (07·19시) | 클로드 예약 작업 |
 | 이야기 작가 | `robot/AUTHOR_RUNBOOK.md` — 매일 새벽 5편 | 클로드 예약 작업 |
-| 창고 | `data/sisa/*`, `data/iyagi/*`, `data/trends/*`, `data/ai/*`, `data/history/*`, `data/tools/*` (JSON) | 저장소 |
+| 창고 | `data/sisa/*`, `data/iyagi/*`, `data/trends/*`, `data/ai/*`, `data/history/*`, `data/tools/*`, `data/brain/*` (JSON) | 저장소 |
 
 ## 비밀 설정 (저장소 Settings → Secrets and variables → Actions)
 `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`, `YOUTUBE_API_KEY`, `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `REDDIT_USERNAME`
@@ -55,3 +56,12 @@
 - `days/<날짜>.json` 그날 처음 본 것 (찾기용, 30일) · `lists/<id>.json` 모음집 전체(번역 포함)
 - `_state/stars.tsv` 저장소별 지난 별 수(하루 +N 계산) · `_state/awesome.json` 모음 목록에 이미 있던 줄(처음 돌 때 있던 건 `0` = 새 항목 아님) · `_state/yt.json` 하루 한 번 검색 결과
 - 유튜브 채널 더하기: 채널 주소(@이름)에서 UC로 시작하는 ID를 찾아 `robot/tools_sources.py` 의 `CHANNELS` 에 한 줄
+
+## 뇌 탭 자료 (`data/brain/`)
+- `regions.json` 부위 52개(1단계 12 + 2단계 40): 이름·영어·뜻풀이·한 줄·하는 일·비유·어디쯤·다치면·짝·기사 낱말. 원본은 `robot/brain_regions.py` → `python robot/brain_build.py --text`
+- `atlas.json` + `img/*.webp` 평면 그림 6면(옆면·안쪽 면·아래 면 = 입체 음영 / 앞 단면·해마 단면·가로 단면 = MRI) — 조각(atom)별 SVG 경로와 넓이. `mesh.bin`·`mesh.json` 3D 조각 92개(약 1MB)
+  - 재료: MNI152 표준 뇌 1mm, AAL·Harvard-Oxford 피질하·JHU 백질(neuroparc 저장소), 배경 MRI 는 nilearn 내장 MNI152 2009. 작은 핵(시상하부·흑질·복측피개영역·청반·솔기핵·뇌하수체·송과선)은 논문 좌표에 대략 크기로
+  - 다시 만들기: neuroparc 를 받아 `python robot/brain_build.py --atlas <neuroparc 경로>` (nibabel·nilearn·scikit-image·trimesh·fast-simplification 필요)
+- `news.json` 소식 30일치(부위 `rs` 붙음) · `_index.json` 부위별 기사 수·출처 상태 · `wiki.json` 위키백과 첫 문단
+- 외우기 기록은 폰 `vfm:brain:*` (srs = 부위별 상자·다음 복습일). 구글 로그인하면 기기끼리 맞춤
+- 가족 점수판: Supabase 표 `brain_board` — 만드는 SQL 은 `robot/brain_board.sql` (한 번만 실행)

@@ -1,6 +1,6 @@
 /* shell.js — 자판기 공통 껍데기 (시사·이야기·AI·역사·도구·첫 화면).
  *
- *  1) 앱 전환 막대: 화면 맨 위에 [홈] [시사 | 이야기 | AI | 역사 | 도구] [⋯] — 크게, 애플식 분할 버튼
+ *  1) 앱 전환 막대: 화면 맨 위에 [홈] [시사 | 이야기 | AI | 역사 | 도구 | 뇌] [⋯] — 크게, 애플식 분할 버튼
  *  2) 뒤로가기 한 가지 규칙 (모든 앱 공통)
  *       · 앱 안에서 화면을 옮겨도 브라우저 기록은 쌓지 않는다 (각 앱이 replaceState 로 이동)
  *       · 휴대폰 뒤로가기 = "한 단계 위로": 열린 창 닫기 → 앞 화면 → 그 앱의 첫 화면 → 자판기 첫 화면(홈)
@@ -15,8 +15,8 @@
   var APP = (window.vfm && window.vfm.app) || window.VFM_APP || "sisa";
   var HOME = APP === "home";
   var ROOT = HOME ? "./" : "../";
-  var APPS = [["sisa", "시사"], ["iyagi", "이야기"], ["ai", "AI"], ["history", "역사"], ["tools", "도구"]];
-  var NAME = { home: "홈", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", box: "보관함" };
+  var APPS = [["sisa", "시사"], ["iyagi", "이야기"], ["ai", "AI"], ["history", "역사"], ["tools", "도구"], ["brain", "뇌"]];
+  var NAME = { home: "홈", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", box: "보관함" };
   try { if (!HOME) localStorage.setItem("vfm:tab", APP); } catch (e) { }
 
   /* ── 글 다듬기: 첫 문단 괄호 속 외국어 표기(조지아어·벵골어 등)는 폰에서 □□□ 로 깨지고 앞부분을 다 차지함 → 뺌.
@@ -48,7 +48,9 @@
     ".vfm-bar .h{flex:none;width:40px;height:40px;border-radius:12px;border:0;background:var(--ap-fill);display:grid;place-items:center;color:var(--ap-label);cursor:pointer}" +
     ".vfm-bar .h svg{width:20px;height:20px}" +
     ".vfm-bar .h.home{width:auto;padding:0 12px 0 10px;display:flex;gap:5px;align-items:center;font:inherit;font-size:15px;font-weight:700}" +
-    ".vfm-seg{flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:3px;border-radius:12px;background:var(--ap-fill);height:40px}" +
+    ".vfm-seg{flex:1;min-width:0;display:grid;grid-template-columns:repeat(" + APPS.length + ",auto);gap:1px;padding:3px;border-radius:12px;background:var(--ap-fill);height:40px}" +
+    ".vfm-seg button{padding:0 4px;min-width:0}" +
+    "@media (max-width:440px){.vfm-bar .h.home{width:40px;padding:0;justify-content:center;font-size:0;gap:0}.vfm-seg button{font-size:13.5px;gap:3px}}" +
     ".vfm-seg button{border:0;border-radius:9px;background:transparent;color:var(--ap-label);font:inherit;font-size:14px;letter-spacing:-.03em;white-space:nowrap;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;-webkit-tap-highlight-color:transparent}" +
     ".vfm-seg button i{width:8px;height:8px;border-radius:50%;display:inline-block}" +
     ".vfm-seg button[aria-current=page]{background:var(--ap-seg-on);box-shadow:0 3px 8px rgba(0,0,0,.12),0 1px 1px rgba(0,0,0,.04);font-weight:700}" +
@@ -131,7 +133,7 @@
   }
   function paintDot() {
     var dot = document.querySelector(".vfm-seg .vfm-dot"); if (!dot) return;
-    dot.className = "vfm-dot " + (!meta || !meta.updatedAt ? "none" : (Date.now() - Date.parse(meta.updatedAt) > (APP === "sisa" ? 6 : APP === "tools" ? 12 : 30) * 3600e3 ? "old" : ""));
+    dot.className = "vfm-dot " + (!meta || !meta.updatedAt ? "none" : (Date.now() - Date.parse(meta.updatedAt) > (APP === "sisa" ? 6 : APP === "tools" ? 12 : APP === "brain" ? 18 : 30) * 3600e3 ? "old" : ""));
     dot.title = meta && meta.updatedAt ? "마지막 갱신 " + ago(meta.updatedAt) : "갱신 기록 없음";
   }
   function loadMeta() { if (HOME) return; return getJ("data/" + APP + "/_meta.json").then(function (m) { meta = m; paintDot(); }); }
@@ -214,9 +216,9 @@
     APPS.forEach(function (a) {
       getJ("data/" + a[0] + "/_meta.json").then(function (m) { var el = back.querySelector('[data-u="' + a[0] + '"] .v'); if (el) el.textContent = m && m.updatedAt ? ago(m.updatedAt) + (m.label ? " · " + m.label : "") : "기록 없음"; });
     });
-    Promise.all([getJ("data/trends/_index.json"), getJ("data/ai/_index.json"), getJ("data/history/_index.json"), getJ("data/tools/_index.json")]).then(function (r) {
+    Promise.all([getJ("data/trends/_index.json"), getJ("data/ai/_index.json"), getJ("data/history/_index.json"), getJ("data/tools/_index.json"), getJ("data/brain/_index.json")]).then(function (r) {
       var el = back.querySelector("#vfmHealth"); if (!el) return;
-      var rows = [["트렌드", r[0]], ["AI", r[1]], ["역사", r[2]], ["도구", r[3]]].map(function (x) {
+      var rows = [["트렌드", r[0]], ["AI", r[1]], ["역사", r[2]], ["도구", r[3]], ["뇌", r[4]]].map(function (x) {
         var ks = Object.keys((x[1] && x[1].broken) || {});
         return "<div><span>" + x[0] + '</span><span class="v">' + (x[1] ? (ks.length ? "고장 " + ks.length + "곳: " + ks.slice(0, 3).join(", ") : "모두 정상") : "자료 없음") + "</span></div>";
       });
@@ -338,7 +340,7 @@
       '<button type="button" data-act="syncnow"><span class="tint">지금 맞추기</span><span class="v">›</span></button><button type="button" data-act="logout"><span>로그아웃</span><span class="v">›</span></button>';
   }
   // 설정 파일은 늘 새로 받음 (브라우저가 10분 묵혀 두지 않게)
-  [ROOT + "assets/sync-config.js?t=" + Math.floor(Date.now() / 60000), ROOT + "assets/sync.js?v=3"].reduce(function (p, src) {
+  [ROOT + "assets/sync-config.js?t=" + Math.floor(Date.now() / 60000), ROOT + "assets/sync.js?v=4"].reduce(function (p, src) {
     return p.then(function () { return new Promise(function (ok) { var sc = document.createElement("script"); sc.src = src; sc.onload = sc.onerror = ok; document.head.appendChild(sc); }); });
   }, Promise.resolve()).then(function () { if (window.vfmSync) { window.vfmSync.render = syncHtml; gate(); } });
 

@@ -32,6 +32,9 @@ html.ap.ap-history[data-theme="dark"]{--ap-tint:#AC8E68;--ap-tint-t:#C8A87E}
 html.ap.ap-tools{--ap-tint:#30B0C7;--ap-tint-t:#0A7A8C}
 @media (prefers-color-scheme:dark){html.ap.ap-tools:not([data-theme="light"]){--ap-tint:#40CBE0;--ap-tint-t:#5AD4E6}}
 html.ap.ap-tools[data-theme="dark"]{--ap-tint:#40CBE0;--ap-tint-t:#5AD4E6}
+html.ap.ap-brain{--ap-tint:#E0457B;--ap-tint-t:#C2185B}
+@media (prefers-color-scheme:dark){html.ap.ap-brain:not([data-theme="light"]){--ap-tint:#FF6B9A;--ap-tint-t:#FF85AC}}
+html.ap.ap-brain[data-theme="dark"]{--ap-tint:#FF6B9A;--ap-tint-t:#FF85AC}
 
 @media (prefers-color-scheme:dark){html.ap:not([data-theme="light"]){
   --ap-bg:#000000; --ap-surface:#1C1C1E; --ap-surface2:#2C2C2E; --ap-fill:rgba(118,118,128,.24); --ap-fill2:rgba(118,118,128,.16);
@@ -52,9 +55,9 @@ html.ap[data-theme="dark"]{
 
 /* ───────── 2. 앱별 원래 변수 → 공통 토큰 ───────── */
 /* 시사·AI (같은 이름의 변수를 씀) */
-html.ap.ap-sisa,html.ap.ap-ai,html.ap.ap-history,html.ap.ap-tools,
-html.ap.ap-sisa:not([data-theme="light"]),html.ap.ap-ai:not([data-theme="light"]),html.ap.ap-history:not([data-theme="light"]),html.ap.ap-tools:not([data-theme="light"]),
-html.ap.ap-sisa[data-theme="dark"],html.ap.ap-ai[data-theme="dark"],html.ap.ap-history[data-theme="dark"],html.ap.ap-tools[data-theme="dark"]{
+html.ap.ap-sisa,html.ap.ap-ai,html.ap.ap-history,html.ap.ap-tools,html.ap.ap-brain,
+html.ap.ap-sisa:not([data-theme="light"]),html.ap.ap-ai:not([data-theme="light"]),html.ap.ap-history:not([data-theme="light"]),html.ap.ap-tools:not([data-theme="light"]),html.ap.ap-brain:not([data-theme="light"]),
+html.ap.ap-sisa[data-theme="dark"],html.ap.ap-ai[data-theme="dark"],html.ap.ap-history[data-theme="dark"],html.ap.ap-tools[data-theme="dark"],html.ap.ap-brain[data-theme="dark"]{
   --bg:var(--ap-bg); --surface:var(--ap-surface); --sunk:var(--ap-fill); --ink:var(--ap-label); --muted:var(--ap-label2); --line:var(--ap-line);
   --accent:var(--ap-tint-t); --accent-ink:#FFFFFF; --accent-soft:var(--ap-tint-soft);
   --coin:var(--ap-orange-t); --coin-soft:color-mix(in srgb,var(--ap-orange) 15%,transparent);

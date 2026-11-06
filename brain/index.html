@@ -1,0 +1,685 @@
+<!doctype html><html lang="ko" class="ap ap-brain"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>window.VFM_APP="brain";</script>
+<script src="../assets/claude-shim.js"></script>
+<script src="../assets/deck.js"></script>
+<link rel="manifest" href="../manifest.webmanifest"><meta name="theme-color" content="#F2F2F7"><link rel="apple-touch-icon" href="../assets/icon-192.png">
+<title>뇌 자판기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../assets/apple.css">
+<style>
+/* 뇌 탭 — 뇌 부위 52개 외우기(지도·카드·퀴즈·간격 반복) + 뇌과학 소식(로봇 robot/brain_run.py, 하루 2번, 토큰 0).
+   오늘 · 지도 · 외우기 · 보관함. 자료는 data/brain/ (그림은 robot/brain_build.py 로 한 번 만듦) */
+:root{--bg:#F2F2F7;--surface:#fff;--sunk:#E9E9EE;--ink:#000;--muted:#6E6E73;--line:#E5E5EA;--accent:#C2185B;--accent-ink:#fff;--accent-soft:#FBE3EC;
+  --coin:#C24E00;--coin-soft:#FBE9D6;--ok:#1E8E3E;--ok-soft:#DFF3E4;--ng:#D93025;--ng-soft:#FCE4E2;--fs:1;--r:14px;--nav-h:58px;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--surface:#1C1C1E;--sunk:#2C2C2E;--ink:#fff;--muted:#98989F;--line:#38383A;--accent:#FF6B9A;--accent-soft:#3A1726;--coin:#FFB340;--coin-soft:#3A2E17;--ok:#30D158;--ok-soft:#12321C;--ng:#FF6961;--ng-soft:#3A1715;color-scheme:dark}
+  html.ap.ap-brain:not([data-theme="light"]){--accent-ink:#2A0614}}
+:root[data-theme="dark"]{--bg:#000;--surface:#1C1C1E;--sunk:#2C2C2E;--ink:#fff;--muted:#98989F;--line:#38383A;--accent:#FF6B9A;--accent-soft:#3A1726;--coin:#FFB340;--coin-soft:#3A2E17;--ok:#30D158;--ok-soft:#12321C;--ng:#FF6961;--ng-soft:#3A1715;color-scheme:dark}
+html.ap.ap-brain[data-theme="dark"]{--accent-ink:#2A0614}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--ap-font,system-ui);font-size:calc(15px*var(--fs));line-height:1.55;word-break:keep-all;overflow-wrap:break-word;
+  padding:0 max(14px,env(safe-area-inset-right,0px)) calc(var(--nav-h) + 24px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
+[hidden]{display:none!important}button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}a{color:var(--accent)}
+.wrap{max-width:660px;margin:0 auto}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding:14px 2px 2px}
+.lt{margin:0;font:800 34px/1.15 var(--ap-display);letter-spacing:-.03em}
+.ib{width:36px;height:36px;border-radius:50%;border:0;background:var(--ap-fill);color:var(--accent);display:grid;place-items:center;font-size:17px;font-weight:600;flex:none}
+.sub{font-size:13px;color:var(--muted);margin:2px 2px 8px}
+h2.sec{font:700 20px/1.25 var(--ap-display);letter-spacing:-.02em;margin:24px 2px 8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+h2.sec small{font:400 13px var(--ap-font);color:var(--muted);letter-spacing:0;flex:1}h2.sec button{background:none;border:0;color:var(--accent);font:600 14px var(--ap-font);padding:0;flex:none}
+.note{font-size:13px;color:var(--muted);margin:0 2px 8px}.health{font-size:13px;color:var(--coin);margin:6px 2px}
+.chips{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:6px -14px;padding:0 14px}.chips::-webkit-scrollbar{display:none}
+.chips.wrapc{flex-wrap:wrap;overflow:visible;margin:6px 0;padding:0}
+.chips button{flex:0 0 auto;padding:7px 13px;border-radius:999px;border:0;background:var(--ap-fill);font-size:14px;color:var(--ink)}.chips button small{color:var(--muted);font-size:12px;margin-left:3px}
+.chips button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}.chips button.on small{color:inherit;opacity:.8}
+.rc{display:inline-block;border:0;padding:3px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:12.5px;font-weight:600;margin:0 4px 4px 0}
+.box{background:var(--surface);border-radius:var(--r);padding:14px 16px;margin:0 0 10px}
+.card{display:flex;gap:12px;width:100%;text-align:left;background:var(--surface);border:0;border-radius:var(--r);padding:13px 14px;margin:0 0 8px;position:relative;transition:transform .12s}.card:active{transform:scale(.985)}
+.card.read{opacity:.55}.card.star{box-shadow:inset 0 0 0 1.5px var(--ap-orange)}
+.card .bx{flex:1;min-width:0}.card .t{font-weight:650;letter-spacing:-.015em;font-size:calc(15.5px*var(--fs));line-height:1.42;margin:0 0 3px}
+.card .s{font-size:calc(13.5px*var(--fs));color:var(--muted);margin:0 0 7px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.meta{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:12px;color:var(--muted)}
+.bd{display:inline-block;padding:2px 7px;border-radius:6px;font-weight:600;font-size:11.5px;background:var(--ap-fill)}
+.bd.src{background:var(--accent-soft);color:var(--accent)}.bd.new{background:var(--coin-soft);color:var(--coin)}
+.btn{font-size:15px;font-weight:600;padding:11px 18px;border-radius:12px;border:0;background:var(--ap-fill);color:var(--accent);text-decoration:none;display:inline-block;text-align:center}
+.btn.pri{background:var(--accent);color:var(--accent-ink)}.btn.sm{padding:8px 13px;font-size:14px;border-radius:10px}.btn.wide{width:100%}
+.btn.ok{background:var(--ok-soft);color:var(--ok)}.btn.ng{background:var(--ng-soft);color:var(--ng)}
+.row{display:flex;flex-wrap:wrap;gap:8px}.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.search{width:100%;padding:11px 14px;border-radius:10px;border:0;background:var(--ap-fill);color:inherit;font:inherit;font-size:16px;margin:8px 0}
+.empty{text-align:center;color:var(--muted);padding:40px 0;font-size:14px}
+.list{background:var(--surface);border-radius:var(--r);padding:0 16px;margin:0 0 10px}
+.list .li{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 0;border:0;border-bottom:.5px solid var(--ap-sep);background:none;color:inherit;text-decoration:none}.list .li:last-child{border-bottom:0}
+.list .li .bx{flex:1;min-width:0}.list .li .t{font-weight:600;margin:0;font-size:calc(15px*var(--fs))}.list .li .s{font-size:13px;color:var(--muted);margin:0}
+.dot{width:10px;height:10px;border-radius:50%;flex:none;background:var(--ap-fill)}
+.part{font-size:13px;color:var(--accent);font-weight:700;margin:16px 2px 6px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);display:flex;z-index:6}
+nav.tabs button{flex:1;border:0;background:none;display:grid;justify-items:center;align-content:center;gap:1px}
+nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
+.back{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9500;display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:560px;max-height:86vh;overflow:auto;background:var(--bg);border-radius:14px 14px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom,0px));animation:up .24s cubic-bezier(.2,.8,.2,1)}
+@keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
+.sheet .grab{width:36px;height:5px;border-radius:3px;background:var(--ap-label3);margin:0 auto 10px}
+.sheet h3{margin:0 0 4px;font:700 20px/1.35 var(--ap-display);letter-spacing:-.02em}
+.sheet textarea,.memo{width:100%;min-height:70px;border-radius:10px;border:0;background:var(--surface);padding:10px 12px;font:inherit;font-size:15px;color:inherit;resize:vertical}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(30,30,30,.92);color:#fff;padding:9px 15px;border-radius:14px;font-size:13.5px;z-index:9600}
+.help{background:var(--surface);border-radius:var(--r);padding:12px 14px;margin:8px 0;font-size:13.5px;color:var(--muted)}.help b{color:var(--ink)}
+/* 지도 */
+.mapw{background:#141416;border-radius:16px;padding:8px;margin:6px 0 8px;position:relative}
+.mapw svg{display:block;width:100%;height:auto;max-height:62vh}
+.mapw .cap{position:absolute;left:12px;bottom:8px;font-size:11.5px;color:#cfcfd4;pointer-events:none;text-shadow:0 1px 2px #000}
+.mapw .side{position:absolute;right:12px;top:8px;font-size:11px;color:#9a9aa0;pointer-events:none}
+.mapw path.at{fill:transparent;stroke:rgba(255,255,255,.18);stroke-width:.5;cursor:pointer}
+.mapw.col path.at{fill-opacity:.32}
+.mapw path.at.hl{fill:var(--accent)!important;fill-opacity:.72!important;stroke:#fff;stroke-width:1.2}
+.mapw path.at.hl2{fill:#FFD60A!important;fill-opacity:.55!important;stroke:#fff;stroke-width:.8}
+.mapw path.at.ok{fill:#30D158!important;fill-opacity:.7!important;stroke:#fff;stroke-width:1.2}
+.mapw path.at.bad{fill:#FF453A!important;fill-opacity:.7!important;stroke:#fff;stroke-width:1.2}
+.mapw path.ol{fill:none;stroke:rgba(255,255,255,.55);stroke-width:1;pointer-events:none}
+.mapw .ring{fill:none;stroke:#FFD60A;stroke-width:1.6;stroke-dasharray:3 3;pointer-events:none}
+.mini .mapw{padding:4px}.mini .mapw svg{max-height:34vh}
+.ses .mapw svg{max-height:40vh}
+/* 부위 */
+.nm{font:800 30px/1.2 var(--ap-display);letter-spacing:-.03em;margin:6px 0 0}.en{color:var(--muted);font-size:14px;margin:2px 0 8px}
+.origin{background:var(--accent-soft);border-radius:12px;padding:10px 12px;font-size:14px;margin:8px 0}.origin b{color:var(--accent)}
+.one{font-size:calc(17px*var(--fs));font-weight:600;line-height:1.5;margin:10px 0}
+.kv{margin:12px 0}.kv h4{margin:0 0 4px;font-size:13px;color:var(--accent)}.kv p,.kv ul{margin:0;font-size:calc(15px*var(--fs))}.kv ul{padding-left:18px}
+.seg{display:flex;background:var(--ap-fill);border-radius:10px;padding:2px;margin:8px 0}.seg button{flex:1;border:0;background:none;padding:7px 0;border-radius:8px;font-size:14px;font-weight:500}
+.seg button.on{background:var(--surface);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.wiki{background:var(--surface);border-radius:12px;padding:12px 14px;font-size:calc(14.5px*var(--fs));white-space:pre-line}
+/* 외우기 */
+.prog{height:6px;border-radius:3px;background:var(--ap-fill);overflow:hidden;margin:8px 0}.prog i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.big{font:800 26px/1.3 var(--ap-display);letter-spacing:-.02em;margin:6px 0}
+.q{font:700 19px/1.4 var(--ap-display);margin:8px 0}
+.choices{display:grid;gap:8px;margin:10px 0}.choices button{border:0;background:var(--surface);border-radius:12px;padding:13px 14px;text-align:left;font-size:16px;font-weight:600}
+.choices button.ok{background:var(--ok-soft);color:var(--ok)}.choices button.bad{background:var(--ng-soft);color:var(--ng)}
+.flip{background:var(--surface);border-radius:16px;padding:14px;text-align:center;min-height:120px;display:flex;flex-direction:column;justify-content:center;border:0;width:100%}
+.dex{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;margin:8px 0}
+.dex button{border:0;border-radius:10px;padding:8px 4px;font-size:12px;font-weight:600;line-height:1.25;min-height:52px;background:var(--ap-fill);color:var(--ink)}
+.dex .b1,.dex .b2{background:color-mix(in srgb,var(--accent) 18%,transparent)}.dex .b3,.dex .b4{background:color-mix(in srgb,var(--accent) 40%,transparent)}
+.dex .b5,.dex .b6,.dex .b7{background:var(--accent);color:var(--accent-ink)}
+.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}.stat div{background:var(--surface);border-radius:12px;padding:10px;text-align:center}.stat b{display:block;font:800 22px var(--ap-display)}.stat small{color:var(--muted);font-size:12px}
+.board .li .t{display:flex;justify-content:space-between}
+#three{width:100%;height:58vh;border-radius:16px;background:#141416;touch-action:none;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--muted);margin:4px 2px}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+</style></head><body>
+<div class="wrap" id="app"></div>
+<nav class="tabs" id="tabs">
+  <button data-v="today" aria-current="page"><b>☀︎</b>오늘</button>
+  <button data-v="map"><b>◐</b>지도</button>
+  <button data-v="learn"><b>❏</b>외우기</button>
+  <button data-v="shelf"><b>☆</b>보관함</button>
+</nav>
+<script>
+"use strict";
+/* ───── 상태 (폰 브라우저에 저장 · 구글 로그인하면 기기끼리 맞춤) ───── */
+const LS = { g(k, d) { try { const v = localStorage.getItem("vfm:brain:" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+             s(k, v) { try { localStorage.setItem("vfm:brain:" + k, JSON.stringify(v)); } catch (e) { toast("저장 공간이 꽉 찼어요"); } } };
+const S = { srs: LS.g("srs", {}), star: LS.g("star", {}), memo: LS.g("memo", {}), nstar: LS.g("nstar", {}), read: LS.g("read", {}), log: LS.g("log", {}),
+            per: LS.g("per", 5), color: LS.g("color", 1), depth: LS.g("depth", "s"), view: LS.g("view", "lat"), nick: LS.g("nick", ""), nf: "" };
+function save(k) { LS.s(k, S[k]); }
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+function toast(m) { const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); }
+const getJ = p => fetch("../data/brain/" + p, { cache: "no-cache" }).then(r => { if (!r.ok) throw new Error(p + " " + r.status); return r.json(); });
+const DAY = () => Math.floor((Date.now() + 9 * 3600e3) / 864e5);                                  // 한국 날짜 번호
+const dstr = n => new Date(n * 864e5).toISOString().slice(0, 10);
+function ago(iso) { if (!iso) return ""; const m = Math.round((Date.now() - Date.parse(iso.length <= 16 ? iso + ":00+09:00" : iso)) / 60000); if (!(m >= 0)) return iso.slice(5, 10).replace("-", "/"); if (m < 60) return Math.max(m, 1) + "분 전"; const h = Math.floor(m / 60); if (h < 48) return h + "시간 전"; return Math.floor(h / 24) + "일 전"; }
+const shuf = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const IV = [0, 1, 2, 4, 7, 15, 30, 60];                                                           // 상자별 다음 복습까지 날짜
+const LOBE_COL = { frontal: "#5B8DEF", parietal: "#34C38F", temporal: "#F5A623", occipital: "#B36AE2", insula: "#FF6B8A", limbic: "#E8C21C", basal: "#2EC4D6", dien: "#F2784B", stem: "#9AA0A6", cerebellum: "#B08860", csf: "#6EC1FF", wm: "#CFCFCF" };
+const GROUPS = [
+  ["1단계 · 큰 덩어리 12", ["frontal", "parietal", "temporal", "occipital", "hippocampus", "amygdala", "thalamus", "hypothalamus", "cerebellum", "midbrain", "pons", "medulla"]],
+  ["묶어 부르는 이름", ["cortex", "limbic", "basal", "brainstem", "diencephalon"]],
+  ["전두엽 안", ["prefrontal", "dlpfc", "vmpfc", "ofc", "motor", "sma", "broca"]],
+  ["두정엽 안", ["somato", "spl", "ipl", "angular", "precuneus"]],
+  ["측두엽·후두엽 안", ["auditory", "wernicke", "fusiform", "parahipp", "temporalpole", "v1"]],
+  ["깊이 숨은 피질", ["insula", "acc", "pcc"]],
+  ["기저핵 안", ["caudate", "putamen", "pallidus", "accumbens"]],
+  ["뇌간의 작은 핵", ["sn", "vta", "lc", "raphe"]],
+  ["샘 · 길 · 방", ["pituitary", "pineal", "cc", "fornix", "ventricle", "whitematter"]],
+];
+let R = {}, RL = [], A = null, NEWS = null, IDX = null, WIKI = null, ORDER = [];
+
+/* ───── 자료 ───── */
+async function loadAll() {
+  const [rg, at] = await Promise.all([getJ("regions.json"), getJ("atlas.json")]);
+  RL = rg.regions; ORDER = rg.order; R = Object.fromEntries(RL.map(r => [r.id, r])); A = at; A.lobeOf = rg.lobeOf; A.lobes = rg.lobes; A.credit = rg.credit;
+  for (const v of A.views) v.meta = (rg.views.find(x => x.id === v.id) || {});
+  // 조각마다 '가장 좁은 부위' (지도에서 눌렀을 때 뜰 이름)
+  A.best = {};
+  for (const key of A.atoms) {
+    let best = null, bn = 1e9;
+    for (const r of RL) { if (!hasAtom(r, key)) continue; const n = r.atoms.length + (r.lv === 1 ? 0.5 : 0); if (n < bn) { bn = n; best = r.id; } }
+    A.best[key] = best;
+  }
+  getJ("_index.json").then(x => { IDX = x; }).catch(() => { });
+  getJ("news.json").then(x => { NEWS = x; if (/^#(today|news)?$/.test(location.hash || "") || (location.hash || "").startsWith("#news")) paint(); }).catch(() => { NEWS = { items: [] }; });
+  getJ("wiki.json").then(x => { WIKI = x; }).catch(() => { WIKI = {}; });
+}
+function hasAtom(r, key) { const base = key.split(":")[0]; return r.atoms.some(s => s.includes(":") ? s === key : s === base); }
+function atomsOf(id) { const r = R[id]; return r ? A.atoms.filter(k => hasAtom(r, k)) : []; }
+function pxIn(view, keys) { let n = 0; for (const k of keys) if (view.atoms[k]) n += view.atoms[k][1]; return n; }
+function bestView(id) {
+  const ks = atomsOf(id); let best = A.views[0], bn = -1;
+  for (const v of A.views) { const n = pxIn(v, ks) * (v.kind === "proj" ? 1.25 : 1); if (n > bn) { bn = n; best = v; } }
+  return best;
+}
+const viewsOf = id => { const ks = atomsOf(id); return A.views.filter(v => pxIn(v, ks) > 0); };
+const childrenOf = id => RL.filter(r => r.up.includes(id));
+
+/* ───── 지도 그리기 (평면) ───── */
+function mapSvg(view, o = {}) {
+  const hl = new Set(o.hl || []), hl2 = new Set(o.hl2 || []);
+  const col = o.color != null ? o.color : S.color;
+  let s = `<div class="mapw${col ? " col" : ""}" data-view="${view.id}"><svg viewBox="0 0 ${view.w} ${view.h}" role="img" aria-label="${esc(view.name)}"><image href="../data/brain/${view.img}" width="${view.w}" height="${view.h}"/>`;
+  let ring = null, hpx = 0;
+  for (const k of hl) if (view.atoms[k]) hpx += view.atoms[k][1];
+  for (const [k, v] of Object.entries(view.atoms)) {
+    const lobe = A.lobeOf[k.split(":")[0]];
+    const cls = (o.mark && o.mark[k]) || (hl.has(k) ? "hl" : hl2.has(k) ? "hl2" : "");
+    s += `<path class="at ${cls}" data-a="${k}" d="${v[0]}"${col ? ` style="fill:${LOBE_COL[lobe] || "#999"}"` : ""}/>`;
+    if (cls === "hl" && hpx < 40 && !ring) ring = v[0];
+  }
+  s += `<path class="ol" d="${view.outline}"/>`;
+  if (ring) { const m = ring.match(/M(\d+) (\d+)/); if (m) s += `<circle class="ring" cx="${m[1]}" cy="${m[2]}" r="14"/>`; }   // 아주 작은 부위는 노란 동그라미로
+  s += `</svg>${o.cap === false ? "" : `<span class="cap">${esc(view.name)}${o.capx ? " · " + esc(o.capx) : ""}</span>`}${view.kind === "slice" || view.id === "inf" ? '<span class="side">화면 왼쪽 = 오른쪽 뇌</span>' : '<span class="side">← 얼굴 쪽</span>'}</div>`;
+  return s;
+}
+function viewChips(cur, list, act = "view") {
+  return `<div class="chips">${list.map(v => `<button data-${act}="${v.id}" class="${v.id === cur ? "on" : ""}">${esc(v.name)}</button>`).join("")}<button data-${act}="3d" class="${cur === "3d" ? "on" : ""}">3D 돌려보기</button></div>`;
+}
+function legend() { return `<div class="legend">${["frontal", "parietal", "temporal", "occipital", "insula", "limbic", "basal", "dien", "stem", "cerebellum"].map(k => `<span><i style="background:${LOBE_COL[k]}"></i>${A.lobes[k]}</span>`).join("")}</div>`; }
+
+/* ───── 외우기 상태 ───── */
+const learned = () => RL.filter(r => (S.srs[r.id] || {}).b >= 3).length;
+const started = () => RL.filter(r => S.srs[r.id]).length;
+const dueIds = () => ORDER.filter(id => S.srs[id] && S.srs[id].due <= DAY());
+function newToday() { const d = DAY(); return ORDER.filter(id => S.srs[id] && S.srs[id].f === d).length; }
+function newIds() { const n = Math.max(0, S.per - newToday()); return ORDER.filter(id => !S.srs[id]).slice(0, n); }
+function streak() { let d = DAY(), n = 0; if (!S.log[dstr(d)]) d--; while (S.log[dstr(d)]) { n++; d--; } return n; }
+function weekReviews() { let n = 0; for (let d = DAY() - 6; d <= DAY(); d++) n += (S.log[dstr(d)] || {}).r || 0; return n; }
+function logIt(kind, ok) { const k = dstr(DAY()); const o = S.log[k] || (S.log[k] = { r: 0, n: 0, ok: 0 }); o[kind]++; if (ok) o.ok++; const ks = Object.keys(S.log).sort(); while (ks.length > 120) delete S.log[ks.shift()]; save("log"); }
+function grade(id, ok) {
+  const d = DAY(), o = S.srs[id] || (S.srs[id] = { b: 0, f: d, ok: 0, ng: 0 });
+  if (ok) { o.b = Math.min(o.b + 1, 7); o.ok++; } else { o.b = 1; o.ng++; }
+  o.due = d + IV[o.b]; o.at = Date.now(); save("srs"); logIt("r", ok); pushBoard();
+}
+function boxLabel(id) { const o = S.srs[id]; if (!o) return "아직 안 배움"; const left = o.due - DAY(); return `상자 ${o.b}/7 · ${o.b >= 3 ? "외움" : "익히는 중"} · ${left <= 0 ? "오늘 복습" : left + "일 뒤 복습"}`; }
+
+/* ───── 화면: 오늘 ───── */
+function head(title, sub, right = "") { return `<div class="top"><h1 class="lt">${title}</h1><div class="row">${right}</div></div>${sub ? `<p class="sub">${sub}</p>` : ""}`; }
+function renderToday() {
+  const due = dueIds(), nw = newIds(), st = streak();
+  let h = head("뇌", `외운 부위 ${learned()}/${RL.length} · ${st ? "연속 " + st + "일" : "오늘 시작해 볼까요"}`, '<button class="ib" data-act="find" aria-label="부위 찾기">⌕</button>');
+  if (!LS.g("helpSeen", 0)) h += `<div class="help"><b>이 탭은</b> 뇌 부위 이름 52개를 그림으로 외우는 곳이에요. 하루 새 부위 ${S.per}개 + 복습. 맞히면 복습 간격이 1→2→4→7→15일로 늘고, 틀리면 다시 내일.<br>아래 <b>소식</b>은 로봇이 하루 2번 모은 뇌과학 기사예요 — 기사에 나온 부위를 누르면 지도에서 보여 줘요. <button class="btn sm" data-act="helpok" style="margin-top:6px">알겠어요</button></div>`;
+  const total = due.length + nw.length;
+  h += `<div class="box"><p class="note" style="margin:0">오늘 할 것</p>`;
+  if (total) {
+    h += `<p class="big">${nw.length ? `새 부위 ${nw.length}개` : ""}${nw.length && due.length ? " + " : ""}${due.length ? `복습 ${due.length}개` : ""}</p>`;
+    if (nw.length) h += `<div style="margin:4px 0 8px">${nw.map(id => `<button class="rc" data-r="${id}">${esc(R[id].ko)}</button>`).join("")}</div>`;
+    h += `<button class="btn pri wide" data-go="#s=today">시작하기 · 약 ${Math.max(2, Math.round(nw.length * 1 + due.length * 0.4))}분</button>`;
+  } else {
+    const nd = ORDER.filter(id => S.srs[id]).map(id => S.srs[id].due).sort((a, b) => a - b)[0];
+    h += `<p class="big">오늘 몫 끝! 👏</p><p class="note">${nd ? `다음 복습은 ${nd - DAY()}일 뒤` : ""} · 더 하고 싶으면 <button class="rc" data-go="#learn">외우기</button></p>`;
+  }
+  h += `</div>`;
+  const show = nw.length ? nw : due.slice(0, 5);
+  if (show.length) { const v = bestView(show[0]); h += `<div class="mini">${mapSvg(v, { hl: atomsOf(show[0]), hl2: show.slice(1).flatMap(atomsOf), capx: R[show[0]].ko + (show.length > 1 ? " 외 " + (show.length - 1) + "곳 (노랑)" : "") })}</div>`; }
+  h += boardBox(true);
+  h += newsSection(8);
+  return h;
+}
+
+/* ───── 소식 ───── */
+const SRCN = { gn: "한국어 기사", sd: "ScienceDaily", nn: "Neuroscience News", sn: "Science News", tt: "The Transmitter" };
+function newsCard(p) {
+  const read = S.read[p.id] ? " read" : "", star = S.nstar[p.id] ? " star" : "";
+  const t = p.lang === "en" ? (p.ko || p.title) : p.title;
+  const sum = p.lang === "en" ? (p.ksum || p.sum || "") : "";
+  return `<button class="card${read}${star}" data-n="${esc(p.id)}"><div class="bx"><p class="t">${esc(t)}</p>${p.lang === "en" && p.ko ? `<p class="s" style="-webkit-line-clamp:1">${esc(p.title)}</p>` : ""}${sum ? `<p class="s">${esc(sum)}</p>` : ""}
+    <div class="meta"><span class="bd src">${esc(p.pub || SRCN[p.src] || "")}</span>${p.new ? '<span class="bd new">NEW</span>' : ""}${p.dup ? `<span>같은 소식 ${p.dup + 1}곳</span>` : ""}<span>${ago(p.date)}</span></div>
+    ${(p.rs || []).length ? `<div style="margin-top:6px">${p.rs.map(r => R[r] ? `<span class="rc">${esc(R[r].ko)}</span>` : "").join("")}</div>` : ""}</div></button>`;
+}
+const D = window.VfmDeck || null, MODE = "brain";
+const isDeck = () => !!D && D.mode(MODE) === "deck";
+function newsDeckCard(p) {
+  const t = p.lang === "en" ? (p.ko || p.title) : p.title, sum = p.lang === "en" ? (p.ksum || p.sum || "") : "";
+  const r0 = (p.rs || []).find(r => R[r]);
+  return `<div class="vdk-body"><div class="vdk-k"><span class="bd src">${esc(p.pub || SRCN[p.src])}</span><span>${ago(p.date)}</span></div>
+    ${r0 ? `<div class="mini">${mapSvg(bestView(r0), { hl: atomsOf(r0), hl2: p.rs.slice(1).filter(r => R[r]).flatMap(atomsOf), capx: R[r0].ko })}</div>` : ""}
+    <h2 class="vdk-t">${esc(t)}</h2>${p.lang === "en" && p.ko ? `<p class="vdk-note" style="margin:-6px 0 10px">${esc(p.title)}</p>` : ""}
+    ${sum ? `<p class="vdk-p">${esc(sum)}</p>` : ""}
+    ${(p.rs || []).length ? `<p class="vdk-note">나온 부위: ${p.rs.filter(r => R[r]).map(r => `<button type="button" class="rc" data-r="${r}">${esc(R[r].ko)}</button>`).join("")}</p>` : ""}
+    <a class="vdk-more" href="${esc(p.url)}" target="_blank" rel="noopener">원문 보기 ↗</a>
+    ${p.lang === "en" && D ? `<a class="vdk-more" href="${esc(D.koUrl(p.url))}" target="_blank" rel="noopener">번역해서 열기 ↗</a>` : ""}
+    <button type="button" class="vdk-more" data-n="${esc(p.id)}">자세히 · 별표 · 메모 ›</button></div>`;
+}
+function newsList(f) {
+  let l = (NEWS && NEWS.items) || [];
+  if (f === "rs") l = l.filter(p => (p.rs || []).length);
+  else if (f === "ko") l = l.filter(p => p.lang === "ko"); else if (f === "en") l = l.filter(p => p.lang === "en");
+  else if (f && R[f]) l = l.filter(p => (p.rs || []).includes(f));
+  return l;
+}
+function broken() { const b = Object.keys((IDX && IDX.broken) || {}).filter(k => k !== "wiki"); return b.length ? `<p class="health">⚠︎ 지금 못 읽는 출처 ${b.length}곳: ${esc(b.map(k => SRCN[k] || k).join(", "))} (직전 기사로 보여 줘요)</p>` : ""; }
+function newsSection(n) {
+  if (!NEWS) return `<h2 class="sec">뇌과학 소식</h2><p class="note">불러오는 중…</p>`;
+  const l = NEWS.items || [];
+  if (!l.length) return `<h2 class="sec">뇌과학 소식</h2><p class="note">아직 소식이 없어요. 로봇이 하루 2번(07:20·19:20) 모아요.</p>`;
+  let h = `<h2 class="sec">뇌과학 소식<small>${ago(NEWS.at)} 갱신 · ${l.length}개</small><button data-go="#news">전부 ›</button></h2>` + broken();
+  if (D) h += D.modeSwitch(MODE, () => paint());
+  if (isDeck()) return h + makeDeck("brain-news", () => newsList(S.nf), "새 소식을 다 봤어요").html();
+  const withR = l.filter(p => (p.rs || []).length).slice(0, 3), ids = new Set(withR.map(p => p.id));
+  return h + withR.concat(l.filter(p => !ids.has(p.id)).slice(0, n - withR.length)).map(newsCard).join("");
+}
+function makeDeck(id, list, empty) {
+  return D.create({ id, app: "brain", emptyTitle: empty || "카드가 없어요",
+    items: () => list().map(p => ({ key: p.id, sa: "brain", title: p.ko || p.title, url: p.url, shareText: (p.ko || p.title) + "\n" + p.url, html: () => newsDeckCard(p), p })),
+    onShow(x) { if (x.p && !S.read[x.p.id]) { S.read[x.p.id] = 1; save("read"); } }, onList: () => { try { localStorage.setItem("vfm:mode:" + MODE, '"list"'); } catch (e) { } paint(); } });
+}
+function renderNews() {
+  let h = `<div class="top"><button class="ib" data-act="back" aria-label="뒤로">‹</button></div>` + head("뇌과학 소식", NEWS ? `${ago(NEWS.at)} 갱신 · 한국어 기사 + 영문 대중 매체(기계번역)` : "");
+  if (!NEWS) return h + '<p class="note">불러오는 중…</p>';
+  const cnt = (IDX && IDX.count) || {};
+  const top = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 14);
+  h += `<div class="chips"><button data-nf="" class="${S.nf ? "" : "on"}">전체</button><button data-nf="rs" class="${S.nf === "rs" ? "on" : ""}">부위 나온 것</button><button data-nf="ko" class="${S.nf === "ko" ? "on" : ""}">한국어</button><button data-nf="en" class="${S.nf === "en" ? "on" : ""}">영문</button>${top.map(([r, n]) => R[r] ? `<button data-nf="${r}" class="${S.nf === r ? "on" : ""}">${esc(R[r].ko)}<small>${n}</small></button>` : "").join("")}</div>` + broken();
+  if (D) h += D.modeSwitch(MODE, () => paint());
+  const l = newsList(S.nf);
+  if (isDeck()) return h + makeDeck("brain-news-" + (S.nf || "all"), () => newsList(S.nf), "다 봤어요").html();
+  return h + (l.length ? l.map(newsCard).join("") : '<p class="empty">없어요</p>') + `<p class="note">출처: ${esc(Object.values((IDX && IDX.srcs) || {}).map(x => x[0]).join(" · "))}</p>`;
+}
+function openNews(id) {
+  const p = ((NEWS && NEWS.items) || []).find(x => x.id === id) || (S.nstar[id] && S.nstar[id].item); if (!p) return;
+  S.read[id] = 1; save("read");
+  const t = p.lang === "en" ? (p.ko || p.title) : p.title, sum = p.lang === "en" ? (p.ksum || p.sum || "") : "";
+  const r0 = (p.rs || []).find(r => R[r]);
+  const back = document.createElement("div"); back.className = "back"; back.dataset.n = id;
+  back.innerHTML = `<div class="sheet" role="dialog"><div class="grab"></div><div class="meta" style="margin-bottom:6px"><span class="bd src">${esc(p.pub || SRCN[p.src])}</span><span>${ago(p.date)}</span></div>
+    <h3>${esc(t)}</h3>${p.lang === "en" && p.ko ? `<p class="note">${esc(p.title)}</p>` : ""}
+    ${r0 ? `<div class="mini">${mapSvg(bestView(r0), { hl: atomsOf(r0), hl2: p.rs.slice(1).filter(r => R[r]).flatMap(atomsOf), capx: R[r0].ko })}</div>` : ""}
+    ${sum ? `<div class="wiki">${esc(sum)}${p.ksum && p.sum ? `<p class="note" style="margin:8px 0 0">원문: ${esc(p.sum)}</p>` : ""}</div>` : ""}
+    ${(p.rs || []).length ? `<p class="note" style="margin-top:8px">나온 부위 (누르면 설명)</p><div>${p.rs.filter(r => R[r]).map(r => `<button class="rc" data-r="${r}">${esc(R[r].ko)}</button>`).join("")}</div>` : ""}
+    <div class="row2" style="margin:10px 0"><a class="btn pri" href="${esc(p.url)}" target="_blank" rel="noopener">원문 보기 ↗</a>${p.lang === "en" && D ? `<a class="btn" href="${esc(D.koUrl(p.url))}" target="_blank" rel="noopener">번역해서 열기 ↗</a>` : ""}
+    <button class="btn" data-act="nstar">${S.nstar[id] ? "★ 별표 해제" : "☆ 별표"}</button><button class="btn" data-act="nthink">✎ 생각</button><button class="btn" data-act="nshare">공유</button></div>
+    <p class="note">내 메모</p><textarea id="memo" placeholder="이 연구에서 기억할 것">${esc(S.memo["n:" + id] || "")}</textarea></div>`;
+  document.body.appendChild(back);
+  const ta = back.querySelector("#memo"); ta.addEventListener("input", () => { if (ta.value.trim()) S.memo["n:" + id] = ta.value; else delete S.memo["n:" + id]; save("memo"); });
+  back.addEventListener("click", e => { if (e.target === back) closeSheet(); });
+}
+
+/* ───── 화면: 지도 ───── */
+let mapQ = "";
+function renderMap(arg) {
+  const vid = arg || S.view;
+  if (vid === "3d") return render3d();
+  const v = A.views.find(x => x.id === vid) || A.views[0];
+  let h = head("지도", "그림을 누르면 그 부위 이름이 떠요", `<button class="ib" data-act="color" aria-label="색칠 바꾸기" title="색칠">${S.color ? "◑" : "○"}</button>`);
+  h += viewChips(v.id, A.views) + mapSvg(v) + `<p class="note">${esc((v.meta && v.meta.note) || v.note || "")}</p>` + (S.color ? legend() : "");
+  h += `<input class="search" id="mq" type="search" placeholder="부위 찾기 (한글·영어·다른 이름)" value="${esc(mapQ)}"><div id="mres">${regionLists()}</div>`;
+  h += `<p class="note" style="margin-top:14px">${esc(A.credit)}</p>`;
+  return h;
+}
+function regionLi(id) {
+  const r = R[id], o = S.srs[id];
+  const c = !o ? "var(--ap-fill)" : o.b >= 3 ? "var(--accent)" : "color-mix(in srgb,var(--accent) 35%,transparent)";
+  return `<button class="li" data-r="${id}"><span class="dot" style="background:${c}"></span><span class="bx"><p class="t">${S.star[id] ? "★ " : ""}${esc(r.ko)} <small style="color:var(--muted);font-weight:400">${esc(r.en)}</small></p><p class="s">${esc(r.one)}</p></span></button>`;
+}
+function regionLists() {
+  const q = mapQ.trim().toLowerCase();
+  if (q) { const hits = RL.filter(r => [r.ko, r.en, ...r.alt].join(" ").toLowerCase().includes(q)); return hits.length ? `<div class="list">${hits.map(r => regionLi(r.id)).join("")}</div>` : '<p class="empty">없어요</p>'; }
+  return GROUPS.map(([g, ids]) => `<p class="part">${g}</p><div class="list">${ids.map(regionLi).join("")}</div>`).join("");
+}
+function tapAtom(key, ctx) {
+  const id = A.best[key]; if (!id) return;
+  const r = R[id], chain = []; let cur = r;
+  while (cur && cur.up.length) { cur = R[cur.up[0]]; if (cur && !chain.includes(cur)) chain.push(cur); else break; }
+  const others = RL.filter(x => x.id !== id && hasAtom(x, key) && !chain.includes(x));
+  const v = A.views.find(x => x.id === ctx) || bestView(id);
+  document.querySelectorAll(`.mapw[data-view="${v.id}"] path.at`).forEach(p => p.classList.toggle("hl", atomsOf(id).includes(p.dataset.a)));
+  const back = document.createElement("div"); back.className = "back"; back.dataset.r = id;
+  back.innerHTML = `<div class="sheet" role="dialog"><div class="grab"></div><p class="note" style="margin:0">${key.endsWith(":L") ? "왼쪽 뇌" : key.endsWith(":R") ? "오른쪽 뇌" : "가운데"}</p>
+    <h3>${esc(r.ko)} <small style="color:var(--muted);font-weight:400;font-size:14px">${esc(r.en)}</small></h3><p style="margin:4px 0 8px">${esc(r.one)}</p>
+    ${chain.length || others.length ? `<p class="note">이 자리는 ${chain.concat(others).map(x => `<button class="rc" data-r="${x.id}">${esc(x.ko)}</button>`).join("")}에도 속해요</p>` : ""}
+    <div class="row2"><button class="btn pri" data-r="${id}">자세히 ›</button><button class="btn" data-go="#3d=${id}">3D로 보기</button></div></div>`;
+  document.body.appendChild(back);
+  back.addEventListener("click", e => { if (e.target === back) closeSheet(); });
+}
+
+/* ───── 화면: 부위 하나 ───── */
+function renderRegion(id, vsel) {
+  const r = R[id]; if (!r) return '<p class="empty">없는 부위예요</p>';
+  const vs = viewsOf(id), v = vs.find(x => x.id === vsel) || bestView(id);
+  let h = `<div class="top"><button class="ib" data-act="back" aria-label="뒤로">‹</button><div class="row"><button class="ib" data-act="star" data-id="${id}" aria-label="별표">${S.star[id] ? "★" : "☆"}</button></div></div>`;
+  h += `<p class="nm">${esc(r.ko)}</p><p class="en">${esc(r.en)}${r.alt.length ? " · " + r.alt.map(esc).join(" · ") : ""} · ${r.lv === 1 ? "1단계" : "2단계"}</p>`;
+  h += viewChips(v.id, vs, "rview").replace(`data-rview="3d"`, `data-go="#3d=${id}"`) + mapSvg(v, { hl: atomsOf(id), capx: r.ko });
+  if (r.approx) h += `<p class="note">${["midbrain", "pons", "medulla"].includes(id) ? "뇌간 셋의 경계는 높이로 나눈 대략 자리예요." : id === "wernicke" ? "베르니케 영역은 사람마다 범위가 달라 위관자이랑 뒤쪽을 대략 칠했어요." : "아주 작은 핵이라 논문 좌표에 대략 크기로 그렸어요."}</p>`;
+  h += `<div class="seg">${[["s", "짧게"], ["m", "자세히"], ["d", "깊게"]].map(([k, n]) => `<button data-depth="${k}" class="${S.depth === k ? "on" : ""}">${n}</button>`).join("")}</div>`;
+  h += `<div class="origin"><b>이름 뜻</b> ${esc(r.origin)}</div><p class="one">${esc(r.one)}</p>`;
+  if (S.depth !== "s") {
+    h += `<div class="kv"><h4>하는 일</h4><ul>${r.role.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+    h += `<div class="kv"><h4>비유하면</h4><p>${esc(r.like)}</p></div><div class="kv"><h4>어디쯤</h4><p>${esc(r.where)}</p></div><div class="kv"><h4>다치거나 고장 나면</h4><p>${esc(r.hurt)}</p></div>`;
+    const ch = childrenOf(id);
+    if (r.up.length) h += `<div class="kv"><h4>속한 곳</h4><div>${r.up.map(u => `<button class="rc" data-r="${u}">${esc(R[u].ko)}</button>`).join("")}</div></div>`;
+    if (ch.length) h += `<div class="kv"><h4>안에 있는 것</h4><div>${ch.map(c => `<button class="rc" data-r="${c.id}">${esc(c.ko)}</button>`).join("")}</div></div>`;
+    if (r.pair.length) h += `<div class="kv"><h4>같이 외우면 좋은 짝</h4><div>${r.pair.map(u => `<button class="rc" data-r="${u}">${esc(R[u].ko)}</button>`).join("")}</div></div>`;
+  }
+  if (S.depth === "d") {
+    h += `<div class="kv"><h4>위키백과</h4><div id="wiki" class="wiki">불러오는 중…</div></div>`;
+    const rel = ((NEWS && NEWS.items) || []).filter(p => (p.rs || []).includes(id));
+    h += `<div class="kv"><h4>이 부위가 나온 소식 ${rel.length}개</h4></div>` + rel.slice(0, 10).map(newsCard).join("");
+  }
+  h += `<div class="box" style="margin-top:14px"><p class="note" style="margin:0 0 6px">${boxLabel(id)}</p><div class="row"><button class="btn sm" data-act="quiz1" data-id="${id}">이것만 퀴즈</button><button class="btn sm" data-act="think" data-id="${id}">✎ 생각</button>${S.srs[id] ? `<button class="btn sm" data-act="reset1" data-id="${id}">처음부터 다시</button>` : `<button class="btn sm" data-act="add1" data-id="${id}">오늘 외울 것에 넣기</button>`}</div></div>`;
+  h += `<p class="note">내 메모</p><textarea class="memo" id="rmemo" data-id="${id}" placeholder="내 말로 적어 두기 (예: 해마 = 기억 접수 사서)">${esc(S.memo[id] || "")}</textarea>`;
+  return h;
+}
+async function fillWiki(id) {
+  const box = document.getElementById("wiki"); if (!box) return;
+  const r = R[id]; let w = WIKI && WIKI[id];
+  if (!w) {
+    try {
+      for (const [lang, t] of [["ko", r.wiki], ["ko", r.ko], ["en", r.en]]) {
+        const u = `https://${lang}.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&prop=extracts&exintro=1&explaintext=1&redirects=1&origin=*&titles=${encodeURIComponent(t)}`;
+        const j = await fetch(u).then(x => x.json()); const p = (j.query && j.query.pages || [])[0];
+        if (p && !p.missing && p.extract) { w = { t: p.title, x: p.extract, l: lang, u: `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(p.title.replace(/ /g, "_"))}` }; break; }
+      }
+    } catch (e) { }
+  }
+  if (!document.getElementById("wiki")) return;
+  box.innerHTML = w ? `${esc((window.vfm && window.vfm.cleanText ? window.vfm.cleanText(w.x) : w.x).slice(0, 1400))}<p class="note" style="margin:8px 0 0"><a href="${esc(w.u)}" target="_blank" rel="noopener">위키백과에서 '${esc(w.t)}' 전부 읽기 ↗</a>${w.l === "en" ? " · 한국어 글이 없어 영어판" : ""} · CC BY-SA</p>` : `위키백과를 못 불러왔어요. <a href="https://ko.wikipedia.org/w/index.php?search=${encodeURIComponent(r.ko)}" target="_blank" rel="noopener">찾아보기 ↗</a>`;
+}
+
+/* ───── 화면: 외우기 ───── */
+function renderLearn() {
+  const due = dueIds().length, nw = newIds().length;
+  let h = head("외우기", `외움 ${learned()} · 익히는 중 ${started() - learned()} · 안 배움 ${RL.length - started()}`);
+  h += `<div class="stat"><div><b>${learned()}</b><small>외운 부위</small></div><div><b>${streak()}</b><small>연속 일수</small></div><div><b>${weekReviews()}</b><small>이번 주 복습</small></div></div>`;
+  h += `<button class="btn pri wide" data-go="#s=today" ${due + nw ? "" : "disabled style='opacity:.5'"}>오늘 몫 (새 ${nw} + 복습 ${due})</button>`;
+  h += `<h2 class="sec">카드 뒤집기<small>앞면 그림 → 뒷면 이름·역할 (진도엔 안 들어감)</small></h2><div class="row2">
+    <button class="btn" data-go="#s=cards:lv1">1단계 12</button><button class="btn" data-go="#s=cards:all">전체 52</button><button class="btn" data-go="#s=cards:mine">배운 것만</button><button class="btn" data-go="#s=cards:weak">자주 틀린 것</button></div>`;
+  h += `<h2 class="sec">퀴즈<small>10문제</small></h2><div class="row2">
+    <button class="btn" data-go="#s=quiz:tap">이름 → 그림에서 찍기</button><button class="btn" data-go="#s=quiz:pick">그림 → 이름 고르기</button>
+    <button class="btn" data-go="#s=quiz:func">하는 일 → 이름</button><button class="btn" data-go="#s=quiz:origin">이름 뜻 → 이름</button></div>`;
+  h += `<h2 class="sec">도감<small>색이 진할수록 잘 외움 · 누르면 설명</small></h2><div class="dex">${ORDER.map(id => `<button class="b${(S.srs[id] || {}).b || 0}" data-r="${id}">${esc(R[id].ko)}</button>`).join("")}</div>`;
+  h += `<h2 class="sec">하루 새 부위</h2><div class="chips">${[3, 5, 10, 52].map(n => `<button data-per="${n}" class="${S.per === n ? "on" : ""}">${n === 52 ? "한꺼번에" : n + "개"}</button>`).join("")}</div>`;
+  h += `<p class="note">복습 간격(간격 반복): 맞히면 상자가 한 칸 올라가며 1 → 2 → 4 → 7 → 15 → 30 → 60일 뒤 다시 나와요. 틀리면 상자 1(내일)로. 상자 3 이상이면 '외움'.</p>`;
+  return h;
+}
+
+/* ───── 세션 (오늘 몫 · 카드 · 퀴즈) ───── */
+let SES = null;
+function startSession(kind) {
+  const [k, arg] = kind.split(":");
+  let q = [];
+  if (k === "today") {
+    const nw = newIds(), due = shuf(dueIds());
+    q = nw.map(id => ({ t: "learn", id })).concat(shuf(due.map(id => ({ t: pickType(id), id, srs: 1 })).concat(nw.map(id => ({ t: Math.random() < .5 ? "flip" : "pick", id, srs: 1, fresh: 1 })))));
+  } else if (k === "one") q = [{ t: "pick", id: arg }, { t: "tap", id: arg }, { t: "func", id: arg }].filter(x => okType(x.t, x.id));
+  else if (k === "cards") {
+    let ids = arg === "lv1" ? ORDER.filter(id => R[id].lv === 1) : arg === "mine" ? ORDER.filter(id => S.srs[id]) : arg === "weak" ? ORDER.filter(id => (S.srs[id] || {}).ng).sort((a, b) => S.srs[b].ng - S.srs[a].ng).slice(0, 15) : ORDER.slice();
+    q = shuf(ids).map(id => ({ t: "flip", id, free: 1 }));
+  } else if (k === "quiz") {
+    let pool = ORDER.filter(id => S.srs[id]); if (pool.length < 8) pool = ORDER.slice(0, Math.max(12, pool.length));
+    q = shuf(pool).filter(id => okType(arg, id)).slice(0, 10).map(id => ({ t: arg, id, free: 1 }));
+  }
+  if (!q.length) { toast(k === "cards" ? "아직 해당하는 카드가 없어요" : "할 게 없어요"); return false; }
+  SES = { kind: k, q, i: 0, ok: 0, ng: 0, done: false, ans: null, again: new Set() };
+  return true;
+}
+function okType(t, id) { if (t === "tap") return pxIn(bestView(id), atomsOf(id)) >= 30; return true; }
+function pickType(id) { const b = (S.srs[id] || {}).b || 0; const opts = b <= 1 ? ["flip", "pick"] : ["flip", "pick", "tap", "func", "origin"]; return shuf(opts.filter(t => okType(t, id)))[0]; }
+function distractors(id, n = 3) {
+  const r = R[id]; const same = RL.filter(x => x.id !== id && x.lv === r.lv && !r.up.includes(x.id) && !x.up.includes(id));
+  return shuf(same.length >= n ? same : RL.filter(x => x.id !== id)).slice(0, n).map(x => x.id);
+}
+function hideName(text, id) { const r = R[id]; let t = text; for (const w of [r.ko, ...r.alt]) if (w.length >= 2) t = t.split(w).join("○○"); return t; }
+function renderSession() {
+  if (!SES) return renderLearn();
+  const s = SES, n = s.q.length;
+  let h = `<div class="top"><button class="ib" data-act="quit" aria-label="그만">✕</button><p class="note" style="margin:0">${s.kind === "today" ? "오늘 몫" : s.kind === "cards" ? "카드 뒤집기" : "퀴즈"} · ${Math.min(s.i + 1, n)}/${n}</p></div><div class="prog"><i style="width:${Math.round(s.i / n * 100)}%"></i></div>`;
+  if (s.i >= n) {
+    const tot = s.ok + s.ng;
+    h += `<p class="big" style="margin-top:20px">끝! ${tot ? `${s.ok}/${tot} 맞힘` : ""}</p>`;
+    if (s.kind === "today") h += `<p class="note">외운 부위 ${learned()}/${RL.length} · 연속 ${streak()}일 · 내일 복습 ${ORDER.filter(id => S.srs[id] && S.srs[id].due === DAY() + 1).length}개</p>`;
+    const wrong = [...s.again]; if (wrong.length) h += `<p class="note">헷갈린 것: ${wrong.map(id => `<button class="rc" data-r="${id}">${esc(R[id].ko)}</button>`).join("")}</p>`;
+    h += boardBox(true) + `<div class="row2" style="margin-top:12px"><button class="btn pri" data-act="quit">처음으로</button><button class="btn" data-go="#map">지도 보기</button></div>`;
+    return h;
+  }
+  const it = s.q[s.i], r = R[it.id], v = bestView(it.id), hl = atomsOf(it.id);
+  if (it.t === "learn") {
+    h += `<p class="note" style="margin:10px 0 0">새 부위</p><p class="nm">${esc(r.ko)}</p><p class="en">${esc(r.en)}${r.alt.length ? " · " + esc(r.alt[0]) : ""}</p>${mapSvg(v, { hl, capx: r.ko })}
+      <div class="origin"><b>이름 뜻</b> ${esc(r.origin)}</div><p class="one">${esc(r.one)}</p><div class="kv"><h4>비유하면</h4><p>${esc(r.like)}</p></div><div class="kv"><h4>어디쯤</h4><p>${esc(r.where)}</p></div>
+      <button class="btn pri wide" data-act="next" style="margin-top:10px">봤어요 · 다음 ›</button>`;
+  } else if (it.t === "flip") {
+    h += `<p class="q">이 부위 이름은?</p>${mapSvg(v, { hl, cap: false })}`;
+    if (!s.ans) h += `<button class="flip" data-act="reveal"><span class="note">생각해 보고 눌러서 뒤집기</span></button>`;
+    else h += `<div class="flip"><p class="nm" style="margin:0">${esc(r.ko)}</p><p class="en" style="margin:2px 0 6px">${esc(r.en)}</p><p style="margin:0">${esc(r.one)}</p></div>
+      <div class="row2" style="margin-top:10px"><button class="btn ng" data-grade="0">몰랐어요</button><button class="btn ok" data-grade="1">알았어요</button></div>`;
+  } else if (it.t === "tap") {
+    h += `<p class="q">${esc(r.ko)}${/[가-힣]$/.test(r.ko) && (r.ko.charCodeAt(r.ko.length - 1) - 44032) % 28 ? "은" : "는"} 어디일까요? 그림에서 눌러 보세요</p>`;
+    if (!s.ans) h += mapSvg(v, { color: 0, cap: false });
+    else { const mark = {}; for (const k of hl) mark[k] = "ok"; if (!s.ans.ok && s.ans.a) mark[s.ans.a] = "bad"; h += mapSvg(v, { color: 0, mark, cap: false }) + feedback(it.id); }
+  } else {
+    if (!s.ans) { s.opts = shuf([it.id, ...distractors(it.id)]); }
+    const prompt = it.t === "pick" ? `<p class="q">이 부위 이름은?</p>${mapSvg(v, { hl, cap: false })}` : it.t === "func" ? `<p class="q">이런 일을 하는 곳은?</p><div class="box">${esc(hideName(r.one, it.id))}<p class="note" style="margin:6px 0 0">비유: ${esc(hideName(r.like, it.id))}</p></div>`
+      : `<p class="q">이름 뜻이 이런 곳은?</p><div class="box">${esc(hideName(r.origin.split(" — ")[1] || r.origin, it.id).replace(/[一-鿿]/g, "□"))}</div>`;
+    h += prompt + `<div class="choices">${s.opts.map(o => `<button data-pick="${o}" class="${s.ans ? (o === it.id ? "ok" : o === s.ans.a ? "bad" : "") : ""}" ${s.ans ? "disabled" : ""}>${esc(R[o].ko)}</button>`).join("")}</div>`;
+    if (s.ans) h += feedback(it.id);
+  }
+  return h;
+}
+function feedback(id) { const ok = SES.ans.ok; return `<div class="box" style="background:${ok ? "var(--ok-soft)" : "var(--ng-soft)"}"><b style="color:${ok ? "var(--ok)" : "var(--ng)"}">${ok ? "맞았어요!" : "아쉬워요"}</b> ${esc(R[id].ko)} — ${esc(R[id].one)}</div><button class="btn pri wide" data-act="next">다음 ›</button>`; }
+function answer(ok, a) {
+  const s = SES, it = s.q[s.i];
+  s.ans = { ok, a };
+  if (ok) s.ok++; else { s.ng++; s.again.add(it.id); }
+  if (it.srs && !it.graded) { it.graded = 1; if (!ok && it.fresh) { /* 새로 배운 걸 틀림 → 상자 1, 세션 끝에 한 번 더 */ } grade(it.id, ok); if (!ok && !it.retry) s.q.push({ t: "flip", id: it.id, retry: 1 }); }
+}
+function next() {
+  const s = SES, it = s.q[s.i];
+  if (it.t === "learn") { if (!S.srs[it.id]) { S.srs[it.id] = { b: 0, f: DAY(), due: DAY(), ok: 0, ng: 0, at: Date.now() }; save("srs"); logIt("n"); } }
+  s.i++; s.ans = null; s.opts = null; scrollTo(0, 0); paint();
+}
+
+/* ───── 3D ───── */
+let T3 = null;
+function render3d(id) {
+  const r = id && R[id];
+  let h = r ? `<div class="top"><button class="ib" data-act="back" aria-label="뒤로">‹</button></div>` : head("지도", "손가락으로 돌리고, 두 손가락으로 키워 보세요");
+  if (!r) h += viewChips("3d", A.views);
+  h += `<canvas id="three"></canvas><div class="row" style="margin:8px 0"><button class="btn sm" data-t3="half">반쪽 보기</button><button class="btn sm" data-t3="glass">겉 투명하게</button><button class="btn sm" data-t3="reset">처음 자리</button>${r ? `<button class="btn sm" data-r="${id}">${esc(r.ko)} 설명 ›</button>` : ""}</div>`;
+  h += `<p class="note" id="t3sel">${r ? `<b style="color:var(--accent)">${esc(r.ko)}</b> 를 분홍으로 칠했어요` : "부위를 누르면 이름이 떠요"} · 처음 열 때 약 1MB 받아요</p>`;
+  h += `<select class="search" id="t3pick"><option value="">부위 골라 칠하기…</option>${GROUPS.map(([g, ids]) => `<optgroup label="${esc(g)}">${ids.map(x => `<option value="${x}" ${x === id ? "selected" : ""}>${esc(R[x].ko)}</option>`).join("")}</optgroup>`).join("")}</select>` + legend();
+  return h;
+}
+async function mount3d(id) {
+  const cv = document.getElementById("three"); if (!cv) return;
+  const note = document.getElementById("t3sel");
+  try {
+    const THREE = await import("https://cdn.jsdelivr.net/npm/three@0.160.0/+esm");
+    const { OrbitControls } = await import("https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js/+esm");
+    if (!T3 || !T3.parts) {
+      const [meta, buf] = await Promise.all([getJ("mesh.json"), fetch("../data/brain/mesh.bin").then(r => r.arrayBuffer())]);
+      const parts = meta.parts.map(p => {
+        const v = new Int16Array(buf, p.vo, p.vn * 3), f = new Uint16Array(buf, p.fo, p.fn * 3);
+        const pos = new Float32Array(p.vn * 3);
+        for (let i = 0; i < p.vn; i++) { pos[i * 3] = v[i * 3] * 0.1; pos[i * 3 + 1] = v[i * 3 + 2] * 0.1 + 18; pos[i * 3 + 2] = -v[i * 3 + 1] * 0.1 - 18; }   // MNI (x,y,z) → 화면 (x, z, -y)
+        const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setIndex(new THREE.BufferAttribute(f, 1)); g.computeVertexNormals();
+        return { a: p.a, g };
+      });
+      T3 = { parts, THREE };
+    }
+    const W = cv.clientWidth, H = cv.clientHeight;
+    const ren = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true }); ren.setPixelRatio(Math.min(devicePixelRatio, 2)); ren.setSize(W, H, false);
+    const sc = new THREE.Scene(); const cam = new THREE.PerspectiveCamera(35, W / H, 1, 2000);
+    sc.add(new THREE.HemisphereLight(0xffffff, 0x404050, 1.6)); const dl = new THREE.DirectionalLight(0xffffff, 1.4); dl.position.set(-150, 150, 120); sc.add(dl); const dl2 = new THREE.DirectionalLight(0xffffff, .6); dl2.position.set(150, -50, -120); sc.add(dl2);
+    const meshes = T3.parts.map(p => {
+      const base = p.a.split(":")[0], lobe = A.lobeOf[base];
+      const m = new THREE.Mesh(p.g, new THREE.MeshStandardMaterial({ color: LOBE_COL[lobe] || "#999", roughness: .75, metalness: 0, transparent: true, opacity: 1 }));
+      m.userData = { a: p.a, cortex: ["frontal", "parietal", "temporal", "occipital", "insula"].includes(lobe) || ["acc", "mcc", "pcc", "parahipp", "cerebellum"].includes(base) };
+      sc.add(m); return m;
+    });
+    const ctl = new OrbitControls(cam, cv); ctl.enableDamping = true; ctl.target.set(0, 18, 0);
+    const home = () => { cam.position.set(-300, 70, -40); ctl.target.set(0, 18, 0); ctl.update(); };
+    home();
+    const st = { half: false, glass: false, sel: id || "" };
+    function apply() {
+      const ks = st.sel ? new Set(atomsOf(st.sel)) : null;
+      for (const m of meshes) {
+        const a = m.userData.a, on = ks && ks.has(a);
+        m.visible = !(st.half && a.endsWith(":L") && !on);
+        m.material.color.set(on ? (getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#C2185B") : (LOBE_COL[A.lobeOf[a.split(":")[0]]] || "#999"));
+        const dim = ks && !on ? (m.userData.cortex ? .12 : .35) : (st.glass && m.userData.cortex ? .18 : 1);
+        m.material.opacity = dim; m.material.depthWrite = dim > .5; m.renderOrder = on ? 2 : 0;
+      }
+    }
+    apply();
+    const ray = new THREE.Raycaster(), pt = new THREE.Vector2(); let down = null;
+    cv.addEventListener("pointerdown", e => { down = [e.clientX, e.clientY]; });
+    cv.addEventListener("pointerup", e => {
+      if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return;
+      const b = cv.getBoundingClientRect(); pt.set((e.clientX - b.left) / b.width * 2 - 1, -(e.clientY - b.top) / b.height * 2 + 1);
+      ray.setFromCamera(pt, cam);
+      const hit = ray.intersectObjects(meshes.filter(m => m.visible && m.material.opacity > .3))[0]; if (!hit) return;
+      const rid = A.best[hit.object.userData.a]; if (!rid) return;
+      st.sel = rid; apply(); const sel = document.getElementById("t3pick"); if (sel) sel.value = rid;
+      note.innerHTML = `<b style="color:var(--accent)">${esc(R[rid].ko)}</b> · ${esc(R[rid].one)} <button class="rc" data-r="${rid}">설명 ›</button>`;
+    });
+    document.getElementById("t3pick").addEventListener("change", e => { st.sel = e.target.value; apply(); note.innerHTML = st.sel ? `<b style="color:var(--accent)">${esc(R[st.sel].ko)}</b> · ${esc(R[st.sel].one)} <button class="rc" data-r="${st.sel}">설명 ›</button>` : "부위를 누르면 이름이 떠요"; });
+    cv._t3 = { toggle(k) { if (k === "reset") return home(); st[k] = !st[k]; apply(); } };
+    let alive = true; const loop = () => { if (!alive || !document.body.contains(cv)) { ren.dispose(); return; } ctl.update(); ren.render(sc, cam); requestAnimationFrame(loop); }; loop();
+  } catch (e) { if (note) note.textContent = "3D를 못 열었어요 (" + e.message + ") — 평면 그림을 써 주세요"; }
+}
+
+/* ───── 가족 점수판 (구글 로그인한 사람끼리, Supabase 표 brain_board) ───── */
+let BOARD = null, boardErr = "";
+function myScore() { return { learned: learned(), started: started(), week: weekReviews(), streak: streak() }; }
+function sbClient() { return window.vfmSync && window.vfmSync.user && window.vfmSync.user() && window.vfmSync.client ? window.vfmSync.client() : null; }
+let pushT = null;
+function pushBoard() { clearTimeout(pushT); pushT = setTimeout(async () => {
+  const c = sbClient(); if (!c || LS.g("noBoard", 0)) return; const u = window.vfmSync.user();
+  const name = S.nick || (u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || "나";
+  try { const r = await c.from("brain_board").upsert(Object.assign({ user_id: u.id, name, ts: Date.now() }, myScore()), { onConflict: "user_id" }); if (r.error) boardErr = r.error.message; } catch (e) { boardErr = e.message; }
+}, 800); }
+async function loadBoard() {
+  const c = sbClient(); if (!c) return;
+  pushBoard();
+  try { const r = await c.from("brain_board").select("user_id,name,learned,started,week,streak,ts").order("learned", { ascending: false }).limit(30); if (r.error) throw r.error; BOARD = r.data || []; boardErr = ""; }
+  catch (e) { BOARD = []; boardErr = e.message || "오류"; }
+  const el = document.getElementById("board"); if (el) el.outerHTML = boardBox(el.dataset.short === "1");
+}
+function boardBox(short) {
+  const u = window.vfmSync && window.vfmSync.user && window.vfmSync.user();
+  if (!u) return short ? "" : `<div class="box" id="board"><b>가족 점수판</b><p class="note" style="margin:4px 0 0">구글로 로그인하면 가족끼리 외운 수·연속 일수를 겨룰 수 있어요. 위 ⋯ 설정 → 구글로 로그인.</p></div>`;
+  if (LS.g("noBoard", 0)) return short ? "" : `<div class="box" id="board"><b>가족 점수판</b><p class="note">점수판에서 빠져 있어요 <button class="rc" data-act="joinboard">다시 참여</button></p></div>`;
+  if (BOARD == null) { setTimeout(loadBoard, 0); return `<div class="box" id="board" data-short="${short ? 1 : 0}"><b>가족 점수판</b><p class="note">불러오는 중…</p></div>`; }
+  if (boardErr) return `<div class="box" id="board" data-short="${short ? 1 : 0}"><b>가족 점수판</b><p class="note" style="margin:4px 0 0">아직 준비 중이에요 (점수판 표가 없어요). ${short ? "" : esc(boardErr)}</p></div>`;
+  const rows = BOARD.slice().sort((a, b) => b.learned - a.learned || b.streak - a.streak || b.week - a.week);
+  return `<div class="box board" id="board" data-short="${short ? 1 : 0}"><b>가족 점수판</b> <small class="note">외운 수 순</small><div class="list" style="padding:0;margin:6px 0 0;background:none">${rows.slice(0, short ? 5 : 30).map((x, i) => `<div class="li"><span class="bx"><p class="t"><span>${i + 1}. ${esc(x.name)}${x.user_id === u.id ? " (나)" : ""}</span><span>${x.learned}/${RL.length}</span></p><p class="s">연속 ${x.streak}일 · 이번 주 복습 ${x.week}번 · ${ago(new Date(+x.ts).toISOString())}</p></span></div>`).join("")}</div>
+    ${short ? "" : `<div class="row" style="margin-top:8px"><button class="btn sm" data-act="nick">이름 바꾸기</button><button class="btn sm" data-act="leaveboard">점수판에서 빠지기</button></div><p class="note" style="margin:6px 0 0">자판기에 구글로 로그인한 사람끼리만 보여요.</p>`}</div>`;
+}
+
+/* ───── 화면: 보관함 · 찾기 ───── */
+function renderShelf() {
+  const st = Object.keys(S.star).filter(id => R[id]).sort((a, b) => S.star[b].at - S.star[a].at);
+  const ns = Object.entries(S.nstar).sort((a, b) => b[1].at - a[1].at);
+  let h = head("보관함", `별표 부위 ${st.length} · 별표 소식 ${ns.length} · 메모 ${Object.keys(S.memo).length}`, '<button class="ib" data-act="find" aria-label="찾기">⌕</button>');
+  h += boardBox(false);
+  h += `<h2 class="sec">도감<small>외움 ${learned()}/${RL.length}</small><button data-go="#learn">외우기 ›</button></h2><div class="dex">${ORDER.map(id => `<button class="b${(S.srs[id] || {}).b || 0}" data-r="${id}">${esc(R[id].ko)}</button>`).join("")}</div>`;
+  h += `<h2 class="sec">별표 부위</h2>` + (st.length ? `<div class="list">${st.map(regionLi).join("")}</div>` : '<p class="note">부위 화면에서 ☆ 를 누르면 여기 모여요</p>');
+  const memos = Object.keys(S.memo).filter(k => R[k]);
+  if (memos.length) h += `<h2 class="sec">내 메모</h2><div class="list">${memos.map(k => `<button class="li" data-r="${k}"><span class="bx"><p class="t">${esc(R[k].ko)}</p><p class="s">✎ ${esc(S.memo[k])}</p></span></button>`).join("")}</div>`;
+  h += `<h2 class="sec">별표 소식</h2>` + (ns.length ? ns.map(([id, v]) => newsCard(Object.assign({}, v.item, { id }))).join("") : '<p class="note">소식을 열고 ☆ 별표를 누르면 지나간 것도 계속 남아요</p>');
+  h += `<h2 class="sec">정리</h2><div class="row"><button class="btn sm" data-act="clearread">읽음 표시 지우기</button><button class="btn sm" data-act="resetall">외우기 진도 처음부터</button></div>`;
+  h += `<p class="note" style="margin-top:12px">기록은 이 폰에 저장돼요. 구글로 로그인하면 폰·PC가 같은 진도를 봐요 (⋯ 설정).</p>`;
+  return h;
+}
+
+/* ───── 이동 (뒤로가기 = 한 단계 위로) ───── */
+let navStack = [];
+const TABS = ["#today", "#map", "#learn", "#shelf"];
+function nav(h, isBack) {
+  const cur = location.hash || "#today"; if (h === cur) return paint();
+  if (!isBack) { if (TABS.includes(h)) navStack = []; else { navStack.push({ h: cur, y: scrollY }); if (navStack.length > 30) navStack.shift(); } }
+  if (h.startsWith("#s=") && !isBack) { if (!startSession(h.slice(3))) { navStack.pop(); return; } }
+  try { history.replaceState(history.state, "", location.pathname + location.search + h); } catch (e) { location.hash = h; return; }
+  scrollTo(0, 0); paint();
+}
+function closeSheet() { const b = document.querySelector(".back"); if (!b) return false; b.remove(); if (!location.hash.startsWith("#s=")) paint(); return true; }
+function back() {
+  if (closeSheet()) return true;
+  if ((location.hash || "").startsWith("#s=")) SES = null;
+  if (navStack.length) { const o = navStack.pop(); nav(o.h, true); setTimeout(() => scrollTo(0, o.y), 60); return true; }
+  const h = location.hash || "#today"; if (h !== "#today") { nav("#today", true); return true; }
+  return false;
+}
+async function paint() {
+  const h = location.hash || "#today", app = document.getElementById("app"), y = scrollY;
+  const tab = h.startsWith("#map") || h.startsWith("#3d") ? "map" : h.startsWith("#learn") || h.startsWith("#s=") ? "learn" : h.startsWith("#shelf") ? "shelf" : h.startsWith("#r=") ? "" : "today";
+  document.querySelectorAll("#tabs button").forEach(b => { if (b.dataset.v === tab) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  try {
+    if (h.startsWith("#map")) { const v = (h.match(/#map=(\w+)/) || [])[1]; app.innerHTML = renderMap(v); if ((v || S.view) === "3d") mount3d(); const q = document.getElementById("mq"); if (q) q.addEventListener("input", () => { mapQ = q.value; document.getElementById("mres").innerHTML = regionLists(); }); }
+    else if (h.startsWith("#3d")) { const id = h.slice(4); app.innerHTML = render3d(id); mount3d(id); }
+    else if (h.startsWith("#r=")) { const [id, vv] = h.slice(3).split("@"); app.innerHTML = renderRegion(id, vv); if (S.depth === "d") fillWiki(id); const ta = document.getElementById("rmemo"); if (ta) ta.addEventListener("input", () => { if (ta.value.trim()) S.memo[id] = ta.value; else delete S.memo[id]; save("memo"); }); }
+    else if (h === "#learn") app.innerHTML = renderLearn();
+    else if (h.startsWith("#s=")) { if (!SES) { if (!startSession(h.slice(3))) { nav("#learn", true); return; } } app.innerHTML = `<div class="ses">${renderSession()}</div>`; }
+    else if (h === "#shelf") app.innerHTML = renderShelf();
+    else if (h === "#news") app.innerHTML = renderNews();
+    else if (h === "#find") { app.innerHTML = `<div class="top"><button class="ib" data-act="back" aria-label="뒤로">‹</button></div>` + head("찾기", "부위 이름·영어·다른 이름, 그리고 소식 제목에서") + `<input class="search" id="fq" type="search" placeholder="예: 해마, amygdala, 도파민" value="${esc(mapQ)}" autofocus><div id="fres"></div>`; const q = document.getElementById("fq"); const run = () => { mapQ = q.value; const t = mapQ.trim().toLowerCase(); const rs = t ? RL.filter(r => [r.ko, r.en, ...r.alt, r.one].join(" ").toLowerCase().includes(t)) : []; const ns = t.length > 1 ? ((NEWS && NEWS.items) || []).filter(p => [p.title, p.ko, p.ksum].join(" ").toLowerCase().includes(t)) : []; document.getElementById("fres").innerHTML = (rs.length ? `<div class="list">${rs.map(r => regionLi(r.id)).join("")}</div>` : "") + ns.slice(0, 30).map(newsCard).join("") || (t ? '<p class="empty">못 찾았어요</p>' : ""); }; q.addEventListener("input", run); run(); }
+    else app.innerHTML = renderToday();
+  } catch (e) { app.innerHTML = `<p class="empty">못 그렸어요<br><small>${esc(e.message)}</small></p>`; console.error(e); }
+  if (!document.querySelector(".back") && !h.startsWith("#s=")) scrollTo(0, y);
+}
+
+document.addEventListener("click", async e => {
+  const t = e.target.closest("[data-v],[data-go],[data-r],[data-n],[data-view],[data-rview],[data-depth],[data-act],[data-grade],[data-pick],[data-per],[data-nf],[data-t3],path.at"); if (!t) return;
+  const d = t.dataset;
+  if (t.matches("path.at")) {
+    if (location.hash.startsWith("#s=") && SES) { const it = SES.q[SES.i]; if (it && it.t === "tap" && !SES.ans) { answer(atomsOf(it.id).includes(d.a), d.a); paint(); } return; }
+    if (t.closest(".mini") && !t.closest(".back")) return;
+    return tapAtom(d.a, t.closest(".mapw").dataset.view);
+  }
+  if (d.v) { closeSheet(); SES = null; return nav("#" + d.v); }
+  if (d.go) { closeSheet(); return nav(d.go); }
+  if (d.r) { e.stopPropagation(); closeSheet(); return nav("#r=" + d.r); }
+  if (d.n) return openNews(d.n);
+  if (d.view) { if (d.view !== "3d") { S.view = d.view; save("view"); } return nav("#map=" + d.view); }
+  if (d.rview) { const id = location.hash.slice(3).split("@")[0]; try { history.replaceState(history.state, "", location.pathname + "#r=" + id + "@" + d.rview); } catch (x) { } return paint(); }
+  if (d.depth) { S.depth = d.depth; save("depth"); return paint(); }
+  if (d.per) { S.per = +d.per; save("per"); return paint(); }
+  if (d.nf != null) { S.nf = d.nf; if (D) D.stale("brain"); return paint(); }
+  if (d.t3) { const cv = document.getElementById("three"); if (cv && cv._t3) { cv._t3.toggle(d.t3); if (d.t3 !== "reset") t.classList.toggle("pri"); } return; }
+  if (d.grade != null) { answer(d.grade === "1"); return next(); }
+  if (d.pick) { if (!SES || SES.ans) return; answer(d.pick === SES.q[SES.i].id, d.pick); return paint(); }
+  const a = d.act;
+  if (a === "back") { if (!back()) nav("#today"); return; }
+  if (a === "find") return nav("#find");
+  if (a === "helpok") { LS.s("helpSeen", 1); return paint(); }
+  if (a === "color") { S.color = S.color ? 0 : 1; save("color"); return paint(); }
+  if (a === "reveal") { SES.ans = { shown: 1 }; return paint(); }
+  if (a === "next") return next();
+  if (a === "quit") { SES = null; navStack = []; return nav(location.hash.includes("today") ? "#today" : "#learn"); }
+  if (a === "star") { const id = d.id; if (S.star[id]) delete S.star[id]; else S.star[id] = { at: Date.now(), item: { ko: R[id].ko } }; save("star"); toast(S.star[id] ? "보관함에 넣었어요" : "별표 해제"); return paint(); }
+  if (a === "think") { const id = d.id; if (window.vfm && window.vfm.think) window.vfm.think({ app: "brain", key: id, title: R[id].ko + " (" + R[id].en + ")", url: location.origin + location.pathname + "#r=" + id }); return; }
+  if (a === "quiz1") { SES = null; if (startSession("one:" + d.id)) { navStack.push({ h: location.hash, y: scrollY }); try { history.replaceState(history.state, "", location.pathname + "#s=one:" + d.id); } catch (x) { } paint(); } return; }
+  if (a === "add1") { S.srs[d.id] = { b: 0, f: DAY(), due: DAY(), ok: 0, ng: 0, at: Date.now() }; save("srs"); logIt("n"); toast("오늘 복습에 넣었어요"); return paint(); }
+  if (a === "reset1") { S.srs[d.id] = { b: 0, f: S.srs[d.id].f, due: DAY(), ok: 0, ng: 0, at: Date.now() }; save("srs"); toast("오늘 다시 나와요"); return paint(); }
+  if (a === "clearread") { S.read = {}; save("read"); toast("지웠어요"); return paint(); }
+  if (a === "resetall") { if (!confirm("외우기 진도를 모두 지울까요? (별표·메모는 남아요)")) return; S.srs = {}; save("srs"); S.log = {}; save("log"); pushBoard(); toast("처음부터!"); return paint(); }
+  if (a === "nick") { const v = prompt("점수판에 보일 이름", S.nick || ""); if (v != null) { S.nick = v.trim().slice(0, 20); save("nick"); BOARD = null; pushBoard(); setTimeout(loadBoard, 1200); } return; }
+  if (a === "leaveboard") { const c = sbClient(); LS.s("noBoard", 1); if (c) { try { await c.from("brain_board").delete().eq("user_id", window.vfmSync.user().id); } catch (x) { } } toast("점수판에서 빠졌어요"); return paint(); }
+  if (a === "joinboard") { LS.s("noBoard", 0); BOARD = null; return paint(); }
+  const sh = t.closest(".back"); if (!sh || !sh.dataset.n) return;
+  const id = sh.dataset.n, p = ((NEWS && NEWS.items) || []).find(x => x.id === id) || (S.nstar[id] && S.nstar[id].item) || {};
+  if (a === "nstar") { if (S.nstar[id]) delete S.nstar[id]; else { const keep = {}; for (const k of ["src", "lang", "title", "ko", "sum", "ksum", "url", "date", "pub", "rs"]) if (p[k]) keep[k] = p[k]; S.nstar[id] = { at: Date.now(), item: keep }; } save("nstar"); t.textContent = S.nstar[id] ? "★ 별표 해제" : "☆ 별표"; toast(S.nstar[id] ? "보관함에 넣었어요" : "별표 해제"); }
+  else if (a === "nthink") { if (window.vfm && window.vfm.think) window.vfm.think({ app: "brain", key: id, title: p.ko || p.title, url: p.url }); }
+  else if (a === "nshare") { const text = `${p.ko || p.title}\n${p.url}`; if (navigator.share) navigator.share({ title: p.title, text, url: p.url }).catch(() => { }); else { try { await navigator.clipboard.writeText(text); toast("복사했어요"); } catch (x) { } } }
+});
+
+window.vfmApp = { back, go: h => nav(h), route: paint, top: () => { SES = null; nav("#today"); } };
+(async () => {
+  try { await loadAll(); } catch (e) { document.getElementById("app").innerHTML = `<div class="top"><h1 class="lt">뇌</h1></div><p class="empty">자료를 못 불러왔어요<br><small>${esc(e.message)}</small></p>`; return; }
+  if ((location.hash || "").startsWith("#s=")) { try { history.replaceState(history.state, "", location.pathname + "#learn"); } catch (e) { } }
+  paint();
+  setTimeout(() => { if (window.vfmSync && window.vfmSync.user && window.vfmSync.user()) pushBoard(); }, 4000);
+})();
+</script>
+<script src="../assets/shell.js"></script>
+</body></html>

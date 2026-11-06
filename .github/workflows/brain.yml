@@ -1,0 +1,57 @@
+name: 뇌 로봇 (하루 2번, 토큰 0)
+
+on:
+  schedule:
+    - cron: "20 22 * * *"      # 한국시간 07:20
+    - cron: "20 10 * * *"      # 19:20
+  workflow_dispatch:
+    inputs:
+      no_translate:
+        description: "번역 건너뛰기 (빠른 확인용) — yes 라고 쓰면 건너뜀"
+        required: false
+      wiki:
+        description: "위키백과 첫 문단 새로 받기 — yes"
+        required: false
+
+concurrency:
+  group: data-brain
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  brain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 번역 모델 캐시 (AI·도구 로봇과 공유)
+        if: inputs.no_translate != 'yes'
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/nllb-600m-ct2
+            ~/.cache/huggingface
+          key: nllb-600m-ct2-v1
+      - name: 라이브러리 설치
+        run: |
+          pip install -q requests
+          if [ "${{ inputs.no_translate }}" != "yes" ]; then
+            pip install -q "ctranslate2>=4" "transformers>=4.40" sentencepiece "torch>=2.2" --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+          fi
+      - name: 뇌과학 소식 모으기
+        env:
+          BRAIN_MAX_MINUTES: "30"
+        run: python robot/brain_run.py ${{ inputs.no_translate == 'yes' && '--no-translate' || '' }} ${{ inputs.wiki == 'yes' && '--wiki' || '' }}
+      - name: 저장소에 올리기
+        run: |
+          git config user.name "brain-robot"
+          git config user.email "robot@users.noreply.github.com"
+          git add data/brain
+          git diff --cached --quiet && echo "변경 없음" && exit 0
+          git commit -m "뇌: $(TZ=Asia/Seoul date '+%m월 %d일 %H시') 소식"
+          for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 10; done
