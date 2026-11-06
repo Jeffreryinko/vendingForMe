@@ -72,6 +72,51 @@ def match_story(s, prev_stories):
     return best
 
 
+OG_CACHE = Path(__file__).resolve().parents[2] / "data/sisa/_og.json"
+
+
+def og_image(url):
+    """기사 페이지의 대표 사진(og:image) 주소. 앞부분 300KB만 읽음. 실패하면 "" """
+    import re, urllib.request
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; vendingForMe/1.0; +https://jeffreryinko.github.io/vendingForMe/)", "Accept": "text/html"})
+        with urllib.request.urlopen(req, timeout=7) as r:
+            html = r.read(300_000).decode("utf-8", "ignore")
+    except Exception:
+        return ""
+    for pat in (r'<meta[^>]+property=["\']og:image(?::url|:secure_url)?["\'][^>]+content=["\']([^"\']+)', r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']',
+                r'<meta[^>]+name=["\']twitter:image(?::src)?["\'][^>]+content=["\']([^"\']+)'):
+        m = re.search(pat, html, re.I)
+        if m:
+            u = m.group(1).replace("&amp;", "&").strip()
+            if u.startswith("//"): u = "https:" + u
+            if u.startswith("http://"): u = "https://" + u[7:]
+            return u[:600] if u.startswith("https://") else ""
+    return ""
+
+
+def add_story_photos(out_stories, items):
+    """사건마다 대표 사진이 하나는 있게: RSS 사진이 없으면 앞쪽 기사 2개까지 og:image 를 받아 봄 (한 번 본 기사는 기억)"""
+    by = {i["guid_hash"][:12]: i for i in items}
+    try: cache = json.loads(OG_CACHE.read_text())
+    except Exception: cache = {}
+    tried = 0
+    for s in out_stories:
+        its = [by[x] for x in s["items"] if x in by]
+        if any((i.get("metric") or {}).get("img") for i in its): continue
+        cand = [i for i in its if i.get("kind") == "news" and not any(b in (i.get("url") or "") for b in ("news.google.", "reddit.com", "youtube.com", "x.com/", "twitter.com"))][:2]
+        for i in cand:
+            k = i["guid_hash"][:12]
+            if k not in cache and tried < 60:
+                cache[k] = og_image(i["url"]); tried += 1
+            if cache.get(k):
+                i["metric"] = dict(i.get("metric") or {}, img=cache[k]); break
+    if len(cache) > 4000: cache = dict(list(cache.items())[-3000:])
+    try: OG_CACHE.write_text(json.dumps(cache, ensure_ascii=False))
+    except Exception: pass
+    print(f"  사진: og:image 새로 확인 {tried}건")
+
+
 def cmd_build(ed, prev, ko_file, label):
     d, items = load_raw(ed)
     prev_ed, prev_items = load_prev(prev)
@@ -99,6 +144,7 @@ def cmd_build(ed, prev, ko_file, label):
             s["grow"] = grow
             s["prev"] = p["id"]
     gone = [p.get("label") or p.get("title") or p.get("id") for p in prev_ed.get("stories", []) if p.get("id") not in matched]
+    add_story_photos(out_stories, items)
 
     stats = run["stats"]["sources"]
     import yaml

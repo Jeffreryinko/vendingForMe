@@ -96,6 +96,31 @@ def http_get(url, ua=UA, retries=1):
         return r.content
 
 
+def rss_img(e):
+    """RSS 항목에 딸린 대표 사진 주소 (media:content/thumbnail · enclosure · 본문 첫 img). 없으면 None"""
+    def ok(u):
+        if not u or not isinstance(u, str): return None
+        u = u.strip().replace("&amp;", "&")
+        if u.startswith("//"): u = "https:" + u
+        if u.startswith("http://"): u = "https://" + u[7:]                 # 사이트가 https 라 섞인 콘텐츠 막힘 방지
+        if not u.startswith("https://") or re.search(r"(pixel|spacer|1x1|blank)\.(gif|png)|feeds\.feedburner|/ad[sx]?/", u, re.I): return None
+        return u[:600]
+    for key in ("media_content", "media_thumbnail"):
+        best = None
+        for m in e.get(key) or []:
+            if m.get("medium") not in (None, "image") and not re.search(r"\.(jpe?g|png|webp)", m.get("url", ""), re.I): continue
+            w = int(m.get("width") or 0) if str(m.get("width") or "0").isdigit() else 0
+            if w and w < 120: continue
+            if best is None or w > best[0]: best = (w, m.get("url"))
+        if best and ok(best[1]): return ok(best[1])
+    for l in e.get("links") or []:
+        if l.get("rel") == "enclosure" and str(l.get("type", "")).startswith("image") and ok(l.get("href")): return ok(l.get("href"))
+    html = (e.get("summary") or "") + " ".join(c.get("value", "") for c in (e.get("content") or []))
+    m = re.search(r"<img[^>]+src=[\"']([^\"']+)", html)
+    if m and not re.search(r'width=["\']?1["\'\s>]', m.group(0)): return ok(m.group(1))
+    return None
+
+
 def parse_rss(src, content):
     f = feedparser.parse(content)
     rows = []
@@ -120,6 +145,8 @@ def parse_rss(src, content):
         if "news.google.com" in src["url"]:            # Google 뉴스 경유: 제목 끝 " - 매체명" 제거, 설명은 링크 묶음이라 버림
             title = re.sub(r"\s+-\s+[^-]{2,40}$", "", title)
             summary = ""
+        img = rss_img(e)
+        if img: metric["img"] = img                          # 대표 사진 (DB 칸을 새로 만들지 않고 metric 에 담음)
         rows.append({
             "guid_hash": h(e.get("id") or link),
             "url": link,
