@@ -39,7 +39,7 @@ BRAIN_KO = re.compile(r"뇌|신경|치매|알츠하이머|파킨슨|기억력|�
 ADS = re.compile(r"광고|분양|할인|이벤트|쇼핑|주가|증시|특징주")
 
 # ───── 부위 찾기 ─────
-KO_FIX = {"시상": r"시상(?![식자대금품])", "백질": r"(?<!단)백질", "피질": r"(?<![가-힣])피질"}   # '시상식'·'단백질' 같은 말은 빼기
+KO_FIX = {"시상": r"시상(?![식자대금품])", "백질": r"(?<!단)(?<!단 )백질", "피질": r"(?<![가-힣])피질"}   # '시상식'·'단백질' 같은 말은 빼기
 def _ko_pats():
     pats = []
     for r in BR.R:
@@ -187,7 +187,7 @@ def main():
 
     # 부위 붙이기
     for p in items:
-        p["rs"] = regions_of(" ".join([p.get("title", ""), p.get("ko", ""), p.get("ksum", "")]) if p["lang"] == "ko" or p.get("ko") else p.get("title", ""),
+        p["rs"] = regions_of(p.get("title", "") if p["lang"] == "ko" else "",                     # 영문 기사는 원문 영어로만 (기계번역 띄어쓰기 탓에 헛것이 걸림)
                              " ".join([p.get("title", ""), p.get("sum", "")]) if p["lang"] == "en" else "")
     items.sort(key=lambda p: (p.get("date") or p["first"]), reverse=True)
     items = items[:400]
