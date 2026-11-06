@@ -1031,16 +1031,13 @@ function itemCard(it){
 }
 // 사건의 대표 기사 사진: 사진이 있는 글 중 뉴스 기사를 먼저 (로봇이 RSS·og:image 에서 받아 둔 m.img)
 function storyPhoto(s){
-  // 이슈를 가장 많이 다룬 나라의 기사 사진을 먼저 (엉뚱하게 묶인 기사 사진을 피하려고)
-  const all = storyItems(s), cnt = {}; all.forEach(x => { const c = ctry(x); cnt[c] = (cnt[c] || 0) + 1; });
-  const its = all.filter(i => i.m && i.m.img).map((x, n) => [x, (x.k === "news" ? 100 : 0) + (cnt[ctry(x)] || 0) * 10 - n / 100]).sort((a, b) => b[1] - a[1]).map(x => x[0]);
-  const i = its[0];
-  if (i) return { u: i.m.img, i };
-  const h = s.ph && S.byId[s.ph.i];                                  // 로봇이 이슈에 붙여 둔 대표 사진
-  return s.ph && s.ph.u ? { u: s.ph.u, i: h || { s: s.ph.s, u: "", t: "" } } : null;
+  // 1) 로봇이 고른 사진(이슈 제목과 가장 잘 맞는 기사) 2) 없으면 제목과 낱말이 겹치는 기사의 사진. 엉뚱한 기사 사진보다는 지도
+  if (s.ph && s.ph.u) return { u: s.ph.u, i: S.byId[s.ph.i] || { s: s.ph.s, u: "", t: "" } };
+  const st = (String(s.title || "").toLowerCase().match(/[가-힣a-z0-9]{2,}/g) || []);
+  const fit = x => { const t = String(koOf(x) || x.t || "").toLowerCase(); return st.filter(w => t.includes(w)).length; };
+  const i = storyItems(s).filter(x => x.k === "news" && x.m && x.m.img && fit(x) >= 1).sort((a, b) => fit(b) - fit(a))[0];
+  return i ? { u: i.m.img, i } : null;
 }
-const thS = s => { const p = storyPhoto(s); return p ? `<img class="th-x" src="${esc(p.u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""; };
-const thI = i => i && i.m && i.m.img ? `<img class="th-x" src="${esc(i.m.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : "";
 function phImg(u, cls){ return `<img class="${cls}" src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`; }
 function storyItems(s){ return s.items.filter(id => S.byId[id] && !S.fb[s.id+"__"+id]).map(id=>S.byId[id]); }
 const isBrief = s => s.kind === "brief";

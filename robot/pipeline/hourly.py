@@ -8,7 +8,7 @@
 
 환경변수 WORK = 작업 폴더 (기본 /tmp/sv/work)
 """
-import hashlib, json
+import hashlib, json, re
 import os
 import time
 from datetime import datetime
@@ -131,18 +131,19 @@ def cmd_build(ed, prev, ko, label):
         its = [items[i] for i in s["items"] if i in items]
         cnt = {}
         for x in its: cnt[ctry(x)] = cnt.get(ctry(x), 0) + 1
-        # 이슈를 가장 많이 다룬 나라의 뉴스 기사 사진을 먼저 (엉뚱하게 묶인 기사 사진을 피함)
-        rank = lambda it: (it["k"] != "news", -cnt.get(ctry(it), 0))
-        its.sort(key=rank)
-        ph = [it for it in its if (it.get("m") or {}).get("img")]
-        if ph:
-            s["ph"] = {"u": ph[0]["m"]["img"], "s": ph[0]["s"], "i": ph[0]["id"]}; continue
+        stt = set(re.findall(r"[가-힣a-z0-9]{2,}", (s.get("title") or "").lower()))
+        fit = lambda it: sum(1 for w in stt if w in (title(it) or it.get("t") or "").lower())   # 조사가 붙어도 맞게 '들어 있나'로 셈
+        # 이슈 제목과 낱말이 겹치는 뉴스 기사 위쪽 3개 중에서 사진을 찾음(RSS 사진 → 없으면 og:image). 엉뚱한 기사 사진보다는 차라리 지도
+        cand = sorted([x for x in its if x["k"] == "news" and fit(x) >= 1], key=lambda it: (-fit(it), -cnt.get(ctry(it), 0)))[:3]
         s.pop("ph", None)
-        for it in [x for x in its if x["k"] == "news" and not any(b in (x.get("u") or "") for b in BAD)][:2]:
-            if it["id"] not in og and tried < 80:
-                og[it["id"]] = og_image(it["u"]); tried += 1
-            if og.get(it["id"]):
-                s["ph"] = {"u": og[it["id"]], "s": it["s"], "i": it["id"]}; break
+        for it in cand:
+            u = (it.get("m") or {}).get("img")
+            if not u and not any(b in (it.get("u") or "") for b in BAD):
+                if it["id"] not in og and tried < 80:
+                    og[it["id"]] = og_image(it["u"]); tried += 1
+                u = og.get(it["id"])
+            if u:
+                s["ph"] = {"u": u, "s": it["s"], "i": it["id"]}; break
     if len(og) > 4000: og = dict(list(og.items())[-3000:])
     OG_CACHE.write_text(json.dumps(og, ensure_ascii=False))
     print(f"대표 사진: 이슈 {sum(1 for s in E['stories'] if s.get('ph'))}/{len(E['stories'])}개 (og:image 새로 확인 {tried}건)")
