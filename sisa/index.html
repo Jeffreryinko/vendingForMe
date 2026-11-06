@@ -1038,6 +1038,8 @@ function storyPhoto(s){
   const i = storyItems(s).filter(x => x.k === "news" && x.m && x.m.img && fit(x) >= 1).sort((a, b) => fit(b) - fit(a))[0];
   return i ? { u: i.m.img, i } : null;
 }
+const thS = s => { const p = storyPhoto(s); return p ? `<img class="th-x" src="${esc(p.u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""; };
+const thI = i => i && i.m && i.m.img ? `<img class="th-x" src="${esc(i.m.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : "";
 function phImg(u, cls){ return `<img class="${cls}" src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`; }
 function storyItems(s){ return s.items.filter(id => S.byId[id] && !S.fb[s.id+"__"+id]).map(id=>S.byId[id]); }
 const isBrief = s => s.kind === "brief";
