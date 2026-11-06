@@ -1,3 +1,7 @@
 __pycache__/
 *.pyc
 /tools-local/
+
+# impeccable 엔진(22MB)은 처음 쓸 때 스스로 받아옴
+/.claude/skills/impeccable/scripts/bin/
+/.claude/settings.local.json
