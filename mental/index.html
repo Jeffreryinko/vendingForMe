@@ -131,6 +131,7 @@ textarea{width:100%;min-height:76px;border:1px solid var(--line);border-radius:1
 .ep .mono{font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
 .ep.on{border-color:var(--accent);background:var(--accent-soft)}
 .ep:disabled{opacity:.6;cursor:default}
+.ep[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:1px}
 
 .memo{border-left:3px solid var(--coin);padding:4px 0 4px 10px;font-size:14px}
 .memo .m{font-size:11.5px;color:var(--muted)}
@@ -195,7 +196,7 @@ const SEED = JSON.parse($("#seed").textContent);
 const S = {
   db:null, canWrite:false, mode:"loading",       // loading | live | preview
   catalog:SEED.catalog, eps:{}, uses:[], analysis:{}, logs:{},
-  view:"today", dexCat:"all", lens:"psy", pickOffset:0,
+  view:"today", dexCat:"all", season:null, ep:null, lens:"psy", pickOffset:0,
   draft:{did:null, ok:null, memo:""}
 };
 const LENS = {psy:"심리학", phi:"철학", sci:"과학"};
@@ -295,16 +296,23 @@ function calcStreak(){
 
 // ───────── 화면: 회차 ─────────
 function viewEpisodes(){
-  const titles = S.catalog.seasons["1"] || [];
+  const seasons = Object.keys(S.catalog.seasons||{}).sort((a,b)=>a-b);
+  if(!S.season) S.season = seasons[0] || "1";
+  const titles = S.catalog.seasons[S.season] || [];
+  const ids = titles.map((t,i) => S.season+"x"+String(i+1).padStart(2,"0"));
+  const done = ids.filter(id => S.eps[id]);
+  if(!S.ep || !ids.includes(S.ep)) S.ep = done[0] || null;
+  const epCount = s => (S.catalog.seasons[s]||[]).filter((t,i)=>S.eps[s+"x"+String(i+1).padStart(2,"0")]).length;
   $("#v-episodes").innerHTML = `
-    <p class="lead">시즌 1 · 23화</p>
-    <p class="note">분석이 끝난 회차부터 열려요. 한 화씩 장면 → 기술 카드로 쌓입니다.</p>
-    <div class="eps">${titles.map((t,i) => { const id = "1x"+String(i+1).padStart(2,"0"); const ep = S.eps[id]; const st = ep ? STATUS[ep.status] : null;
-      return `<button class="ep${ep?" on":""}" type="button" data-ep="${id}" ${ep?"":"disabled"}><span class="mono">${id}</span><span>${esc(t)}</span>${st?`<span class="pill ${st[1]}">${st[0]}</span>`:`<span class="note">대기</span>`}</button>`; }).join("")}</div>
-    ${Object.values(S.eps).map(epBlock).join("")}`;
+    <div class="chips" role="group" aria-label="시즌">${seasons.map(s => `<button class="chip" type="button" data-season="${s}" aria-pressed="${S.season===s}">시즌 ${s} <span class="note">${epCount(s)}/${(S.catalog.seasons[s]||[]).length}</span></button>`).join("")}</div>
+    <p class="lead">시즌 ${esc(S.season)} · ${titles.length}화 · 분석 ${done.length}화</p>
+    <p class="note">회차를 누르면 장면 → 기술 카드가 아래에 열려요.</p>
+    <div class="eps">${titles.map((t,i) => { const id = ids[i]; const ep = S.eps[id]; const st = ep ? STATUS[ep.status] : null;
+      return `<button class="ep${ep?" on":""}" type="button" data-ep="${id}" aria-pressed="${S.ep===id}" ${ep?"":"disabled"}><span class="mono">${id}</span><span>${esc(t)}</span>${st?`<span class="pill ${st[1]}">${st[0]}</span>`:`<span class="note">대기</span>`}</button>`; }).join("")}</div>
+    ${S.ep && S.eps[S.ep] ? epBlock(S.eps[S.ep]) : ""}`;
 }
 function epBlock(ep){
-  const list = S.uses.filter(u => u.id.startsWith(ep.id)).sort((a,b)=>a.order-b.order);
+  const list = S.uses.filter(u => u.id.startsWith(ep.id+"-")).sort((a,b)=>a.order-b.order);
   return `<h2 class="sec"><span class="n">${esc(ep.id)}</span>${esc(ep.title)} · ${esc(ep.titleKo||"")}</h2>
     <div class="card acc" id="ep-${esc(ep.id)}">
       <p>${esc(ep.summary)}</p>
@@ -423,7 +431,8 @@ document.addEventListener("click", e => {
   if(t.closest("[data-close]")){ closeSheet(); return; }
   const op = t.closest("[data-open]"); if(op){ openCard(op.dataset.open); return; }
   const td = t.closest("[data-today]"); if(td){ setToday(td.dataset.today); closeSheet(); go("today"); return; }
-  const ep = t.closest("[data-ep]"); if(ep){ const el = document.getElementById("ep-"+ep.dataset.ep); if(el) el.scrollIntoView({behavior:"smooth",block:"start"}); return; }
+  const sn = t.closest("[data-season]"); if(sn){ S.season = sn.dataset.season; S.ep = null; viewEpisodes(); return; }
+  const ep = t.closest("[data-ep]"); if(ep){ S.ep = ep.dataset.ep; viewEpisodes(); const el = document.getElementById("ep-"+ep.dataset.ep); if(el) el.scrollIntoView({behavior:"smooth",block:"start"}); return; }
   const c = t.closest("[data-cat]"); if(c){ S.dexCat = c.dataset.cat; viewDex(); return; }
   const l = t.closest("[data-lens]"); if(l){ S.lens = l.dataset.lens; viewLens(); return; }
   const did = t.closest("[data-did]"); if(did){ keepMemo(); S.draft.did = did.dataset.did==="1"; if(!S.draft.did) S.draft.ok = null; viewToday(); return; }
@@ -484,7 +493,7 @@ function usePreview(){
 }
 function setLive(){
   S.mode = "live";
-  $("#edchip").innerHTML = `<b>시즌 1</b>${Object.keys(S.eps).length}화 · ${S.uses.length}장`;
+  $("#edchip").innerHTML = `<b>시즌 ${Object.keys(S.catalog.seasons||{}).length}개</b>${Object.keys(S.eps).length}화 · ${S.uses.length}장`;
 }
 async function boot(){
   render();
