@@ -46,7 +46,7 @@
   function thumb(it) { var v = ytId(it); return !v ? photo(it) : '<a class="vdk-yt" data-yt="' + v + '"' + (isShort(it) ? " data-short" : "") + ' href="' + esc(it.url) + '" target="_blank" rel="noopener" aria-label="유튜브에서 보기"><img src="https://i.ytimg.com/vi/' + v + '/hqdefault.jpg" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest(\'a\').remove()"><span>▶</span></a>'; }
   function video(it) {
     var desc = it.dko || it.desc, cap = it.capko || it.cap;
-    return thumb(it) + '<p class="vdk-h">영상 정보</p><p class="vdk-p">' + esc(it.sub || "") + " 채널" + (it.n ? " · 조회 " + esc(it.n) : "") + "</p>" +
+    return thumb(it) + '<p class="vdk-h">영상 정보</p><p class="vdk-p">' + esc(it.sub || "") + " 채널" + (it.n ? " · 조회 " + esc(it.n) : "") + "</p>" + (window.vfm && vfm.ytComments ? vfm.ytComments(it.cm) : "") +
       (desc ? '<p class="vdk-h">설명란' + (it.dko ? " (기계번역)" : "") + '</p><p class="vdk-p">' + esc(desc) + "</p>" : '<p class="vdk-note">설명란이 비어 있거나 아직 못 가져왔어요.</p>') +
       (cap ? '<p class="vdk-h">자막 앞부분' + (it.capko ? " (기계번역)" : "") + '</p><p class="vdk-p">' + esc(cap.slice(0, 700)) + (cap.length > 700 ? "…" : "") + "</p>" : "") +
       '<a class="vdk-more" href="' + esc(it.url) + '" target="_blank" rel="noopener">유튜브에서 영상 보기 ↗</a>';

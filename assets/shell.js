@@ -71,7 +71,7 @@
     "@keyframes vfmUp{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}@keyframes vfmFade{from{opacity:0}to{opacity:1}}" +
     ".vfm-pill{display:none!important}";
   document.head.appendChild(css);
-  (function () { var l = document.createElement("link"); l.rel = "stylesheet"; l.href = ROOT + "assets/polish.css?v=4"; document.head.appendChild(l); })();   // 전체 마감 (assets/polish.css)
+  (function () { var l = document.createElement("link"); l.rel = "stylesheet"; l.href = ROOT + "assets/polish.css?v=5"; document.head.appendChild(l); })();   // 전체 마감 (assets/polish.css)
 
   function toast(msg) { var t = document.createElement("div"); t.className = "vfm-toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2200); }
   function ago(iso) {
@@ -437,6 +437,16 @@
     if (!u) return "";
     var e = function (x) { return String(x).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
     return '<img class="vfm-pic ' + (cls || "") + '" src="' + e(picUrl(u, w, h)) + '" data-orig="' + e(u) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">';
+  };
+  // 유튜브 베스트 댓글 5개 (로봇이 받아 둔 cm: [{a 글쓴이, t 원문, ko 번역, l 좋아요}])
+  window.vfm.ytComments = function (cm) {
+    if (!cm || !cm.length) return "";
+    var e = function (x) { return String(x || "").replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+    var n = function (x) { x = +x || 0; return x >= 10000 ? (x / 1e4).toFixed(1).replace(/\.0$/, "") + "만" : x >= 1000 ? (x / 1e3).toFixed(1).replace(/\.0$/, "") + "천" : String(x); };
+    return '<p class="vdk-h">💬 베스트 댓글</p><ol class="vfm-cm">' + cm.slice(0, 5).map(function (c) {
+      return "<li><p>" + e(c.ko || c.t) + "</p>" + (c.ko && c.ko !== c.t ? '<details><summary>원문</summary><p>' + e(c.t) + "</p></details>" : "") +
+        '<small>👍 ' + n(c.l) + (c.a ? " · " + e(c.a) : "") + (c.ko && c.ko !== c.t ? " · 기계번역" : "") + "</small></li>";
+    }).join("") + "</ol>";
   };
   window.vfm.logo = function (url, cls) {
     var m = /^https?:\/\/([^/]+)/.exec(url || ""); if (!m) return "";

@@ -162,6 +162,7 @@ function deckCard(p) {
     ${p.sec === "gh" && p.owner ? `<p class="vdk-owner"><img alt="" loading="lazy" src="https://github.com/${esc(p.owner)}.png?size=56">${esc(p.owner)} /</p>` : ""}${p.emoji ? `<p class="vdk-emo">${esc(p.emoji)}</p>` : ""}
     <h2 class="vdk-t">${p.sec === "gh" ? `<span>${esc(p.title)}</span>` : esc(ko || p.title)}</h2>${ko ? `<p class="vdk-note" style="margin:-6px 0 10px">${esc(p.title)}</p>` : ""}
     <div class="meta">${metaOf(p).map(x => `<span>${x}</span>`).join("")}${p.ch && !isYT(p) ? `<span>${esc(p.ch)}</span>` : ""}</div>
+    ${p.cm && window.vfm && vfm.ytComments ? vfm.ytComments(p.cm) : ""}
     ${sum ? `<p class="vdk-h">${isYT(p) ? "영상 설명" : p.sec === "gn" ? "요약" : "무엇인가"}</p><p class="vdk-p">${esc(sum.length > 420 ? sum.slice(0, 420) + "…" : sum).replace(/ · /g, "<br>· ")}</p>` : ""}
     ${(p.cats || []).filter(c => c !== "etc").length ? `<p class="vdk-note">분류: ${(p.cats || []).filter(c => c !== "etc").map(c => esc(S.catName[c] || c)).join(" · ")}</p>` : ""}
     <a class="vdk-more" href="${esc(p.url)}" target="_blank" rel="noopener">${OPEN_LBL(p)}</a>

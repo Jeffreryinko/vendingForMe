@@ -434,6 +434,17 @@ def main():
             full_lists[m["id"]] = rj(LISTS / f"{m['id']}.json", {})
             for r in full_lists[m["id"]].get("rows", []):
                 if r.get("desc"): jobs.append((r, "ko", r["desc"][:400]))
+    # 유튜브 베스트 댓글 5개 (영상마다 할당량 1, 12시간 기억). 영어 댓글은 같이 번역
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent)); from ytcomments import Comments
+        CM = Comments(OUT / "_state/cm.json", os.environ.get("YOUTUBE_API_KEY"), budget=120)
+        for k in ("yt", "ye"):
+            for p in sec.get(k, [])[:40]:
+                p["cm"] = CM.get(p.get("vid"))
+                for c in p["cm"]:
+                    if not HAN.search(c["t"]) and not re.search(r"[가-힣]", c["t"]): jobs.append((c, "ko", c["t"][:300]))
+        CM.save()
+    except Exception as e: log(f"베스트 댓글 실패 — 건너뜀: {e}")
     res = A.translate_texts(run, [j[2] for j in jobs], mem, deadline)
     for (p, field, _), v in zip(jobs, res):
         if v: p[field] = v

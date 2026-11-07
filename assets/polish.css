@@ -112,3 +112,10 @@ html.ap .li .lth.vfm-logo{object-fit:contain;background:#fff;padding:8px;box-sha
 img[data-wt]{visibility:hidden}
 html.ap .vdk-play{position:relative;cursor:pointer}html.ap .vdk-play i{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;font-style:normal;font-size:18px}
 html.ap .vdk-img.wt-none,html.ap .vfm-picw:empty{display:none}
+/* 유튜브 베스트 댓글 */
+html.ap .vfm-cm{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:8px}
+html.ap .vfm-cm li{background:var(--ap-fill);border-radius:12px;padding:10px 12px}
+html.ap .vfm-cm li>p{margin:0;font-size:14.5px;line-height:1.55;word-break:keep-all;overflow-wrap:anywhere}
+html.ap .vfm-cm small{display:block;margin-top:5px;font-size:11.5px;color:var(--ap-label2)}
+html.ap .vfm-cm details{margin-top:4px}html.ap .vfm-cm summary{font-size:11.5px;color:var(--ap-label2);cursor:pointer}
+html.ap .vfm-cm details p{margin:4px 0 0;font-size:13px;color:var(--ap-label2)}

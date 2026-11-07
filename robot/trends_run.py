@@ -375,6 +375,8 @@ def enrich(data, tr):
     """급상승 이유(구글 관련 뉴스 제목)와 유튜브 설명·자막을 한국어로. 이미 한 것은 _ytdesc.json 에 기억."""
     mem = rj(OUT / "_ytdesc.json", {})
     todo = {}                                                     # lang -> [(key, text)]
+    sys.path.insert(0, str(Path(__file__).resolve().parent)); from ytcomments import Comments
+    CM = Comments(OUT / "_cm.json", os.environ.get("YOUTUBE_API_KEY"), budget=220)   # 유튜브 베스트 댓글 5개 (영상마다 할당량 1, 12시간 기억)
     for cc, d in data.items():
         lang = C[cc][5]
         g = (d["src"].get("google") or {}).get("items") or []
@@ -389,6 +391,10 @@ def enrich(data, tr):
             if i < CAP_TRY and ("c:" + vid) not in mem:
                 cap = yt_caption(vid, vl)
                 if cap is not None: mem["c:" + vid] = cap
+            it["cm"] = CM.get(vid)
+            for j, c in enumerate(it["cm"]):
+                if not re.search(r"[가-힣]", c["t"]) and ("mk:" + vid + ":" + c["t"][:40]) not in mem:
+                    todo.setdefault(vl if vl in ("en", "ja", "zh", "es", "pt", "fr", "de", "ru", "id", "vi", "ar") else lang, []).append(("mk:" + vid + ":" + c["t"][:40], c["t"][:300]))
             for kind, text in (("d", it.get("desc") or ""), ("c", mem.get("c:" + vid) or "")):
                 k = f"{kind}k:{vid}"
                 if text and vl != "ko" and k not in mem: todo.setdefault(vl if vl in ("en", "ja", "zh", "es", "pt", "fr", "de", "ru", "id", "vi", "ar") else lang, []).append((k, text[:350]))
@@ -411,6 +417,8 @@ def enrich(data, tr):
             if mem.get("c:" + vid): it["cap"] = mem["c:" + vid][:1200]
             if mem.get("dk:" + vid): it["dko"] = mem["dk:" + vid]
             if mem.get("ck:" + vid): it["capko"] = mem["ck:" + vid]
+            for c in it.get("cm") or []:
+                if mem.get("mk:" + vid + ":" + c["t"][:40]): c["ko"] = mem["mk:" + vid + ":" + c["t"][:40]]
             # 쇼츠(세로 영상)인지: youtube.com/shorts/ID 가 그대로 열리면 쇼츠, 일반 영상이면 watch 로 돌려보냄 (API·토큰 0, 한 번 알면 기억)
             if ("s:" + vid) not in mem:
                 try:
@@ -423,6 +431,7 @@ def enrich(data, tr):
     if len(keys) > 4000:
         for k in keys[:len(keys) - 3000]: mem.pop(k, None)
     wj(OUT / "_ytdesc.json", mem)
+    CM.save()
 
 
 # ───────── NEW 표시·세계 공통·보관 ─────────

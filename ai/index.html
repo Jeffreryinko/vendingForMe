@@ -257,6 +257,7 @@ function featCard(p, kind) {
     ${kind === "vid" && p.vid ? `<span class="vdk-img vdk-play" data-yt="${esc(p.vid)}" role="button" aria-label="여기서 영상 재생"><img src="https://i.ytimg.com/vi/${esc(p.vid)}/hqdefault.jpg" alt="" loading="lazy" referrerpolicy="no-referrer"><i>▶</i></span>` : ""}
     ${kind !== "vid" && window.vfm && vfm.pic ? (p.img ? `<span class="vdk-img vfm-picw">${vfm.pic(p.img, 820)}</span>` : `<p class="vdk-logo">${vfm.logo(p.url)}<span>${esc(p.name || "")}</span></p>`) : ""}
     <h2 class="vdk-t">${esc(p.ko || p.title)}</h2>${p.ko ? `<p class="en">${esc(p.title)}</p>` : ""}
+    ${kind === "vid" && p.cm && window.vfm && vfm.ytComments ? vfm.ytComments(p.cm) : ""}
     ${one ? `<p class="ez-k">뭐가 생겼나${f && f.one ? "" : ' <span class="sub">(발표문 요약' + (p.ksum ? " · 기계번역" : "") + ')</span>'}</p><p class="vdk-p">${esc(one)}</p>` : ""}
     ${f && f.how ? `<p class="ez-k">나는 어떻게 써 보나</p><p class="vdk-p">${esc(f.how)}</p>` : kind === "post" ? '<p class="sub">\'어떻게 써 보나\'는 그날 큰 소식 3~5개만 아침에 정리돼요.</p>' : ""}
     <a class="vdk-more" href="${esc(kind === "vid" ? p.url : ku(p.url))}" target="_blank" rel="noopener">${kind === "vid" ? "유튜브에서 보기 ↗" : kind === "news" ? "기사 보기 ↗" : "원문 보기 ↗"}</a></div>`;

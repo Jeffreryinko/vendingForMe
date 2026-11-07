@@ -361,7 +361,7 @@ def translate_texts(run, texts, mem, deadline):
 # ───────── 보관 정리 ─────────
 def write_feed(data):
     """AI 탭 첫 화면과 자판기 홈 랜덤이 쓰는 가벼운 파일 (논문 초록 없이): 새 기능 소식·국내 소식·해설 영상·인기 논문 2편"""
-    keep = ("id", "sid", "name", "title", "ko", "ksum", "sum", "url", "date", "new", "ch", "vid", "img")
+    keep = ("id", "sid", "name", "title", "ko", "ksum", "sum", "url", "date", "new", "ch", "vid", "img", "cm")
     try:                                                          # 대표 사진 (og:image, 토큰 0, 한 번 본 글은 기억)
         sys.path.insert(0, str(Path(__file__).resolve().parent)); from ogimg import Photos
         ph = Photos(OUT / "_img.json", budget=150)
@@ -480,6 +480,12 @@ def main():
 
     # 4-2. 유튜브: AI 새 기능 해설 영상 (한국어, 최근 3일, 조회수 순)
     data["vids"] = ai_feature_videos(prev.get("vids", []))
+    try:                                                          # 해설 영상마다 유튜브 베스트 댓글 5개 (할당량 1, 12시간 기억)
+        from ytcomments import Comments
+        CM = Comments(OUT / "_cm.json", os.environ.get("YOUTUBE_API_KEY"), budget=40)
+        for v in data["vids"][:20]: v["cm"] = CM.get(v.get("vid"))
+        CM.save()
+    except Exception as e: print("베스트 댓글 실패 — 건너뜀:", e)
 
     # 5. 저장
     for p in top: p["one"] = (p.get("ksum") or p.get("kabs") or "").split(". ")[0][:160] or None

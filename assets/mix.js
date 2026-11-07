@@ -33,6 +33,7 @@
     if (p.img && window.vfm && vfm.pic) return '<span class="vdk-img vfm-picw' + (/opengraph\.githubassets/.test(p.img) ? " gh" : "") + '">' + vfm.pic(p.img, 820) + "</span>";
     return "";
   }
+  var cmts = function (p) { return p.cm && window.vfm && vfm.ytComments ? vfm.ytComments(p.cm) : ""; };
   // 처음 자료를 다 받을 때까지(최대 6초) 카드를 고르지 않음 → 홈에 돌아오면 보던 카드가 그대로 나옴
   var READY = false, pending = 0;
   function ready() { if (READY) return; READY = true; D.stale("mix"); var d = D.get("mix-home"); if (d && !(document.getElementById("mxq") || {}).value) d.paint(); }
@@ -145,7 +146,7 @@
       var enOnly = !ks && !!p.sum && !(f && f.one);
       return { key: p.id, kw: KWOF(p.ko, p.title), sa: "ai", kind: "ai", ready: !!(p.ko || HAN.test(p.title)), title: p.ko || p.title, url: p.url, shareText: (p.ko || p.title) + "\n" + p.url, q: (p.ko || "") + " " + p.title + " " + (p.name || ""),
         html: function () {
-          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag ai">AI</span><span>' + esc(p.name || p.ch || "") + "</span><span>" + esc(p.date || "") + "</span></div>" + media(p) +
+          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag ai">AI</span><span>' + esc(p.name || p.ch || "") + "</span><span>" + esc(p.date || "") + "</span></div>" + media(p) + cmts(p) +
             '<h2 class="vdk-t">' + esc(p.ko || p.title) + "</h2>" + (p.ko ? '<p class="vdk-note" style="margin:-6px 0 10px">' + esc(p.title) + "</p>" : "") +
             (one ? '<p class="vdk-h">뭐가 생겼나</p><p class="vdk-p">' + esc(one) + "</p>" : "") + (f && f.one && ks ? '<p class="vdk-h">발표 내용</p><p class="vdk-p">' + esc(tidy(ks)) + "</p>" : "") + (enOnly ? '<p class="vdk-note">발표 요약은 아직 영어로만 있어요 · 아래 ‘원문 보기’는 번역해서 열려요.</p>' : "") + (f && f.how ? '<p class="vdk-h">나는 어떻게 써 보나</p><p class="vdk-p">' + esc(f.how) + "</p>" : "") +
             '<a class="vdk-more" href="' + esc(vid ? p.url : D.koUrl(p.url)) + '" target="_blank" rel="noopener">' + (vid ? "유튜브에서 보기 ↗" : "원문 보기 ↗") + "</a>" +
@@ -167,7 +168,7 @@
       var m = p.sec === "gh" ? "★ " + n(p.stars) + (p.gain ? " · 하루 +" + n(p.gain) : "") : p.pts ? "▲ " + n(p.pts) : p.views ? "조회 " + n(p.views) + " · " + (p.ch || "") : p.likes ? "♥ " + n(p.likes) : "";
       return { key: p.id, kw: p.sec === "gh" ? [p.title] : KWOF(ko, p.title), sa: "tools", kind: "tool", title: ko || p.title, url: p.url, shareText: (ko || p.title) + "\n" + p.url, q: [p.title, ko, sum, p.owner, p.ch].join(" "),
         html: function () {
-          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag tool">도구</span><span>' + esc(SN[p.sec] || "") + "</span>" + (m ? "<span>" + esc(m) + "</span>" : "") + "</div>" + media(p) +
+          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag tool">도구</span><span>' + esc(SN[p.sec] || "") + "</span>" + (m ? "<span>" + esc(m) + "</span>" : "") + "</div>" + media(p) + cmts(p) +
             (p.sec === "gh" && p.owner ? '<p class="vdk-note" style="margin:0">' + esc(p.owner) + " /</p>" : "") +
             '<h2 class="vdk-t">' + (p.sec === "gh" ? "<span>" + esc(p.title) + "</span>" : esc(ko || p.title)) + "</h2>" + (ko ? '<p class="vdk-note" style="margin:-6px 0 10px">' + esc(p.title) + "</p>" : "") +   // 저장소 이름은 자동 번역 안 함
             (sum ? '<p class="vdk-h">' + (p.sec === "yt" || p.sec === "ye" ? "영상 설명" : "무엇인가") + '</p><p class="vdk-p">' + esc(sum.slice(0, 360)) + "</p>" : "") +
