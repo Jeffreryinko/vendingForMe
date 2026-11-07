@@ -493,7 +493,7 @@ function usePreview(){
 }
 function setLive(){
   S.mode = "live";
-  $("#edchip").innerHTML = `<b>시즌 ${Object.keys(S.catalog.seasons||{}).length}개</b>${Object.keys(S.eps).length}화 · ${S.uses.length}장`;
+  $("#edchip").innerHTML = `<b>${Object.keys(S.catalog.seasons||{}).length}시즌</b>${Object.keys(S.eps).length}화 · ${S.uses.length}장`;
 }
 async function boot(){
   render();
