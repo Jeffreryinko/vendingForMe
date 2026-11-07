@@ -71,7 +71,7 @@
     "@keyframes vfmUp{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}@keyframes vfmFade{from{opacity:0}to{opacity:1}}" +
     ".vfm-pill{display:none!important}";
   document.head.appendChild(css);
-  (function () { var l = document.createElement("link"); l.rel = "stylesheet"; l.href = ROOT + "assets/polish.css?v=5"; document.head.appendChild(l); })();   // 전체 마감 (assets/polish.css)
+  (function () { var l = document.createElement("link"); l.rel = "stylesheet"; l.href = ROOT + "assets/polish.css?v=6"; document.head.appendChild(l); })();   // 전체 마감 (assets/polish.css)
 
   function toast(msg) { var t = document.createElement("div"); t.className = "vfm-toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2200); }
   function ago(iso) {
@@ -422,7 +422,7 @@
   css.textContent += ".vfm-yt{margin:2px 0 12px}.vfm-yt iframe{display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#000}" +
     ".vfm-yt-out{display:inline-block;margin-top:6px;font-size:12.5px;color:var(--ap-label2);text-decoration:none}" +
     /* 쇼츠(세로 9:16): 가로 상자에 넣으면 작게 찌그러지므로, 가운데 세로 상자로 (화면 높이의 64%까지) */
-    ".vfm-yt.short{text-align:center}.vfm-yt.short iframe{aspect-ratio:9/16;width:min(100%,calc(64vh*9/16),300px);margin:0 auto}" +
+    ".vfm-yt.short{text-align:center}.vfm-yt.short iframe{aspect-ratio:9/16;width:min(100%,calc(72vh*9/16));margin:0 auto}" +
     "[data-yt][data-short].vdk-yt,[data-yt][data-short].vdk-thumb{aspect-ratio:9/16;width:min(62%,calc(52vh*9/16),240px);margin-left:auto;margin-right:auto}";
 
   /* ── 나무위키 바로가기 ── 제목·이름·낱말 어디서든. namu.wiki/Go 는 문서가 있으면 바로, 없으면 찾기 결과로 감 (긁어오지 않음, 링크만) */

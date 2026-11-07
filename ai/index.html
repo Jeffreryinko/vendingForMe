@@ -254,7 +254,7 @@ function featCard(p, kind) {
   const f = FEAT[p.id];
   const one = f && f.one || p.ksum || p.sum || "";
   return `<div class="vdk-body"><div class="vdk-k"><span class="bd ${kind === "vid" ? "yt" : kind === "news" ? "kr" : "hf"}">${kind === "vid" ? "해설 영상" : kind === "news" ? "국내 소식" : "새 기능·발표"}</span><span>${esc(p.name || p.ch || "")}</span><span>${esc(p.date || "")}</span>${p.new ? '<b class="up">NEW</b>' : ""}</div>
-    ${kind === "vid" && p.vid ? `<span class="vdk-img vdk-play" data-yt="${esc(p.vid)}" role="button" aria-label="여기서 영상 재생"><img src="https://i.ytimg.com/vi/${esc(p.vid)}/hqdefault.jpg" alt="" loading="lazy" referrerpolicy="no-referrer"><i>▶</i></span>` : ""}
+    ${kind === "vid" && p.vid ? `<span class="vdk-img vdk-play" data-yt="${esc(p.vid)}"${p.short || /#shorts?\b/i.test(p.title || "") || /\/shorts\//.test(p.url || "") ? " data-short" : ""} role="button" aria-label="여기서 영상 재생"><img src="https://i.ytimg.com/vi/${esc(p.vid)}/hqdefault.jpg" alt="" loading="lazy" referrerpolicy="no-referrer"><i>▶</i></span>` : ""}
     ${kind !== "vid" && window.vfm && vfm.pic ? (p.img ? `<span class="vdk-img vfm-picw">${vfm.pic(p.img, 820)}</span>` : `<p class="vdk-logo">${vfm.logo(p.url)}<span>${esc(p.name || "")}</span></p>`) : ""}
     <h2 class="vdk-t">${esc(p.ko || p.title)}</h2>${p.ko ? `<p class="en">${esc(p.title)}</p>` : ""}
     ${kind === "vid" && p.cm && window.vfm && vfm.ytComments ? vfm.ytComments(p.cm) : ""}

@@ -441,6 +441,7 @@ def main():
         for k in ("yt", "ye"):
             for p in sec.get(k, [])[:40]:
                 p["cm"] = CM.get(p.get("vid"))
+                if p.get("kind") == "쇼츠" or CM.short(p.get("vid")): p["short"] = 1
                 for c in p["cm"]:
                     if not HAN.search(c["t"]) and not re.search(r"[가-힣]", c["t"]): jobs.append((c, "ko", c["t"][:300]))
         CM.save()

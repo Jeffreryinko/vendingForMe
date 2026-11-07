@@ -157,7 +157,7 @@ function deckCard(p) {
   if (p.kind && p.kind !== SEC[p.sec] && !/^(긱뉴스|AI 앱|영상)$/.test(p.kind)) badges.push(`<span class="bd">${esc(p.kind)}</span>`);
   if (p.new) badges.push('<span class="bd new">NEW</span>');
   return `<div class="vdk-body"><div class="vdk-k">${badges.join("")}<span>${dayLbl(p.date)}</span></div>
-    ${p.vid ? `<button class="vdk-thumb" data-yt="${esc(p.vid)}"${p.kind === "쇼츠" || /\/shorts\//.test(p.url || "") ? " data-short" : ""} aria-label="여기서 영상 재생" style="background:url(https://i.ytimg.com/vi/${esc(p.vid)}/hqdefault.jpg) center/cover"></button>` : ""}
+    ${p.vid ? `<button class="vdk-thumb" data-yt="${esc(p.vid)}"${p.short || p.kind === "쇼츠" || /\/shorts\//.test(p.url || "") || /#shorts?\b/i.test(p.title || "") ? " data-short" : ""} aria-label="여기서 영상 재생" style="background:url(https://i.ytimg.com/vi/${esc(p.vid)}/hqdefault.jpg) center/cover"></button>` : ""}
     ${!p.vid && p.img && window.vfm && vfm.pic ? `<span class="vdk-img vfm-picw${p.sec === "gh" ? " gh" : ""}">${vfm.pic(p.img, 820)}</span>` : ""}
     ${p.sec === "gh" && p.owner ? `<p class="vdk-owner"><img alt="" loading="lazy" src="https://github.com/${esc(p.owner)}.png?size=56">${esc(p.owner)} /</p>` : ""}${p.emoji ? `<p class="vdk-emo">${esc(p.emoji)}</p>` : ""}
     <h2 class="vdk-t">${p.sec === "gh" ? `<span>${esc(p.title)}</span>` : esc(ko || p.title)}</h2>${ko ? `<p class="vdk-note" style="margin:-6px 0 10px">${esc(p.title)}</p>` : ""}

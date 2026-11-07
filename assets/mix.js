@@ -29,7 +29,7 @@
   var go = function (h) { return ' data-mixgo="' + esc(h) + '"'; };
   // 사진 한 장: 유튜브면 눌러서 바로 재생, 아니면 로봇이 받아 둔 대표 사진 (shell.js 의 vfm.pic)
   function media(p) {
-    if (p.vid) return '<span class="vdk-img vdk-play" data-yt="' + esc(p.vid) + '" role="button" aria-label="여기서 영상 재생"><img src="https://i.ytimg.com/vi/' + esc(p.vid) + '/hqdefault.jpg" alt="" loading="lazy" referrerpolicy="no-referrer"><i>▶</i></span>';
+    if (p.vid) return '<span class="vdk-img vdk-play" data-yt="' + esc(p.vid) + '"' + (p.short || p.kind === "쇼츠" || /#shorts?\b/i.test(p.title || "") || /\/shorts\//.test(p.url || "") ? " data-short" : "") + ' role="button" aria-label="여기서 영상 재생"><img src="https://i.ytimg.com/vi/' + esc(p.vid) + '/hqdefault.jpg" alt="" loading="lazy" referrerpolicy="no-referrer"><i>▶</i></span>';
     if (p.img && window.vfm && vfm.pic) return '<span class="vdk-img vfm-picw' + (/opengraph\.githubassets/.test(p.img) ? " gh" : "") + '">' + vfm.pic(p.img, 820) + "</span>";
     return "";
   }

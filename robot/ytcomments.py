@@ -31,6 +31,16 @@ def top_comments(vid, key, n=5):
         return None
 
 
+def is_short(vid):
+    """세로 쇼츠 영상인지: /shorts/ID 가 200 이면 쇼츠, 일반 영상이면 watch 로 돌려보냄. 모르면 None"""
+    try:
+        r = requests.head(f"https://www.youtube.com/shorts/{vid}", allow_redirects=False, timeout=8, headers={"User-Agent": "Mozilla/5.0"})
+        if r.status_code == 200: return True
+        if r.status_code in (301, 302, 303, 307): return False
+    except Exception: pass
+    return None
+
+
 class Comments:
     def __init__(self, path, key, budget=150, ttl=12 * 3600):
         self.path = Path(path); self.key = key; self.budget = budget; self.ttl = ttl; self.asked = 0
@@ -39,7 +49,7 @@ class Comments:
 
     def get(self, vid):
         if not vid: return []
-        m = self.mem.get(vid)
+        m = self.mem.get(vid) if vid != "_short" else None
         if m and time.time() - m.get("at", 0) < self.ttl: return m.get("cm", [])
         if not self.key or self.asked >= self.budget: return (m or {}).get("cm", [])
         self.asked += 1
@@ -48,9 +58,22 @@ class Comments:
         self.mem[vid] = {"at": int(time.time()), "cm": cm}
         return cm
 
+    def short(self, vid):
+        """쇼츠 여부 (한 번 알면 기억)"""
+        if not vid: return False
+        m = self.mem.setdefault("_short", {})
+        if vid not in m:
+            v = is_short(vid)
+            if v is None: return False
+            m[vid] = 1 if v else 0
+        return bool(m[vid])
+
     def save(self):
+        sh = self.mem.pop("_short", {})
         if len(self.mem) > 3000:
             self.mem = dict(sorted(self.mem.items(), key=lambda kv: kv[1].get("at", 0))[-2200:])
+        if len(sh) > 4000: sh = dict(list(sh.items())[-3000:])
+        self.mem["_short"] = sh
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(json.dumps(self.mem, ensure_ascii=False, separators=(",", ":")))
         print(f"  베스트 댓글: 새로 물어본 영상 {self.asked}개 · 기억 {len(self.mem)}개")
