@@ -15,8 +15,8 @@
   var APP = (window.vfm && window.vfm.app) || window.VFM_APP || "sisa";
   var HOME = APP === "home";
   var ROOT = HOME ? "./" : "../";
-  var APPS = [["sisa", "시사"], ["iyagi", "이야기"], ["ai", "AI"], ["history", "역사"], ["tools", "도구"], ["brain", "뇌"], ["baedat", "배댓"]];
-  var NAME = { home: "홈", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", baedat: "배댓", box: "보관함" };
+  var APPS = [["sisa", "시사"], ["iyagi", "이야기"], ["ai", "AI"], ["history", "역사"], ["tools", "도구"], ["brain", "뇌"], ["baedat", "배댓"], ["mental", "맨탈"]];
+  var NAME = { home: "홈", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", baedat: "배댓", mental: "맨탈", box: "보관함" };
   try { if (!HOME) localStorage.setItem("vfm:tab", APP); } catch (e) { }
 
   /* ── 글 다듬기: 첫 문단 괄호 속 외국어 표기(조지아어·벵골어 등)는 폰에서 □□□ 로 깨지고 앞부분을 다 차지함 → 뺌.
