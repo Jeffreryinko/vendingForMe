@@ -23,6 +23,7 @@
   .ic{width:64px;height:64px;border-radius:15px;display:grid;place-items:center;color:#fff;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08)}
   .ic svg{width:34px;height:34px}
   .ic.sisa{background:linear-gradient(160deg,#4FA3FF 0%,#0A6CFF 55%,#0050C8 100%)}
+  .ic.baedat{background:linear-gradient(160deg,#FF7A70 0%,#FF3B30 55%,#D70015 100%)}
   .ic.iyagi{background:linear-gradient(160deg,#FFC24D 0%,#FF9500 55%,#F26B00 100%)}
   .ic.ai{background:linear-gradient(160deg,#D68CFF 0%,#A346F0 55%,#6E2BD9 100%)}
   .ic.history{background:linear-gradient(160deg,#C9A57A 0%,#A2845E 55%,#7A5F3E 100%)}
@@ -75,6 +76,11 @@
       <span><p class="nm">역사</p><p class="ds">세계 역사 이야기, 나라·시대별</p><p class="st" id="st-history"><i></i><span>불러오는 중</span></p></span>
       <span class="chev">›</span>
     </button>
+    <button class="app" data-app="baedat">
+      <span class="ic baedat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5" stroke-linecap="round"/></svg></span>
+      <span><p class="nm">배댓</p><p class="ds">유튜브 인기 영상의 베스트 댓글</p><p class="st" id="st-baedat"><i></i><span>불러오는 중</span></p></span>
+      <span class="chev">›</span>
+    </button>
     <button class="app" data-app="tools">
       <span class="ic tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0 5 5l-8.4 8.4a2.1 2.1 0 0 1-3-3z"/><path d="M14.7 6.3L17 4l3 3-2.3 2.3"/><path d="M4 4l5 5M3 7.5L7.5 3"/></svg></span>
       <span><p class="nm">도구</p><p class="ds">요즘 뜨는 AI 도구·오픈소스·활용법</p><p class="st" id="st-tools"><i></i><span>불러오는 중</span></p></span>
@@ -124,6 +130,7 @@
   j("data/iyagi/_meta.json").then(function (m) { paint("iyagi", m && m.updatedAt, m ? "<b>새 이야기 " + n(m.stories) + "편</b>" : "", 30); });
   j("data/ai/_index.json").then(function (x) { var c = (x && x.counts) || {}; paint("ai", x && x.at, x ? "<b>추천 논문 " + n(c.hf) + "편</b>" : "", 30); });
   j("data/history/_index.json").then(function (x) { var c = (x && x.counts) || {}; paint("history", x && x.at, x ? "<b>" + n(c.total) + "편</b>" + (x.queue >= 200 ? " · 받는 중" : "") : "", 30); });
+  j("data/baedat/_meta.json").then(function (m) { paint("baedat", m && m.updatedAt, m ? "<b>" + (m.latest ? Number(m.latest.slice(5)) + "월판" : "") + " 배댓 " + n(m.comments) + "개</b>" : "", 24 * 40); });
   j("data/tools/_index.json").then(function (x) { paint("tools", x && x.at, x ? "<b>새 것 " + n(x.new) + "개</b>" : "", 12); });
   j("data/brain/_index.json").then(function (x) {
     var learned = 0, due = 0, today = Math.floor((Date.now() + 9 * 3600e3) / 864e5);
@@ -131,7 +138,7 @@
     paint("brain", x && x.at, "<b>외움 " + learned + "/52</b>" + (due ? " · 복습 " + due : "") + (x ? " · 새 소식 " + n(x.new) : ""), 18);
   });
   try { var nq = JSON.parse(localStorage.getItem("vfm:box:qs") || "[]").length, nt = JSON.parse(localStorage.getItem("vfm:box:think") || "[]").length; if (nq || nt) document.getElementById("boxN").textContent = "질문 " + nq + " · 생각 " + nt; } catch (e) { }
-  var NAME = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌" }, lastApp = null;
+  var NAME = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", baedat: "배댓" }, lastApp = null;
   try { lastApp = localStorage.getItem("vfm:tab"); } catch (e) { }
   if (NAME[lastApp]) document.getElementById("last").innerHTML = "&nbsp;지난번에 본 곳: " + NAME[lastApp];
 

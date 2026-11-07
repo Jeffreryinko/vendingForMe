@@ -35,6 +35,9 @@ html.ap.ap-tools[data-theme="dark"]{--ap-tint:#40CBE0;--ap-tint-t:#5AD4E6}
 html.ap.ap-brain{--ap-tint:#E0457B;--ap-tint-t:#C2185B}
 @media (prefers-color-scheme:dark){html.ap.ap-brain:not([data-theme="light"]){--ap-tint:#FF6B9A;--ap-tint-t:#FF85AC}}
 html.ap.ap-brain[data-theme="dark"]{--ap-tint:#FF6B9A;--ap-tint-t:#FF85AC}
+html.ap.ap-baedat{--ap-tint:#FF3B30;--ap-tint-t:#D70015}
+@media (prefers-color-scheme:dark){html.ap.ap-baedat:not([data-theme="light"]){--ap-tint:#FF453A;--ap-tint-t:#FF6961}}
+html.ap.ap-baedat[data-theme="dark"]{--ap-tint:#FF453A;--ap-tint-t:#FF6961}
 
 @media (prefers-color-scheme:dark){html.ap:not([data-theme="light"]){
   --ap-bg:#000000; --ap-surface:#1C1C1E; --ap-surface2:#2C2C2E; --ap-fill:rgba(118,118,128,.24); --ap-fill2:rgba(118,118,128,.16);

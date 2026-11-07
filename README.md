@@ -17,6 +17,7 @@
 | AI 로봇 | `robot/ai_run.py` — HF 추천 논문·arXiv 신규·회사 발표·GitHub·국내 소식 (매일 04:30), NLLB 번역·용어 밑줄, 토큰 0 → `ai/` 화면. 용어 목록 `robot/ai_terms.py` | GitHub Actions `ai.yml` |
 | 도구 로봇 | `robot/tools_run.py` — 요즘 뜨는 AI·개발 도구·오픈소스·활용법: GitHub 급상승(오늘의 인기+새 저장소+별 증가)·긱뉴스·해커뉴스(Show HN·화제)·유튜브 해설 채널 RSS(+하루 한 번 검색)·모음 목록(awesome-*) 새 줄·허깅페이스 인기 앱 (하루 4번 06:40·12:40·18:40·23:40, NLLB 번역, 토큰 0) → `tools/` 화면. 채널·모음 목록·분류 낱말은 `robot/tools_sources.py` | GitHub Actions `tools.yml` |
 | 뇌 로봇 | `robot/brain_run.py` — 뇌과학 소식: 한국어 기사(구글 뉴스 RSS) + 영문 대중 매체 4곳(ScienceDaily·Neuroscience News·Science News·The Transmitter, NLLB 번역), 기사에 나온 부위를 찾아 붙임, 위키백과 첫 문단 7일마다 (하루 2번 07:20·19:20, 토큰 0) → `brain/` 화면. 부위 52개 표 `robot/brain_regions.py`, 그림 만들기 `robot/brain_build.py`(한 번만) | GitHub Actions `brain.yml` |
+| 배댓 | `baedat/` — 한국 유튜브 월간 인기 영상 50개 × 배댓 10개 카드, 썸네일 누르면 바로 재생, 유형·감정 분석. 자료 `data/baedat/<YYYY-MM>.json` (매월 1일 클로드 예약 작업이 수집·분류) | GitHub Pages |
 | 이야기 위키 로봇 | `robot/iyagi_wiki.py` — 목록 약 1,500개를 위키백과에서 한 번에 모아 정리(토큰 0, 손으로 실행) | GitHub Actions `iyagi-wiki.yml` |
 | 요청함 | 앱의 "풀어 주세요" 버튼 → GitHub 이슈 → `data/requests.json` → 다음 루틴 때 만들기 | GitHub Actions `requests.yml` |
 | AI 쉬운 풀이 | `robot/AI_RUNBOOK.md`, `robot/easy_tools.py` — 하루 최대 3편, 요청 먼저 → `data/ai/easy/` | 편집장 루틴 07시 회차 |
@@ -24,7 +25,7 @@
 | 원문 번역 로봇 | `robot/iyagi_translate.py` — 토큰 0 기계번역 (주 2회) | GitHub Actions `iyagi-orig.yml` |
 | 시사 편집장 | `robot/EDITOR_RUNBOOK.md` — 이슈·해설·단신·이름 사전 (07·19시) | 클로드 예약 작업 |
 | 이야기 작가 | `robot/AUTHOR_RUNBOOK.md` — 매일 새벽 5편 | 클로드 예약 작업 |
-| 창고 | `data/sisa/*`, `data/iyagi/*`, `data/trends/*`, `data/ai/*`, `data/history/*`, `data/tools/*`, `data/brain/*` (JSON) | 저장소 |
+| 창고 | `data/sisa/*`, `data/iyagi/*`, `data/trends/*`, `data/ai/*`, `data/history/*`, `data/tools/*`, `data/brain/*`, `data/baedat/*` (JSON) | 저장소 |
 
 ## 비밀 설정 (저장소 Settings → Secrets and variables → Actions)
 `DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`, `YOUTUBE_API_KEY`, `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `REDDIT_USERNAME`
