@@ -53,7 +53,7 @@ a{color:var(--tint-t);text-decoration:none}
 img{max-width:100%}
 :focus-visible{outline:2px solid var(--tint);outline-offset:2px}
 ::selection{background:var(--tint-soft)}
-.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 
 header{position:relative;z-index:1;background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:.5px solid var(--sep)}
 .hrow{display:flex;align-items:center;gap:10px;padding-block:10px}
@@ -102,6 +102,20 @@ p{margin:0}
 .th .dur{position:absolute;right:8px;bottom:8px;font-size:12px;font-weight:600;background:rgba(0,0,0,.75);color:#fff;border-radius:5px;padding:0 6px;font-variant-numeric:tabular-nums}
 .th .sh{position:absolute;left:8px;bottom:8px;font-size:11.5px;font-weight:700;background:rgba(0,0,0,.75);color:#fff;border-radius:5px;padding:0 6px}
 
+/* 큰 화면: 영상 카드를 왼쪽 영상 · 오른쪽 배댓으로 */
+@media (min-width:900px){
+  .vcard{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);align-items:start}
+  .vcard .vleft{position:sticky;top:12px}
+  .vcard .vright{border-left:.5px solid var(--sep);max-height:calc((min(1180px,100vw) - 48px) * .6 * 9 / 16 + 220px);overflow-y:auto}
+  .vcard .vright .blist{border-top:0}
+  .cmt .src{grid-template-columns:240px 1fr}
+  .stack.vlist{gap:20px}
+}
+/* 휴대폰: 영상 카드를 화면 끝까지 */
+@media (max-width:600px){ .vcard{margin-left:-16px;margin-right:-16px;border-radius:0} }
+.hide-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.hide-bar .chip.off{text-decoration:line-through;opacity:.75}
+.hide-bar .chip.off[aria-pressed="true"]{background:var(--ink);color:var(--bg);text-decoration:line-through}
 /* 바로 재생 */
 .play{display:block;width:100%;border:0;padding:0;background:none;position:relative;cursor:pointer}
 .play .pbtn{position:absolute;left:50%;top:50%;width:64px;height:44px;margin:-22px 0 0 -32px;border-radius:12px;background:rgba(255,0,0,.92);display:grid;place-items:center}
@@ -220,6 +234,9 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;
 const TYPES = ["드립","공감","정보 보충","타임스탬프","반전·지적","응원·감사","밈 인용","질문","비판","이벤트 참여"];
 const TCOL = Object.fromEntries(TYPES.map((t,i) => [t, `var(--t${i+1})`]));
 const BASE = "../data/baedat/";
+const HIDE_KEY = "vfm:baedat:hide";
+let HIDE = new Set(); try{ HIDE = new Set(JSON.parse(localStorage.getItem(HIDE_KEY) || "[]")); }catch(_){}
+function saveHide(){ try{ localStorage.setItem(HIDE_KEY, JSON.stringify([...HIDE])); }catch(_){} }
 const S = {months:[], eds:{}, month:null, view:"month", vf:"all", vsort:"rank", cf:"all", sort:"likes", db:null, saved:{}, canWrite:false, mode:"loading", updatedAt:null, open:new Set()};
 
 // ───────── 형식 도우미 ─────────
@@ -233,14 +250,15 @@ const watch = id => `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
 const at = (vid, cid) => `${watch(vid)}&lc=${encodeURIComponent(cid)}`;
 let toastT; function toast(m){ const t=$("#toast"); t.textContent=m; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{t.hidden=true;},2600); }
 function ed(){ return S.eds[S.month]; }
-function allComments(e=ed()){ const out=[]; (e?.videos||[]).forEach(v => v.best.forEach(c => out.push({...c, v}))); return out; }
+function vids(e=ed()){ return (e?.videos||[]).filter(v => !HIDE.has(v.category)); }
+function allComments(e=ed()){ const out=[]; vids(e).forEach(v => v.best.forEach(c => out.push({...c, v}))); return out; }
 function savedOf(m=S.month){ return (S.saved[m]?.items) || {}; }
 const count = (arr, f) => { const m={}; arr.forEach(x => { const k=f(x); if(k) m[k]=(m[k]||0)+1; }); return Object.entries(m).sort((a,b)=>b[1]-a[1]); };
 
 // ───────── 썸네일: 유튜브 이미지를 바로 씀 ─────────
-const thumbSrc = id => `https://i.ytimg.com/vi/${encodeURIComponent(id)}/hqdefault.jpg`;
+const thumbSrc = (id, big) => `https://i.ytimg.com/vi/${encodeURIComponent(id)}/${big?"maxresdefault":"mqdefault"}.jpg`;
 function hydrate(){}
-const thumb = (v, extra="") => `<span class="th"><img src="${thumbSrc(v.id)}" alt="" loading="lazy" decoding="async" onload="this.classList.add('on')" onerror="this.remove()"><span class="ph" aria-hidden="true"></span>${extra}</span>`;
+const thumb = (v, extra="", big=false) => `<span class="th"><img src="${thumbSrc(v.id, big)}" alt="" loading="lazy" decoding="async" onload="if(this.naturalWidth<=120&&!this.dataset.f){this.dataset.f=1;this.src=this.src.replace('maxresdefault','hqdefault');return}this.classList.add('on')" onerror="if(!this.dataset.f){this.dataset.f=1;this.src=this.src.replace('maxresdefault','hqdefault')}else this.remove()"><span class="ph" aria-hidden="true"></span>${extra}</span>`;
 // ───────── 바로 재생: 썸네일을 누르면 그 자리에서 유튜브 플레이어로 ─────────
 let playing = null;
 function stopPlay(){ if(!playing) return false; const el = document.querySelector(`[data-player="${CSS.escape(playing)}"]`); playing = null; if(el) draw(); return true; }
@@ -253,9 +271,17 @@ function play(id, btn){
   target.replaceWith(box);
 }
 // ───────── 공통 조각 ─────────
+function allCats(){ const m = {}; S.months.forEach(k => (S.eds[k]?.videos||[]).forEach(v => { if(v.category) m[v.category] = (m[v.category]||0) + 1; })); return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(x=>x[0]); }
+function hideBar(){
+  const hidden = [...HIDE];
+  if(!S.hideOpen) return `<div class="hide-bar">${hidden.length?`<span class="note">빼는 분야</span>${hidden.map(c=>`<span class="pill acc">${esc(c)}</span>`).join("")}`:""}<button class="chip" type="button" data-hideopen>${hidden.length?"바꾸기":"분야 빼기"}</button></div>`;
+  return `<div class="card"><div class="note">누른 분야는 모든 화면(순위·배댓·분석·CSV)에서 빠져요. 다시 누르면 돌아와요. 이 설정은 로그인하면 다른 기기에도 이어져요.</div>
+    <div class="hide-bar">${allCats().map(c => `<button class="chip off" type="button" data-hide="${esc(c)}" aria-pressed="${HIDE.has(c)}">${esc(c)}</button>`).join("")}</div>
+    <div class="hide-bar">${hidden.length?`<button class="chip" type="button" data-hideclear>모두 되돌리기</button>`:""}<button class="chip" type="button" data-hideopen aria-pressed="true">닫기</button></div></div>`;
+}
 function monthChips(){
-  if(S.months.length<2) return "";
-  return `<div class="chips" role="group" aria-label="월간판">${S.months.map(m => `<button class="chip" type="button" data-month="${m}" aria-pressed="${m===S.month}">${monthKo(m)}판</button>`).join("")}</div>`;
+  if(S.months.length<2) return hideBar();
+  return `<div class="chips" role="group" aria-label="월간판">${S.months.map(m => `<button class="chip" type="button" data-month="${m}" aria-pressed="${m===S.month}">${monthKo(m)}판</button>`).join("")}</div>${hideBar()}`;
 }
 function tagLine(c){
   const t = c.tags||{}; const sv = !!savedOf()[c.id];
@@ -279,17 +305,17 @@ function vSummary(v){
 }
 function vCard(v){
   const extra = `<span class="rk">${v.rank}</span>${v.dur?`<span class="dur">${dur(v.dur)}</span>`:""}${v.short?`<span class="sh">쇼츠</span>`:""}`;
-  return `<article class="vcard" id="vc-${esc(v.id)}">
-    ${playing===v.id ? `<div class="player" data-player="${esc(v.id)}"><iframe src="https://www.youtube.com/embed/${encodeURIComponent(v.id)}?autoplay=1&playsinline=1&rel=0" title="유튜브 플레이어" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>` : `<button type="button" class="play" data-play="${esc(v.id)}" aria-label="${esc(v.title)} 재생">${thumb(v, extra + `<span class="pbtn" aria-hidden="true"></span>`)}</button>`}
+  return `<article class="vcard" id="vc-${esc(v.id)}"><div class="vleft">
+    ${playing===v.id ? `<div class="player" data-player="${esc(v.id)}"><iframe src="https://www.youtube.com/embed/${encodeURIComponent(v.id)}?autoplay=1&playsinline=1&rel=0" title="유튜브 플레이어" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>` : `<button type="button" class="play" data-play="${esc(v.id)}" aria-label="${esc(v.title)} 재생">${thumb(v, extra + `<span class="pbtn" aria-hidden="true"></span>`, true)}</button>`}
     <div class="vbody">
       <h3 class="vt">${esc(v.title)}</h3>
       <div class="vm"><b>${esc(v.channel)}</b><span>조회 ${kNum(v.views)}</span><span>${ymd(v.publishedAt)}</span><span>${esc(v.category||"")}</span>${v.subs?`<span>구독자 ${kNum(v.subs)}</span>`:""}</div>
       ${v.desc?`<p class="vd">${esc(v.desc)}</p>`:""}
       ${vSummary(v)}
-    </div>
+    </div></div><div class="vright">
     <ol class="blist">${v.best.map(c => { const cc = {...c, v}; return `<li><span class="br">${c.rank}</span><div class="bmain">${bText(cc)}${tagLine(cc)}</div></li>`; }).join("")}</ol>
     <a class="bmore" href="${watch(v.id)}" target="_blank" rel="noopener">유튜브에서 영상과 댓글 더 보기</a>
-  </article>`;
+  </div></article>`;
 }
 
 // ───────── 수집 대기 ─────────
@@ -314,7 +340,7 @@ function viewMonth(){
     <p class="lead">${monthKo(e.month)}판 배댓</p>
     <p>${line}</p>
     <div class="tiles">
-      <div class="tile"><b>${e.videos.length}</b><span>영상</span></div>
+      <div class="tile"><b>${vids(e).length}</b><span>영상</span></div>
       <div class="tile"><b>${cs.length}</b><span>배댓</span></div>
       <div class="tile"><b>${types[0]?esc(types[0][0]):"—"}</b><span>최다 유형</span></div>
       <div class="tile"><b>${kNum(avg)}</b><span>배댓 평균 좋아요</span></div>
@@ -322,7 +348,7 @@ function viewMonth(){
     ${powerTop?`<h2 class="sec">배댓 파워 1위<span class="n">영상보다 댓글이 터진 곳</span></h2>${cmtCard(powerTop)}`:""}
     <h2 class="sec">좋아요 Top 10</h2>
     <div class="stack">${top.map(cmtCard).join("")}</div>
-    <button class="btn ghost" type="button" data-v="videos">영상 ${e.videos.length}개 카드로 보기</button>
+    <button class="btn ghost" type="button" data-v="videos">영상 ${vids(e).length}개 카드로 보기</button>
     <p class="note">집계 ${esc(e.collectedAt?.slice(0,10))} · ${esc(e.rule)}</p>`;
 }
 
@@ -330,17 +356,17 @@ function viewMonth(){
 function viewVideos(){
   const box = $("#v-videos"); const e = ed();
   if(!e){ box.innerHTML = waiting(); return; }
-  const cats = count(e.videos, v=>v.category).map(x=>x[0]);
-  let list = e.videos.filter(v => S.vf==="all" ? true : S.vf==="long" ? !v.short : S.vf==="short" ? v.short : v.category===S.vf);
+  const cats = count(vids(e), v=>v.category).map(x=>x[0]);
+  let list = vids(e).filter(v => S.vf==="all" ? true : S.vf==="long" ? !v.short : S.vf==="short" ? v.short : v.category===S.vf);
   const pmax = v => Math.max(0, ...v.best.map(c=>c.power||0));
   if(S.vsort==="power") list = list.slice().sort((a,b)=>pmax(b)-pmax(a));
   else if(S.vsort==="likes") list = list.slice().sort((a,b)=>Math.max(...b.best.map(c=>c.likes))-Math.max(...a.best.map(c=>c.likes)));
   box.innerHTML = `${monthChips()}
     <p class="lead">${monthKo(e.month)} 인기 영상</p>
-    <div class="chips" role="group" aria-label="영상 거르기">${[["all",`전체 ${e.videos.length}`],["long","쇼츠 빼기"],["short","쇼츠만"],...cats.map(c=>[c,c])].map(([k,n]) => `<button class="chip" type="button" data-vf="${esc(k)}" aria-pressed="${S.vf===k}">${esc(n)}</button>`).join("")}</div>
+    <div class="chips" role="group" aria-label="영상 거르기">${[["all",`전체 ${vids(e).length}`],["long","쇼츠 빼기"],["short","쇼츠만"],...cats.map(c=>[c,c])].map(([k,n]) => `<button class="chip" type="button" data-vf="${esc(k)}" aria-pressed="${S.vf===k}">${esc(n)}</button>`).join("")}</div>
     <div class="chips" role="group" aria-label="정렬">${[["rank","조회수 순위"],["likes","배댓 좋아요 순"],["power","배댓 파워 순"]].map(([k,n]) => `<button class="chip" type="button" data-vsort="${k}" aria-pressed="${S.vsort===k}">${n}</button>`).join("")}</div>
     <p class="note">${list.length}개 영상 · 카드마다 배댓 10개 · 썸네일을 누르면 여기서 바로 재생돼요</p>
-    <div class="stack" style="gap:16px">${list.map(vCard).join("") || `<p class="note">해당하는 영상이 없어요.</p>`}</div>
+    <div class="stack vlist" style="gap:16px">${list.map(vCard).join("") || `<p class="note">해당하는 영상이 없어요.</p>`}</div>
     ${e.skipped?`<p class="note">건너뛴 영상: 한국 채널 아님 ${e.skipped.not_kr||0} · 댓글 꺼짐 ${e.skipped.comments_off||0} · 댓글 없음 ${e.skipped.no_comments||0}</p>`:""}`;
 }
 
@@ -372,7 +398,7 @@ function viewStats(){
   const cs = allComments(e), n = cs.length;
   const tagged = cs.filter(c=>c.tags?.type);
   const types = count(tagged, c=>c.tags.type), emos = count(tagged, c=>c.tags.emotion), devs = count(tagged.filter(c=>c.tags.type==="드립"), c=>c.tags.device);
-  const catRows = count(e.videos, v=>v.category).map(([cat]) => { const cc = tagged.filter(c=>c.v.category===cat); return {cat, n:cc.length, t:count(cc, c=>c.tags.type)}; }).filter(r=>r.n);
+  const catRows = count(vids(e), v=>v.category).map(([cat]) => { const cc = tagged.filter(c=>c.v.category===cat); return {cat, n:cc.length, t:count(cc, c=>c.tags.type)}; }).filter(r=>r.n);
   const pw = cs.filter(c=>c.power!=null).sort((a,b)=>b.power-a.power).slice(0,5);
   const kws = e.summary?.keywords || [];
   const multi = S.months.filter(m=>S.eds[m]);
@@ -382,7 +408,7 @@ function viewStats(){
     <div class="legend">${TYPES.map(t=>`<span><span class="tdot" style="background:${TCOL[t]}"></span>${t}</span>`).join("")}</div></div>` : "";
   box.innerHTML = `${monthChips()}
     <p class="lead">${monthKo(e.month)}판 분석</p>
-    <div class="tiles"><div class="tile"><b>${n?Math.round(cs.filter(c=>c.ts).length/n*100):0}%</b><span>타임스탬프 배댓</span></div><div class="tile"><b>${n?Math.round(cs.reduce((s,c)=>s+c.len,0)/n):0}</b><span>평균 글자 수</span></div><div class="tile"><b>${e.videos.filter(v=>v.short).length}</b><span>쇼츠 영상</span></div><div class="tile"><b>${kNum(Math.round(cs.reduce((s,c)=>s+c.replies,0)/Math.max(1,n)))}</b><span>배댓 평균 답글</span></div></div>
+    <div class="tiles"><div class="tile"><b>${n?Math.round(cs.filter(c=>c.ts).length/n*100):0}%</b><span>타임스탬프 배댓</span></div><div class="tile"><b>${n?Math.round(cs.reduce((s,c)=>s+c.len,0)/n):0}</b><span>평균 글자 수</span></div><div class="tile"><b>${vids(e).filter(v=>v.short).length}</b><span>쇼츠 영상</span></div><div class="tile"><b>${kNum(Math.round(cs.reduce((s,c)=>s+c.replies,0)/Math.max(1,n)))}</b><span>배댓 평균 답글</span></div></div>
     ${e.report?`<h2 class="sec">월간 리포트</h2><div class="card"><p style="white-space:pre-wrap;line-height:1.7">${esc(e.report)}</p></div>`:""}
     ${types.length?`<h2 class="sec">어떤 댓글이 배댓이 되나</h2><div class="card">${bars(types, tagged.length, k=>TCOL[k])}</div>`:""}
     ${devs.length?`<h2 class="sec">드립의 웃음 장치</h2><div class="card">${bars(devs, devs.reduce((s,x)=>s+x[1],0), ()=>"var(--t1)")}</div>`:""}
@@ -451,7 +477,7 @@ const csvCell = v => { const s = String(v ?? ""); return /[",\n\r]/.test(s) ? `"
 const toCSV = rows => "﻿" + rows.map(r => r.map(csvCell).join(",")).join("\r\n");
 function rows(kind){
   const e = ed(); if(!e) return [];
-  if(kind==="videos") return [["월","순위","영상ID","제목","채널","카테고리","업로드","길이(초)","쇼츠","조회수","좋아요","댓글수","구독자","설명","링크"], ...e.videos.map(v=>[e.month,v.rank,v.id,v.title,v.channel,v.category,v.publishedAt,v.dur,v.short?"Y":"N",v.views,v.likes,v.comments,v.subs,v.desc||"",watch(v.id)])];
+  if(kind==="videos") return [["월","순위","영상ID","제목","채널","카테고리","업로드","길이(초)","쇼츠","조회수","좋아요","댓글수","구독자","설명","링크"], ...vids(e).map(v=>[e.month,v.rank,v.id,v.title,v.channel,v.category,v.publishedAt,v.dur,v.short?"Y":"N",v.views,v.likes,v.comments,v.subs,v.desc||"",watch(v.id)])];
   if(kind==="saved") return [["월","댓글ID","영상ID","본문","메모","저장시각","링크"], ...Object.entries(savedOf()).map(([cid,it]) => { const c = allComments().find(x=>x.id===cid); return [e.month,cid,it.vid,c?.text||"",it.memo||"",it.at,c?at(c.v.id,cid):""]; })];
   return [["월","영상순위","영상ID","영상제목","카테고리","배댓순위","댓글ID","본문","좋아요","답글","배댓파워","글자수","타임스탬프","이모지","유형","드립장치","감정","키워드","작성일","댓글링크"], ...allComments().map(c=>[e.month,c.v.rank,c.v.id,c.v.title,c.v.category,c.rank,c.id,c.text,c.likes,c.replies,c.power,c.len,c.ts?"Y":"N",c.emoji,c.tags?.type||"",c.tags?.device||"",c.tags?.emotion||"",(c.tags?.kw||[]).join(" "),c.at,at(c.v.id,c.id)])];
 }
@@ -480,6 +506,9 @@ window.addEventListener("hashchange", () => show(location.hash.slice(1)));
 document.addEventListener("click", e => {
   const t = e.target;
   const tab = t.closest("[data-v]"); if(tab){ go(tab.dataset.v); return; }
+  const hd = t.closest("[data-hide]"); if(hd){ const c = hd.dataset.hide; HIDE.has(c) ? HIDE.delete(c) : HIDE.add(c); saveHide(); if(S.vf===c) S.vf="all"; chip(); draw(); return; }
+  if(t.closest("[data-hideopen]")){ S.hideOpen = !S.hideOpen; draw(); return; }
+  if(t.closest("[data-hideclear]")){ HIDE.clear(); saveHide(); chip(); draw(); return; }
   const pl = t.closest("[data-play]"); if(pl){ play(pl.dataset.play, pl); return; }
   const sv = t.closest("[data-save]"); if(sv){ toggleSave(sv.dataset.save, sv.dataset.vid); return; }
   const bt = t.closest("[data-bt]"); if(bt){ const k = bt.dataset.bt; S.open.has(k) ? S.open.delete(k) : S.open.add(k); document.querySelectorAll(`[data-bt="${CSS.escape(k)}"]`).forEach(x => x.classList.toggle("open", S.open.has(k))); return; }
@@ -507,7 +536,7 @@ async function selectMonth(m){
 }
 function chip(){
   const e = ed();
-  $("#edchip").innerHTML = e ? `<b>${monthKo(e.month)}판</b>영상 ${e.videos.length} · 배댓 ${allComments(e).length}` : `<b>수집 대기</b>월간판 0개`;
+  $("#edchip").innerHTML = e ? `<b>${monthKo(e.month)}판</b>영상 ${vids(e).length} · 배댓 ${allComments(e).length}` : `<b>수집 대기</b>월간판 0개`;
 }
 async function boot(){
   try{
