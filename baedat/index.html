@@ -116,6 +116,10 @@ p{margin:0}
 .hide-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .hide-bar .chip.off{text-decoration:line-through;opacity:.75}
 .hide-bar .chip.off[aria-pressed="true"]{background:var(--ink);color:var(--bg);text-decoration:line-through}
+/* 세로 영상(쇼츠): 9:16으로, 화면 높이를 넘지 않게 가운데 */
+.media{background:#000;display:flex;justify-content:center}
+.media.v .th,.media.v .player{aspect-ratio:9/16;width:auto;height:min(78vh,760px);max-width:100%}
+.media.v .play{width:auto}
 /* 바로 재생 */
 .play{display:block;width:100%;border:0;padding:0;background:none;position:relative;cursor:pointer}
 .play .pbtn{position:absolute;left:50%;top:50%;width:64px;height:44px;margin:-22px 0 0 -32px;border-radius:12px;background:rgba(255,0,0,.92);display:grid;place-items:center}
@@ -154,7 +158,7 @@ p{margin:0}
 .bm .tg{display:inline-flex;align-items:center;gap:4px;color:var(--ink);font-weight:500}
 .heart{border:0;background:var(--fill);border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:600;color:var(--muted);margin-left:auto}
 .heart[aria-pressed="true"]{background:var(--orange-soft);color:var(--orange-t)}
-.bmore{display:block;width:100%;border:0;background:none;color:var(--tint-t);font-size:14px;font-weight:600;padding:10px 0 12px;border-top:.5px solid var(--sep)}
+.bmore{display:block;width:100%;border:0;background:none;color:var(--tint-t);font-size:14px;font-weight:600;padding:12px 16px 14px;border-top:.5px solid var(--sep)}
 
 /* 배댓 단독 카드 (이번 달 · 배댓 탭) */
 .cmt{background:var(--surface);border-radius:var(--r);overflow:hidden}
@@ -258,7 +262,9 @@ const count = (arr, f) => { const m={}; arr.forEach(x => { const k=f(x); if(k) m
 // ───────── 썸네일: 유튜브 이미지를 바로 씀 ─────────
 const thumbSrc = (id, big) => `https://i.ytimg.com/vi/${encodeURIComponent(id)}/${big?"maxresdefault":"mqdefault"}.jpg`;
 function hydrate(){}
-const thumb = (v, extra="", big=false) => `<span class="th"><img src="${thumbSrc(v.id, big)}" alt="" loading="lazy" decoding="async" onload="if(this.naturalWidth<=120&&!this.dataset.f){this.dataset.f=1;this.src=this.src.replace('maxresdefault','hqdefault');return}this.classList.add('on')" onerror="if(!this.dataset.f){this.dataset.f=1;this.src=this.src.replace('maxresdefault','hqdefault')}else this.remove()"><span class="ph" aria-hidden="true"></span>${extra}</span>`;
+const isV = v => !!(v.ar && v.ar < 1);
+const thumb = (v, extra="", big=false) => `<span class="th"><img src="${isV(v) ? `https://i.ytimg.com/vi/${encodeURIComponent(v.id)}/hqdefault.jpg` : thumbSrc(v.id, big)}" alt="" loading="lazy" decoding="async" onload="if(this.naturalWidth<=120&&!this.dataset.f){this.dataset.f=1;this.src=this.src.replace('maxresdefault','hqdefault');return}this.classList.add('on')" onerror="if(!this.dataset.f){this.dataset.f=1;this.src=this.src.replace('maxresdefault','hqdefault')}else this.remove()"><span class="ph" aria-hidden="true"></span>${extra}</span>`;
+const playerHtml = id => `<div class="player" data-player="${esc(id)}"><iframe src="https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0" title="유튜브 플레이어" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`;
 // ───────── 바로 재생: 썸네일을 누르면 그 자리에서 유튜브 플레이어로 ─────────
 let playing = null;
 function stopPlay(){ if(!playing) return false; const el = document.querySelector(`[data-player="${CSS.escape(playing)}"]`); playing = null; if(el) draw(); return true; }
@@ -266,9 +272,8 @@ function play(id, btn){
   if(playing && playing!==id) stopPlay();
   playing = id;
   const target = btn || document.querySelector(`[data-play="${CSS.escape(id)}"]`); if(!target) return;
-  const box = document.createElement("div"); box.className = "player"; box.dataset.player = id;
-  box.innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0" title="유튜브 플레이어" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
-  target.replaceWith(box);
+  const box = document.createElement("div"); box.innerHTML = playerHtml(id);
+  target.replaceWith(box.firstElementChild);
 }
 // ───────── 공통 조각 ─────────
 function allCats(){ const m = {}; S.months.forEach(k => (S.eds[k]?.videos||[]).forEach(v => { if(v.category) m[v.category] = (m[v.category]||0) + 1; })); return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(x=>x[0]); }
@@ -306,7 +311,7 @@ function vSummary(v){
 function vCard(v){
   const extra = `<span class="rk">${v.rank}</span>${v.dur?`<span class="dur">${dur(v.dur)}</span>`:""}${v.short?`<span class="sh">쇼츠</span>`:""}`;
   return `<article class="vcard" id="vc-${esc(v.id)}"><div class="vleft">
-    ${playing===v.id ? `<div class="player" data-player="${esc(v.id)}"><iframe src="https://www.youtube.com/embed/${encodeURIComponent(v.id)}?autoplay=1&playsinline=1&rel=0" title="유튜브 플레이어" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>` : `<button type="button" class="play" data-play="${esc(v.id)}" aria-label="${esc(v.title)} 재생">${thumb(v, extra + `<span class="pbtn" aria-hidden="true"></span>`, true)}</button>`}
+    <div class="media${isV(v)?" v":""}">${playing===v.id ? playerHtml(v.id) : `<button type="button" class="play" data-play="${esc(v.id)}" aria-label="${esc(v.title)} 재생">${thumb(v, extra + `<span class="pbtn" aria-hidden="true"></span>`, true)}</button>`}</div>
     <div class="vbody">
       <h3 class="vt">${esc(v.title)}</h3>
       <div class="vm"><b>${esc(v.channel)}</b><span>조회 ${kNum(v.views)}</span><span>${ymd(v.publishedAt)}</span><span>${esc(v.category||"")}</span>${v.subs?`<span>구독자 ${kNum(v.subs)}</span>`:""}</div>
