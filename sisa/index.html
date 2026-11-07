@@ -101,6 +101,7 @@ h2.sec .n{font-family:var(--f-mono);font-weight:500}
 .has-ph .tc-scale{background:rgba(0,0,0,.55);color:#fff}
 .ph-fb{display:none}.has-ph.ph-bad .ph-fb,.iphoto.ph-bad+.imap.ph-fb{display:block}.has-ph.ph-bad .tc-ph,.has-ph.ph-bad .tc-cap,.iphoto.ph-bad{display:none}
 .has-ph.ph-bad{aspect-ratio:auto}
+.idates{margin:-4px 0 12px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 .iphoto{margin:4px 0 14px;border-radius:14px;overflow:hidden;background:var(--sunk)}
 .iphoto a{display:block}.ip-img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
 .iphoto figcaption{display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:12px;color:var(--muted);background:var(--surface)}
@@ -992,9 +993,12 @@ function ago(iso){
 }
 const fullWhen = iso => `${kstDay(iso).replace(/-/g, ".")} ${kstTime(iso)}`;
 const isOld = it => !!it.p && Date.now() - Date.parse(it.p) > 3 * 86400e3;
+// 기사가 나온 날짜 (한국 시각): "11월 6일 15:20"
+function mdTime(iso){ const d = new Date(iso); if(isNaN(d)) return ""; const k = new Date(d.getTime() + 9*3600e3); return `${k.getUTCMonth()+1}월 ${k.getUTCDate()}일 ${String(k.getUTCHours()).padStart(2,"0")}:${String(k.getUTCMinutes()).padStart(2,"0")}`; }
+function mdDay(iso){ const d = new Date(iso); if(isNaN(d)) return ""; const k = new Date(d.getTime() + 9*3600e3); return `${k.getUTCMonth()+1}월 ${k.getUTCDate()}일`; }
 function whenHtml(it){
   if(!it.p) return '<span class="nodate">시각 정보 없음</span>';
-  return `<span class="when-s${isOld(it) ? " old" : ""}" title="${fullWhen(it.p)}">${ago(it.p)}${isOld(it) ? " · 지난 글" : ""}</span>`;
+  return `<span class="when-s${isOld(it) ? " old" : ""}" title="${fullWhen(it.p)}">${mdTime(it.p)} · ${ago(it.p)}${isOld(it) ? " · 지난 글" : ""}</span>`;
 }
 function whenLabel(iso){ return ago(iso); }
 function metricHtml(it){
@@ -1820,8 +1824,10 @@ function issueInner(s, inDeck){
       <span class="st-top">${cat ? `<span class="cat"><i aria-hidden="true"></i>${CAT[cat]}</span>` : ""}<span class="meta">${s.delta==="new" ? '<b class="new">새 이슈</b>' : newIts.length ? `<button type="button" class="dbtn" data-jump="sec-tl">지난 판보다 글 +${newIts.length} ›</button>` : ""}</span></span>
       ${seenBefore && newIts.length ? `<div class="ibanner"><span>마지막으로 읽으신 뒤 새 글 ${newIts.length}개가 붙었어요.</span><button type="button" data-jump="sec-tl">바뀐 것부터 보기</button></div>` : ""}
       <h2 class="ititle">${esc(s.title || storyTitle(s, its))}</h2>
+      ${(() => { const ps = its.map(i => i.p).filter(Boolean).sort(); if(!ps.length) return ""; const a = mdDay(ps[0]), b = mdDay(ps[ps.length-1]);
+        return `<p class="idates">🗓 기사 날짜 ${a === b ? a : a + " ~ " + b} · 기사 ${its.length}개 · 가장 최근 ${ago(ps[ps.length-1])}</p>`; })()}
       ${(() => { const ph = storyPhoto(s); return ph ? `<figure class="iphoto has-ph"><a href="${esc(ph.i.u || "#")}" target="_blank" rel="noopener" aria-label="사진이 실린 기사 열기">${phImg(ph.u, "ip-img")}</a>
-        <figcaption><span>사진: ${esc(srcOf(ph.i.s).n)} 기사${koOf(ph.i) ? ` 「${esc(koOf(ph.i).slice(0, 40))}${koOf(ph.i).length > 40 ? "…" : ""}」` : ""}</span><button type="button" class="ip-map" data-mapfull="${sid}">🗺 지도</button></figcaption></figure>` : ""; })()}
+        <figcaption><span>사진: ${esc(srcOf(ph.i.s).n)} 기사${ph.i.p ? ` (${mdTime(ph.i.p)})` : ""}${koOf(ph.i) ? ` 「${esc(koOf(ph.i).slice(0, 40))}${koOf(ph.i).length > 40 ? "…" : ""}」` : ""}</span><button type="button" class="ip-map" data-mapfull="${sid}">🗺 지도</button></figcaption></figure>` : ""; })()}
       <div class="imap${storyPhoto(s) ? " ph-fb" : ""}">
         <div class="mtabs" role="tablist">${[["loc","사건 위치"],["rel","관련 관계"],["rep","보도 분포"]].filter(([m]) => m !== "loc" || (s.geo && s.geo.box)).map(([m,l]) => `<button type="button" role="tab" data-mapmode="${sid}:${m}" aria-selected="${mode===m}">${l}</button>`).join("")}</div>
         <div class="imap-hit" data-mapfull="${sid}" role="button" tabindex="0" aria-label="지도 크게 보기">${issueMap(s, mode, countries, its)}<span class="imap-big">⤢ 크게 보기</span></div>
@@ -2173,7 +2179,7 @@ function articleDeckCard(i){
   const b = briefOf(i.id), c = cmOf(i.id), story = (S.ed.stories||[]).find(s => okStory(s) && s.items.includes(i.id));
   const p = c && c.picks ? (c.picks.find(x => x.type==="top") || c.picks[0]) : null;
   return `<div class="vdk-body dk">
-    <div class="vdk-k"><span>${flag(ctry(i))} ${esc(cname(ctry(i)))}</span><span>${esc(srcOf(i.s).n)}</span><span>${esc(KIND[i.k] || "")}</span>${i.p ? `<span>${esc(ago(i.p))}</span>` : ""}${PAYWALL.has(i.s) ? "<span>구독 기사일 수 있음</span>" : ""}</div>
+    <div class="vdk-k"><span>${flag(ctry(i))} ${esc(cname(ctry(i)))}</span><span>${esc(srcOf(i.s).n)}</span><span>${esc(KIND[i.k] || "")}</span>${i.p ? `<span>${esc(mdTime(i.p))} · ${esc(ago(i.p))}</span>` : ""}${PAYWALL.has(i.s) ? "<span>구독 기사일 수 있음</span>" : ""}</div>
     <h2 class="vdk-t">${entText(koOf(i) || i.t)}</h2>
     ${i.m && i.m.img ? `<figure class="iphoto has-ph">${phImg(i.m.img, "ip-img")}<figcaption><span>사진: ${esc(srcOf(i.s).n)}</span></figcaption></figure>` : ""}
     ${b ? `<p class="vdk-p">${esc(b.sum || "")}</p>` : i.sm ? `<p class="vdk-p dk-orig">${esc(i.sm)}</p><p class="note">기사 설명 원문이에요. 원문 보기를 누르면 한국어로 번역돼 열려요.</p>` : '<p class="note">제목만 있는 글이에요.</p>'}
