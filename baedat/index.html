@@ -200,6 +200,7 @@ nav.tabs svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1
 nav.tabs button[aria-current="page"]{color:var(--tint);font-weight:600}
 /* 명댓글 감상: 장면 → 한 줄 → 다시 보기 */
 .seg2{display:grid;grid-template-columns:1fr 1fr;background:var(--fill);border-radius:10px;padding:2px;gap:2px}
+.seg2.s3{grid-template-columns:repeat(3,1fr)}
 .seg2 button{border:0;background:none;border-radius:8px;padding:7px 0;font-size:14px;font-weight:600;color:var(--muted)}
 .seg2 button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .lgrid{display:grid;gap:16px}
@@ -226,6 +227,9 @@ nav.tabs button[aria-current="page"]{color:var(--tint);font-weight:600}
 .pickbar{display:flex;gap:8px;align-items:center}
 .pickbar .btn{flex:none}
 .edc{margin-bottom:4px}
+.rw{transition:opacity .3s ease,max-height .35s ease;max-height:1200px;overflow:hidden}
+.rw.gone{opacity:0;max-height:0;padding-top:0;padding-bottom:0;border-bottom-width:0}
+@media (prefers-reduced-motion:reduce){.rw{transition:none}}
 .rate{display:flex;gap:6px;margin-top:2px}
 .rate button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:10px;padding:7px 4px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .rate button[aria-pressed="true"]{background:var(--tint-soft);border-color:var(--tint);color:var(--tint-t)}
@@ -295,7 +299,7 @@ const BASE = "../data/baedat/";
 const HIDE_KEY = "vfm:baedat:hide";
 let HIDE = new Set(); try{ HIDE = new Set(JSON.parse(localStorage.getItem(HIDE_KEY) || "[]")); }catch(_){}
 function saveHide(){ try{ localStorage.setItem(HIDE_KEY, JSON.stringify([...HIDE])); }catch(_){} }
-const S = {months:[], eds:{}, month:null, view:"month", vmode:"legend", led:"best", LE:{}, RW:{}, rawM:null, rawSort:"likes", rawN:100, rawQ:"", rawF:"all", lt:"all", rev:new Set(), lstart:0, lnonce:0, pick:null, LG:null, vf:"all", vsort:"rank", cf:"all", sort:"likes", db:null, saved:{}, canWrite:false, mode:"loading", updatedAt:null, open:new Set()};
+const S = {months:[], eds:{}, month:null, view:"month", vmode:"legend", led:"best", LE:{}, RW:{}, rawM:null, rawSort:"likes", rawN:100, rawQ:"", rawF:"todo", lt:"all", rev:new Set(), lstart:0, lnonce:0, pick:null, LG:null, vf:"all", vsort:"rank", cf:"all", sort:"likes", db:null, saved:{}, canWrite:false, mode:"loading", updatedAt:null, open:new Set()};
 
 // ───────── 형식 도우미 ─────────
 const nf = new Intl.NumberFormat("ko-KR");
@@ -497,6 +501,22 @@ function loadRaw(m){
   S.RW[m] = "loading";
   fetch(BASE + e.file, {cache:"no-store"}).then(r => r.ok ? r.json() : null).then(j => { S.RW[m] = j || "error"; if(S.led==="raw") draw(); }).catch(() => { S.RW[m] = "error"; if(S.led==="raw") draw(); });
 }
+// 내 취향순: 체크한 댓글(🤣·🙂 = 좋음, 😐 = 별로)의 글자 조각·채널·분야를 세어, 안 본 댓글을 닮은 순서로 줄 세움 (이 기기 안에서만 계산)
+function tasteFeats(c, V){
+  const t = c[2].replace(/\s+/g, " ").toLowerCase(); const f = new Set();
+  for(let i = 0; i < t.length - 1; i++){ const g = t.slice(i, i+2); if(/[가-힣a-z0-9ㅋㅎㅠ]/.test(g)) f.add("g:"+g); }
+  const v = V[c[0]]; if(v){ f.add("ch:"+v[1]); f.add("cat:"+v[4]); f.add("v:"+c[0]); }
+  f.add(c[2].length < 25 ? "len:s" : c[2].length < 60 ? "len:m" : "len:l");
+  return f;
+}
+function tasteModel(){
+  const pos = {}, neg = {}; let np = 0, nn = 0;
+  Object.values(S.RW).forEach(R => { if(!R || !R.comments) return; R.comments.forEach(c => { const r = LGU.rate[c[1]]; if(!r) return;
+    const w = r===3 ? 1 : r===2 ? .5 : 1, bag = r===1 ? neg : pos; r===1 ? nn++ : np += w;
+    tasteFeats(c, R.videos).forEach(k => bag[k] = (bag[k]||0) + w); }); });
+  return {pos, neg, np, nn, n: Object.keys(LGU.rate).length};
+}
+const tasteScore = (M, c, V) => { let s = 0; tasteFeats(c, V).forEach(k => { s += Math.log(((M.pos[k]||0) + .5) / (M.np + 1)) - Math.log(((M.neg[k]||0) + .5) / (M.nn + 1)); }); return s; };
 function viewRaw(box){
   const raws = S.LG.raws || []; if(!S.rawM) S.rawM = raws[0]?.month;
   const m = S.rawM; const R = S.RW[m]; loadRaw(m);
@@ -504,7 +524,7 @@ function viewRaw(box){
     <p class="lead">원본 데이터</p>
     <p class="note">사람이 고르기 전, 수집기가 모은 그대로의 댓글이에요. 응원·구독·링크 같은 글과 좋아요 30 미만은 기계로 걸렀고, 노래 가사가 섞이기 쉬운 음악 영상은 뺐어요. 원문은 바꾸지 않았어요. 읽으면서 🤣 최고 · 🙂 괜찮 · 😐 별로로 호감도를 체크해 보세요.</p>
     <div class="rawbar"><label class="note" for="rawm">달</label><select id="rawm" data-rawm>${raws.map(r => `<option value="${esc(r.month)}"${r.month===m?" selected":""}>${esc(r.month.replace("-","년 "))}월 · 영상 ${r.videos} · 댓글 ${kNum(r.comments)}</option>`).join("")}</select></div>
-    <div class="seg2" role="group" aria-label="정렬"><button type="button" data-rawsort="likes" aria-pressed="${S.rawSort==="likes"}">좋아요순</button><button type="button" data-rawsort="video" aria-pressed="${S.rawSort==="video"}">영상별</button></div>
+    <div class="seg2 s3" role="group" aria-label="정렬"><button type="button" data-rawsort="likes" aria-pressed="${S.rawSort==="likes"}">좋아요순</button><button type="button" data-rawsort="video" aria-pressed="${S.rawSort==="video"}">영상별</button><button type="button" data-rawsort="taste" aria-pressed="${S.rawSort==="taste"}">내 취향순</button></div>
     <input class="rawq" type="search" data-rawq placeholder="댓글·영상 제목에서 찾기" value="${esc(S.rawQ)}">`;
   if(!R || R==="loading"){ box.innerHTML = head + `<p class="note">불러오는 중이에요…</p>`; return; }
   if(R==="error"){ S.RW[m] = null; box.innerHTML = head + `<p class="note">불러오지 못했어요. 다시 눌러 주세요.</p>`; return; }
@@ -512,15 +532,21 @@ function viewRaw(box){
   let cs = R.comments;
   if(q) cs = cs.filter(c => c[2].toLowerCase().includes(q) || (V[c[0]]?.[0]||"").toLowerCase().includes(q));
   const all0 = R.comments; const rc = n => all0.filter(c => LGU.rate[c[1]]===n).length; const done = all0.filter(c => LGU.rate[c[1]]).length;
-  const FS = [["all","전체"],["todo",`안 본 것 ${kNum(all0.length-done)}`],["3",`🤣 최고 ${rc(3)}`],["2",`🙂 괜찮 ${rc(2)}`],["1",`😐 별로 ${rc(1)}`]];
+  const FS = [["todo",`안 본 것 ${kNum(all0.length-done)}`],["all","전체"],["3",`🤣 최고 ${rc(3)}`],["2",`🙂 괜찮 ${rc(2)}`],["1",`😐 별로 ${rc(1)}`]];
   if(S.rawF==="todo") cs = cs.filter(c => !LGU.rate[c[1]]); else if(S.rawF!=="all") cs = cs.filter(c => LGU.rate[c[1]]===+S.rawF);
   const fbar = `<div class="chips" role="group" aria-label="호감도 보기">${FS.map(([k,n]) => `<button class="chip" type="button" data-rawf="${k}" aria-pressed="${S.rawF===k}">${esc(n)}</button>`).join("")}</div>
-    <div class="rprog"><span style="width:${all0.length?Math.round(done/all0.length*1000)/10:0}%"></span></div><p class="note">이 달 ${kNum(all0.length)}개 중 ${kNum(done)}개 체크했어요. 체크는 이 기기에 저장되고, 로그인돼 있으면 다른 기기와도 맞춰져요.</p>`;
+    <div class="rprog"><span style="width:${all0.length?Math.round(done/all0.length*1000)/10:0}%"></span></div><p class="note">이 달 ${kNum(all0.length)}개 중 ${kNum(done)}개 체크했어요. 체크한 댓글은 목록에서 사라지고(전체에서 다시 볼 수 있어요), 체크는 이 기기에 저장되고, 로그인돼 있으면 다른 기기와도 맞춰져요.</p>`;
   const RT = [[3,"🤣","최고"],[2,"🙂","괜찮"],[1,"😐","별로"]];
   const rateBtns = id => `<div class="rate" role="group" aria-label="호감도">${RT.map(([n,e,l]) => `<button type="button" data-rate="${esc(id)}" data-n="${n}" aria-pressed="${LGU.rate[id]===n}"><span aria-hidden="true">${e}</span>${l}</button>`).join("")}</div>`;
   const row = (c, showV) => `<li class="rw" data-rid="${esc(c[1])}"><p>${esc(c[2])}</p><div class="lmeta"><span>좋아요 ${kNum(c[3])}</span><span>답글 ${kNum(c[4])}</span><span>${esc(c[5])}</span><a href="${at(c[0], c[1])}" target="_blank" rel="noopener">원문</a></div>${showV?`<div class="rwv">${esc(V[c[0]][1])} · ${esc(V[c[0]][0])}</div>`:""}${rateBtns(c[1])}</li>`;
   let body, total, shown;
-  if(S.rawSort==="likes"){
+  if(S.rawSort==="taste"){
+    const M = tasteModel();
+    if(M.n < 10 || !M.np || !M.nn){ total = 0; shown = 0; body = `<div class="card"><p class="note">🤣·🙂와 😐를 섞어서 10개 이상 체크하면 켜져요. 지금 ${M.n}개 체크했어요. 체크할수록 내가 좋아할 댓글이 위로 올라와요.</p></div>`; }
+    else { const sc = new Map(cs.map(c => [c, tasteScore(M, c, V)])); const sorted = cs.slice().sort((a,b) => sc.get(b)-sc.get(a));
+      total = sorted.length; const part = sorted.slice(0, S.rawN); shown = part.length;
+      body = `<p class="note">체크한 ${M.n}개를 바탕으로, 내가 좋아한 댓글과 닮은 순서예요. 이 기기 안에서만 계산해요.</p><ol class="rwl">${part.map(c => row(c, true)).join("")}</ol>`; }
+  } else if(S.rawSort==="likes"){
     total = cs.length; const part = cs.slice(0, S.rawN); shown = part.length;
     body = `<ol class="rwl">${part.map(c => row(c, true)).join("")}</ol>`;
   } else {
@@ -529,7 +555,7 @@ function viewRaw(box){
     const part = vs.slice(0, Math.ceil(S.rawN/5)); shown = part.length;
     body = part.map(v => `<section class="rwg"><h3><a href="${watch(v)}" target="_blank" rel="noopener">${esc(V[v][0])}</a></h3><div class="note">${esc(V[v][1])} · ${esc(V[v][4])} · 조회 ${kNum(V[v][3])} · ${esc(V[v][2])} · 댓글 ${g[v].length}</div><ol class="rwl">${g[v].map(c => row(c, false)).join("")}</ol></section>`).join("");
   }
-  box.innerHTML = head + fbar + `<p class="note">${S.rawSort==="likes"?`댓글 ${kNum(total)}개 중 ${shown}개`:`영상 ${total}개 중 ${shown}개`} · 좋아요는 ${esc(R.checkedAt)} 기준</p>${body || `<p class="note">${S.rawF==="all"||S.rawF==="todo"?"찾는 댓글이 없어요.":"아직 이 호감도로 체크한 댓글이 없어요."}</p>`}
+  box.innerHTML = head + fbar + `<p class="note">${S.rawSort==="video"?`영상 ${total}개 중 ${shown}개`:`댓글 ${kNum(total)}개 중 ${shown}개`} · 좋아요는 ${esc(R.checkedAt)} 기준</p>${body || `<p class="note">${S.rawF==="all"||S.rawF==="todo"?"찾는 댓글이 없어요.":"아직 이 호감도로 체크한 댓글이 없어요."}</p>`}
     ${shown < total ? `<button class="btn ghost" type="button" data-rawmore>더 보기</button>` : ""}`;
 }
 const modeSeg = () => `<div class="seg2" role="group" aria-label="영상 보기 방식"><button type="button" data-vmode="legend" aria-pressed="${S.vmode==="legend"}">명댓글 감상</button><button type="button" data-vmode="month" aria-pressed="${S.vmode==="month"}">월간 인기 영상</button></div>`;
@@ -735,7 +761,9 @@ document.addEventListener("click", e => {
   const rv = t.closest("[data-reveal]"); if(rv){ S.rev.add(rv.dataset.reveal); const keep = window.scrollY; draw(); window.scrollTo(0, keep); return; }
   const rw = t.closest("[data-rewatch]"); if(rw){ const m = lmoms().find(x => x.id===rw.dataset.rewatch); if(!m) return; playing = m.vid; S.lstart = m.start|0; S.lnonce++; const keep = window.scrollY; draw(); window.scrollTo(0, keep); const el = document.getElementById("mo-"+m.id); if(el) el.scrollIntoView({block:"start", behavior:"smooth"}); return; }
   const fv = t.closest("[data-fav]"); if(fv){ const k = fv.dataset.fav; LGU.fav[k] = !LGU.fav[k]; if(!LGU.fav[k]) delete LGU.fav[k]; saveLGU(); fv.setAttribute("aria-pressed", String(!!LGU.fav[k])); fv.textContent = LGU.fav[k]?"저장됨":"또 보고 싶음"; toast(LGU.fav[k]?"저장했어요 · '저장' 칩에서 다시 볼 수 있어요":"저장을 뺐어요"); return; }
-  const rt = t.closest("[data-rate]"); if(rt){ const id = rt.dataset.rate, n = +rt.dataset.n; if(LGU.rate[id]===n) delete LGU.rate[id]; else LGU.rate[id] = n; saveLGU(); rt.parentNode.querySelectorAll("[data-rate]").forEach(b => b.setAttribute("aria-pressed", String(LGU.rate[id]===+b.dataset.n))); return; }
+  const rt = t.closest("[data-rate]"); if(rt){ const id = rt.dataset.rate, n = +rt.dataset.n; if(LGU.rate[id]===n) delete LGU.rate[id]; else LGU.rate[id] = n; saveLGU(); rt.parentNode.querySelectorAll("[data-rate]").forEach(b => b.setAttribute("aria-pressed", String(LGU.rate[id]===+b.dataset.n)));
+    const li = rt.closest(".rw"); if(li && S.rawF==="todo" && LGU.rate[id]){ li.classList.add("gone"); setTimeout(() => { const g = li.closest(".rwg"); li.remove(); if(g && !g.querySelector(".rw")) g.remove(); }, 380); }
+    return; }
   const rf = t.closest("[data-rawf]"); if(rf){ S.rawF = rf.dataset.rawf; S.rawN = 100; draw(); return; }
   const rs = t.closest("[data-rawsort]"); if(rs){ S.rawSort = rs.dataset.rawsort; S.rawN = 100; draw(); return; }
   if(t.closest("[data-rawmore]")){ const keep = window.scrollY; S.rawN += 100; draw(); window.scrollTo(0, keep); return; }
