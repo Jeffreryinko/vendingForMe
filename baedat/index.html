@@ -198,6 +198,35 @@ nav.tabs .in{max-width:720px;margin:0 auto;display:grid;grid-template-columns:re
 nav.tabs button{border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10.5px;font-weight:500;color:#8E8E93}
 nav.tabs svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 nav.tabs button[aria-current="page"]{color:var(--tint);font-weight:600}
+/* 명댓글 감상: 장면 → 한 줄 → 다시 보기 */
+.seg2{display:grid;grid-template-columns:1fr 1fr;background:var(--fill);border-radius:10px;padding:2px;gap:2px}
+.seg2 button{border:0;background:none;border-radius:8px;padding:7px 0;font-size:14px;font-weight:600;color:var(--muted)}
+.seg2 button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.lgrid{display:grid;gap:16px}
+@media (min-width:900px){.lgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mo{background:var(--surface);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;scroll-margin-top:72px}
+@media (max-width:600px){.mo{margin-left:-16px;margin-right:-16px;border-radius:0}}
+.mo.pick{outline:2px solid var(--tint);outline-offset:-2px}
+.mo .mb{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.mo .mtop{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.mo .mt{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.mo .setup{font-size:15.5px;line-height:1.6}
+.mo .hook{font-size:14px;color:var(--tint-t);font-weight:600}
+.reveal{border:1.5px dashed var(--tint);background:var(--tint-soft);color:var(--tint-t);border-radius:14px;padding:16px;font-size:16px;font-weight:700;width:100%}
+.line1{font-family:var(--display);font-size:clamp(21px,5.6vw,27px);font-weight:700;line-height:1.38;letter-spacing:-.02em;white-space:pre-wrap;overflow-wrap:anywhere;margin:0;border-left:4px solid var(--tint);padding:2px 0 2px 12px}
+.line1.long{font-size:clamp(18px,4.6vw,21px)}
+.lmeta{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px}
+.anat{background:var(--fill2);border-radius:12px;padding:11px 13px;display:flex;flex-direction:column;gap:6px;font-size:14.5px;line-height:1.6}
+.anat .k{font-size:12px;font-weight:700;color:var(--tint-t);letter-spacing:0}
+.more{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.more li{font-size:14.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;padding-left:12px;border-left:2px solid var(--line)}
+.more li.rp{border-left-color:var(--tint)}
+.more li small{display:block;font-size:12px;color:var(--muted)}
+.mine textarea{width:100%;min-height:64px;border:0;border-radius:10px;background:var(--fill2);padding:10px;font-size:15px;resize:vertical}
+.pickbar{display:flex;gap:8px;align-items:center}
+.pickbar .btn{flex:none}
+.vbadge{font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 8px;background:rgba(52,199,89,.15);color:var(--green-t)}
+.vbadge.b{background:var(--orange-soft);color:var(--orange-t)}
 #toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(30,30,30,.92);color:#fff;padding:9px 15px;border-radius:14px;font-size:13.5px;z-index:40;max-width:90vw;text-align:center}
 @media (prefers-reduced-motion:reduce){.th img{transition:none}}
 </style>
@@ -241,7 +270,7 @@ const BASE = "../data/baedat/";
 const HIDE_KEY = "vfm:baedat:hide";
 let HIDE = new Set(); try{ HIDE = new Set(JSON.parse(localStorage.getItem(HIDE_KEY) || "[]")); }catch(_){}
 function saveHide(){ try{ localStorage.setItem(HIDE_KEY, JSON.stringify([...HIDE])); }catch(_){} }
-const S = {months:[], eds:{}, month:null, view:"month", vf:"all", vsort:"rank", cf:"all", sort:"likes", db:null, saved:{}, canWrite:false, mode:"loading", updatedAt:null, open:new Set()};
+const S = {months:[], eds:{}, month:null, view:"month", vmode:"legend", lt:"all", rev:new Set(), lstart:0, lnonce:0, pick:null, LG:null, vf:"all", vsort:"rank", cf:"all", sort:"likes", db:null, saved:{}, canWrite:false, mode:"loading", updatedAt:null, open:new Set()};
 
 // ───────── 형식 도우미 ─────────
 const nf = new Intl.NumberFormat("ko-KR");
@@ -323,6 +352,70 @@ function vCard(v){
   </div></article>`;
 }
 
+
+// ───────── 명댓글 감상 (영상 탭 기본 화면) ─────────
+const LG_KEY = "vfm:baedat:legend";
+let LGU = {fav:{}, mine:{}}; try{ LGU = Object.assign(LGU, JSON.parse(localStorage.getItem(LG_KEY) || "{}")); }catch(_){}
+function saveLGU(){ try{ localStorage.setItem(LG_KEY, JSON.stringify(LGU)); }catch(_){} }
+const lmoms = () => (S.LG?.moments || []);
+function lList(){
+  if(S.lt==="fav") return lmoms().filter(m => LGU.fav[m.id]);
+  return S.lt==="all" ? lmoms() : lmoms().filter(m => m.types.includes(S.lt));
+}
+const ts = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+const lplayerHtml = (id, start, n) => `<div class="player" data-player="${esc(id)}"><iframe src="https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0&start=${start|0}&n=${n|0}" title="유튜브 플레이어" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`;
+function vbadge(m){
+  if(m.source==="broadcast") return `<span class="vbadge b">방송 화면 속 채팅</span>`;
+  return `<span class="vbadge">원댓글 확인 ${esc((S.LG?.checkedAt||"").slice(5).replace("-","."))}</span>`;
+}
+function moreList(m){
+  if(!m.more?.length) return "";
+  return `<div><div class="note" style="margin-bottom:6px">같이 터진 댓글</div><ul class="more">${m.more.map(c => `<li class="${c.reply?"rp":""}">${esc(c.text)}<small>${c.reply?"↳ 위 댓글의 답글 · ":""}좋아요 ${kNum(c.likes)}${c.id?` · <a href="${at(m.vid, c.id)}" target="_blank" rel="noopener">원문</a>`:""}</small></li>`).join("")}</ul></div>`;
+}
+function momentCard(m, isPick){
+  const open = S.rev.has(m.id) || m.format==="line";
+  const v = {id:m.vid, ar:m.ar, title:m.title};
+  const startTxt = m.start ? `${ts(m.start)}부터` : "처음부터";
+  const media = playing===m.vid ? lplayerHtml(m.vid, S.lstart, S.lnonce)
+    : `<button type="button" class="play" data-lplay="${esc(m.vid)}" data-start="${m.start|0}" aria-label="${esc(m.title)} ${startTxt} 재생">${thumb(v, `${m.dur?`<span class="dur">${dur(m.dur)}</span>`:""}${m.start?`<span class="sh">${ts(m.start)}부터</span>`:""}<span class="pbtn" aria-hidden="true"></span>`, true)}</button>`;
+  const c = m.comment; const long = (c.text||"").length > 40;
+  const revealLabel = m.format==="onscreen" ? "어느 채팅이 터졌는지 보기" : "댓글 보기";
+  const body = open ? `
+      <p class="line1${long?" long":""}">${esc(c.text)}</p>
+      <div class="lmeta">${c.likes!=null?`<span>좋아요 ${kNum(c.likes)}</span><span>답글 ${kNum(c.replies)}</span>`:`<span>${esc(m.startNote||"")}</span>`}${c.at?`<span>${esc(c.at)}</span>`:""}${c.id?`<a href="${at(m.vid, c.id)}" target="_blank" rel="noopener">유튜브 원문</a>`:`<a href="${watch(m.vid)}&t=${m.start|0}s" target="_blank" rel="noopener">유튜브에서 그 장면</a>`}</div>
+      <div class="anat"><div><span class="k">어떻게 비틀었나</span><br>${esc(m.punch)}</div><div><span class="k">왜 터지나</span><br>${esc(m.why)}</div>${m.need?`<div><span class="k">웃으려면 알아야 할 것</span><br>${esc(m.need)}</div>`:""}</div>
+      ${moreList(m)}
+      <div class="btnrow"><button class="btn" type="button" data-rewatch="${esc(m.id)}">이 댓글 보고 다시 보기</button><button class="btn ghost" type="button" data-fav="${esc(m.id)}" aria-pressed="${!!LGU.fav[m.id]}">${LGU.fav[m.id]?"저장됨":"또 보고 싶음"}</button></div>
+      <details class="mine"${LGU.mine[m.id]?" open":""}><summary class="note" style="cursor:pointer">나라면 이 장면에 뭐라고 쓸까? (내 한 줄 써 보기)</summary><textarea data-mine="${esc(m.id)}" placeholder="같은 장면, 다른 펀치. 이 기기에만 저장돼요">${esc(LGU.mine[m.id]||"")}</textarea></details>`
+    : `<button class="reveal" type="button" data-reveal="${esc(m.id)}">${revealLabel}</button>
+      <p class="note">${m.format==="onscreen"?"이 장면은 원본 화면에 채팅이 같이 나와요. 영상을 먼저 보면 직접 찾을 수 있어요.":"장면을 먼저 보고 누르면 더 웃겨요. 바로 눌러도 괜찮아요."}</p>`;
+  return `<article class="mo${isPick?" pick":""}" id="mo-${esc(m.id)}">
+    <div class="media${isV(v)?" v":""}">${media}</div>
+    <div class="mb">
+      <div class="mtop">${m.types.map((t,i) => `<span class="pill${i?"":" acc"}">${esc(t)}</span>`).join("")}${vbadge(m)}</div>
+      <div class="mt">${esc(m.channel)} · ${esc(m.title)}</div>
+      <p class="setup">${esc(m.setup)}</p>
+      ${open?"":`<p class="hook">${esc(m.hook)}</p>`}
+      ${body}
+    </div></article>`;
+}
+function viewLegend(box){
+  const all = lmoms();
+  if(!S.LG){ box.innerHTML = `${modeSeg()}<p class="note">명댓글을 불러오는 중이에요…</p>`; return; }
+  const list = lList(); const pick = S.pick && all.find(m => m.id===S.pick);
+  const favN = Object.keys(LGU.fav).filter(k => LGU.fav[k]).length;
+  box.innerHTML = `${modeSeg()}
+    <p class="lead">영상은 시작,<br>댓글이 완성.</p>
+    <p class="note">장면을 보고 한 줄을 만나 보세요. 좋아요 수가 아니라 '읽고 나면 장면이 다르게 보이는' 댓글만 골랐어요. 지금 ${all.length}편 · 원댓글은 ${esc(S.LG.checkedAt||"")}에 유튜브에서 직접 확인했어요.</p>
+    <div class="pickbar"><button class="btn" type="button" data-pick>한 편 뽑기</button><span class="note">자판기처럼 아무거나 하나 꺼내 줘요</span></div>
+    <div class="chips" role="group" aria-label="유형">${[["all",`전체 ${all.length}`], ...(S.LG.types||[]).map(([t]) => [t, `${t} ${all.filter(m=>m.types.includes(t)).length}`]), ["fav", `저장 ${favN}`]].map(([k,n]) => `<button class="chip" type="button" data-lt="${esc(k)}" aria-pressed="${S.lt===k}">${esc(n)}</button>`).join("")}</div>
+    ${S.lt!=="all"&&S.lt!=="fav" ? `<p class="note">${esc((S.LG.types.find(t=>t[0]===S.lt)||[])[1]||"")}</p>` : ""}
+    ${pick ? `<h2 class="sec"><span class="n">뽑힌 한 편</span></h2>${momentCard(pick, true)}<h2 class="sec">나머지</h2>` : ""}
+    <div class="lgrid">${list.filter(m => !pick || m.id!==pick.id).map(m => momentCard(m)).join("") || `<p class="note">${S.lt==="fav"?"'또 보고 싶음'을 누른 카드가 여기 모여요.":"이 유형은 아직 없어요."}</p>`}</div>
+    <div class="card"><p class="note">고르는 기준: ① 영상을 봐야 더 웃기고 ② 장면을 새로 해석하고 ③ 한두 줄로 끝나고 ④ 실제 사람을 깎아내리지 않을 것. 원문은 바꾸지 않고, 좋아요·답글 수는 확인한 날 기준이에요. 김형석 편은 유튜브 댓글이 아니라 방송 화면 속 실시간 채팅이라 따로 표시했어요.</p></div>`;
+}
+const modeSeg = () => `<div class="seg2" role="group" aria-label="영상 보기 방식"><button type="button" data-vmode="legend" aria-pressed="${S.vmode==="legend"}">명댓글 감상</button><button type="button" data-vmode="month" aria-pressed="${S.vmode==="month"}">월간 인기 영상</button></div>`;
+
 // ───────── 수집 대기 ─────────
 function waiting(){
   return `<div class="banner"><b>수집 대기</b>아직 들어온 월간판이 없어요.</div>
@@ -341,7 +434,7 @@ function viewMonth(){
   const avg = cs.length ? Math.round(cs.reduce((s,c)=>s+c.likes,0)/cs.length) : 0;
   const powerTop = cs.filter(c=>c.power!=null).sort((a,b)=>b.power-a.power)[0];
   const line = types.length ? `${monthKo(e.month)} 배댓은 <b>${esc(josa(types[0][0],"이","가"))}</b> ${Math.round(types[0][1]/tot*100)}%로 가장 많았어요.${emos[0]?` 감정은 <b>${esc(josa(emos[0][0],"이","가"))}</b> 앞섰고요.`:""}` : "분류가 아직 안 끝난 월간판이에요.";
-  box.innerHTML = `${monthChips()}
+  box.innerHTML = `${S.LG?`<button type="button" class="banner" data-v="videos" style="border:0;text-align:left;width:100%;background:var(--tint-soft)"><b style="color:var(--tint-t)">명댓글 감상</b>장면을 보고 기막힌 한 줄을 만나 보세요 · ${S.LG.moments.length}편 ›</button>`:""}${monthChips()}
     <p class="lead">${monthKo(e.month)}판 배댓</p>
     <p>${line}</p>
     <div class="tiles">
@@ -360,13 +453,14 @@ function viewMonth(){
 // ───────── 영상 (카드) ─────────
 function viewVideos(){
   const box = $("#v-videos"); const e = ed();
-  if(!e){ box.innerHTML = waiting(); return; }
+  if(S.vmode==="legend"){ viewLegend(box); return; }
+  if(!e){ box.innerHTML = modeSeg() + waiting(); return; }
   const cats = count(vids(e), v=>v.category).map(x=>x[0]);
   let list = vids(e).filter(v => S.vf==="all" ? true : S.vf==="long" ? !v.short : S.vf==="short" ? v.short : v.category===S.vf);
   const pmax = v => Math.max(0, ...v.best.map(c=>c.power||0));
   if(S.vsort==="power") list = list.slice().sort((a,b)=>pmax(b)-pmax(a));
   else if(S.vsort==="likes") list = list.slice().sort((a,b)=>Math.max(...b.best.map(c=>c.likes))-Math.max(...a.best.map(c=>c.likes)));
-  box.innerHTML = `${monthChips()}
+  box.innerHTML = `${modeSeg()}${monthChips()}
     <p class="lead">${monthKo(e.month)} 인기 영상</p>
     <div class="chips" role="group" aria-label="영상 거르기">${[["all",`전체 ${vids(e).length}`],["long","쇼츠 빼기"],["short","쇼츠만"],...cats.map(c=>[c,c])].map(([k,n]) => `<button class="chip" type="button" data-vf="${esc(k)}" aria-pressed="${S.vf===k}">${esc(n)}</button>`).join("")}</div>
     <div class="chips" role="group" aria-label="정렬">${[["rank","조회수 순위"],["likes","배댓 좋아요 순"],["power","배댓 파워 순"]].map(([k,n]) => `<button class="chip" type="button" data-vsort="${k}" aria-pressed="${S.vsort===k}">${n}</button>`).join("")}</div>
@@ -507,6 +601,7 @@ function show(v, keepScroll){
   draw(); if(!keepScroll) window.scrollTo(0,0);
 }
 function go(v){ stopPlay(); try{ history.replaceState(null, "", "#"+v); }catch(_){} show(v); }
+document.addEventListener("input", e => { const ta = e.target.closest && e.target.closest("[data-mine]"); if(!ta) return; const k = ta.dataset.mine, v = ta.value.trim(); if(v) LGU.mine[k] = ta.value; else delete LGU.mine[k]; saveLGU(); });
 window.addEventListener("hashchange", () => show(location.hash.slice(1)));
 document.addEventListener("click", e => {
   const t = e.target;
@@ -514,6 +609,13 @@ document.addEventListener("click", e => {
   const hd = t.closest("[data-hide]"); if(hd){ const c = hd.dataset.hide; HIDE.has(c) ? HIDE.delete(c) : HIDE.add(c); saveHide(); if(S.vf===c) S.vf="all"; chip(); draw(); return; }
   if(t.closest("[data-hideopen]")){ S.hideOpen = !S.hideOpen; draw(); return; }
   if(t.closest("[data-hideclear]")){ HIDE.clear(); saveHide(); chip(); draw(); return; }
+  const vm = t.closest("[data-vmode]"); if(vm){ stopPlay(); S.vmode = vm.dataset.vmode; S.pick = null; draw(); window.scrollTo(0,0); return; }
+  const lp = t.closest("[data-lplay]"); if(lp){ const id = lp.dataset.lplay; playing = id; S.lstart = +lp.dataset.start||0; S.lnonce++; const keep = window.scrollY; draw(); window.scrollTo(0, keep); return; }
+  const rv = t.closest("[data-reveal]"); if(rv){ S.rev.add(rv.dataset.reveal); const keep = window.scrollY; draw(); window.scrollTo(0, keep); return; }
+  const rw = t.closest("[data-rewatch]"); if(rw){ const m = lmoms().find(x => x.id===rw.dataset.rewatch); if(!m) return; playing = m.vid; S.lstart = m.start|0; S.lnonce++; const keep = window.scrollY; draw(); window.scrollTo(0, keep); const el = document.getElementById("mo-"+m.id); if(el) el.scrollIntoView({block:"start", behavior:"smooth"}); return; }
+  const fv = t.closest("[data-fav]"); if(fv){ const k = fv.dataset.fav; LGU.fav[k] = !LGU.fav[k]; if(!LGU.fav[k]) delete LGU.fav[k]; saveLGU(); fv.setAttribute("aria-pressed", String(!!LGU.fav[k])); fv.textContent = LGU.fav[k]?"저장됨":"또 보고 싶음"; toast(LGU.fav[k]?"저장했어요 · '저장' 칩에서 다시 볼 수 있어요":"저장을 뺐어요"); return; }
+  const lt = t.closest("[data-lt]"); if(lt){ stopPlay(); S.lt = lt.dataset.lt; S.pick = null; draw(); return; }
+  if(t.closest("[data-pick]")){ stopPlay(); const pool = lmoms().filter(m => m.id!==S.pick); if(!pool.length) return; S.pick = pool[Math.floor(Math.random()*pool.length)].id; S.lt = "all"; draw(); window.scrollTo(0,0); return; }
   const pl = t.closest("[data-play]"); if(pl){ play(pl.dataset.play, pl); return; }
   const sv = t.closest("[data-save]"); if(sv){ toggleSave(sv.dataset.save, sv.dataset.vid); return; }
   const bt = t.closest("[data-bt]"); if(bt){ const k = bt.dataset.bt; S.open.has(k) ? S.open.delete(k) : S.open.add(k); document.querySelectorAll(`[data-bt="${CSS.escape(k)}"]`).forEach(x => x.classList.toggle("open", S.open.has(k))); return; }
@@ -544,6 +646,7 @@ function chip(){
   $("#edchip").innerHTML = e ? `<b>${monthKo(e.month)}판</b>영상 ${vids(e).length} · 배댓 ${allComments(e).length}` : `<b>수집 대기</b>월간판 0개`;
 }
 async function boot(){
+  fetch(BASE + "legend.json", {cache:"no-store"}).then(r => r.ok ? r.json() : null).then(j => { if(j){ S.LG = j; if(S.view==="videos" && S.vmode==="legend") draw(); } }).catch(()=>{});
   try{
     const r = await fetch(BASE + "index.json", {cache:"no-store"});
     const idx = r.ok ? await r.json() : {months:[]};
