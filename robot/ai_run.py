@@ -338,6 +338,22 @@ def translate_texts(run, texts, mem, deadline):
         k = hid(t)
         if k in mem: out[i] = mem[k]
         else: need.append(i)
+    # 1) 구글 TranslateGemma (시간 예산 안에서, 글 통째로)
+    if need:
+        try:
+            from tgemma import TG
+            tg = TG.get()
+        except Exception:
+            tg = None
+        if tg is not None:
+            rest = []
+            for i in need:
+                y = tg.tr(texts[i], "en", "ko", deadline) if tg.ok() and time.time() < deadline else None
+                if y: out[i] = y; mem[hid(texts[i])] = y
+                else: rest.append(i)
+            if len(rest) < len(need): log(f"TranslateGemma 번역 {len(need) - len(rest)}건")
+            need = rest
+    # 2) 남은 것은 예전 NLLB (문장 단위)
     if run is None or not need: return out
     sents, owner = [], []
     for i in need:

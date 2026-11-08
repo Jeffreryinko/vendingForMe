@@ -39,6 +39,8 @@ jobs:
     if: needs.guard.outputs.skip != '1'
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      TG_MINUTES: "10"      # 구글 번역기(TranslateGemma)에 쓸 시간 — 넘으면 NLLB로 이어서
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -51,10 +53,16 @@ jobs:
             /tmp/nllb-600m-ct2
             ~/.cache/huggingface
           key: nllb-600m-ct2-v1
+      - name: 구글 번역 모델 캐시 (TranslateGemma 4B, 약 2.5GB)
+        uses: actions/cache@v4
+        with:
+          path: /tmp/tgemma
+          key: tgemma-4b-q4km-v1
       - name: 라이브러리 설치
         run: |
           pip install -q requests
           pip install -q "ctranslate2>=4" "transformers>=4.40" sentencepiece "torch>=2.2" --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || echo "번역 라이브러리 설치 실패 — 기계번역 없이 진행"
+          pip install -q llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu || echo "구글 번역기 설치 실패 — 예전 번역기(NLLB)로"
       - name: 나라별 트렌드 모으기
         env:
           DEEPL_API_KEY: ${{ secrets.DEEPL_API_KEY }}

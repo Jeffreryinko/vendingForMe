@@ -1,4 +1,4 @@
-"""nllb_multi.py — 여러 언어 → 한국어 무료 기계번역 (NLLB-200 600M, 토큰 0).
+"""nllb_multi.py — 여러 언어 → 한국어 무료 기계번역 (토큰 0). 먼저 구글 TranslateGemma(tgemma.py, 시간 예산 안), 남으면 NLLB-200 600M.
 AI·이야기 로봇이 쓰는 영어 전용 번역기를 여러 언어로 넓힌 것. 같은 모델 폴더(/tmp/nllb-600m-ct2)를 함께 씀.
 
   from nllb_multi import Ko
@@ -75,6 +75,25 @@ class Ko:
             k = hid(t, lang)
             if k in self.mem: out[i] = self.mem[k]; self.used.add(k)
             else: need.setdefault(lang, []).append(i)
+        # 1) 구글 TranslateGemma (시간 예산 안에서, 글 통째로 — 문맥이 살아 더 자연스러움)
+        if need:
+            try:
+                from tgemma import TG
+                tg = TG.get()
+            except Exception:
+                tg = None
+            if tg is not None:
+                for lang in list(need):
+                    rest = []
+                    for i in need[lang]:
+                        y = tg.tr(pairs[i][0], lang, "ko", deadline) if tg.ok() else None
+                        if y:
+                            out[i] = y; k = hid(pairs[i][0].strip(), lang); self.mem[k] = y; self.used.add(k)
+                        else:
+                            rest.append(i)
+                    if rest: need[lang] = rest
+                    else: del need[lang]
+        # 2) 남은 것은 예전 NLLB
         if not need or not self._load(): return out
         for lang, idxs in need.items():
             if deadline and time.time() > deadline: print("번역 시간 한도 — 나머지는 다음에", flush=True); break
