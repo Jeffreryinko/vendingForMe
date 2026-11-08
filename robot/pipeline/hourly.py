@@ -63,7 +63,7 @@ def cmd_build(ed, prev, ko, label):
     title = lambda it: it.get("ko") or (it["t"] if it["_lang"] == "ko" else "")
     # 이전 판 AI 이슈를 이어받음: 아직 남아 있는 글 + 새 글 중 핵심 단어가 2개 이상 겹치는 글
     used = set(); out = []; carried = {}
-    for s in [x for x in P.get("stories", []) if x.get("method") == "ai-v1"]:
+    for s in [x for x in P.get("stories", []) if x.get("method") in ("ai-v1", "auto-v1")]:
         keep = [i for i in s["items"] if i in items]
         # 이번 수집에서 피드 밖으로 밀려난 글도 30시간까지는 이슈에 남김 (판에 함께 실어 줌)
         for i in s["items"]:

@@ -223,10 +223,10 @@ function easyHtml(p, e) {
   if (!e) return "";
   return `<div class="easy"><p class="ez-h">쉬운 풀이 <span class="sub">초등학생도 알 수 있게</span></p>
     <p class="ez-one">${esc(e.one)}</p>
-    <p class="ez-k">쉬운 비유</p><p>${esc(e.analogy)}</p>
-    <p class="ez-k">꼭 알아야 할 것</p><ol>${(e.must || []).map(x => `<li>${esc(x)}</li>`).join("")}</ol>
-    <p class="ez-k">꼭 알아야 할 용어</p>${termRows((e.terms || []).map(t => ({ key: "e:" + t.t, t: t.t, en: t.en, d: t.d })))}
-    <p class="ez-k">왜 중요한가</p><p>${esc(e.why)}</p>
+    ${e.analogy ? `<p class="ez-k">쉬운 비유</p><p>${esc(e.analogy)}</p>` : ""}
+    ${(e.must || []).length ? `<p class="ez-k">꼭 알아야 할 것</p><ol>${e.must.map(x => `<li>${esc(x)}</li>`).join("")}</ol>` : ""}
+    ${(e.terms || []).length ? `<p class="ez-k">꼭 알아야 할 용어</p>${termRows(e.terms.map(t => ({ key: "e:" + t.t, t: t.t, en: t.en, d: t.d })))}` : ""}
+    ${e.why ? `<p class="ez-k">왜 중요한가</p><p>${esc(e.why)}</p>` : ""}
     ${e.limit ? `<p class="sub">조심할 점: ${esc(e.limit)}</p>` : ""}<p class="sub">${esc(e.by || "Claude 루틴")} · 논문 초록을 읽고 만든 풀이예요. 자세한 내용은 원문으로 확인해 주세요.</p></div>`;
 }
 // 풀이가 없을 때: AI 없이 보여 줄 수 있는 것 (기계번역 한 줄, 용어 목록의 쉬운 뜻)

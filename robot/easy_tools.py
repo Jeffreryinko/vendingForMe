@@ -119,12 +119,54 @@ def cmd_feat_add(path):
     print(f"새 기능 정리 {len(new)}개 저장 · 전체 {len(cur)}개")
 
 
+# ── 로봇이 대신 하기 (토큰 0): 클로드 편집장 07시 회차의 'AI 새 기능'·'쉬운 풀이' 자리 ──
+import re as _re
+FEAT_YES = _re.compile(r"^introducing|introduces|launch|now available|rolling out|roll(s)? out|available (in|to|for|on|today)|new in |is here|"
+                       r"comes to|arrives|출시|선보|공개|도입|[A-Za-z]+ \d+\.\d+|GPT[‑-]\d", _re.I)
+FEAT_NO = _re.compile(r"partner|research|paper|hiring|funding|invest|policy|report|earnings|lawsuit|appoint|award|webinar|case study|"
+                      r"customer|measur|benchmark|universit|school|builds|helps|how .* (use|built)|with (Codex|ChatGPT|Claude|Gemini)", _re.I)
+
+
+def cmd_auto(n_feat=4):
+    """새 기능 후보 중 '써 볼 수 있는 것'을 낱말로 골라 기계번역 제목·요약을 그대로 싣고, 풀이 요청은 기계번역 초록으로 정리"""
+    feed = rj(ROOT / "data/ai/feed.json", {}); cur = rj(ROOT / "data/ai/feat.json", {})
+    cut = (datetime.now(KST) - timedelta(days=30)).isoformat()
+    cur = {k: v for k, v in cur.items() if v.get("at", "9") >= cut}
+    recent = (datetime.now(KST) - timedelta(days=3)).strftime("%Y-%m-%d")
+    cand = [p for p in feed.get("posts", []) if p["id"] not in cur and str(p.get("date", "")) >= recent
+            and FEAT_YES.search(p.get("title", "")) and not FEAT_NO.search(p.get("title", ""))]
+    cand.sort(key=lambda p: str(p.get("date", "")), reverse=True)
+    nf = 0
+    for p in cand[:n_feat]:
+        one = p.get("ko") or p.get("title"); how = p.get("ksum") or ""
+        cur[p["id"]] = {"one": one, "how": (how + " " if how else "") + "(발표문 기계번역 · 쓰는 곳·요금은 원문에서 확인해 주세요)",
+                        "at": datetime.now(KST).isoformat(timespec="seconds"), "by": "robot"}
+        nf += 1
+    wj(ROOT / "data/ai/feat.json", cur)
+    # 풀이 요청: 기계번역 초록을 문장으로 나눠 '한 줄'·'꼭 알아야 할 것'으로, 용어는 용어 목록의 쉬운 뜻
+    terms = {t["id"]: t for t in rj(ROOT / "data/ai/terms.json", [])}
+    ps = {p["id"]: p for p in papers_today()}; got = have(); ne = 0
+    for r in requests_("ai"):
+        p = ps.get(r["id"])
+        if not p or r["id"] in got or not (p.get("kabs") or p.get("one")): continue
+        sents = [x.strip() for x in _re.split(r"(?<=[.!?다요])\s+", p.get("kabs") or "") if len(x.strip()) > 8]
+        ts = [terms[t] for t, _ in (p.get("terms") or []) if t in terms][:5]
+        e = {"id": p["id"], "title": p.get("ko") or p["title"], "one": sents[0] if sents else p.get("one", ""), "analogy": "",
+             "must": sents[1:4], "terms": [{"t": t["ko"], "en": t["en"], "d": t["short"]} for t in ts], "why": "",
+             "limit": "로봇이 초록 기계번역을 문장 그대로 옮긴 정리예요. 사람이 쉽게 고쳐 쓴 풀이가 아니라 어색한 말이 있을 수 있어요.",
+             "at": datetime.now(KST).isoformat(timespec="seconds"), "by": "로봇 정리 · 초록 기계번역"}
+        wj(EASY / f"{e['id']}.json", e); got.add(e["id"]); mark_done("ai", e["id"]); ne += 1
+    wj(EASY / "_index.json", sorted(got))
+    print(f"로봇: 새 기능 {nf}개 · 풀이 요청 {ne}편 정리")
+
+
 if __name__ == "__main__":
     a = sys.argv[1:] or ["todo"]
     if a[0] == "todo": cmd_todo(int(a[1]) if len(a) > 1 else 3)
     elif a[0] == "add": cmd_add(a[1])
     elif a[0] == "feat-todo": cmd_feat_todo(int(a[1]) if len(a) > 1 else 5)
     elif a[0] == "feat-add": cmd_feat_add(a[1])
+    elif a[0] == "auto": cmd_auto()
     elif a[0] == "requests": print(json.dumps(requests_(a[1] if len(a) > 1 else None), ensure_ascii=False, indent=1))
     elif a[0] == "done": print("완료 표시", mark_done(a[1], a[2]))
     else: print(__doc__)

@@ -1,7 +1,7 @@
 """sisa_run.py — 시사 자판기 로봇 (GitHub Actions 에서 3시간마다 실행, 토큰 0).
 
 순서: 이전 판 준비 → 수집 → 제목 번역(DeepL→Google) → 판 만들기 → 댓글 수집·번역 → 이름 사진 → data/sisa 에 저장 → 7일 지난 판 정리
-해설(이슈 제목·꼭 알아야 할 5개·단신·이름 사전)은 클로드 예약 작업이 따로 채웁니다 (robot/EDITOR_RUNBOOK.md).
+해설 자리(이슈 제목·꼭 알아야 할 5개·단신·이름 사전)는 로봇 편집장 robot/sisa_edit.py 가 이어서 채웁니다 (토큰 0).
 
   python robot/sisa_run.py            # 전체 실행
   python robot/sisa_run.py --dry      # 번역 API 호출 없이 흐름만 확인
@@ -28,7 +28,7 @@ RUNS_PER_DAY = 8
 CM_PER_RUN = int(os.environ.get("SISA_CM_PER_RUN", "20"))      # 댓글 수집할 글 수
 CM_PICKS = 3                                                   # 글당 번역할 댓글 수
 
-sys.path.insert(0, str(ROBOT / "crawler"))
+sys.path.insert(0, str(ROBOT / "crawler")); sys.path.insert(0, str(ROBOT))
 import yaml  # noqa: E402
 from translate import Translator, deepl_month_usage  # noqa: E402
 
@@ -135,6 +135,20 @@ def translate_titles(tr, totr_tsv: str, lang_of_source: dict) -> dict:
             log(f"  번역 예산 부족: {lang} {len(group)}개 건너뜀")
     log(f"제목 번역 {len(ko)}/{len(rows)}개 (DeepL {tr.used['deepl']:,}자, Google {tr.used['google']:,}자)")
     return ko
+
+
+def nllb_titles(totr_tsv: str, lang_of_source: dict, have: dict) -> dict:
+    """DeepL·Google 예산이 모자라 번역 못 한 제목은 무료 기계번역(NLLB)으로 (토큰 0, 카드 0원)"""
+    if DRY: return {}
+    rows = [l.split("\t", 2) for l in totr_tsv.splitlines() if l and not l.startswith("#") and "\t" in l]
+    rows = [(iid, lang_of_source.get(sid, "en"), t) for iid, sid, t in rows if iid not in have and lang_of_source.get(sid, "en") != "ko"]
+    if not rows: return {}
+    from nllb_multi import Ko
+    k = Ko(None)
+    out = k.many([(t, lang) for _, lang, t in rows], deadline=time.time() + int(os.environ.get("NLLB_TITLE_MINUTES", "12")) * 60)
+    got = {iid: o for (iid, _, _), o in zip(rows, out) if o}
+    log(f"제목 기계번역(NLLB) {len(got)}/{len(rows)}개")
+    return got
 
 
 # ── 5. 댓글 ──
@@ -280,12 +294,19 @@ def main():
     totr = run(H, "totr", ed, prev)
     tr, mk = translator_for_run()
     ko = translate_titles(tr, totr, lang_of_source)
+    ko.update(nllb_titles(totr, lang_of_source, ko))
     wj(WORK / "ko.json", ko)
     run(H, "build", ed, prev, WORK / "ko.json", label)
     collect_comments(ed, tr, lang_of_source)
     # 이름 사진은 미리 찾지 않음 — 앱이 이름을 누를 때 위키백과(자유 이용 사진만)에서 바로 받아 옴
     save_usage(tr, mk)
     publish(ed, prev, label)
+    # 로봇 편집장 (토큰 0): 이슈 이름·top 5·단신·흐름·나라별·이름 사전 — 클로드 편집장 예약 작업 대신
+    try:
+        run(ROBOT / "sisa_edit.py", ed)
+        reindex()
+    except SystemExit:
+        log("로봇 편집장 실패 — 판은 그대로 저장됨")
     log(f"끝: {round(time.time() - t0)}초")
 
 

@@ -72,11 +72,13 @@ jobs:
           AI_TOP_ABSTRACTS: "100"
           AI_YT_BUDGET: "60"
         run: python robot/ai_run.py ${{ inputs.no_translate == 'yes' && '--no-translate' || '' }}
+      - name: 새 기능 정리·풀이 요청 (로봇, 토큰 0)
+        run: python robot/easy_tools.py auto
       - name: 저장소에 올리기
         run: |
           git config user.name "ai-robot"
           git config user.email "robot@users.noreply.github.com"
-          git add data/ai
+          git add data/ai data/requests.json
           git diff --cached --quiet && echo "변경 없음" && exit 0
           git commit -m "AI: $(TZ=Asia/Seoul date '+%m월 %d일') 새벽판 자동 수집"
           for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 10; done

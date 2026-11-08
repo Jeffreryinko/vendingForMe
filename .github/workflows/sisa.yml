@@ -1,4 +1,4 @@
-name: 시사 자판기 로봇 (3시간마다)
+name: 시사 자판기 로봇 (3시간마다, 로봇 편집장 포함 · 토큰 0)
 
 on:
   schedule:
@@ -38,15 +38,24 @@ jobs:
     needs: guard
     if: needs.guard.outputs.skip != '1'
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: 번역 모델 캐시 (무료 기계번역 NLLB)
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/nllb-600m-ct2
+            ~/.cache/huggingface
+          key: nllb-600m-ct2-v1
       - name: 라이브러리 설치
-        run: pip install -q feedparser pyyaml requests
-      - name: 수집·번역·판 만들기
+        run: |
+          pip install -q feedparser pyyaml requests
+          pip install -q "ctranslate2>=4" "transformers>=4.40" sentencepiece "torch>=2.2" --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || echo "번역 라이브러리 설치 실패 — 기계번역 없이 진행"
+      - name: 수집·번역·판 만들기·로봇 편집장
         env:
           DEEPL_API_KEY: ${{ secrets.DEEPL_API_KEY }}
           GOOGLE_TRANSLATE_API_KEY: ${{ secrets.GOOGLE_TRANSLATE_API_KEY }}

@@ -52,7 +52,7 @@ h2{font-size:20px;font-weight:800;margin:20px 2px 6px;letter-spacing:-.02em}h2 s
 (function () {
   "use strict";
   var APPN = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", mix: "홈" };
-  var PATH = { sisa: "../sisa/", iyagi: "../iyagi/", ai: "../ai/", history: "../history/", tools: "../tools/", brain: "../brain/", mix: "../" };
+  var PATH = { sisa: "../sisa/", iyagi: "/vfm-story/iyagi/", ai: "../ai/", history: "/vfm-story/history/", tools: "../tools/", brain: "/vfm-story/brain/", mix: "../" };
   var S = { v: "saved", app: "", q: "", wk: 0, open: {} };
   var esc = function (t) { return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
   var g = function (k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
@@ -66,13 +66,13 @@ h2{font-size:20px;font-weight:800;margin:20px 2px 6px;letter-spacing:-.02em}h2 s
     var out = [];
     var likes = g("vfm:likes", {});
     Object.keys(likes).forEach(function (k) { var x = likes[k]; out.push({ app: x.app, key: x.key, title: x.t || x.key, url: x.h ? PATH[x.app] + x.h : x.u, at: x.at || 0, how: "좋아요" }); });
-    [["ai", function (id, it) { return "../ai/#p=" + encodeURIComponent(id); }], ["history", function (id) { return "../history/#p=" + encodeURIComponent(id); }], ["tools", function (id) { return "../tools/#f=" + encodeURIComponent(id); }], ["brain", function (id) { return /^n:/.test(id) ? "../brain/#news" : "../brain/#r=" + encodeURIComponent(id); }]].forEach(function (a) {
+    [["ai", function (id, it) { return "../ai/#p=" + encodeURIComponent(id); }], ["history", function (id) { return "/vfm-story/history/#p=" + encodeURIComponent(id); }], ["tools", function (id) { return "../tools/#f=" + encodeURIComponent(id); }], ["brain", function (id) { return /^n:/.test(id) ? "/vfm-story/brain/#news" : "/vfm-story/brain/#r=" + encodeURIComponent(id); }]].forEach(function (a) {
       var st = g("vfm:" + a[0] + ":star", {}), memo = g("vfm:" + a[0] + ":memo", {});
       Object.keys(st).forEach(function (id) { var x = st[id] || {}, it = x.item || {}; out.push({ app: a[0], key: id, title: it.ko || it.t || it.title || id, url: a[1](id, it), at: x.at || 0, memo: memo[id] || x.memo || "", tags: x.tags || [], how: "별표" }); });
       Object.keys(memo).forEach(function (id) { if (!st[id] && memo[id]) out.push({ app: a[0], key: id, title: id, url: a[1](id), at: 0, memo: memo[id], how: "메모" }); });
     });
     var lib = g("iyagi-library-v1", {});
-    (lib.saved || []).forEach(function (id) { out.push({ app: "iyagi", key: id, title: (IYT && IYT[id]) || id, url: "../iyagi/#read-" + id, at: 0, how: "담아둠" }); });
+    (lib.saved || []).forEach(function (id) { out.push({ app: "iyagi", key: id, title: (IYT && IYT[id]) || id, url: "/vfm-story/iyagi/#read-" + id, at: 0, how: "담아둠" }); });
     var seen = {}; out = out.filter(function (x) { var k = x.app + "|" + x.key; if (seen[k]) return false; seen[k] = 1; return true; });
     return out.sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
   }
@@ -168,7 +168,7 @@ h2{font-size:20px;font-weight:800;margin:20px 2px 6px;letter-spacing:-.02em}h2 s
   document.addEventListener("input", function (e) { if (e.target.id === "q") { S.q = e.target.value; var pos = e.target.selectionStart; render(); var q = document.getElementById("q"); q.focus(); try { q.setSelectionRange(pos, pos); } catch (x) { } } });
   window.vfmApp = { back: function () { if (S.v !== "saved") { go("saved"); return true; } return false; }, top: function () { go("saved"); } };
   var h = (location.hash || "").slice(1); if (h === "qs" || h === "week") S.v = h;
-  fetch("../data/iyagi/stories/_index.json", { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : []; }).then(function (a) { IYT = {}; (a || []).forEach(function (s) { IYT[s.id] = s.title; }); if (S.v === "saved") render(); }).catch(function () { });
+  fetch("/vfm-story/data/iyagi/stories/_index.json", { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : []; }).then(function (a) { IYT = {}; (a || []).forEach(function (s) { IYT[s.id] = s.title; }); if (S.v === "saved") render(); }).catch(function () { });
   window.addEventListener("DOMContentLoaded", render);
 })();
 </script>

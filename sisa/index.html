@@ -1088,7 +1088,7 @@ function storyCard(s, idx){
   const countries = Object.keys(cc).sort((a,b) => cc[b]-cc[a]);
   const latest = its.map(i=>i.p).filter(Boolean).sort().pop();
   const seen = its.filter(i => stOf(i.id).opened || stOf(i.id).read).length;
-  const ai = s.method === "ai-v1";
+  const ai = s.method === "ai-v1" || s.method === "auto-v1", robo = s.method === "auto-v1";
   const delta = s.delta==="new" ? `<b class="new">새 ${ai?"이슈":"사건"}</b>` : s.delta==="grown" ? `<b class="acc">새 글 +${s.grow||0}</b>` : s.delta==="same" ? '<span>계속</span>' : "";
   const sum = s.sum ? {sum:s.sum} : briefOf(s.id);
   let body = "";
@@ -1096,7 +1096,7 @@ function storyCard(s, idx){
     const byC = countries.map(c => [c, its.filter(i => ctry(i)===c)]);
     body = `<div class="body"><h4 class="sub">나라별로 읽기 · 출처 ${nsrc}곳</h4>
       ${byC.map(([c, arr]) => `<div class="cgroup"><span class="cg-h">${flag(c)} ${esc(cname(c))}</span>${arr.map(i=>`<div class="srow"><button type="button" class="t" data-open="${i.id}"><span class="meta"><span class="src">${esc(srcOf(i.s).n)}</span><span>${esc(KIND[i.k])}</span>${whenHtml(i)}${stOf(i.id).opened?'<span>봄</span>':""}</span>${esc(koOf(i)||i.t)}</button><button type="button" class="x" data-misgroup="${s.id}__${i.id}">이 이슈 아님</button></div>`).join("")}</div>`).join("")}
-      <p class="note">${ai ? "AI가 제목을 읽고 같은 이슈로 묶었어요." : `제목에 같은 단어가 나온 글을 자동으로 묶었어요(${esc((s.kw||[]).slice(0,3).join("·"))}).`} 다른 일이 섞였으면 ‘이 이슈 아님’을 눌러 주세요.</p></div>`;
+      <p class="note">${robo ? "로봇이 제목 낱말로 같은 이슈를 묶고, 대표 기사 제목·요약(기계번역)을 붙였어요." : ai ? "AI가 제목을 읽고 같은 이슈로 묶었어요." : `제목에 같은 단어가 나온 글을 자동으로 묶었어요(${esc((s.kw||[]).slice(0,3).join("·"))}).`} 다른 일이 섞였으면 ‘이 이슈 아님’을 눌러 주세요.</p></div>`;
   }
   const cat = CAT[s.cat] ? s.cat : "";
   const lead = idx === 0;
