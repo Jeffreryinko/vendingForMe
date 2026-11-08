@@ -235,6 +235,19 @@ nav.tabs button[aria-current="page"]{color:var(--tint);font-weight:600}
 .rw{transition:opacity .3s ease,max-height .35s ease;max-height:1200px;overflow:hidden}
 .rw.gone{opacity:0;max-height:0;padding-top:0;padding-bottom:0;border-bottom-width:0}
 @media (prefers-reduced-motion:reduce){.rw{transition:none}}
+.pmodal{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.86);display:flex;align-items:center;justify-content:center;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.pm-box{width:min(100%,760px);display:flex;flex-direction:column;gap:12px}
+.pm-box .player{border-radius:14px;overflow:hidden}
+.pm-box.v{width:min(100%,calc((100vh - 120px) * 9 / 16))}
+.pm-box.v .player{aspect-ratio:9/16}
+.pm-bar{display:flex;gap:8px;justify-content:flex-end}
+.pm-bar .btn{text-decoration:none}
+.pm-bar .btn.ghost{color:#fff;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.35)}
+.cardgo{display:flex;align-items:center;gap:12px;width:100%;border:0;background:var(--tint);color:#fff;border-radius:18px;padding:14px 16px;text-align:left;font:inherit;cursor:pointer;margin-bottom:10px}
+.cardgo .cg-ic{font-size:28px}
+.cardgo .cg-t{flex:1;display:flex;flex-direction:column;gap:2px}
+.cardgo .cg-t b{font-size:17px}
+.cardgo .cg-t span{font-size:13px;opacity:.9}
 .rtool{display:flex;gap:6px;align-items:center;margin-bottom:10px}
 .rtool select{flex:1;min-width:0;font:inherit;font-size:15px;padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:inherit}
 .rtool .chip{flex:none}
@@ -363,12 +376,21 @@ const playerHtml = id => `<div class="player" data-player="${esc(id)}"><iframe $
 let playing = null;
 function stopPlay(){ if(!playing) return false; const el = document.querySelector(`[data-player="${CSS.escape(playing)}"]`); playing = null; if(el) draw(); return true; }
 function play(id, btn){
-  if(playing && playing!==id) stopPlay();
-  playing = id;
-  const target = btn || document.querySelector(`[data-play="${CSS.escape(id)}"]`); if(!target) return;
-  const box = document.createElement("div"); box.innerHTML = playerHtml(id);
-  target.replaceWith(box.firstElementChild);
+  const v = (ed()?.videos||[]).find(x => x.id===id);
+  openPlayer(id, 0, v?.ar);
 }
+// ───────── 영상 창: 누르면 화면 가운데 큰 창으로 (세로 영상은 세로로), 닫기·유튜브에서 열기 ─────────
+let modalOpen = false;
+function openPlayer(id, start=0, ar=null){
+  closePlayer(); playing = null;
+  const v = ar && ar < 1; const host = document.createElement("div"); host.className = "pmodal"; host.setAttribute("role","dialog"); host.setAttribute("aria-label","영상");
+  host.innerHTML = `<div class="pm-box${v?" v":""}"><div class="player" data-player="${esc(id)}"><iframe ${YTL} src="https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0&start=${start|0}&${YTQ()}" title="유튜브 플레이어" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+    <div class="pm-bar"><a class="btn ghost" href="${watch(id)}${start?`&t=${start|0}s`:""}" target="_blank" rel="noopener">유튜브에서 열기</a><button type="button" class="btn" data-pmclose>닫기</button></div></div>`;
+  document.body.appendChild(host); document.documentElement.style.overflow = "hidden"; modalOpen = true;
+}
+function closePlayer(){ const m = document.querySelector(".pmodal"); if(!m) return false; m.remove(); document.documentElement.style.overflow = ""; modalOpen = false; return true; }
+document.addEventListener("click", e => { const t = e.target; if(!t.closest) return; if(t.closest("[data-pmclose]") || (t.classList && t.classList.contains("pmodal"))){ e.preventDefault(); closePlayer(); } });
+document.addEventListener("keydown", e => { if(e.key==="Escape") closePlayer(); });
 // ───────── 공통 조각 ─────────
 function allCats(){ const m = {}; S.months.forEach(k => (S.eds[k]?.videos||[]).forEach(v => { if(v.category) m[v.category] = (m[v.category]||0) + 1; })); return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(x=>x[0]); }
 function hideBar(){
@@ -569,8 +591,7 @@ const tasteScore = (M, c, V) => { let s = 0; tasteFeats(c, V).forEach(k => { s +
 const tsSec = t => { const m = String(t).match(/(?<!\d)(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?!\d)/); return m ? (+(m[1]||0))*3600 + (+m[2])*60 + (+m[3]) : 0; };
 function rawCard(c, V, left, total){
   const v = V[c[0]] || ["", "", "", 0, ""]; const st = tsSec(c[2]); const vv = {id:c[0], title:v[0]};
-  const media = playing===c[0] ? lplayerHtml(c[0], S.lstart, S.lnonce)
-    : `<button type="button" class="play" data-lplay="${esc(c[0])}" data-start="${st}" aria-label="영상 보기">${thumb(vv, `${st?`<span class="sh">${ts(st)}부터</span>`:""}<span class="pbtn" aria-hidden="true"></span>`)}</button>`;
+  const media = `<button type="button" class="play" data-pmopen="${esc(c[0])}" data-start="${st}" data-ar="${v[5]||""}" aria-label="영상 보기">${thumb(vv, `${st?`<span class="sh">${ts(st)}부터</span>`:""}<span class="pbtn" aria-hidden="true"></span>`)}</button>`;
   return `<div class="rdeck"><div class="rnext" aria-hidden="true"></div><article class="rcard" data-rcard="${esc(c[1])}">
     <div class="media">${media}</div>
     <div class="rcb">
@@ -676,7 +697,8 @@ function viewMonth(){
   const avg = cs.length ? Math.round(cs.reduce((s,c)=>s+c.likes,0)/cs.length) : 0;
   const powerTop = cs.filter(c=>c.power!=null).sort((a,b)=>b.power-a.power)[0];
   const line = types.length ? `${monthKo(e.month)} 배댓은 <b>${esc(josa(types[0][0],"이","가"))}</b> ${Math.round(types[0][1]/tot*100)}%로 가장 많았어요.${emos[0]?` 감정은 <b>${esc(josa(emos[0][0],"이","가"))}</b> 앞섰고요.`:""}` : "분류가 아직 안 끝난 월간판이에요.";
-  box.innerHTML = `${S.LG?`<button type="button" class="banner" data-v="videos" style="border:0;text-align:left;width:100%;background:var(--tint-soft)"><b style="color:var(--tint-t)">명댓글 감상</b>장면을 보고 기막힌 한 줄을 만나 보세요 · ${S.LG.moments.length}편 ›</button>`:""}${monthChips()}
+  const rawE = (S.LG?.raws||[]).find(r => r.month===e.month);
+  box.innerHTML = `${rawE?`<button type="button" class="cardgo" data-cardgo="${esc(e.month)}"><span class="cg-ic" aria-hidden="true">🃏</span><span class="cg-t"><b>${monthKo(e.month)} 댓글 카드로 넘기기</b><span>${kNum(rawE.comments)}개 · 한 장씩 보고 🤣🙂😐</span></span><span aria-hidden="true">›</span></button>`:""}${S.LG?`<button type="button" class="banner" data-v="videos" style="border:0;text-align:left;width:100%;background:var(--tint-soft)"><b style="color:var(--tint-t)">명댓글 감상</b>장면을 보고 기막힌 한 줄을 만나 보세요 · ${S.LG.moments.length}편 ›</button>`:""}${monthChips()}
     <p class="lead">${monthKo(e.month)}판 배댓</p>
     <p>${line}</p>
     <div class="tiles">
@@ -860,6 +882,8 @@ document.addEventListener("click", e => {
   const rv = t.closest("[data-reveal]"); if(rv){ S.rev.add(rv.dataset.reveal); const keep = window.scrollY; draw(); window.scrollTo(0, keep); return; }
   const rw = t.closest("[data-rewatch]"); if(rw){ const m = lmoms().find(x => x.id===rw.dataset.rewatch); if(!m) return; playing = m.vid; S.lstart = m.start|0; S.lnonce++; const keep = window.scrollY; draw(); window.scrollTo(0, keep); const el = document.getElementById("mo-"+m.id); if(el) el.scrollIntoView({block:"start", behavior:"smooth"}); return; }
   const fv = t.closest("[data-fav]"); if(fv){ const k = fv.dataset.fav; LGU.fav[k] = !LGU.fav[k]; if(!LGU.fav[k]) delete LGU.fav[k]; saveLGU(); fv.setAttribute("aria-pressed", String(!!LGU.fav[k])); fv.textContent = LGU.fav[k]?"저장됨":"또 보고 싶음"; toast(LGU.fav[k]?"저장했어요 · '저장' 칩에서 다시 볼 수 있어요":"저장을 뺐어요"); return; }
+  const cg = t.closest("[data-cardgo]"); if(cg){ S.vmode = "legend"; S.led = "raw"; S.rawM = cg.dataset.cardgo; S.rawView = "card"; go("videos"); return; }
+  const pmo = t.closest("[data-pmopen]"); if(pmo){ openPlayer(pmo.dataset.pmopen, +pmo.dataset.start||0, +pmo.dataset.ar||null); return; }
   const rtc = t.closest("[data-rate][data-card]"); if(rtc){ rawCardRate(rtc.dataset.rate, +rtc.dataset.n); return; }
   if(t.closest("[data-rundo]")){ const h0 = S.rawHist.pop(); if(h0){ if(h0.skip) S.rawSkip.delete(h0.id); else { delete LGU.rate[h0.id]; saveLGU(); } } playing = null; draw(); return; }
   const rsk = t.closest("[data-rskip]"); if(rsk){ S.rawSkip.add(rsk.dataset.rskip); S.rawHist.push({id:rsk.dataset.rskip, skip:true}); playing = null; draw(); return; }
@@ -879,7 +903,8 @@ document.addEventListener("click", e => {
   const pl = t.closest("[data-play]"); if(pl){ play(pl.dataset.play, pl); return; }
   const sv = t.closest("[data-save]"); if(sv){ toggleSave(sv.dataset.save, sv.dataset.vid); return; }
   const bt = t.closest("[data-bt]"); if(bt){ const k = bt.dataset.bt; S.open.has(k) ? S.open.delete(k) : S.open.add(k); document.querySelectorAll(`[data-bt="${CSS.escape(k)}"]`).forEach(x => x.classList.toggle("open", S.open.has(k))); return; }
-  const gt = t.closest("[data-goto]"); if(gt){ S.vf="all"; S.vsort="rank"; go("videos"); (window.requestAnimationFrame || (f => setTimeout(f, 16)))(() => { const el = document.getElementById("vc-"+gt.dataset.goto); if(el) el.scrollIntoView({block:"start"}); }); return; }
+  const gt = t.closest("[data-goto]"); if(gt){ const vv = (ed()?.videos||[]).find(x => x.id===gt.dataset.goto); openPlayer(gt.dataset.goto, 0, vv?.ar); return; }
+  if(false){ (window.requestAnimationFrame || (f => setTimeout(f, 16)))(() => { const el = document.getElementById("vc-"+gt.dataset.goto); if(el) el.scrollIntoView({block:"start"}); }); return; }
   const mb = t.closest("[data-month]"); if(mb){ if(mb.dataset.month) selectMonth(mb.dataset.month); return; }
   const vf = t.closest("[data-vf]"); if(vf){ S.vf = vf.dataset.vf; draw(); return; }
   const vs = t.closest("[data-vsort]"); if(vs){ S.vsort = vs.dataset.vsort; draw(); return; }
@@ -933,7 +958,7 @@ async function boot(){
     }, () => { clearTimeout(timer); S.mode="preview"; if(S.view==="mine") draw(); });
   }catch(_){ clearTimeout(timer); S.mode="preview"; }
 }
-window.vfmApp = { back(){ if(stopPlay()) return true; if(S.view!=="month"){ go("month"); return true; } return false; }, go: h => go(String(h||"").replace(/^#/,"")), route: () => draw(), top: () => go("month") };
+window.vfmApp = { back(){ if(closePlayer()) return true; if(stopPlay()) return true; if(S.view!=="month"){ go("month"); return true; } return false; }, go: h => go(String(h||"").replace(/^#/,"")), route: () => draw(), top: () => go("month") };
 show(location.hash.slice(1));
 boot();
 })();
