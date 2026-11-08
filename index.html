@@ -44,6 +44,13 @@
   .grp button+button::before{content:"";position:absolute;left:16px;right:0;top:0;height:.5px;background:var(--ap-sep)}
   .grp button span{color:var(--ap-label3);font-size:20px}
   .foot{margin:10px 16px 0;font-size:12.5px;color:var(--ap-label2);line-height:1.5}
+  .plan{background:var(--ap-surface);border-radius:12px;overflow:hidden}
+  .plan .it{padding:11px 16px;position:relative}
+  .plan .it+.it::before{content:"";position:absolute;left:16px;right:0;top:0;height:.5px;background:var(--ap-sep)}
+  .plan .t{font-size:15.5px;font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .plan .d{font-size:13px;color:var(--ap-label2);margin-top:3px;line-height:1.4}
+  .plan .tag{font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:99px;background:var(--ap-fill,rgba(120,120,128,.16));color:var(--ap-label2)}
+  .plan .tag.me{background:rgba(255,149,0,.16);color:#C26A00}
 </style>
 </head>
 <body>
@@ -105,6 +112,9 @@
   </div>
   <p class="last" id="last"></p>
 
+  <p class="cap">예정 <span id="planAt"></span></p>
+  <div class="plan" id="plan"><div class="it"><div class="d">불러오는 중</div></div></div>
+
   <p class="cap">설정</p>
   <div class="grp">
     <button data-act="settings">구글 로그인 · 폰·PC 이어 보기<span>›</span></button>
@@ -132,6 +142,16 @@
     s.innerHTML = html + " · " + ago(iso);
   }
   function n(x) { return (x || 0).toLocaleString(); }
+  j("data/roadmap.json").then(function (r) {
+    var box = document.getElementById("plan"); if (!box) return;
+    if (!r || !r.items || !r.items.length) { box.innerHTML = '<div class="it"><div class="d">예정된 일이 없어요</div></div>'; return; }
+    var NM = { mental: "맨탈", baedat: "배댓", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌" };
+    function e(x) { return String(x || "").replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+    box.innerHTML = r.items.map(function (it) {
+      return '<div class="it"><div class="t"><span class="tag">' + e(NM[it.app] || it.app) + '</span>' + e(it.t) + (it.who === "me" ? '<span class="tag me">내가 할 일</span>' : "") + '</div><div class="d">' + e(it.d) + "</div></div>";
+    }).join("");
+    document.getElementById("planAt").textContent = r.updatedAt ? "· " + ago(r.updatedAt) + " 정리" : "";
+  });
   j("data/sisa/_meta.json").then(function (m) { paint("sisa", m && m.updatedAt, m ? "<b>새 소식 " + (m.counts ? n(m.counts.new_news != null ? m.counts.new_news : m.counts.new_items) : "") + "</b>" : "", 6); });
   j("data/iyagi/_meta.json").then(function (m) { paint("iyagi", m && m.updatedAt, m ? "<b>새 이야기 " + n(m.stories) + "편</b>" : "", 30); });
   j("data/ai/_index.json").then(function (x) { var c = (x && x.counts) || {}; paint("ai", x && x.at, x ? "<b>추천 논문 " + n(c.hf) + "편</b>" : "", 30); });
