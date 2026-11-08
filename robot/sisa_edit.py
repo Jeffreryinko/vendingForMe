@@ -153,16 +153,34 @@ class Ed:
         out = self.ko.many(pairs, deadline=DEADLINE)
         return {i: short(o, 200) for i, o in zip(ids, out) if o}
 
+    def tighten(self, s, r):
+        """대표 기사와 핵심 낱말이 2개 이상(고유명사면 1개) 겹치는 글만 남김 — 흔한 말로 엉뚱한 글이 줄줄이 묶이는 것 막기"""
+        rt = tokens(self.kt(r)) - GENERIC; keep = []
+        for i in s["items"]:
+            it = self.items.get(i)
+            if not it: continue
+            if it is r: keep.append(i); continue
+            sh = (tokens(self.kt(it)) - GENERIC) & rt
+            if len(sh) >= 2 or sh & self.proper(): keep.append(i)
+        srcs = {self.items[i]["s"] for i in keep}
+        if len(keep) < 2 or len(srcs) < 2: return False
+        s["items"] = keep
+        s["countries"] = sorted({self.ctry(self.items[i]) for i in keep}); s["langs"] = sorted({self.items[i]["_lang"] for i in keep})
+        return True
+
     # ── 1. 새 이슈 후보 ──
     def name_candidates(self):
         n = 0; need = {}
         for s in self.stories():
+            if s.get("method") == "auto-v1" and s.get("rep_id") in self.items:
+                if not self.tighten(s, self.items[s["rep_id"]]): s["_drop"] = True
+                continue
             if s.get("cat") or s.get("method") in ("ai-v1", "auto-v1"): continue
             r = self.rep(s)
-            if not r: s["_drop"] = True; continue
+            if not r or not self.tighten(s, r): s["_drop"] = True; continue
             s["title"] = clean_title(self.kt(r))
             s["cat"] = cat_of([self.kt(self.items[i]) for i in s["items"] if i in self.items])
-            s["method"] = "auto-v1"; s["rep"] = r["id"]
+            s["method"] = "auto-v1"; s["rep"] = r["id"]; s["rep_id"] = r["id"]
             cs = sorted({self.ctry(self.items[i]) for i in s["items"] if i in self.items})
             s["kind"] = "global" if len(cs) >= 2 else "local"; s["where"] = cs[:3] if len(cs) <= 3 else [Counter(self.ctry(self.items[i]) for i in s["items"] if i in self.items).most_common(1)[0][0]]
             if r.get("sm"): need[s["id"]] = r["id"]
@@ -182,7 +200,8 @@ class Ed:
         kept = []
         for s in st:
             tk = {t for t in tokens(s.get("title", "")) if t not in GENERIC}
-            host = next((k for k in kept if len(tk & k[1]) >= 2), None)
+            # 2개 이상 겹치거나, 이름 사전에 있는 고유명사(사람·장소·기관·사건)가 1개라도 겹치면 같은 사건
+            host = next((k for k in kept if len(tk & k[1]) >= 2 or (tk & k[1] & self.proper())), None)
             if host and s.get("method") != "ai-v1":
                 h = host[0]; h["items"] = h["items"] + [i for i in s["items"] if i not in h["items"]]
                 h["delta"] = "grown" if h.get("delta") == "same" else h.get("delta"); continue
@@ -195,6 +214,12 @@ class Ed:
         for s in self.E["stories"]: s.pop("top", None)
         for k, s in enumerate(keep[:5]): s["top"] = k + 1
         log(f"이슈 {len(keep)}개 (뺀 것 {len(st) - len(keep)}) · top 5: " + " / ".join(s.get("title", "")[:20] for s in keep[:5]))
+
+    def proper(self):
+        if not hasattr(self, "_proper"):
+            m = self.ents.get("map") or {}
+            self._proper = {n for n, e in m.items() if e.get("t") in ("person", "place", "org", "party", "event") and len(n) >= 3 and n not in GENERIC}
+        return self._proper
 
     # ── 3. 큰 이슈 10개 곁들임 ──
     def ent_index(self):
@@ -274,6 +299,10 @@ class Ed:
             if tr.get(i["id"]):
                 self.brief["map"][i["id"]] = {"basis": "설명", "note": "피드 설명을 기계번역했어요", "sum": tr[i["id"]]}
         self.E["stories"] += new
+        br = self.briefs()
+        if len(br) > MAX_BRIEFS:   # 오래 이어진(새 글 안 붙은) 단신부터 덜어 냄
+            drop = {id(s) for s in sorted(br, key=lambda s: (s.get("delta") == "new", s.get("grow") or 0))[:len(br) - MAX_BRIEFS]}
+            self.E["stories"] = [s for s in self.E["stories"] if id(s) not in drop]
         log(f"단신 {len(new)}개 추가 (전체 {len(self.briefs())})")
 
     # ── 5. 흐름 · 나라 ──
