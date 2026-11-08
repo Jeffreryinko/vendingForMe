@@ -2694,7 +2694,13 @@ function tabStep(dir){
 }
 function sheetStep(dir){
   if(String(S.sheetOpen).startsWith("issue:")){
-    const L = S.issueOrder || [], i = L.indexOf(String(S.sheetOpen).slice(6)), j = i + dir;
+    const sid = String(S.sheetOpen).slice(6);
+    let L = S.issueOrder || [];
+    if(!L.includes(sid)){   // 홈 카드·다른 탭·공유 주소로 바로 연 이슈 → 오늘 화면과 같은 순서(주요 이슈 먼저)로
+      const all = (S.ed.stories||[]).filter(okStory); let tops = all.filter(x => x.top).sort((a,b) => a.top-b.top); if(!tops.length) tops = all.slice(0,5);
+      L = S.issueOrder = [...tops, ...all.filter(x => !tops.includes(x))].map(x => x.id);
+    }
+    const i = L.indexOf(sid), j = i + dir;
     if(i < 0) return; if(j < 0 || j >= L.length) return toast(dir > 0 ? "마지막 이슈예요" : "첫 이슈예요");
     hashSwap("#issue-" + L[j]); return toast(`이슈 ${j+1} / ${L.length}`);
   }
