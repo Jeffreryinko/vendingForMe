@@ -2286,7 +2286,7 @@ function opinionCompare(s, its){
   const by = {}; rows.forEach(r => (by[r.c] = by[r.c] || []).push(r));
   return `${toneBar()}<div class="opc">${Object.entries(by).map(([c, rs]) => `<div class="opc-c"><div class="opc-h">${flag(c)} <b>${esc(cname(c))}</b></div>
     ${rs.map(r => `<div class="opc-r"><span class="opc-src">${esc(r.name)}${r.title ? ` · ${esc(r.title)}` : ""}</span><p class="opc-mood">${esc(r.mood)}</p>
-      ${r.picks.slice(0,2).map(p => `<blockquote class="cm-q t-${p.type}"><span class="cm-type">${CM_TYPE[p.type]||""}</span>${esc(pickText(p))}</blockquote>`).join("")}
+      ${r.picks.slice(0,5).map(p => `<blockquote class="cm-q t-${p.type}"><span class="cm-type">${CM_TYPE[p.type]||""}</span>${esc(pickText(p))}</blockquote>`).join("")}
       <span class="opc-foot">${r.open ? `<button type="button" class="linkbtn" data-open="${r.open}">댓글 더 보기</button>` : `<a class="linkbtn" href="${esc(r.link)}" target="_blank" rel="noopener">원래 토론 보기</a>`}<span class="note">상위 댓글 ${r.n}개 기준 · ${esc(r.note)}</span></span></div>`).join("")}</div>`).join("")}</div>
     <p class="note">뉴스 기사 자체의 댓글은 대부분 가져올 수 없어서, 같은 소식을 다룬 레딧 토론과 커뮤니티 글의 댓글을 모았어요. 표현은 순화했어요.</p>`;
 }

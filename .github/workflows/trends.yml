@@ -44,8 +44,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: 번역 모델 캐시 (무료 기계번역 NLLB — 댓글용)
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/nllb-600m-ct2
+            ~/.cache/huggingface
+          key: nllb-600m-ct2-v1
       - name: 라이브러리 설치
-        run: pip install -q requests
+        run: |
+          pip install -q requests
+          pip install -q "ctranslate2>=4" "transformers>=4.40" sentencepiece "torch>=2.2" --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || echo "번역 라이브러리 설치 실패 — 기계번역 없이 진행"
       - name: 나라별 트렌드 모으기
         env:
           DEEPL_API_KEY: ${{ secrets.DEEPL_API_KEY }}

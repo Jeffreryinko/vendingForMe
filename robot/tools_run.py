@@ -437,9 +437,9 @@ def main():
     # 유튜브 베스트 댓글 5개 (영상마다 할당량 1, 12시간 기억). 영어 댓글은 같이 번역
     try:
         sys.path.insert(0, str(Path(__file__).resolve().parent)); from ytcomments import Comments
-        CM = Comments(OUT / "_state/cm.json", os.environ.get("YOUTUBE_API_KEY"), budget=120)
+        CM = Comments(OUT / "_state/cm.json", os.environ.get("YOUTUBE_API_KEY"), budget=200)
         for k in ("yt", "ye"):
-            for p in sec.get(k, [])[:40]:
+            for p in sec.get(k, []):
                 p["cm"] = CM.get(p.get("vid"))
                 if p.get("kind") == "쇼츠" or CM.short(p.get("vid")): p["short"] = 1
                 for c in p["cm"]:

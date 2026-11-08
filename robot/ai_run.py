@@ -483,7 +483,7 @@ def main():
     try:                                                          # 해설 영상마다 유튜브 베스트 댓글 5개 (할당량 1, 12시간 기억)
         from ytcomments import Comments
         CM = Comments(OUT / "_cm.json", os.environ.get("YOUTUBE_API_KEY"), budget=40)
-        for v in data["vids"][:20]:
+        for v in data["vids"]:
             v["cm"] = CM.get(v.get("vid"))
             if CM.short(v.get("vid")): v["short"] = 1
         CM.save()

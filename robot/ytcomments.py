@@ -6,7 +6,7 @@
     cm.save()
 
 · '관련성 순'(유튜브가 보여 주는 인기 댓글 순)으로 5개
-· 한 번 받은 영상은 12시간 동안 기억 → 다시 묻지 않음. 댓글이 꺼진 영상은 빈 목록으로 기억
+· 한 번 받은 영상은 24시간 동안 기억(댓글이 없던 영상은 3시간) → 다시 묻지 않음. 댓글이 꺼진 영상은 빈 목록으로 기억
 """
 import json, time, requests
 from pathlib import Path
@@ -42,7 +42,7 @@ def is_short(vid):
 
 
 class Comments:
-    def __init__(self, path, key, budget=150, ttl=12 * 3600):
+    def __init__(self, path, key, budget=150, ttl=24 * 3600):
         self.path = Path(path); self.key = key; self.budget = budget; self.ttl = ttl; self.asked = 0
         try: self.mem = json.loads(self.path.read_text())
         except Exception: self.mem = {}
@@ -50,7 +50,7 @@ class Comments:
     def get(self, vid):
         if not vid: return []
         m = self.mem.get(vid) if vid != "_short" else None
-        if m and time.time() - m.get("at", 0) < self.ttl: return m.get("cm", [])
+        if m and time.time() - m.get("at", 0) < (self.ttl if m.get("cm") else 3 * 3600): return m.get("cm", [])   # 댓글이 아직 없던 새 영상은 3시간 뒤 다시
         if not self.key or self.asked >= self.budget: return (m or {}).get("cm", [])
         self.asked += 1
         cm = top_comments(vid, self.key)

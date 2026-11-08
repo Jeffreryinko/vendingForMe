@@ -26,7 +26,7 @@ KST = timezone(timedelta(hours=9))
 KEEP_DAYS = int(os.environ.get("SISA_KEEP_DAYS", "7"))
 RUNS_PER_DAY = 8
 CM_PER_RUN = int(os.environ.get("SISA_CM_PER_RUN", "20"))      # 댓글 수집할 글 수
-CM_PICKS = 3                                                   # 글당 번역할 댓글 수
+CM_PICKS = 5                                                   # 글당 번역할 댓글 수
 
 sys.path.insert(0, str(ROBOT / "crawler")); sys.path.insert(0, str(ROBOT))
 import yaml  # noqa: E402
@@ -196,6 +196,13 @@ def collect_comments(ed, tr, lang_of_source):
     for lang, group in by_lang.items():
         texts = [c["t"][:280] for _, cs in group for c in cs]
         res, eng = tr.translate(texts, lang) if lang != "ko" else (texts, "ko")
+        if not res:                                   # 유료 번역 예산이 모자라면 무료 기계번역(NLLB, 토큰 0)
+            try:
+                from nllb_multi import Ko
+                out = Ko(None).many([(t, lang) for t in texts], deadline=time.time() + 240)
+                res = [o or t for o, t in zip(out, texts)] if any(out) else None
+            except Exception as e:
+                log(f"  댓글 기계번역 실패: {e}"); res = None
         if not res: continue
         k = 0
         for iid, cs in group:
@@ -204,9 +211,9 @@ def collect_comments(ed, tr, lang_of_source):
                 picks.append({"type": "top", "ko": res[k], "raw": res[k], "orig": c["t"][:280]}); k += 1
             cm["map"][iid] = {"mood": "", "picks": picks, **{a: b for a, b in meta[iid].items() if b}}
             n += 1
-    cm.update(edition=ed, fetchedAt=datetime.now(KST).isoformat(), method="comments.py + 기계번역(DeepL/Google)")
+    cm.update(edition=ed, fetchedAt=datetime.now(KST).isoformat(), method="comments.py + 기계번역(DeepL/Google, 모자라면 NLLB)")
     wj(cm_path, cm)
-    log(f"댓글 정리 {n}개 글 (분위기 한 줄은 편집장이 채움)")
+    log(f"댓글 정리 {n}개 글 (글마다 최대 {CM_PICKS}개)")
 
 
 # ── 6. 이름 사진 ──

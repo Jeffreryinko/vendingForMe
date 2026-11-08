@@ -15,7 +15,8 @@
 """
 from __future__ import annotations
 
-import json, os, re, sys, time, html
+import json
+import time, os, re, sys, time, html
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote_plus, unquote
@@ -375,8 +376,10 @@ def enrich(data, tr):
     """급상승 이유(구글 관련 뉴스 제목)와 유튜브 설명·자막을 한국어로. 이미 한 것은 _ytdesc.json 에 기억."""
     mem = rj(OUT / "_ytdesc.json", {})
     todo = {}                                                     # lang -> [(key, text)]
+    late = []                                                     # 뒤쪽 영상 댓글: 무료 기계번역(NLLB)으로 (lang, key, text)
+    NLLB_OK = ("en", "ja", "zh", "es", "pt", "fr", "de", "ru", "id", "vi", "ar", "hi", "bn", "tr", "th", "it", "pl", "nl")
     sys.path.insert(0, str(Path(__file__).resolve().parent)); from ytcomments import Comments
-    CM = Comments(OUT / "_cm.json", os.environ.get("YOUTUBE_API_KEY"), budget=220)   # 유튜브 베스트 댓글 5개 (영상마다 할당량 1, 12시간 기억)
+    CM = Comments(OUT / "_cm.json", os.environ.get("YOUTUBE_API_KEY"), budget=int(os.environ.get("TRENDS_CM_BUDGET", "450")))   # 유튜브 베스트 댓글 5개 (영상마다 할당량 1, 12시간 기억)
     for cc, d in data.items():
         lang = C[cc][5]
         g = (d["src"].get("google") or {}).get("items") or []
@@ -384,10 +387,16 @@ def enrich(data, tr):
             for n in (it.get("news") or [])[:1]:
                 k = "n:" + n["t"]
                 if lang != "ko" and k not in mem: todo.setdefault(lang, []).append((k, n["t"]))
-        yt = ((d["src"].get("yt") or {}).get("items") or [])[:YT_DETAIL] + ((d["src"].get("ytfun") or {}).get("items") or [])[:4]
-        for i, it in enumerate(yt):
+        yt_all = ((d["src"].get("yt") or {}).get("items") or []) + ((d["src"].get("ytfun") or {}).get("items") or [])
+        detail = {id(x) for x in ((d["src"].get("yt") or {}).get("items") or [])[:YT_DETAIL] + ((d["src"].get("ytfun") or {}).get("items") or [])[:4]}
+        for i, it in enumerate(yt_all):
             vid = it.get("vid"); vl = it.get("vl") or lang
             if not vid: continue
+            if id(it) not in detail:                                  # 설명·자막 번역은 앞쪽 영상만, 베스트 댓글 5개는 모든 영상
+                it["cm"] = CM.get(vid)
+                for c in it["cm"]:
+                    if not re.search(r"[가-힣]", c["t"]) and ("mk:" + vid + ":" + c["t"][:40]) not in mem: late.append((vl if vl in NLLB_OK else lang, "mk:" + vid + ":" + c["t"][:40], c["t"][:300]))
+                continue
             if i < CAP_TRY and ("c:" + vid) not in mem:
                 cap = yt_caption(vid, vl)
                 if cap is not None: mem["c:" + vid] = cap
@@ -408,6 +417,19 @@ def enrich(data, tr):
         if res:
             for (k, _), v in zip(fit, res): mem[k] = v
             log(f"자세히 번역 {lang}: {len(fit)}개 ({eng})")
+    # 유료 번역(DeepL·Google)에 못 들어간 댓글은 무료 기계번역으로 (토큰 0)
+    for lang, rows in todo.items():
+        late += [(lang, k, t) for k, t in rows if k.startswith("mk:") and k not in mem]
+    late = [x for x in late if x[1] not in mem]
+    if late and not DRY:
+        try:
+            from nllb_multi import Ko
+            res = Ko(None).many([(t, l) for l, _, t in late], deadline=time.time() + int(os.environ.get("TRENDS_NLLB_MINUTES", "8")) * 60)
+            got = 0
+            for (_, k, _), v in zip(late, res):
+                if v: mem[k] = v; got += 1
+            log(f"댓글 기계번역(NLLB) {got}/{len(late)}개")
+        except Exception as e: log(f"댓글 기계번역 건너뜀: {e}")
     for cc, d in data.items():
         for n in [n for it in ((d["src"].get("google") or {}).get("items") or []) for n in (it.get("news") or [])]:
             if mem.get("n:" + n["t"]): n["ko"] = mem["n:" + n["t"]]

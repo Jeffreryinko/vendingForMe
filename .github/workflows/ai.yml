@@ -70,7 +70,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AI_MAX_MINUTES: "150"
           AI_TOP_ABSTRACTS: "100"
-          AI_YT_BUDGET: "60"
+          AI_YT_BUDGET: "45"
         run: python robot/ai_run.py ${{ inputs.no_translate == 'yes' && '--no-translate' || '' }}
       - name: 새 기능 정리·풀이 요청 (로봇, 토큰 0)
         run: python robot/easy_tools.py auto
