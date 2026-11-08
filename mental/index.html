@@ -82,10 +82,19 @@ p{margin:0}
 .drill .lbl{color:var(--ok)}
 .risk{background:var(--warn-soft);border-radius:10px;padding:9px 11px;font-size:14px}
 .risk .lbl{color:var(--warn)}
-.lenses{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-@media (max-width:460px){.lenses{grid-template-columns:1fr}}
-.lens{border:1px dashed var(--line);border-radius:10px;padding:8px 9px;font-size:13px}
+.lenses{display:grid;grid-template-columns:1fr;gap:8px}
+.lens{border:1px dashed var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px}
+.lens.on{border-style:solid;background:var(--surface)}
 .lens .lbl{color:var(--accent)}
+.lens p{margin:5px 0 0;line-height:1.6}
+.lens .src{margin-top:6px;font-size:12px;color:var(--muted)}
+details.cpt{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:0 12px;margin:8px 0}
+details.cpt summary{list-style:none;cursor:pointer;padding:12px 0;display:flex;justify-content:space-between;gap:10px;font-weight:600}
+details.cpt summary::-webkit-details-marker{display:none}
+details.cpt summary .n{color:var(--muted);font-weight:500;font-size:13px;white-space:nowrap}
+details.cpt[open] summary{border-bottom:1px solid var(--line)}
+details.cpt .body{padding:10px 0 12px}
+details.cpt .body p{margin:0 0 6px;line-height:1.65;font-size:14px}
 .lv{font-family:var(--f-mono);font-size:12px;color:var(--coin);letter-spacing:1px}
 
 .row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 12px;text-align:left;width:100%}
@@ -233,7 +242,9 @@ function todayPick(){
 // ───────── 카드 그리기 ─────────
 function fullCard(u){
   const st = statsOf(u.id), an = S.analysis;
-  const lensBox = k => { const a = an[u.id+"__"+k]; return `<div class="lens"><div class="lbl">${LENS[k]} · ${a?"분석":"예정"}</div>${esc(a ? a.text : u.lens[k])}</div>`; };
+  const lensBox = k => { const a = an[u.id+"__"+k], c = a && (S.catalog.concepts||{})[a.c];
+    if(!c) return `<div class="lens"><div class="lbl">${LENS[k]} · 예정</div>${esc(u.lens[k])}</div>`;
+    return `<div class="lens on"><div class="lbl">${LENS[k]} · ${esc(c.n)}</div><p>${esc(c.b)}</p><div class="src">이 장면의 주제: ${esc(a.title)}</div><div class="src">근거: ${esc(c.src)}</div></div>`; };
   return `<article class="card acc">
     <div class="top"><span class="no">${esc(u.id)}</span>${u.cat.map(k=>`<span class="pill acc">${esc(catName(k))}</span>`).join("")}<span class="pill ${VER[u.verified][1]}">${VER[u.verified][0]}</span></div>
     <h3>${esc(u.name)}</h3>
@@ -337,15 +348,18 @@ function viewDex(){
 
 // ───────── 화면: 학문 ─────────
 function viewLens(){
-  const k = S.lens;
-  const done = S.uses.filter(u => S.analysis[u.id+"__"+k]).length;
+  const k = S.lens, CS = S.catalog.concepts || {};
+  const groups = {};
+  S.uses.forEach(u => { const a = S.analysis[u.id+"__"+k]; if(a && CS[a.c]) (groups[a.c] = groups[a.c] || []).push(u); });
+  const codes = Object.keys(groups).sort((x,y) => groups[y].length - groups[x].length);
+  const done = codes.reduce((n,c) => n + groups[c].length, 0);
   $("#v-lens").innerHTML = `
     <p class="lead">학문으로 다시 보기</p>
-    <p class="note">기술마다 심리학 · 철학 · 과학의 눈으로 근거와 반론을 붙이는 칸이에요. 지금은 다룰 주제만 정해 두었고, 분석이 채워지면 '분석'으로 바뀌어요.</p>
+    <p class="note">기술 카드 하나하나를 심리학 · 철학 · 과학 개념에 연결했어요. 개념을 누르면 쉬운 해설과 대표 연구, 그 개념이 쓰인 장면들이 나와요.</p>
     <div class="chips" role="group" aria-label="관점">${Object.entries(LENS).map(([kk,n]) => `<button class="chip" type="button" data-lens="${kk}" aria-pressed="${k===kk}">${n}</button>`).join("")}</div>
-    <div class="top"><span class="pill ${done?"ok":""}">${LENS[k]} 분석 ${done} / ${S.uses.length}</span></div>
-    <div class="stack">${S.uses.slice().sort((a,b)=>a.id.localeCompare(b.id)).map(u => { const a = S.analysis[u.id+"__"+k];
-      return `<button class="row${a?"":" idle"}" type="button" data-open="${esc(u.id)}"><span class="no">${esc(u.id.slice(-2))}</span><span class="grow"><span class="t">${esc(a ? a.title || u.lens[k] : u.lens[k])}</span><span class="m">${esc(u.name)} · ${a?"분석 있음":"예정"}</span></span><span class="chev" aria-hidden="true">›</span></button>`; }).join("")}</div>`;
+    <div class="top"><span class="pill ${done?"ok":""}">${LENS[k]} 개념 ${codes.length}개 · 카드 ${done} / ${S.uses.length}</span></div>
+    ${codes.map(c => { const C = CS[c]; const list = groups[c].sort((a,b)=>a.id.localeCompare(b.id));
+      return `<details class="cpt"><summary><span>${esc(C.n)}</span><span class="n">${list.length}장 ›</span></summary><div class="body"><p>${esc(C.b)}</p><p class="note">근거: ${esc(C.src)}</p><div class="stack">${list.map(rowCard).join("")}</div></div></details>`; }).join("")}`;
 }
 
 // ───────── 화면: 내 기록 ─────────
@@ -470,7 +484,7 @@ async function saveLog(){
 const csvCell = v => { const s = String(v ?? ""); return /[",\n\r]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
 const toCSV = rows => "﻿" + rows.map(r => r.map(csvCell).join(",")).join("\r\n");
 function logRows(){ return [["날짜","기술ID","기술이름","해봤나","결과","메모","기록시각"], ...entriesAll().slice().reverse().map(e => [e.day, e.useId, useById(e.useId)?.name||"", e.did?"해봄":"못함", e.did?(e.ok?"잘 됨":"아직"):"", e.memo||"", e.at])]; }
-function cardRows(){ return [["use_id","순서","분류","난이도","대조","기술이름","장면요약","단서","원리","결과","훈련","위험윤리","심리학","철학","과학"], ...S.uses.slice().sort((a,b)=>a.id.localeCompare(b.id)).map(u => [u.id,u.order,u.cat.map(catName).join("/"),u.level,VER[u.verified][0],u.name,u.scene,u.clue,u.principle,u.result,u.drill,u.risk,u.lens.psy,u.lens.phi,u.lens.sci])]; }
+function cardRows(){ return [["use_id","순서","분류","난이도","대조","기술이름","장면요약","단서","원리","결과","훈련","위험윤리","심리학","철학","과학"], ...S.uses.slice().sort((a,b)=>a.id.localeCompare(b.id)).map(u => [u.id,u.order,u.cat.map(catName).join("/"),u.level,VER[u.verified][0],u.name,u.scene,u.clue,u.principle,u.result,u.drill,u.risk,...["psy","phi","sci"].map(k => { const a = S.analysis[u.id+"__"+k], c = a && (S.catalog.concepts||{})[a.c]; return c ? c.n+" — "+c.b : u.lens[k]; })])]; }
 let DL = null;
 function updateDlButtons(){ document.querySelectorAll("[data-dl]").forEach(b => b.disabled = false); return; const n=$("#dlNote"); if(n && !DL && S.mode!=="loading") n.textContent = "이 화면에서는 파일 받기를 쓸 수 없어요. '복사' 후 시트에 붙여 넣으세요."; }
 async function download(kind){
