@@ -1280,6 +1280,36 @@
    "file": "raw-2026-07.json",
    "videos": 102,
    "comments": 1827
+  },
+  {
+   "month": "2026-06",
+   "file": "raw-2026-06.json",
+   "videos": 141,
+   "comments": 3030
+  },
+  {
+   "month": "2026-05",
+   "file": "raw-2026-05.json",
+   "videos": 152,
+   "comments": 3275
+  },
+  {
+   "month": "2026-04",
+   "file": "raw-2026-04.json",
+   "videos": 128,
+   "comments": 3299
+  },
+  {
+   "month": "2026-03",
+   "file": "raw-2026-03.json",
+   "videos": 154,
+   "comments": 4988
+  },
+  {
+   "month": "2026-02",
+   "file": "raw-2026-02.json",
+   "videos": 124,
+   "comments": 3036
   }
  ]
 }
