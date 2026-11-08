@@ -92,6 +92,8 @@ details.cpt{border:1px solid var(--line);border-radius:12px;background:var(--sur
 details.cpt summary{list-style:none;cursor:pointer;padding:12px 0;display:flex;justify-content:space-between;gap:10px;font-weight:600}
 details.cpt summary::-webkit-details-marker{display:none}
 details.cpt summary .n{color:var(--muted);font-weight:500;font-size:13px;white-space:nowrap}
+.lens .scn{background:var(--accent-soft);border-radius:10px;padding:8px 10px;margin:4px 0 8px}
+.lens .scn b{color:var(--accent);margin-right:4px}
 details.cpt[open] summary{border-bottom:1px solid var(--line)}
 details.cpt .body{padding:10px 0 12px}
 details.cpt .body p{margin:0 0 6px;line-height:1.65;font-size:14px}
@@ -244,7 +246,7 @@ function fullCard(u){
   const st = statsOf(u.id), an = S.analysis;
   const lensBox = k => { const a = an[u.id+"__"+k], c = a && (S.catalog.concepts||{})[a.c];
     if(!c) return `<div class="lens"><div class="lbl">${LENS[k]} · 예정</div>${esc(u.lens[k])}</div>`;
-    return `<div class="lens on"><div class="lbl">${LENS[k]} · ${esc(c.n)}</div><p>${esc(c.b)}</p><div class="src">이 장면의 주제: ${esc(a.title)}</div><div class="src">근거: ${esc(c.src)}</div></div>`; };
+    return `<div class="lens on"><div class="lbl">${LENS[k]} · ${esc(c.n)}</div>${a.s?`<p class="scn"><b>이 장면에서는</b> ${esc(a.s)}</p>`:""}<p>${esc(c.b)}</p><div class="src">이 장면의 주제: ${esc(a.title)}</div><div class="src">근거: ${esc(c.src)}</div></div>`; };
   return `<article class="card acc">
     <div class="top"><span class="no">${esc(u.id)}</span>${u.cat.map(k=>`<span class="pill acc">${esc(catName(k))}</span>`).join("")}<span class="pill ${VER[u.verified][1]}">${VER[u.verified][0]}</span></div>
     <h3>${esc(u.name)}</h3>
@@ -513,7 +515,7 @@ async function saveLog(){
 const csvCell = v => { const s = String(v ?? ""); return /[",\n\r]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
 const toCSV = rows => "﻿" + rows.map(r => r.map(csvCell).join(",")).join("\r\n");
 function logRows(){ return [["날짜","기술ID","기술이름","해봤나","결과","메모","기록시각"], ...entriesAll().slice().reverse().map(e => [e.day, e.useId, useById(e.useId)?.name||"", e.did?"해봄":"못함", e.did?(e.ok?"잘 됨":"아직"):"", e.memo||"", e.at])]; }
-function cardRows(){ return [["use_id","순서","분류","난이도","대조","기술이름","장면요약","단서","원리","결과","훈련","위험윤리","심리학","철학","과학"], ...S.uses.slice().sort((a,b)=>a.id.localeCompare(b.id)).map(u => [u.id,u.order,u.cat.map(catName).join("/"),u.level,VER[u.verified][0],u.name,u.scene,u.clue,u.principle,u.result,u.drill,u.risk,...["psy","phi","sci"].map(k => { const a = S.analysis[u.id+"__"+k], c = a && (S.catalog.concepts||{})[a.c]; return c ? c.n+" — "+c.b : u.lens[k]; })])]; }
+function cardRows(){ return [["use_id","순서","분류","난이도","대조","기술이름","장면요약","단서","원리","결과","훈련","위험윤리","심리학","철학","과학"], ...S.uses.slice().sort((a,b)=>a.id.localeCompare(b.id)).map(u => [u.id,u.order,u.cat.map(catName).join("/"),u.level,VER[u.verified][0],u.name,u.scene,u.clue,u.principle,u.result,u.drill,u.risk,...["psy","phi","sci"].map(k => { const a = S.analysis[u.id+"__"+k], c = a && (S.catalog.concepts||{})[a.c]; return c ? c.n+" — "+(a.s ? a.s+" / " : "")+c.b : u.lens[k]; })])]; }
 let DL = null;
 function updateDlButtons(){ document.querySelectorAll("[data-dl]").forEach(b => b.disabled = false); return; const n=$("#dlNote"); if(n && !DL && S.mode!=="loading") n.textContent = "이 화면에서는 파일 받기를 쓸 수 없어요. '복사' 후 시트에 붙여 넣으세요."; }
 async function download(kind){
