@@ -1,0 +1,45 @@
+name: 배댓 월간판 로봇 (매월 1일 새벽, 토큰 0)
+
+# 지난달 한국 유튜브 인기 영상 50개 × 배댓 10개를 모아 낱말 규칙으로 분류해 data/baedat 에 저장.
+# 예전 클로드 '배댓 월간판 갱신' 예약 작업 대신. 필요한 것: 저장소 Secrets → YOUTUBE_API_KEY (이미 있음). 화면은 사람 자판기(vfm-mind)의 배댓 앱이 이 자료를 읽음
+on:
+  schedule:
+    - cron: "23 20 1 * *"       # 한국시간 매월 1일 05:23
+  workflow_dispatch:
+    inputs:
+      month:
+        description: "만들 달 (예: 2026-11). 비우면 지난달"
+        required: false
+      force:
+        description: "이미 있어도 다시 만들기 (yes/no)"
+        required: false
+        default: "no"
+
+concurrency:
+  group: data-baedat
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  baedat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 모으고 분류하기
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: python robot/baedat_run.py ${{ inputs.month }} ${{ inputs.force == 'yes' && '--force' || '' }}
+      - name: 저장소에 올리기
+        run: |
+          git config user.name "baedat-robot"
+          git config user.email "robot@users.noreply.github.com"
+          git add data/baedat
+          git diff --cached --quiet && echo "변경 없음" && exit 0
+          git commit -m "배댓: $(TZ=Asia/Seoul date '+%Y-%m-%d') 월간판"
+          for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 10; done

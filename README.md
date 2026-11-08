@@ -12,6 +12,7 @@
 | 트렌드 로봇 `robot/trends_run.py` | 22개국 검색어·영상 순위 | 3시간마다 (`trends.yml`) |
 | AI 로봇 `robot/ai_run.py` + `easy_tools.py auto` | 논문·발표·코드·소식 + 새 기능 정리·풀이 요청(초록 기계번역 정리) — 예전 편집장 07시 회차 대신 | 매일 04:30 (`ai.yml`) |
 | 도구 로봇 `robot/tools_run.py` | GitHub 급상승·긱뉴스·해커뉴스·유튜브 해설·모음 목록 | 하루 4번 (`tools.yml`) |
+| 배댓 로봇 `robot/baedat_run.py` | 지난달 한국 유튜브 인기 영상 50개 × 배댓 10개, 유형·감정은 낱말 규칙(토큰 0). 예전 클로드 '배댓 월간판' 예약 작업 대신. 화면은 [사람 자판기](https://jeffreryinko.github.io/vfm-mind/baedat/) 가 이 자료를 읽어요 | 매월 1일 05:23 (`baedat.yml`) |
 | 라디오 `robot/radio_run.py` | 그날 카드를 오픈소스 음성으로 | `radio.yml` |
 
 ## 비밀 설정 (저장소 Settings → Secrets and variables → Actions)
