@@ -432,7 +432,8 @@
      vfm.pic(원본, 가로, 세로?, class) : 무료 축소 서비스로 작게 받아 데이터 절약, 안 되면 원본, 그래도 안 되면 사라짐
      vfm.logo(글 주소, class)          : 사진이 없는 글은 그 사이트 로고(파비콘 128px)
      <img data-wt="ko:제목">            : 위키백과 대표 사진 (assets/wikithumb.js) */
-  var picUrl = function (u, w, h) { return "https://wsrv.nl/?url=" + encodeURIComponent(u) + "&w=" + w + (h ? "&h=" + h + "&fit=cover" : "") + "&output=webp&q=72"; };
+  var bigUrl = function (u) { return String(u || "").replace(/(ichef\.bbci\.co\.uk\/(?:ace\/standard|ace\/ws|news))\/\d{2,3}\//, "$1/976/"); };   // BBC 240px 사진 → 976px 판
+  var picUrl = function (u, w, h) { u = bigUrl(u); return "https://wsrv.nl/?url=" + encodeURIComponent(u) + "&w=" + w + (h ? "&h=" + h + "&fit=cover" : "") + "&output=webp&q=72"; };
   window.vfm.pic = function (u, w, h, cls) {
     if (!u) return "";
     var e = function (x) { return String(x).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };

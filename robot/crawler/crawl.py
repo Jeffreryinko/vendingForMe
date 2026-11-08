@@ -103,6 +103,7 @@ def rss_img(e):
         u = u.strip().replace("&amp;", "&")
         if u.startswith("//"): u = "https:" + u
         if u.startswith("http://"): u = "https://" + u[7:]                 # 사이트가 https 라 섞인 콘텐츠 막힘 방지
+        u = re.sub(r"(ichef\.bbci\.co\.uk/(?:ace/standard|ace/ws|news))/\d{2,3}/", r"\1/976/", u)   # BBC RSS 사진은 240px → 같은 사진의 976px 판
         if not u.startswith("https://") or re.search(r"(pixel|spacer|1x1|blank)\.(gif|png)|feeds\.feedburner|/ad[sx]?/", u, re.I): return None
         return u[:600]
     for key in ("media_content", "media_thumbnail"):

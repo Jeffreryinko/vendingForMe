@@ -22,6 +22,7 @@ STOP = set("""
 지금 당시 정도 경우 때문 그리고 하지만 또는 없는 있는 하는 했다 한다 된다 있다 없다 이다 했던 하며 해야 밝혀 밝혔다
 말했다 전했다 주장 위한 대해서 중인 같은 다른 많은 새로운 올해 내년 작년 이날 오전 오후 연속 무엇 어떻게 sobre
 하나 다섯 여섯 일곱 여덟 아홉 번째 첫번째 처음으로 마지막
+만에 이어 문제 제기 있었 있었다 없었다 입었다 보인다 밝히고 나섰다 이어져 이어진 전망 예고 가능성
 the and for with from that this are was its his her new news live update video
 """.split())
 
@@ -29,6 +30,7 @@ the and for with from that this are was its his her new news live update video
 GENERIC = set("""
 미국 중국 러시아 일본 영국 프랑스 독일 한국 북한 이란 이스라엘 우크라이나 유럽 대만 브라질 멕시코 스페인 인도네시아
 트럼프 대통령 총리 정부 경찰 의회 선거 경고 비판 촉구 공개 발표 조사 결정 대응 사망 부상 공격 시사 위협 우려 논란
+세계 국제 전국 지역 시장
 """.split())
 UNIT_RE = re.compile(r"[0-9]+(년|월|일|시|분|초|명|개|만|억|조|세|위|차|호|번|건|퍼센트|%)?")
 TOKEN_RE = re.compile(r"[가-힣]{2,}|[A-Za-z][A-Za-z0-9\-]{1,}|[0-9]+[가-힣A-Za-z]+")

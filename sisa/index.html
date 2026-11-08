@@ -892,6 +892,11 @@ async function boot(){
   setInterval(flushImp, 20000);
 }
 async function loadEdition(id){
+  // 지난 판은 목록(_index.json)에 이름·시각만 있음 → 고를 때 그 판 파일을 받아 채움 (첫 화면 데이터 1.8MB → 약 0.4MB)
+  const ix = S.eds.findIndex(e => e.id===id);
+  if(ix >= 0 && S.eds[ix].stub){
+    try{ const r = await fetch((window.VFM_DATA_BASE || "../data/sisa/") + "editions/" + encodeURIComponent(id) + ".json", {cache:"no-cache"}); if(r.ok) S.eds[ix] = {id, ...(await r.json())}; }catch(_){}
+  }
   if(!S.edCache[id]){
     const [feed, tr] = await Promise.all([S.db.collection("feed").where("edition","==",id).get(), S.db.collection("tr").where("edition","==",id).get()]);
     const items = [], langOf = {}, trm = {};
@@ -1043,7 +1048,7 @@ function storyPhoto(s){
   return i ? { u: i.m.img, i } : null;
 }
 // 사진 줄이기: 무료 이미지 축소 서비스(wsrv.nl)로 받아 데이터 절약 (작은 사진 250KB → 2KB). 안 되면 원본으로
-const sm = (u, w, h) => "https://wsrv.nl/?url=" + encodeURIComponent(u) + "&w=" + w + (h ? "&h=" + h + "&fit=cover" : "") + "&output=webp&q=72";
+const sm = (u, w, h) => "https://wsrv.nl/?url=" + encodeURIComponent(String(u || "").replace(/(ichef\.bbci\.co\.uk\/(?:ace\/standard|ace\/ws|news))\/\d{2,3}\//, "$1/976/")) + "&w=" + w + (h ? "&h=" + h + "&fit=cover" : "") + "&output=webp&q=72";
 const thS = s => { const p = storyPhoto(s); return p ? `<img class="th-x" src="${esc(sm(p.u, 168, 168))}" data-orig="${esc(p.u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ""; };
 const thI = i => i && i.m && i.m.img ? `<img class="th-x" src="${esc(sm(i.m.img, 140, 140))}" data-orig="${esc(i.m.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : "";
 function phImg(u, cls){ return `<img class="${cls}" src="${esc(sm(u, 820))}" data-orig="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`; }
