@@ -32,7 +32,7 @@
     });
   }
   function ask(lang, titles) {
-    var u = "https://" + lang + ".wikipedia.org/w/api.php?action=query&prop=pageimages&piprop=thumbnail&pithumbsize=320&redirects=1&format=json&formatversion=2&origin=*&titles=" + encodeURIComponent(titles.join("|"));
+    var u = "https://" + lang + ".wikipedia.org/w/api.php?action=query&prop=pageimages&piprop=thumbnail&pithumbsize=640&redirects=1&format=json&formatversion=2&origin=*&titles=" + encodeURIComponent(titles.join("|"));
     fetch(u).then(function (r) { return r.json(); }).then(function (j) {
       var q = j.query || {}, map = {};
       (q.normalized || []).forEach(function (n) { map[n.to] = (map[n.to] || []).concat([n.from]); });

@@ -71,7 +71,7 @@
     "@keyframes vfmUp{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}@keyframes vfmFade{from{opacity:0}to{opacity:1}}" +
     ".vfm-pill{display:none!important}";
   document.head.appendChild(css);
-  (function () { var l = document.createElement("link"); l.rel = "stylesheet"; l.href = ROOT + "assets/polish.css?v=6"; document.head.appendChild(l); })();   // 전체 마감 (assets/polish.css)
+  (function () { var l = document.createElement("link"); l.rel = "stylesheet"; l.href = ROOT + "assets/polish.css?v=7"; document.head.appendChild(l); })();   // 전체 마감 (assets/polish.css)
 
   function toast(msg) { var t = document.createElement("div"); t.className = "vfm-toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2200); }
   function ago(iso) {
