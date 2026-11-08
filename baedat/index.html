@@ -271,7 +271,11 @@ nav.tabs button[aria-current="page"]{color:var(--tint);font-weight:600}
 .rdeck{position:relative}
 .rnext{position:absolute;inset:10px 10px -8px;border-radius:20px;background:var(--surface);border:1px solid var(--line);opacity:.6}
 .rcard{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.08);touch-action:pan-y;-webkit-user-select:none;-webkit-touch-callout:none;transition:transform .2s ease,opacity .2s ease;user-select:none}
-.rcard .media{border-radius:0;aspect-ratio:16/9;max-height:32vh;overflow:hidden}
+.rcard .media{border-radius:0;aspect-ratio:16/9;overflow:hidden}
+.rcard .media.v{aspect-ratio:auto}
+.rcard .media.v .play{width:auto;height:auto}
+.rcard .media.v .th{aspect-ratio:9/16;width:auto;height:min(62vh,560px)}
+.rcard .media.v .th img{width:100%;height:100%;object-fit:cover}
 .rcard .media .th,.rcard .media .play{height:100%}
 .rcard .media img{object-fit:cover;height:100%}
 .rcard .media,.rcard img{touch-action:pan-y;-webkit-user-drag:none}
@@ -614,13 +618,13 @@ const tasteScore = (M, c, V) => { let s = 0; tasteFeats(c, V).forEach(k => { s +
 // 원본 데이터 카드식: 안 본 댓글을 한 장씩, 🤣🙂😐로 넘기기 (오른쪽으로 밀면 최고, 왼쪽은 별로)
 const tsSec = t => { const m = String(t).match(/(?<!\d)(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?!\d)/); return m ? (+(m[1]||0))*3600 + (+m[2])*60 + (+m[3]) : 0; };
 function rawCard(c, V, left, total){
-  const v = V[c[0]] || ["", "", "", 0, ""]; const st = tsSec(c[2]); const vv = {id:c[0], title:v[0]};
+  const v = V[c[0]] || ["", "", "", 0, ""]; const st = tsSec(c[2]); const vv = {id:c[0], title:v[0], ar:v[5]};
   const vert = v[5] && v[5] < 1;
   const media = playing===c[0] ? lplayerHtml(c[0], S.lstart, S.lnonce)
     : `<button type="button" class="play" data-lplay="${esc(c[0])}" data-start="${st}" aria-label="영상 보기">${thumb(vv, `${st?`<span class="sh">${ts(st)}부터</span>`:""}<span class="pbtn" aria-hidden="true"></span>`)}</button>`;
   const R = S.RW[S.rawM]; const others = R && R.comments ? R.comments.filter(x => x[0]===c[0] && x[1]!==c[1]).slice(0,5) : [];
   return `<div class="rdeck"><div class="rnext" aria-hidden="true"></div><article class="rcard" data-rcard="${esc(c[1])}">
-    <div class="media${playing===c[0]?" pl":""}${playing===c[0]&&vert?" v":""}">${media}</div>
+    <div class="media${playing===c[0]?" pl":""}${vert?" v":""}">${media}</div>
     <div class="rcb">
       <div class="rwv">${esc(v[1])} · ${esc(v[4])} · 조회 ${kNum(v[3])}</div>
       <div class="rct">${esc(v[0])}</div>
