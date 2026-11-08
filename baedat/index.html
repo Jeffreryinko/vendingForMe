@@ -225,6 +225,15 @@ nav.tabs button[aria-current="page"]{color:var(--tint);font-weight:600}
 .mine textarea{width:100%;min-height:64px;border:0;border-radius:10px;background:var(--fill2);padding:10px;font-size:15px;resize:vertical}
 .pickbar{display:flex;gap:8px;align-items:center}
 .pickbar .btn{flex:none}
+.edc{margin-bottom:4px}
+.eds{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.ec{display:flex;flex-direction:column;gap:6px;padding-top:12px;border-top:1px solid var(--line)}
+.ec:first-child{border-top:0;padding-top:0}
+.ect{font-family:var(--display);font-size:clamp(18px,4.8vw,21px);font-weight:700;line-height:1.42;letter-spacing:-.015em;white-space:pre-wrap;overflow-wrap:anywhere;margin:0;border-left:3px solid var(--tint);padding-left:10px}
+.ecw{font-size:14px;line-height:1.55;color:var(--muted);margin:0}
+button.pill{border:0;cursor:pointer}
+.linkb{border:0;background:none;padding:0;color:var(--tint-t);font:inherit;cursor:pointer}
+.linkb[aria-pressed="true"]{font-weight:700}
 .vbadge{font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 8px;background:rgba(52,199,89,.15);color:var(--green-t)}
 .vbadge.b{background:var(--orange-soft);color:var(--orange-t)}
 #toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(30,30,30,.92);color:#fff;padding:9px 15px;border-radius:14px;font-size:13.5px;z-index:40;max-width:90vw;text-align:center}
@@ -270,7 +279,7 @@ const BASE = "../data/baedat/";
 const HIDE_KEY = "vfm:baedat:hide";
 let HIDE = new Set(); try{ HIDE = new Set(JSON.parse(localStorage.getItem(HIDE_KEY) || "[]")); }catch(_){}
 function saveHide(){ try{ localStorage.setItem(HIDE_KEY, JSON.stringify([...HIDE])); }catch(_){} }
-const S = {months:[], eds:{}, month:null, view:"month", vmode:"legend", lt:"all", rev:new Set(), lstart:0, lnonce:0, pick:null, LG:null, vf:"all", vsort:"rank", cf:"all", sort:"likes", db:null, saved:{}, canWrite:false, mode:"loading", updatedAt:null, open:new Set()};
+const S = {months:[], eds:{}, month:null, view:"month", vmode:"legend", led:"best", LE:{}, lt:"all", rev:new Set(), lstart:0, lnonce:0, pick:null, LG:null, vf:"all", vsort:"rank", cf:"all", sort:"likes", db:null, saved:{}, canWrite:false, mode:"loading", updatedAt:null, open:new Set()};
 
 // ───────── 형식 도우미 ─────────
 const nf = new Intl.NumberFormat("ko-KR");
@@ -400,11 +409,12 @@ function momentCard(m, isPick){
     </div></article>`;
 }
 function viewLegend(box){
+  if(S.LG && S.led!=="best"){ viewEdition(box, S.led); return; }
   const all = lmoms();
   if(!S.LG){ box.innerHTML = `${modeSeg()}<p class="note">명댓글을 불러오는 중이에요…</p>`; return; }
   const list = lList(); const pick = S.pick && all.find(m => m.id===S.pick);
   const favN = Object.keys(LGU.fav).filter(k => LGU.fav[k]).length;
-  box.innerHTML = `${modeSeg()}
+  box.innerHTML = `${modeSeg()}${edChips()}
     <p class="lead">영상은 시작,<br>댓글이 완성.</p>
     <p class="note">장면을 보고 한 줄을 만나 보세요. 좋아요 수가 아니라 '읽고 나면 장면이 다르게 보이는' 댓글만 골랐어요. 지금 ${all.length}편 · 원댓글은 ${esc(S.LG.checkedAt||"")}에 유튜브에서 직접 확인했어요.</p>
     <div class="pickbar"><button class="btn" type="button" data-pick>한 편 뽑기</button><span class="note">자판기처럼 아무거나 하나 꺼내 줘요</span></div>
@@ -413,6 +423,55 @@ function viewLegend(box){
     ${pick ? `<h2 class="sec"><span class="n">뽑힌 한 편</span></h2>${momentCard(pick, true)}<h2 class="sec">나머지</h2>` : ""}
     <div class="lgrid">${list.filter(m => !pick || m.id!==pick.id).map(m => momentCard(m)).join("") || `<p class="note">${S.lt==="fav"?"'또 보고 싶음'을 누른 카드가 여기 모여요.":"이 유형은 아직 없어요."}</p>`}</div>
     <div class="card"><p class="note">고르는 기준: ① 영상을 봐야 더 웃기고 ② 장면을 새로 해석하고 ③ 한두 줄로 끝나고 ④ 실제 사람을 깎아내리지 않을 것. 원문은 바꾸지 않고, 좋아요·답글 수는 확인한 날 기준이에요. 김형석 편은 유튜브 댓글이 아니라 방송 화면 속 실시간 채팅이라 따로 표시했어요.</p></div>`;
+}
+// ───────── 월간 명댓글 (에디션) ─────────
+const edChips = () => {
+  const eds = S.LG?.editions || []; if(!eds.length) return "";
+  const items = [["best", `명작 ${lmoms().length}`], ...eds.map(e => [e.month, `${+e.month.slice(5)}월 ${e.count}`])];
+  return `<div class="chips edc" role="group" aria-label="모음">${items.map(([k,n]) => `<button class="chip" type="button" data-led="${esc(k)}" aria-pressed="${S.led===k}">${esc(n)}</button>`).join("")}</div>`;
+};
+function loadEd(m){
+  const e = (S.LG?.editions||[]).find(x => x.month===m); if(!e || S.LE[m]) return;
+  S.LE[m] = "loading";
+  fetch(BASE + e.file, {cache:"no-store"}).then(r => r.ok ? r.json() : null).then(j => { S.LE[m] = j || "error"; if(S.led===m) draw(); }).catch(() => { S.LE[m] = "error"; if(S.led===m) draw(); });
+}
+function edGroup(E, vid, ps){
+  const v = E.videos[vid]; const vv = {id:vid, ar:v.ar, title:v.title};
+  const st = Math.max(0, ...ps.map(p => p.start||0)); const key = "ed:"+vid;
+  const open = S.rev.has(key);
+  const media = playing===vid ? lplayerHtml(vid, S.lstart, S.lnonce)
+    : `<button type="button" class="play" data-lplay="${esc(vid)}" data-start="${st}" aria-label="${esc(v.title)} 재생">${thumb(vv, `${v.dur?`<span class="dur">${dur(v.dur)}</span>`:""}${st?`<span class="sh">${ts(st)}부터</span>`:""}<span class="pbtn" aria-hidden="true"></span>`, true)}</button>`;
+  const rows = ps.map(p => { const c = p.comment; return `<li class="ec">
+      <div class="mtop"><span class="pill acc">${esc(p.type)}</span>${p.start?`<button type="button" class="pill" data-lplay="${esc(vid)}" data-start="${p.start}">${ts(p.start)} 장면</button>`:""}</div>
+      <p class="ect">${esc(c.text)}</p>
+      <p class="ecw">${esc(p.why)}</p>
+      <div class="lmeta"><span>좋아요 ${kNum(c.likes)}</span><span>답글 ${kNum(c.replies)}</span><a href="${at(vid, c.id)}" target="_blank" rel="noopener">유튜브 원문</a><button type="button" class="linkb" data-fav="${esc(c.id)}" aria-pressed="${!!LGU.fav[c.id]}">${LGU.fav[c.id]?"저장됨":"또 보고 싶음"}</button></div></li>`; }).join("");
+  return `<article class="mo" id="mo-${esc(vid)}">
+    <div class="media${isV(vv)?" v":""}">${media}</div>
+    <div class="mb">
+      <div class="mtop"><span class="pill">${esc(v.cat||"")}</span><span class="vbadge">원댓글 확인 ${esc((E.checkedAt||"").slice(5).replace("-","."))}</span></div>
+      <div class="mt">${esc(v.channel)} · ${esc(v.title)}</div>
+      <div class="note">조회 ${kNum(v.views)} · ${esc(v.published)} 공개</div>
+      ${open ? `<ul class="eds">${rows}</ul>` : `<button class="reveal" type="button" data-reveal="${esc(key)}">명댓글 ${ps.length}개 보기</button>`}
+    </div></article>`;
+}
+function viewEdition(box, m){
+  const E = S.LE[m]; loadEd(m);
+  if(!E || E==="loading"){ box.innerHTML = `${modeSeg()}${edChips()}<p class="note">${+m.slice(5)}월 명댓글을 불러오는 중이에요…</p>`; return; }
+  if(E==="error"){ box.innerHTML = `${modeSeg()}${edChips()}<p class="note">불러오지 못했어요. 잠시 뒤 다시 눌러 주세요.</p>`; S.LE[m] = null; return; }
+  const all = E.picks; const favN = all.filter(p => LGU.fav[p.comment.id]).length;
+  const list = S.lt==="fav" ? all.filter(p => LGU.fav[p.comment.id]) : S.lt==="all" ? all : all.filter(p => p.type===S.lt);
+  const groups = []; const gi = {};
+  list.forEach(p => { if(!(p.vid in gi)){ gi[p.vid] = groups.length; groups.push([p.vid, []]); } groups[gi[p.vid]][1].push(p); });
+  const tc = t => all.filter(p => p.type===t).length;
+  const allOpen = groups.length && groups.every(([v]) => S.rev.has("ed:"+v));
+  box.innerHTML = `${modeSeg()}${edChips()}
+    <p class="lead">${+m.slice(5)}월의 한 줄<br>${E.count}개</p>
+    <p class="note">${esc(m.replace("-","년 "))}월에 올라온 한국 인기 영상 ${E.pool.videos}개, 댓글 ${kNum(E.pool.comments)}개를 훑어서 영상 ${E.videoCount}개에서 ${E.count}개를 골랐어요. 영상을 먼저 보고 '명댓글 보기'를 눌러 보세요.</p>
+    <div class="chips" role="group" aria-label="유형">${[["all",`전체 ${all.length}`], ...(S.LG.types||[]).map(([t]) => [t, `${t} ${tc(t)}`]), ["fav", `저장 ${favN}`]].filter(([k]) => k==="all"||k==="fav"||tc(k)).map(([k,n]) => `<button class="chip" type="button" data-lt="${esc(k)}" aria-pressed="${S.lt===k}">${esc(n)}</button>`).join("")}</div>
+    ${groups.length ? `<div class="pickbar"><button class="btn ghost" type="button" data-openall="${allOpen?0:1}">${allOpen?"모두 접기":"모두 펼치기"}</button><span class="note">영상 ${groups.length}개</span></div>` : ""}
+    <div class="lgrid">${groups.map(([v, ps]) => edGroup(E, v, ps)).join("") || `<p class="note">${S.lt==="fav"?"'또 보고 싶음'을 누른 댓글이 여기 모여요.":"이 유형은 이번 달에 없어요."}</p>`}</div>
+    <div class="card"><p class="note">고르는 법: 유튜브 공식 API로 그달 한국 인기 영상을 모으고, 영상마다 인기순 댓글을 받아 '영상 덕분에 웃긴 한 줄'만 사람이 골랐어요. 원문은 바꾸지 않았고, 실존 인물 외모·사생활 공격, 노래 가사 인용, 정치·혐오 댓글은 뺐어요. 좋아요 수는 ${esc(E.checkedAt)} 기준이에요.</p></div>`;
 }
 const modeSeg = () => `<div class="seg2" role="group" aria-label="영상 보기 방식"><button type="button" data-vmode="legend" aria-pressed="${S.vmode==="legend"}">명댓글 감상</button><button type="button" data-vmode="month" aria-pressed="${S.vmode==="month"}">월간 인기 영상</button></div>`;
 
@@ -614,6 +673,8 @@ document.addEventListener("click", e => {
   const rv = t.closest("[data-reveal]"); if(rv){ S.rev.add(rv.dataset.reveal); const keep = window.scrollY; draw(); window.scrollTo(0, keep); return; }
   const rw = t.closest("[data-rewatch]"); if(rw){ const m = lmoms().find(x => x.id===rw.dataset.rewatch); if(!m) return; playing = m.vid; S.lstart = m.start|0; S.lnonce++; const keep = window.scrollY; draw(); window.scrollTo(0, keep); const el = document.getElementById("mo-"+m.id); if(el) el.scrollIntoView({block:"start", behavior:"smooth"}); return; }
   const fv = t.closest("[data-fav]"); if(fv){ const k = fv.dataset.fav; LGU.fav[k] = !LGU.fav[k]; if(!LGU.fav[k]) delete LGU.fav[k]; saveLGU(); fv.setAttribute("aria-pressed", String(!!LGU.fav[k])); fv.textContent = LGU.fav[k]?"저장됨":"또 보고 싶음"; toast(LGU.fav[k]?"저장했어요 · '저장' 칩에서 다시 볼 수 있어요":"저장을 뺐어요"); return; }
+  const le = t.closest("[data-led]"); if(le){ stopPlay(); S.led = le.dataset.led; S.lt = "all"; S.pick = null; draw(); return; }
+  const oa = t.closest("[data-openall]"); if(oa){ const E = S.LE[S.led]; if(E && E.picks){ const ks = [...new Set(E.picks.map(p => "ed:"+p.vid))]; ks.forEach(k => oa.dataset.openall==="1" ? S.rev.add(k) : S.rev.delete(k)); } const keep = window.scrollY; draw(); window.scrollTo(0, keep); return; }
   const lt = t.closest("[data-lt]"); if(lt){ stopPlay(); S.lt = lt.dataset.lt; S.pick = null; draw(); return; }
   if(t.closest("[data-pick]")){ stopPlay(); const pool = lmoms().filter(m => m.id!==S.pick); if(!pool.length) return; S.pick = pool[Math.floor(Math.random()*pool.length)].id; S.lt = "all"; draw(); window.scrollTo(0,0); return; }
   const pl = t.closest("[data-play]"); if(pl){ play(pl.dataset.play, pl); return; }
