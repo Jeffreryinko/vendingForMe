@@ -235,8 +235,11 @@ nav.tabs button[aria-current="page"]{color:var(--tint);font-weight:600}
 @media (prefers-reduced-motion:reduce){.rw{transition:none}}
 .rdeck{position:relative}
 .rnext{position:absolute;inset:10px 10px -8px;border-radius:20px;background:var(--surface);border:1px solid var(--line);opacity:.6}
-.rcard{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.08);touch-action:pan-y;transition:transform .2s ease,opacity .2s ease;user-select:none}
-.rcard .media{border-radius:0}
+.rcard{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.08);touch-action:pan-y;-webkit-user-select:none;-webkit-touch-callout:none;transition:transform .2s ease,opacity .2s ease;user-select:none}
+.rcard .media{border-radius:0;aspect-ratio:16/9;max-height:32vh;overflow:hidden}
+.rcard .media .th,.rcard .media .play{height:100%}
+.rcard .media img{object-fit:cover;height:100%}
+.rcard .media,.rcard img{touch-action:pan-y;-webkit-user-drag:none}
 .rcb{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px}
 .rct{font-size:13px;color:var(--muted);line-height:1.4;overflow-wrap:anywhere}
 .rtx{margin:6px 0 4px;font-family:var(--display);font-size:clamp(20px,5.4vw,24px);font-weight:700;line-height:1.42;letter-spacing:-.015em;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -620,12 +623,16 @@ function viewRaw(box){
 function rawCardRate(id, n){
   LGU.rate[id] = n; saveLGU(); S.rawHist.push({id}); if(S.rawHist.length > 50) S.rawHist.shift();
   const el = document.querySelector(`[data-rcard="${CSS.escape(id)}"]`); playing = null;
-  if(el && !matchMedia("(prefers-reduced-motion: reduce)").matches){ el.classList.add(n===1 ? "out-l" : n===3 ? "out-r" : "out-u"); setTimeout(draw, 200); } else draw();
+  const fit = () => { draw(); const b = document.querySelector(".rbig"), d = document.querySelector(".rdeck"); if(b && d && (b.getBoundingClientRect().bottom > innerHeight || d.getBoundingClientRect().top < 0)) d.scrollIntoView({block:"start"}); };
+  if(el && !matchMedia("(prefers-reduced-motion: reduce)").matches){ el.classList.add(n===1 ? "out-l" : n===3 ? "out-r" : "out-u"); setTimeout(fit, 200); } else fit();
 }
 (() => { let sx = 0, sy = 0, el = null, dx = 0;
-  document.addEventListener("pointerdown", e => { const c = e.target.closest && e.target.closest(".rcard"); if(!c || e.target.closest("a,button,iframe")) return; el = c; sx = e.clientX; sy = e.clientY; dx = 0; el.style.transition = "none"; });
+  let swiped = 0;
+  document.addEventListener("dragstart", e => { if(e.target.closest && e.target.closest(".rcard")) e.preventDefault(); });
+  document.addEventListener("click", e => { if(Date.now() - swiped < 400){ e.stopPropagation(); e.preventDefault(); } }, true);   // 밀고 난 직후의 눌림은 무시
+  document.addEventListener("pointerdown", e => { const c = e.target.closest && e.target.closest(".rcard"); if(!c || e.target.closest("a,iframe")) return; el = c; sx = e.clientX; sy = e.clientY; dx = 0; el.style.transition = "none"; });
   document.addEventListener("pointermove", e => { if(!el) return; dx = e.clientX - sx; const dy = e.clientY - sy; if(Math.abs(dy) > Math.abs(dx) && Math.abs(dx) < 12) return; el.style.transform = `translateX(${dx}px) rotate(${dx/18}deg)`; el.classList.toggle("lean-r", dx > 40); el.classList.toggle("lean-l", dx < -40); });
-  const end = () => { if(!el) return; const c = el, d = dx; el = null; c.style.transition = ""; if(Math.abs(d) > 90){ rawCardRate(c.dataset.rcard, d > 0 ? 3 : 1); } else { c.style.transform = ""; c.classList.remove("lean-r", "lean-l"); } };
+  const end = () => { if(!el) return; const c = el, d = dx; el = null; c.style.transition = ""; if(Math.abs(d) > 90){ swiped = Date.now(); rawCardRate(c.dataset.rcard, d > 0 ? 3 : 1); } else { c.style.transform = ""; c.classList.remove("lean-r", "lean-l"); } };
   document.addEventListener("pointerup", end); document.addEventListener("pointercancel", end);
   document.addEventListener("keydown", e => { if(S.view!=="videos" || S.led!=="raw" || S.rawView!=="card" || (e.target.closest && e.target.closest("input,textarea,select"))) return; const c = document.querySelector(".rcard"); if(!c) return;
     const n = {"1":1, "2":2, "3":3, ArrowLeft:1, ArrowRight:3, ArrowUp:2}[e.key]; if(n){ e.preventDefault(); rawCardRate(c.dataset.rcard, n); } });
