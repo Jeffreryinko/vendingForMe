@@ -205,7 +205,7 @@ const SEED = JSON.parse($("#seed").textContent);
 const S = {
   db:null, canWrite:false, mode:"loading",       // loading | live | preview
   catalog:SEED.catalog, eps:{}, uses:[], analysis:{}, logs:{},
-  view:"today", dexCat:"all", season:null, ep:null, lens:"psy", pickOffset:0,
+  view:"today", dexCat:"all", dexMode:"map", season:null, ep:null, lens:"psy", pickOffset:0,
   draft:{did:null, ok:null, memo:""}
 };
 const LENS = {psy:"심리학", phi:"철학", sci:"과학"};
@@ -333,12 +333,40 @@ function epBlock(ep){
 }
 
 // ───────── 화면: 도감 ─────────
+const dexSeg = () => `<div class="seg" role="group" aria-label="보기"><button type="button" data-dexmode="map" aria-pressed="${S.dexMode==="map"}">기술 지도 · 훈련 순서</button><button type="button" data-dexmode="list" aria-pressed="${S.dexMode==="list"}">분류별 목록</button></div>`;
+// 기술 지도: 같은 기술(tech)끼리 묶고 단계(stage) 순서로 — 위에서부터 따라 하면 쉬운 것부터
+function viewMap(){
+  const ST = S.catalog.stages || [], TS = S.catalog.techs || [];
+  if(!TS.length || !S.uses.some(u => u.tech)){ $("#v-dex").innerHTML = `<p class="lead">기술 도감</p>${dexSeg()}<p class="note">기술 지도는 전체 데이터를 불러오면 보여요.</p>`; return; }
+  const by = {}; S.uses.forEach(u => (by[u.tech] = by[u.tech] || []).push(u));
+  const easy = (a,b) => a.level-b.level || a.id.localeCompare(b.id);
+  Object.values(by).forEach(l => l.sort(easy));
+  const tried = l => l.filter(u => statsOf(u.id).tries).length;
+  const next = TS.find(t => (by[t.k]||[]).length && !tried(by[t.k]));
+  const nu = next && by[next.k][0];
+  const seasons = l => { const s = [...new Set(l.map(u => +u.id.split("x")[0]))].sort((a,b)=>a-b); return s.length > 1 ? `시즌 ${s[0]}~${s[s.length-1]}` : `시즌 ${s[0]}`; };
+  const avg = l => Math.round(l.reduce((n,u) => n+u.level, 0) / l.length);
+  let no = 0;
+  $("#v-dex").innerHTML = `
+    <p class="lead">기술 도감</p>${dexSeg()}
+    <p class="note">151화에 흩어진 ${S.uses.length}장을 같은 기술 ${TS.length}개로 묶고, 쉬운 것부터 ${ST.length}단계로 줄 세웠어요. 위에서부터 한 기술씩, 기술 안에서는 난이도 낮은 장면부터 따라 하면 돼요.</p>
+    ${nu ? `<article class="card acc"><div class="lbl">다음 연습 · ${esc(next.n)}</div><h3>${esc(nu.name)}</h3><div class="drill"><div class="lbl">훈련</div>${esc(nu.drill)}</div><button class="btn" type="button" data-open="${esc(nu.id)}">장면 열기</button></article>` : `<div class="card"><p class="note">모든 기술을 한 번 이상 해 봤어요. 이제 기술마다 난이도 ●●● 장면에 도전해 보세요.</p></div>`}
+    ${ST.map((s, si) => { const ts = TS.filter(t => t.stage===s.k && (by[t.k]||[]).length); if(!ts.length) return "";
+      const all = ts.flatMap(t => by[t.k]); const tr = tried(all);
+      return `<h2 class="sec"><span class="n">${si+1}단계</span>${esc(s.n)}</h2><p class="note">${esc(s.d)} · ${all.length}장 중 ${tr}장 해 봄</p>
+      ${ts.map(t => { const l = by[t.k]; no++; const tn = tried(l);
+        return `<details class="cpt"><summary><span>${no}. ${esc(t.n)}</span><span class="n">${tn?`${tn}/`:""}${l.length}장 ›</span></summary><div class="body">
+          <p>${esc(t.d)}.</p><p class="note">${seasons(l)} · 평균 난이도 <span class="lv">${lvStars(avg(l))}</span> · 처음 나온 장면 ${esc(l.slice().sort((a,b)=>a.id.localeCompare(b.id))[0].id)}</p>
+          <div class="drill"><div class="lbl">처음 해볼 훈련 · ${esc(l[0].name)}</div>${esc(l[0].drill)}</div>
+          <div class="stack">${l.map(rowCard).join("")}</div></div></details>`; }).join("")}`; }).join("")}`;
+}
 function viewDex(){
+  if(S.dexMode==="map"){ viewMap(); return; }
   const cats = S.catalog.cats;
   const list = S.uses.filter(u => S.dexCat==="all" || u.cat.includes(S.dexCat)).sort((a,b)=>a.id.localeCompare(b.id));
   const cur = cats.find(c => c.k===S.dexCat);
   $("#v-dex").innerHTML = `
-    <p class="lead">기술 도감</p>
+    <p class="lead">기술 도감</p>${dexSeg()}
     <div class="chips" role="group" aria-label="분류">${[{k:"all",n:"전체"},...cats].map(c => `<button class="chip" type="button" data-cat="${c.k}" aria-pressed="${S.dexCat===c.k}">${esc(c.n)} ${c.k==="all"?S.uses.length:S.uses.filter(u=>u.cat.includes(c.k)).length}</button>`).join("")}</div>
     ${cur?`<p class="note">${esc(cur.d)}</p>`:""}
     <div class="stack">${list.length ? list.map(rowCard).join("") : `<p class="note">이 분류의 기술은 아직 나오지 않았어요.</p>`}</div>
@@ -447,6 +475,7 @@ document.addEventListener("click", e => {
   const td = t.closest("[data-today]"); if(td){ setToday(td.dataset.today); closeSheet(); go("today"); return; }
   const sn = t.closest("[data-season]"); if(sn){ S.season = sn.dataset.season; S.ep = null; viewEpisodes(); return; }
   const ep = t.closest("[data-ep]"); if(ep){ S.ep = ep.dataset.ep; viewEpisodes(); const el = document.getElementById("ep-"+ep.dataset.ep); if(el) el.scrollIntoView({behavior:"smooth",block:"start"}); return; }
+  const dm = t.closest("[data-dexmode]"); if(dm){ S.dexMode = dm.dataset.dexmode; viewDex(); return; }
   const c = t.closest("[data-cat]"); if(c){ S.dexCat = c.dataset.cat; viewDex(); return; }
   const l = t.closest("[data-lens]"); if(l){ S.lens = l.dataset.lens; viewLens(); return; }
   const did = t.closest("[data-did]"); if(did){ keepMemo(); S.draft.did = did.dataset.did==="1"; if(!S.draft.did) S.draft.ok = null; viewToday(); return; }

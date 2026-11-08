@@ -227,6 +227,9 @@ nav.tabs button[aria-current="page"]{color:var(--tint);font-weight:600}
 .pickbar{display:flex;gap:8px;align-items:center}
 .pickbar .btn{flex:none}
 .edc{margin-bottom:4px}
+.msel{display:flex;gap:6px;align-items:center}
+.msel select{flex:1;font:inherit;font-size:15px;padding:9px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:inherit;min-width:0}
+.msel .chip[disabled]{opacity:.35}
 .rw{transition:opacity .3s ease,max-height .35s ease;max-height:1200px;overflow:hidden}
 .rw.gone{opacity:0;max-height:0;padding-top:0;padding-bottom:0;border-bottom-width:0}
 @media (prefers-reduced-motion:reduce){.rw{transition:none}}
@@ -307,7 +310,7 @@ function kNum(n){ if(n==null) return "—"; if(n>=1e8) return (n/1e8).toFixed(1)
 function dur(s){ if(!s) return ""; const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60; return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(x).padStart(2,"0"); }
 function ymd(iso){ if(!iso) return ""; const d = new Date(new Date(iso).getTime()+9*3600e3); return `${d.getUTCMonth()+1}.${d.getUTCDate()}`; }
 const josa = (w, a, b) => { const c = String(w).charCodeAt(String(w).length-1); return w + ((c>=0xAC00 && c<=0xD7A3 && (c-0xAC00)%28) ? a : b); };
-const monthKo = m => m ? `${Number(m.slice(5))}월` : "";
+const monthKo = m => { if(!m) return ""; const multiY = new Set((S.months||[]).map(x => x.slice(0,4))).size > 1; return multiY ? `${m.slice(2,4)}년 ${Number(m.slice(5))}월` : `${Number(m.slice(5))}월`; };
 const watch = id => `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
 const at = (vid, cid) => `${watch(vid)}&lc=${encodeURIComponent(cid)}`;
 let toastT; function toast(m){ const t=$("#toast"); t.textContent=m; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>{t.hidden=true;},2600); }
@@ -344,7 +347,10 @@ function hideBar(){
 }
 function monthChips(){
   if(S.months.length<2) return hideBar();
-  return `<div class="chips" role="group" aria-label="월간판">${S.months.map(m => `<button class="chip" type="button" data-month="${m}" aria-pressed="${m===S.month}">${monthKo(m)}판</button>`).join("")}</div>${hideBar()}`;
+  const auto = ed()?.auto ? `<p class="note">이 달은 수집기가 자동으로 만든 판이라 유형·감정 분류가 아직 없어요. 음악 영상은 가사 때문에 뺐어요.</p>` : "";
+  if(S.months.length > 6){ const i = S.months.indexOf(S.month);
+    return `<div class="msel"><button class="chip" type="button" data-month="${S.months[i-1]||""}" ${i>0?"":"disabled"} aria-label="이전 달">‹</button><select data-monthsel aria-label="월간판">${S.months.slice().reverse().map(m => `<option value="${m}"${m===S.month?" selected":""}>${m.replace("-","년 ")}월판</option>`).join("")}</select><button class="chip" type="button" data-month="${S.months[i+1]||""}" ${i<S.months.length-1?"":"disabled"} aria-label="다음 달">›</button></div>${auto}${hideBar()}`; }
+  return `<div class="chips" role="group" aria-label="월간판">${S.months.map(m => `<button class="chip" type="button" data-month="${m}" aria-pressed="${m===S.month}">${monthKo(m)}판</button>`).join("")}</div>${auto}${hideBar()}`;
 }
 function tagLine(c){
   const t = c.tags||{}; const sv = !!savedOf()[c.id];
@@ -644,7 +650,7 @@ function viewStats(){
   const catRows = count(vids(e), v=>v.category).map(([cat]) => { const cc = tagged.filter(c=>c.v.category===cat); return {cat, n:cc.length, t:count(cc, c=>c.tags.type)}; }).filter(r=>r.n);
   const pw = cs.filter(c=>c.power!=null).sort((a,b)=>b.power-a.power).slice(0,5);
   const kws = e.summary?.keywords || [];
-  const multi = S.months.filter(m=>S.eds[m]);
+  const multi = S.months.filter(m=>S.eds[m] && !S.eds[m].auto);
   const cmp = multi.length>1 ? `<h2 class="sec">월별 유형 변화</h2>
     <div class="card">${multi.map(m => { const t = count(allComments(S.eds[m]).filter(c=>c.tags?.type), c=>c.tags.type); const tot = t.reduce((s,x)=>s+x[1],0)||1;
       return `<div class="stack" style="gap:4px"><span class="note">${monthKo(m)}판</span><div class="stackbar">${t.map(([k,v])=>`<i title="${esc(k)} ${Math.round(v/tot*100)}%" style="width:${v/tot*100}%;background:${TCOL[k]}"></i>`).join("")}</div></div>`; }).join("")}
@@ -745,6 +751,7 @@ function show(v, keepScroll){
   draw(); if(!keepScroll) window.scrollTo(0,0);
 }
 function go(v){ stopPlay(); try{ history.replaceState(null, "", "#"+v); }catch(_){} show(v); }
+document.addEventListener("change", e => { const ms = e.target.closest && e.target.closest("[data-monthsel]"); if(ms){ selectMonth(ms.value); return; } });
 document.addEventListener("change", e => { const s = e.target.closest && e.target.closest("[data-rawm]"); if(!s) return; S.rawM = s.value; S.rawN = 100; draw(); });
 let rawT = null;
 document.addEventListener("input", e => { const i = e.target.closest && e.target.closest("[data-rawq]"); if(!i) return; S.rawQ = i.value; clearTimeout(rawT); rawT = setTimeout(() => { S.rawN = 100; draw(); const n = document.querySelector("[data-rawq]"); if(n){ n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }, 300); });
@@ -775,7 +782,7 @@ document.addEventListener("click", e => {
   const sv = t.closest("[data-save]"); if(sv){ toggleSave(sv.dataset.save, sv.dataset.vid); return; }
   const bt = t.closest("[data-bt]"); if(bt){ const k = bt.dataset.bt; S.open.has(k) ? S.open.delete(k) : S.open.add(k); document.querySelectorAll(`[data-bt="${CSS.escape(k)}"]`).forEach(x => x.classList.toggle("open", S.open.has(k))); return; }
   const gt = t.closest("[data-goto]"); if(gt){ S.vf="all"; S.vsort="rank"; go("videos"); (window.requestAnimationFrame || (f => setTimeout(f, 16)))(() => { const el = document.getElementById("vc-"+gt.dataset.goto); if(el) el.scrollIntoView({block:"start"}); }); return; }
-  const mb = t.closest("[data-month]"); if(mb){ selectMonth(mb.dataset.month); return; }
+  const mb = t.closest("[data-month]"); if(mb){ if(mb.dataset.month) selectMonth(mb.dataset.month); return; }
   const vf = t.closest("[data-vf]"); if(vf){ S.vf = vf.dataset.vf; draw(); return; }
   const vs = t.closest("[data-vsort]"); if(vs){ S.vsort = vs.dataset.vsort; draw(); return; }
   const cf = t.closest("[data-cf]"); if(cf){ S.cf = cf.dataset.cf; draw(); return; }
