@@ -118,6 +118,7 @@ p{margin:0}
 .hide-bar .chip.off[aria-pressed="true"]{background:var(--ink);color:var(--bg);text-decoration:line-through}
 /* 세로 영상(쇼츠): 9:16으로, 화면 높이를 넘지 않게 가운데 */
 .media{background:#000;display:flex;justify-content:center}
+.media > .player{width:100%}
 .media.v .th,.media.v .player{aspect-ratio:9/16;width:auto;height:min(78vh,760px);max-width:100%}
 .media.v .play{width:auto}
 /* 바로 재생 */
@@ -235,6 +236,21 @@ nav.tabs button[aria-current="page"]{color:var(--tint);font-weight:600}
 .rw{transition:opacity .3s ease,max-height .35s ease;max-height:1200px;overflow:hidden}
 .rw.gone{opacity:0;max-height:0;padding-top:0;padding-bottom:0;border-bottom-width:0}
 @media (prefers-reduced-motion:reduce){.rw{transition:none}}
+.cmt.open .media{border-radius:0}
+.cmt.open .cb{display:flex;flex-direction:column;gap:8px}
+.cpt{display:flex;flex-direction:column;gap:2px}
+.cpt b{font-size:14px;line-height:1.35}
+.b5{display:flex;flex-direction:column;gap:0;margin-top:4px;border-top:.5px solid var(--sep)}
+.b5 .lbl{font-size:12px;font-weight:700;color:var(--muted);padding:8px 0 2px}
+.b5i{padding:8px 0;border-bottom:.5px solid var(--sep)}
+.b5i:last-child{border-bottom:0}
+.b5i p{margin:0 0 2px;font-size:14.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.b5i.me p{font-weight:700}
+.rcard .media.pl{max-height:none;aspect-ratio:auto}
+.rcard .media.pl .player{aspect-ratio:16/9;height:auto}
+.rcard .media.pl.v .player,.cmt.open .media.v .player{aspect-ratio:9/16;width:auto;height:min(62vh,560px);margin:0 auto}
+.rbig{position:sticky;bottom:calc(var(--nav-h, 62px) + env(safe-area-inset-bottom,0px));z-index:5;background:var(--bg);padding:8px 0 10px;margin-left:-2px;margin-right:-2px}
+.rbig button{box-shadow:0 4px 14px rgba(0,0,0,.12)}
 .pmodal{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.86);display:flex;align-items:center;justify-content:center;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
 .pm-box{width:min(100%,760px);display:flex;flex-direction:column;gap:12px}
 .pm-box .player{border-radius:14px;overflow:hidden}
@@ -346,7 +362,7 @@ const BASE = "../data/baedat/";
 const HIDE_KEY = "vfm:baedat:hide";
 let HIDE = new Set(); try{ HIDE = new Set(JSON.parse(localStorage.getItem(HIDE_KEY) || "[]")); }catch(_){}
 function saveHide(){ try{ localStorage.setItem(HIDE_KEY, JSON.stringify([...HIDE])); }catch(_){} }
-const S = {months:[], eds:{}, month:null, view:"month", vmode:"legend", led:"best", LE:{}, RW:{}, rawM:null, rawSort:"likes", rawN:100, rawQ:"", rawF:"todo", rawView:"card", rawSkip:new Set(), rawHist:[], lt:"all", rev:new Set(), lstart:0, lnonce:0, pick:null, LG:null, vf:"all", vsort:"rank", cf:"all", sort:"likes", db:null, saved:{}, canWrite:false, mode:"loading", updatedAt:null, open:new Set()};
+const S = {months:[], eds:{}, month:null, cplay:null, view:"month", vmode:"legend", led:"best", LE:{}, RW:{}, rawM:null, rawSort:"likes", rawN:100, rawQ:"", rawF:"todo", rawView:"card", rawSkip:new Set(), rawHist:[], lt:"all", rev:new Set(), lstart:0, lnonce:0, pick:null, LG:null, vf:"all", vsort:"rank", cf:"all", sort:"likes", db:null, saved:{}, canWrite:false, mode:"loading", updatedAt:null, open:new Set()};
 
 // ───────── 형식 도우미 ─────────
 const nf = new Intl.NumberFormat("ko-KR");
@@ -376,8 +392,11 @@ const playerHtml = id => `<div class="player" data-player="${esc(id)}"><iframe $
 let playing = null;
 function stopPlay(){ if(!playing) return false; const el = document.querySelector(`[data-player="${CSS.escape(playing)}"]`); playing = null; if(el) draw(); return true; }
 function play(id, btn){
-  const v = (ed()?.videos||[]).find(x => x.id===id);
-  openPlayer(id, 0, v?.ar);
+  if(playing && playing!==id) stopPlay();
+  S.cplay = null; playing = id;
+  const target = btn || document.querySelector(`[data-play="${CSS.escape(id)}"]`); if(!target) return;
+  const box = document.createElement("div"); box.innerHTML = playerHtml(id);
+  target.replaceWith(box.firstElementChild);
 }
 // ───────── 영상 창: 누르면 화면 가운데 큰 창으로 (세로 영상은 세로로), 닫기·유튜브에서 열기 ─────────
 let modalOpen = false;
@@ -413,9 +432,14 @@ function tagLine(c){
 }
 function bText(c){ const k = c.id; return `<button type="button" class="bt${S.open.has(k)?" open":""}" data-bt="${esc(k)}">${esc(c.text)}</button>`; }
 // 단독 배댓 카드 (어느 영상의 배댓인지 썸네일과 함께)
+function best5(v, exceptId){ return `<div class="b5"><div class="lbl">이 영상 배댓 ${Math.min(5, v.best.length)}</div>${v.best.slice(0,5).map(b => `<div class="b5i${b.id===exceptId?" me":""}"><p>${esc(b.text)}</p><span class="note">${b.rank}위 · 좋아요 ${kNum(b.likes)}${b.replies?` · 답글 ${kNum(b.replies)}`:""}</span></div>`).join("")}</div>`; }
 function cmtCard(c){
+  if(S.cplay===c.id) return `<article class="cmt open" id="cp-${esc(c.id)}">
+    <div class="media${isV(c.v)?" v":""}">${playerHtml(c.v.id)}</div>
+    <div class="cb"><div class="cpt"><b>${c.v.rank}위 · ${esc(c.v.title)}</b><span class="note">${esc(c.v.channel)} · 배댓 ${c.rank}위</span></div>${bText(c)}${tagLine(c)}${best5(c.v, c.id)}
+    <button type="button" class="chip" data-cclose>영상 닫기</button></div></article>`;
   return `<article class="cmt">
-    <button type="button" class="src" data-goto="${esc(c.v.id)}">${thumb(c.v, c.v.dur?`<span class="dur">${dur(c.v.dur)}</span>`:"")}<span><span class="st">${c.v.rank}위 · ${esc(c.v.title)}</span><span class="sm">${esc(c.v.channel)} · 배댓 ${c.rank}위</span></span></button>
+    <button type="button" class="src" data-goto="${esc(c.v.id)}" data-cid="${esc(c.id)}">${thumb(c.v, c.v.dur?`<span class="dur">${dur(c.v.dur)}</span>`:"")}<span><span class="st">${c.v.rank}위 · ${esc(c.v.title)}</span><span class="sm">${esc(c.v.channel)} · 배댓 ${c.rank}위</span></span></button>
     <div class="cb">${bText(c)}${tagLine(c)}</div>
   </article>`;
 }
@@ -591,14 +615,18 @@ const tasteScore = (M, c, V) => { let s = 0; tasteFeats(c, V).forEach(k => { s +
 const tsSec = t => { const m = String(t).match(/(?<!\d)(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?!\d)/); return m ? (+(m[1]||0))*3600 + (+m[2])*60 + (+m[3]) : 0; };
 function rawCard(c, V, left, total){
   const v = V[c[0]] || ["", "", "", 0, ""]; const st = tsSec(c[2]); const vv = {id:c[0], title:v[0]};
-  const media = `<button type="button" class="play" data-pmopen="${esc(c[0])}" data-start="${st}" data-ar="${v[5]||""}" aria-label="영상 보기">${thumb(vv, `${st?`<span class="sh">${ts(st)}부터</span>`:""}<span class="pbtn" aria-hidden="true"></span>`)}</button>`;
+  const vert = v[5] && v[5] < 1;
+  const media = playing===c[0] ? lplayerHtml(c[0], S.lstart, S.lnonce)
+    : `<button type="button" class="play" data-lplay="${esc(c[0])}" data-start="${st}" aria-label="영상 보기">${thumb(vv, `${st?`<span class="sh">${ts(st)}부터</span>`:""}<span class="pbtn" aria-hidden="true"></span>`)}</button>`;
+  const R = S.RW[S.rawM]; const others = R && R.comments ? R.comments.filter(x => x[0]===c[0] && x[1]!==c[1]).slice(0,5) : [];
   return `<div class="rdeck"><div class="rnext" aria-hidden="true"></div><article class="rcard" data-rcard="${esc(c[1])}">
-    <div class="media">${media}</div>
+    <div class="media${playing===c[0]?" pl":""}${playing===c[0]&&vert?" v":""}">${media}</div>
     <div class="rcb">
       <div class="rwv">${esc(v[1])} · ${esc(v[4])} · 조회 ${kNum(v[3])}</div>
       <div class="rct">${esc(v[0])}</div>
       <p class="rtx">${esc(c[2])}</p>
       <div class="lmeta"><span>좋아요 ${kNum(c[3])}</span><span>답글 ${kNum(c[4])}</span><span>${esc(c[5])}</span><a href="${at(c[0], c[1])}" target="_blank" rel="noopener">댓글 원문</a><a href="${watch(c[0])}${st?`&t=${st}s`:""}" target="_blank" rel="noopener">유튜브에서 보기</a></div>
+      ${others.length ? `<div class="b5"><div class="lbl">이 영상 다른 배댓 ${others.length}</div>${others.map(o => `<div class="b5i"><p>${esc(o[2])}</p><span class="note">좋아요 ${kNum(o[3])}${LGU.rate[o[1]]?` · ${["","😐","🙂","🤣"][LGU.rate[o[1]]]}`:""}</span></div>`).join("")}</div>` : ""}
     </div>
     <span class="stamp s3" aria-hidden="true">🤣 최고</span><span class="stamp s1" aria-hidden="true">😐 별로</span>
   </article></div>
@@ -903,7 +931,8 @@ document.addEventListener("click", e => {
   const pl = t.closest("[data-play]"); if(pl){ play(pl.dataset.play, pl); return; }
   const sv = t.closest("[data-save]"); if(sv){ toggleSave(sv.dataset.save, sv.dataset.vid); return; }
   const bt = t.closest("[data-bt]"); if(bt){ const k = bt.dataset.bt; S.open.has(k) ? S.open.delete(k) : S.open.add(k); document.querySelectorAll(`[data-bt="${CSS.escape(k)}"]`).forEach(x => x.classList.toggle("open", S.open.has(k))); return; }
-  const gt = t.closest("[data-goto]"); if(gt){ const vv = (ed()?.videos||[]).find(x => x.id===gt.dataset.goto); openPlayer(gt.dataset.goto, 0, vv?.ar); return; }
+  const gt = t.closest("[data-goto]"); if(gt){ if(gt.dataset.cid){ S.cplay = gt.dataset.cid; playing = null; const keep = window.scrollY; draw(); window.scrollTo(0, keep); } else { const vv = (ed()?.videos||[]).find(x => x.id===gt.dataset.goto); openPlayer(gt.dataset.goto, 0, vv?.ar); } return; }
+  if(t.closest("[data-cclose]")){ S.cplay = null; const keep = window.scrollY; draw(); window.scrollTo(0, keep); return; }
   if(false){ (window.requestAnimationFrame || (f => setTimeout(f, 16)))(() => { const el = document.getElementById("vc-"+gt.dataset.goto); if(el) el.scrollIntoView({block:"start"}); }); return; }
   const mb = t.closest("[data-month]"); if(mb){ if(mb.dataset.month) selectMonth(mb.dataset.month); return; }
   const vf = t.closest("[data-vf]"); if(vf){ S.vf = vf.dataset.vf; draw(); return; }
