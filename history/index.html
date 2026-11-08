@@ -131,6 +131,9 @@ const todayKey = () => { const d = new Date(); return String(d.getMonth() + 1).p
 const seed = () => Math.floor(Date.now() / 864e5);
 function pick(list, n, salt) { if (!list.length) return []; const s = seed() + (salt || 0); const out = []; for (let i = 0; i < Math.min(n, list.length); i++) out.push(list[(s * 7 + i * 13) % list.length]); return [...new Set(out)]; }
 /* 색인 한 줄(배열) → 글 정보. 칸 순서는 _index.json 의 cols */
+// 추천 점수: 세계적 유명도(위키 연결 수)와 한국 독자의 관심(한국어 위키 조회수)을 같은 무게로 (둘 다 log) + 한국 관련 25
+const REC = new Map();
+const rec = x => { let r = REC.get(x.i); if (r === undefined) { r = 100 * Math.log10(1 + (x.n || 0)) + 100 * Math.log10(1 + (x.v || 0)) + ((x.c || []).some(c => c === "KR" || c === "KP") ? 25 : 0); REC.set(x.i, r); } return r; };
 const E = a => ({ i: a[0], t: a[1], y: a[2], y2: a[3], e: a[4], r: a[5], c: a[6] || [], h: a[7], k: a[8], g: a[9] || "", n: a[10] || 0, v: a[11] || 0, m: a[12], md: a[13], o: a[14] || "", ya: a[15] });
 const pagePath = id => { const pid = id.slice(1); return `pages/${pid.slice(0, 2).padStart(2, "0")}/${id}.json`; };
 
@@ -211,7 +214,7 @@ async function sameTime(e, n) {
   const decs = S.idx.decades || []; const i = decs.indexOf(b); const bs = [b, decs[i - 1], decs[i + 1]].filter(Boolean);
   let l = []; for (const x of bs) l = l.concat(await rows("dec/" + x + ".json"));
   const w = Math.abs(y) > 1500 ? 6 : Math.abs(y) > 500 ? 30 : 80;
-  l = l.filter(x => x.i !== e.i && (x.ya ?? x.y) != null && Math.abs((x.ya ?? x.y) - y) <= w && (x.c[0] !== (e.c || [])[0]) && !S.hide[x.i]).sort((a, b) => b.n - a.n);
+  l = l.filter(x => x.i !== e.i && (x.ya ?? x.y) != null && Math.abs((x.ya ?? x.y) - y) <= w && (x.c[0] !== (e.c || [])[0]) && !S.hide[x.i]).sort((a, b) => rec(b) - rec(a));
   const seen = new Set(), res = [];
   for (const x of l) { const k = x.r + (x.c[0] || ""); if (seen.has(k) && res.length < n - 1) continue; seen.add(k); res.push(x); if (res.length >= n) break; }
   return res;
@@ -225,7 +228,7 @@ async function edInto(boxId, test, label) {
 }
 
 /* ───── 화면: 탐색 ───── */
-const F = { region: "", country: "", era: -2, theme: -2, kind: "", tag: "", sort: "fame", q: "", shown: 0, timeline: false, all: false, mode: "find", se: 4, sfrom: null, lc: "KR" };
+const F = { region: "", country: "", era: -2, theme: -2, kind: "", tag: "", sort: "rec", q: "", shown: 0, timeline: false, all: false, mode: "find", se: 4, sfrom: null, lc: "KR" };
 let exploreList = [], exploreKey = "";
 async function sourceList() {
   const key = [F.region, F.country, F.era, F.theme, F.tag].join("|"); if (key === exploreKey) return exploreList;
@@ -256,7 +259,7 @@ async function renderExplore() {
     <p class="lbl">언제</p><div class="chips scroll">${(S.idx.eras || []).map((n, i) => `<button data-f="era" data-val="${i}" class="${F.era === i ? "on" : ""}">${esc(n)} <small>${((c.era || {})[i] || 0).toLocaleString()}</small></button>`).join("")}<button data-f="era" data-val="-1" class="${F.era === -1 ? "on" : ""}">연도 미상</button></div>
     <p class="lbl">무슨 이야기</p><div class="chips scroll">${(S.idx.themes || []).map((t, i) => `<button data-f="theme" data-val="${i}" class="${F.theme === i ? "on" : ""}">${esc(t)} <small>${((c.theme || {})[i] || 0).toLocaleString()}</small></button>`).join("")}</div>
     <div class="chips scroll">${Object.entries(KIND).map(([k, n]) => `<button data-f="kind" data-val="${k}" class="${F.kind === k ? "on" : ""}">${n}</button>`).join("")}<button data-f="tag" data-val="B" class="${F.tag === "B" ? "on" : ""}">야사만</button><button data-f="tag" data-val="P" class="${F.tag === "P" ? "on" : ""}">대명사만</button></div>
-    <div class="chips scroll"><button data-f="sort" data-val="fame" class="${F.sort === "fame" ? "on" : ""}">유명순</button><button data-f="sort" data-val="year" class="${F.sort === "year" ? "on" : ""}">연도순</button><button data-f="sort" data-val="views" class="${F.sort === "views" ? "on" : ""}">많이 읽힌 순</button><button data-f="timeline" data-val="1" class="${F.timeline ? "on" : ""}">연표로</button><button data-f="reset" data-val="1">지우기</button></div>
+    <div class="chips scroll"><button data-f="sort" data-val="rec" class="${F.sort === "rec" ? "on" : ""}">추천순</button><button data-f="sort" data-val="fame" class="${F.sort === "fame" ? "on" : ""}">세계 유명순</button><button data-f="sort" data-val="year" class="${F.sort === "year" ? "on" : ""}">연도순</button><button data-f="sort" data-val="views" class="${F.sort === "views" ? "on" : ""}">많이 읽힌 순</button><button data-f="timeline" data-val="1" class="${F.timeline ? "on" : ""}">연표로</button><button data-f="reset" data-val="1">지우기</button></div>
     <div id="xres"><p class="empty">불러오는 중…</p></div>`;
   const q = document.getElementById("xq"); let tm = null;
   q.addEventListener("input", ev => { clearTimeout(tm); tm = setTimeout(() => { F.q = ev.target.value.trim(); F.all = false; runSearch(); }, 250); });
@@ -284,7 +287,8 @@ function filtered(l) {
   l = notHidden(l);
   if (F.sort === "year" || F.timeline) l = l.slice().sort((a, b) => ((a.ya ?? a.y) ?? 99999) - ((b.ya ?? b.y) ?? 99999) || b.n - a.n);
   else if (F.sort === "views") l = l.slice().sort((a, b) => b.v - a.v || b.n - a.n);
-  else l = l.slice().sort((a, b) => b.n - a.n);
+  else if (F.sort === "fame") l = l.slice().sort((a, b) => b.n - a.n);
+  else l = l.slice().sort((a, b) => rec(b) - rec(a));
   if (!F.kind && !F.timeline) {                                       // 종류를 안 골랐으면: '역사'·'기독교' 같은 개념과 지금 있는 나라(미국 등)는 뒤로
     const low = e => e.k === "c" || (e.k !== "p" && e.y == null) || (e.k === "s" && (e.y ?? 0) >= 1700 && e.y2 == null);
     l = l.filter(e => !low(e)).concat(l.filter(low));
@@ -330,7 +334,7 @@ async function renderSync() {
   if (!document.getElementById("sres")) return;
   const seen = new Set(); l = l.filter(x => { const y = yOf(x); if (y == null || y < a || y >= b || seen.has(x.i) || S.hide[x.i] || x.k === "c") return false; seen.add(x.i); return true; });
   const used = new Set();
-  const lanes = LANES.map(([n, f]) => { const m = l.filter(x => !used.has(x.i) && f(x)).sort((p, q) => q.n - p.n); m.forEach(x => used.add(x.i)); return [n, m]; });
+  const lanes = LANES.map(([n, f]) => { const m = l.filter(x => !used.has(x.i) && f(x)).sort((p, q) => rec(q) - rec(p)); m.forEach(x => used.add(x.i)); return [n, m]; });
   const row = x => `<button class="sy" data-open="${x.i}"><span class="sy-y">${esc(span(x))}</span><span class="sy-t">${esc(x.t)}${S.read[x.i] ? " ✓" : ""}<small>${esc([KIND[x.k], x.c[0] ? cko(x.c[0]) : ""].filter(Boolean).join(" · "))}</small></span></button>`;
   document.getElementById("sres").innerHTML = lanes.map(([n, m]) => {
     const ev = m.filter(x => x.k !== "p"), pp = m.filter(x => x.k === "p"), show = ev.slice(0, 3).concat(pp.slice(0, 2)).sort((p, q) => (yOf(p) ?? 0) - (yOf(q) ?? 0));
@@ -367,7 +371,7 @@ async function renderLife() {
   const byEra = {}; l.forEach(x => { if (x.e >= 0 && yOf(x) != null) (byEra[x.e] = byEra[x.e] || []).push(x); });
   const eras = Object.keys(byEra).map(Number).sort((a, b) => a - b);
   const stem = eras.map(e => {
-    const m = byEra[e].slice().sort((a, b) => b.n - a.n), pick3 = m.filter(x => x.k !== "p").slice(0, 3), ppl = m.filter(x => x.k === "p").slice(0, 2);
+    const m = byEra[e].slice().sort((a, b) => rec(b) - rec(a)), pick3 = m.filter(x => x.k !== "p").slice(0, 3), ppl = m.filter(x => x.k === "p").slice(0, 2);
     const ys = m.map(yOf).filter(v => v != null), rng = ys.length ? `${yr(Math.min(...ys))}~${yr(Math.max(...ys))}` : "";
     return `<div class="stem"><p class="stem-h"><b>${esc(eraName(e))}</b><small>${esc(rng)} · 수집한 글 ${m.length.toLocaleString()}편</small></p>
       ${pick3.map(x => `<button class="sy" data-open="${x.i}"><span class="sy-y">${esc(span(x))}</span><span class="sy-t">${esc(x.t)}<small>${esc(KIND[x.k] || "")}${x.o ? " · " + esc((window.vfmClean || (v => v))(x.o).slice(0, 60)) : ""}</small></span></button>`).join("")}
