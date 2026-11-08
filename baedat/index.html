@@ -126,6 +126,8 @@ p{margin:0}
 .play .pbtn::before{content:"";border-left:16px solid #fff;border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:4px}
 .player{position:relative;aspect-ratio:16/9;background:#000}
 .player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.perr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;text-align:center;color:#fff;font-size:14px}
+.perr .btn{text-decoration:none}
 .login{display:flex;align-items:center;gap:12px}
 .login p{flex:1;font-size:14px}
 /* 영상 카드 */
@@ -233,6 +235,10 @@ nav.tabs button[aria-current="page"]{color:var(--tint);font-weight:600}
 .rw{transition:opacity .3s ease,max-height .35s ease;max-height:1200px;overflow:hidden}
 .rw.gone{opacity:0;max-height:0;padding-top:0;padding-bottom:0;border-bottom-width:0}
 @media (prefers-reduced-motion:reduce){.rw{transition:none}}
+.rtool{display:flex;gap:6px;align-items:center;margin-bottom:10px}
+.rtool select{flex:1;min-width:0;font:inherit;font-size:15px;padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:inherit}
+.rtool .chip{flex:none}
+.rtoolp{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
 .rdeck{position:relative}
 .rnext{position:absolute;inset:10px 10px -8px;border-radius:20px;background:var(--surface);border:1px solid var(--line);opacity:.6}
 .rcard{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.08);touch-action:pan-y;-webkit-user-select:none;-webkit-touch-callout:none;transition:transform .2s ease,opacity .2s ease;user-select:none}
@@ -350,7 +356,9 @@ const thumbSrc = (id, big) => `https://i.ytimg.com/vi/${encodeURIComponent(id)}/
 function hydrate(){}
 const isV = v => !!(v.ar && v.ar < 1);
 const thumb = (v, extra="", big=false) => `<span class="th"><img src="${isV(v) ? `https://i.ytimg.com/vi/${encodeURIComponent(v.id)}/hqdefault.jpg` : thumbSrc(v.id, big)}" alt="" loading="lazy" decoding="async" onload="if(this.naturalWidth<=120&&!this.dataset.f){this.dataset.f=1;this.src=this.src.replace('maxresdefault','hqdefault');return}this.classList.add('on')" onerror="if(!this.dataset.f){this.dataset.f=1;this.src=this.src.replace('maxresdefault','hqdefault')}else this.remove()"><span class="ph" aria-hidden="true"></span>${extra}</span>`;
-const playerHtml = id => `<div class="player" data-player="${esc(id)}"><iframe src="https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0" title="유튜브 플레이어" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`;
+const YTQ = () => `enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
+const YTL = `onload="try{this.contentWindow.postMessage(JSON.stringify({event:'listening',id:1,channel:'widget'}),'*')}catch(_){}"`;
+const playerHtml = id => `<div class="player" data-player="${esc(id)}"><iframe ${YTL} src="https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0&${YTQ()}" title="유튜브 플레이어" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`;
 // ───────── 바로 재생: 썸네일을 누르면 그 자리에서 유튜브 플레이어로 ─────────
 let playing = null;
 function stopPlay(){ if(!playing) return false; const el = document.querySelector(`[data-player="${CSS.escape(playing)}"]`); playing = null; if(el) draw(); return true; }
@@ -423,7 +431,16 @@ function lList(){
   return S.lt==="all" ? lmoms() : lmoms().filter(m => m.types.includes(S.lt));
 }
 const ts = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
-const lplayerHtml = (id, start, n) => `<div class="player" data-player="${esc(id)}"><iframe src="https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0&start=${start|0}&n=${n|0}" title="유튜브 플레이어" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`;
+// 퍼가기를 막은 영상(오류 101·150 등)은 검은 화면 대신 '유튜브에서 열기' 안내로 바꿈
+window.addEventListener("message", e => {
+  if(!/youtube(-nocookie)?\.com$/.test(new URL(e.origin).hostname)) return;
+  let d; try{ d = typeof e.data === "string" ? JSON.parse(e.data) : e.data; }catch(_){ return; }
+  if(!d || d.event !== "onError") return;
+  document.querySelectorAll(".player iframe").forEach(f => { if(f.contentWindow !== e.source) return;
+    const p = f.closest(".player"), id = p.dataset.player;
+    p.innerHTML = `<div class="perr"><b>이 영상은 다른 사이트에서 재생을 막아 뒀어요</b><a class="btn" href="${watch(id)}" target="_blank" rel="noopener">유튜브에서 열기</a></div>`; });
+});
+const lplayerHtml = (id, start, n) => `<div class="player" data-player="${esc(id)}"><iframe ${YTL} src="https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0&start=${start|0}&n=${n|0}&${YTQ()}" title="유튜브 플레이어" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`;
 function vbadge(m){
   if(m.source==="broadcast") return `<span class="vbadge b">방송 화면 속 채팅</span>`;
   return `<span class="vbadge">원댓글 확인 ${esc((S.LG?.checkedAt||"").slice(5).replace("-","."))}</span>`;
@@ -560,7 +577,7 @@ function rawCard(c, V, left, total){
       <div class="rwv">${esc(v[1])} · ${esc(v[4])} · 조회 ${kNum(v[3])}</div>
       <div class="rct">${esc(v[0])}</div>
       <p class="rtx">${esc(c[2])}</p>
-      <div class="lmeta"><span>좋아요 ${kNum(c[3])}</span><span>답글 ${kNum(c[4])}</span><span>${esc(c[5])}</span><a href="${at(c[0], c[1])}" target="_blank" rel="noopener">원문</a></div>
+      <div class="lmeta"><span>좋아요 ${kNum(c[3])}</span><span>답글 ${kNum(c[4])}</span><span>${esc(c[5])}</span><a href="${at(c[0], c[1])}" target="_blank" rel="noopener">댓글 원문</a><a href="${watch(c[0])}${st?`&t=${st}s`:""}" target="_blank" rel="noopener">유튜브에서 보기</a></div>
     </div>
     <span class="stamp s3" aria-hidden="true">🤣 최고</span><span class="stamp s1" aria-hidden="true">😐 별로</span>
   </article></div>
@@ -571,7 +588,9 @@ function rawCard(c, V, left, total){
 function viewRaw(box){
   const raws = S.LG.raws || []; if(!S.rawM) S.rawM = raws[0]?.month;
   const m = S.rawM; const R = S.RW[m]; loadRaw(m);
-  const head = `${modeSeg()}${edChips()}
+  const head = S.rawView==="card" ? `${modeSeg()}${edChips()}
+    <div class="rtool"><select data-rawm aria-label="달">${raws.map(r => `<option value="${esc(r.month)}"${r.month===m?" selected":""}>${esc(r.month.replace("-","년 "))}월 · ${kNum(r.comments)}개</option>`).join("")}</select><button type="button" class="chip" data-rawopt aria-expanded="${!!S.rawOpt}">${S.rawOpt?"닫기":"정렬·찾기"}</button><button type="button" class="chip" data-rawview="list">목록</button></div>
+    ${S.rawOpt ? `<div class="card rtoolp"><div class="seg2 s3" role="group" aria-label="정렬"><button type="button" data-rawsort="likes" aria-pressed="${S.rawSort==="likes"}">좋아요순</button><button type="button" data-rawsort="video" aria-pressed="${S.rawSort==="video"}">영상별</button><button type="button" data-rawsort="taste" aria-pressed="${S.rawSort==="taste"}">내 취향순</button></div><input class="rawq" type="search" data-rawq placeholder="댓글·영상 제목에서 찾기" value="${esc(S.rawQ)}"><p class="note">고르기 전 그대로의 댓글이에요. 응원·구독·링크 글과 좋아요 30 미만, 음악 영상은 뺐어요.</p></div>` : ""}` : `${modeSeg()}${edChips()}
     <p class="lead">원본 데이터</p>
     <p class="note">사람이 고르기 전, 수집기가 모은 그대로의 댓글이에요. 응원·구독·링크 같은 글과 좋아요 30 미만은 기계로 걸렀고, 노래 가사가 섞이기 쉬운 음악 영상은 뺐어요. 원문은 바꾸지 않았어요. 읽으면서 🤣 최고 · 🙂 괜찮 · 😐 별로로 호감도를 체크해 보세요.</p>
     <div class="rawbar"><label class="note" for="rawm">달</label><select id="rawm" data-rawm>${raws.map(r => `<option value="${esc(r.month)}"${r.month===m?" selected":""}>${esc(r.month.replace("-","년 "))}월 · 영상 ${r.videos} · 댓글 ${kNum(r.comments)}</option>`).join("")}</select></div>
@@ -844,6 +863,7 @@ document.addEventListener("click", e => {
   const rtc = t.closest("[data-rate][data-card]"); if(rtc){ rawCardRate(rtc.dataset.rate, +rtc.dataset.n); return; }
   if(t.closest("[data-rundo]")){ const h0 = S.rawHist.pop(); if(h0){ if(h0.skip) S.rawSkip.delete(h0.id); else { delete LGU.rate[h0.id]; saveLGU(); } } playing = null; draw(); return; }
   const rsk = t.closest("[data-rskip]"); if(rsk){ S.rawSkip.add(rsk.dataset.rskip); S.rawHist.push({id:rsk.dataset.rskip, skip:true}); playing = null; draw(); return; }
+  if(t.closest("[data-rawopt]")){ S.rawOpt = !S.rawOpt; draw(); return; }
   if(t.closest("[data-rskipclear]")){ S.rawSkip.clear(); draw(); return; }
   const rvw = t.closest("[data-rawview]"); if(rvw){ S.rawView = rvw.dataset.rawview; if(S.rawView==="list" && t.closest(".card")) S.rawF = "3"; S.rawN = 100; playing = null; draw(); return; }
   const rt = t.closest("[data-rate]"); if(rt){ const id = rt.dataset.rate, n = +rt.dataset.n; if(LGU.rate[id]===n) delete LGU.rate[id]; else LGU.rate[id] = n; saveLGU(); rt.parentNode.querySelectorAll("[data-rate]").forEach(b => b.setAttribute("aria-pressed", String(LGU.rate[id]===+b.dataset.n)));
