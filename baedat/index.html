@@ -226,6 +226,12 @@ nav.tabs button[aria-current="page"]{color:var(--tint);font-weight:600}
 .pickbar{display:flex;gap:8px;align-items:center}
 .pickbar .btn{flex:none}
 .edc{margin-bottom:4px}
+.rate{display:flex;gap:6px;margin-top:2px}
+.rate button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:10px;padding:7px 4px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.rate button[aria-pressed="true"]{background:var(--tint-soft);border-color:var(--tint);color:var(--tint-t)}
+.rate button span{font-size:16px}
+.rprog{height:6px;border-radius:99px;background:var(--fill);overflow:hidden}
+.rprog span{display:block;height:100%;background:var(--tint)}
 .rawbar{display:flex;align-items:center;gap:8px}
 .rawbar select,.rawq{flex:1;font:inherit;font-size:15px;padding:9px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:inherit;min-width:0}
 .rawq{width:100%;box-sizing:border-box}
@@ -289,7 +295,7 @@ const BASE = "../data/baedat/";
 const HIDE_KEY = "vfm:baedat:hide";
 let HIDE = new Set(); try{ HIDE = new Set(JSON.parse(localStorage.getItem(HIDE_KEY) || "[]")); }catch(_){}
 function saveHide(){ try{ localStorage.setItem(HIDE_KEY, JSON.stringify([...HIDE])); }catch(_){} }
-const S = {months:[], eds:{}, month:null, view:"month", vmode:"legend", led:"best", LE:{}, RW:{}, rawM:null, rawSort:"likes", rawN:100, rawQ:"", lt:"all", rev:new Set(), lstart:0, lnonce:0, pick:null, LG:null, vf:"all", vsort:"rank", cf:"all", sort:"likes", db:null, saved:{}, canWrite:false, mode:"loading", updatedAt:null, open:new Set()};
+const S = {months:[], eds:{}, month:null, view:"month", vmode:"legend", led:"best", LE:{}, RW:{}, rawM:null, rawSort:"likes", rawN:100, rawQ:"", rawF:"all", lt:"all", rev:new Set(), lstart:0, lnonce:0, pick:null, LG:null, vf:"all", vsort:"rank", cf:"all", sort:"likes", db:null, saved:{}, canWrite:false, mode:"loading", updatedAt:null, open:new Set()};
 
 // ───────── 형식 도우미 ─────────
 const nf = new Intl.NumberFormat("ko-KR");
@@ -374,7 +380,7 @@ function vCard(v){
 
 // ───────── 명댓글 감상 (영상 탭 기본 화면) ─────────
 const LG_KEY = "vfm:baedat:legend";
-let LGU = {fav:{}, mine:{}}; try{ LGU = Object.assign(LGU, JSON.parse(localStorage.getItem(LG_KEY) || "{}")); }catch(_){}
+let LGU = {fav:{}, mine:{}, rate:{}}; try{ LGU = Object.assign(LGU, JSON.parse(localStorage.getItem(LG_KEY) || "{}")); }catch(_){}
 function saveLGU(){ try{ localStorage.setItem(LG_KEY, JSON.stringify(LGU)); }catch(_){} }
 const lmoms = () => (S.LG?.moments || []);
 function lList(){
@@ -496,7 +502,7 @@ function viewRaw(box){
   const m = S.rawM; const R = S.RW[m]; loadRaw(m);
   const head = `${modeSeg()}${edChips()}
     <p class="lead">원본 데이터</p>
-    <p class="note">사람이 고르기 전, 수집기가 모은 그대로의 댓글이에요. 응원·구독·링크 같은 글과 좋아요 30 미만은 기계로 걸렀고, 노래 가사가 섞이기 쉬운 음악 영상은 뺐어요. 원문은 바꾸지 않았어요.</p>
+    <p class="note">사람이 고르기 전, 수집기가 모은 그대로의 댓글이에요. 응원·구독·링크 같은 글과 좋아요 30 미만은 기계로 걸렀고, 노래 가사가 섞이기 쉬운 음악 영상은 뺐어요. 원문은 바꾸지 않았어요. 읽으면서 🤣 최고 · 🙂 괜찮 · 😐 별로로 호감도를 체크해 보세요.</p>
     <div class="rawbar"><label class="note" for="rawm">달</label><select id="rawm" data-rawm>${raws.map(r => `<option value="${esc(r.month)}"${r.month===m?" selected":""}>${esc(r.month.replace("-","년 "))}월 · 영상 ${r.videos} · 댓글 ${kNum(r.comments)}</option>`).join("")}</select></div>
     <div class="seg2" role="group" aria-label="정렬"><button type="button" data-rawsort="likes" aria-pressed="${S.rawSort==="likes"}">좋아요순</button><button type="button" data-rawsort="video" aria-pressed="${S.rawSort==="video"}">영상별</button></div>
     <input class="rawq" type="search" data-rawq placeholder="댓글·영상 제목에서 찾기" value="${esc(S.rawQ)}">`;
@@ -505,7 +511,14 @@ function viewRaw(box){
   const V = R.videos, q = S.rawQ.trim().toLowerCase();
   let cs = R.comments;
   if(q) cs = cs.filter(c => c[2].toLowerCase().includes(q) || (V[c[0]]?.[0]||"").toLowerCase().includes(q));
-  const row = (c, showV) => `<li class="rw"><p>${esc(c[2])}</p><div class="lmeta"><span>좋아요 ${kNum(c[3])}</span><span>답글 ${kNum(c[4])}</span><span>${esc(c[5])}</span><a href="${at(c[0], c[1])}" target="_blank" rel="noopener">원문</a></div>${showV?`<div class="rwv">${esc(V[c[0]][1])} · ${esc(V[c[0]][0])}</div>`:""}</li>`;
+  const all0 = R.comments; const rc = n => all0.filter(c => LGU.rate[c[1]]===n).length; const done = all0.filter(c => LGU.rate[c[1]]).length;
+  const FS = [["all","전체"],["todo",`안 본 것 ${kNum(all0.length-done)}`],["3",`🤣 최고 ${rc(3)}`],["2",`🙂 괜찮 ${rc(2)}`],["1",`😐 별로 ${rc(1)}`]];
+  if(S.rawF==="todo") cs = cs.filter(c => !LGU.rate[c[1]]); else if(S.rawF!=="all") cs = cs.filter(c => LGU.rate[c[1]]===+S.rawF);
+  const fbar = `<div class="chips" role="group" aria-label="호감도 보기">${FS.map(([k,n]) => `<button class="chip" type="button" data-rawf="${k}" aria-pressed="${S.rawF===k}">${esc(n)}</button>`).join("")}</div>
+    <div class="rprog"><span style="width:${all0.length?Math.round(done/all0.length*1000)/10:0}%"></span></div><p class="note">이 달 ${kNum(all0.length)}개 중 ${kNum(done)}개 체크했어요. 체크는 이 기기에 저장되고, 로그인돼 있으면 다른 기기와도 맞춰져요.</p>`;
+  const RT = [[3,"🤣","최고"],[2,"🙂","괜찮"],[1,"😐","별로"]];
+  const rateBtns = id => `<div class="rate" role="group" aria-label="호감도">${RT.map(([n,e,l]) => `<button type="button" data-rate="${esc(id)}" data-n="${n}" aria-pressed="${LGU.rate[id]===n}"><span aria-hidden="true">${e}</span>${l}</button>`).join("")}</div>`;
+  const row = (c, showV) => `<li class="rw" data-rid="${esc(c[1])}"><p>${esc(c[2])}</p><div class="lmeta"><span>좋아요 ${kNum(c[3])}</span><span>답글 ${kNum(c[4])}</span><span>${esc(c[5])}</span><a href="${at(c[0], c[1])}" target="_blank" rel="noopener">원문</a></div>${showV?`<div class="rwv">${esc(V[c[0]][1])} · ${esc(V[c[0]][0])}</div>`:""}${rateBtns(c[1])}</li>`;
   let body, total, shown;
   if(S.rawSort==="likes"){
     total = cs.length; const part = cs.slice(0, S.rawN); shown = part.length;
@@ -516,7 +529,7 @@ function viewRaw(box){
     const part = vs.slice(0, Math.ceil(S.rawN/5)); shown = part.length;
     body = part.map(v => `<section class="rwg"><h3><a href="${watch(v)}" target="_blank" rel="noopener">${esc(V[v][0])}</a></h3><div class="note">${esc(V[v][1])} · ${esc(V[v][4])} · 조회 ${kNum(V[v][3])} · ${esc(V[v][2])} · 댓글 ${g[v].length}</div><ol class="rwl">${g[v].map(c => row(c, false)).join("")}</ol></section>`).join("");
   }
-  box.innerHTML = head + `<p class="note">${S.rawSort==="likes"?`댓글 ${kNum(total)}개 중 ${shown}개`:`영상 ${total}개 중 ${shown}개`} · 좋아요는 ${esc(R.checkedAt)} 기준</p>${body || `<p class="note">찾는 댓글이 없어요.</p>`}
+  box.innerHTML = head + fbar + `<p class="note">${S.rawSort==="likes"?`댓글 ${kNum(total)}개 중 ${shown}개`:`영상 ${total}개 중 ${shown}개`} · 좋아요는 ${esc(R.checkedAt)} 기준</p>${body || `<p class="note">${S.rawF==="all"||S.rawF==="todo"?"찾는 댓글이 없어요.":"아직 이 호감도로 체크한 댓글이 없어요."}</p>`}
     ${shown < total ? `<button class="btn ghost" type="button" data-rawmore>더 보기</button>` : ""}`;
 }
 const modeSeg = () => `<div class="seg2" role="group" aria-label="영상 보기 방식"><button type="button" data-vmode="legend" aria-pressed="${S.vmode==="legend"}">명댓글 감상</button><button type="button" data-vmode="month" aria-pressed="${S.vmode==="month"}">월간 인기 영상</button></div>`;
@@ -722,6 +735,8 @@ document.addEventListener("click", e => {
   const rv = t.closest("[data-reveal]"); if(rv){ S.rev.add(rv.dataset.reveal); const keep = window.scrollY; draw(); window.scrollTo(0, keep); return; }
   const rw = t.closest("[data-rewatch]"); if(rw){ const m = lmoms().find(x => x.id===rw.dataset.rewatch); if(!m) return; playing = m.vid; S.lstart = m.start|0; S.lnonce++; const keep = window.scrollY; draw(); window.scrollTo(0, keep); const el = document.getElementById("mo-"+m.id); if(el) el.scrollIntoView({block:"start", behavior:"smooth"}); return; }
   const fv = t.closest("[data-fav]"); if(fv){ const k = fv.dataset.fav; LGU.fav[k] = !LGU.fav[k]; if(!LGU.fav[k]) delete LGU.fav[k]; saveLGU(); fv.setAttribute("aria-pressed", String(!!LGU.fav[k])); fv.textContent = LGU.fav[k]?"저장됨":"또 보고 싶음"; toast(LGU.fav[k]?"저장했어요 · '저장' 칩에서 다시 볼 수 있어요":"저장을 뺐어요"); return; }
+  const rt = t.closest("[data-rate]"); if(rt){ const id = rt.dataset.rate, n = +rt.dataset.n; if(LGU.rate[id]===n) delete LGU.rate[id]; else LGU.rate[id] = n; saveLGU(); rt.parentNode.querySelectorAll("[data-rate]").forEach(b => b.setAttribute("aria-pressed", String(LGU.rate[id]===+b.dataset.n))); return; }
+  const rf = t.closest("[data-rawf]"); if(rf){ S.rawF = rf.dataset.rawf; S.rawN = 100; draw(); return; }
   const rs = t.closest("[data-rawsort]"); if(rs){ S.rawSort = rs.dataset.rawsort; S.rawN = 100; draw(); return; }
   if(t.closest("[data-rawmore]")){ const keep = window.scrollY; S.rawN += 100; draw(); window.scrollTo(0, keep); return; }
   const le = t.closest("[data-led]"); if(le){ stopPlay(); S.led = le.dataset.led; S.lt = "all"; S.pick = null; draw(); return; }
