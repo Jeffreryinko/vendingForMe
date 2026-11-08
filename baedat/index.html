@@ -226,6 +226,16 @@ nav.tabs button[aria-current="page"]{color:var(--tint);font-weight:600}
 .pickbar{display:flex;gap:8px;align-items:center}
 .pickbar .btn{flex:none}
 .edc{margin-bottom:4px}
+.rawbar{display:flex;align-items:center;gap:8px}
+.rawbar select,.rawq{flex:1;font:inherit;font-size:15px;padding:9px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:inherit;min-width:0}
+.rawq{width:100%;box-sizing:border-box}
+.rwl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.rw{padding:11px 2px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.rw p{margin:0;font-size:15.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.rwv{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.rwg{background:var(--surface);border-radius:16px;padding:12px 14px}
+.rwg h3{margin:0 0 2px;font-size:15px;line-height:1.4}
+.rwg h3 a{color:inherit}
 .eds{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
 .ec{display:flex;flex-direction:column;gap:6px;padding-top:12px;border-top:1px solid var(--line)}
 .ec:first-child{border-top:0;padding-top:0}
@@ -279,7 +289,7 @@ const BASE = "../data/baedat/";
 const HIDE_KEY = "vfm:baedat:hide";
 let HIDE = new Set(); try{ HIDE = new Set(JSON.parse(localStorage.getItem(HIDE_KEY) || "[]")); }catch(_){}
 function saveHide(){ try{ localStorage.setItem(HIDE_KEY, JSON.stringify([...HIDE])); }catch(_){} }
-const S = {months:[], eds:{}, month:null, view:"month", vmode:"legend", led:"best", LE:{}, lt:"all", rev:new Set(), lstart:0, lnonce:0, pick:null, LG:null, vf:"all", vsort:"rank", cf:"all", sort:"likes", db:null, saved:{}, canWrite:false, mode:"loading", updatedAt:null, open:new Set()};
+const S = {months:[], eds:{}, month:null, view:"month", vmode:"legend", led:"best", LE:{}, RW:{}, rawM:null, rawSort:"likes", rawN:100, rawQ:"", lt:"all", rev:new Set(), lstart:0, lnonce:0, pick:null, LG:null, vf:"all", vsort:"rank", cf:"all", sort:"likes", db:null, saved:{}, canWrite:false, mode:"loading", updatedAt:null, open:new Set()};
 
 // ───────── 형식 도우미 ─────────
 const nf = new Intl.NumberFormat("ko-KR");
@@ -409,6 +419,7 @@ function momentCard(m, isPick){
     </div></article>`;
 }
 function viewLegend(box){
+  if(S.LG && S.led==="raw"){ viewRaw(box); return; }
   if(S.LG && S.led!=="best"){ viewEdition(box, S.led); return; }
   const all = lmoms();
   if(!S.LG){ box.innerHTML = `${modeSeg()}<p class="note">명댓글을 불러오는 중이에요…</p>`; return; }
@@ -426,8 +437,9 @@ function viewLegend(box){
 }
 // ───────── 월간 명댓글 (에디션) ─────────
 const edChips = () => {
-  const eds = S.LG?.editions || []; if(!eds.length) return "";
-  const items = [["best", `명작 ${lmoms().length}`], ...eds.map(e => [e.month, `${+e.month.slice(5)}월 ${e.count}`])];
+  const eds = S.LG?.editions || []; if(!eds.length && !(S.LG?.raws||[]).length) return "";
+  const raws = S.LG?.raws || [];
+  const items = [["best", `명작 ${lmoms().length}`], ...eds.map(e => [e.month, `${+e.month.slice(5)}월 ${e.count}`]), ...(raws.length ? [["raw", `원본 데이터 ${raws.length}달`]] : [])];
   return `<div class="chips edc" role="group" aria-label="모음">${items.map(([k,n]) => `<button class="chip" type="button" data-led="${esc(k)}" aria-pressed="${S.led===k}">${esc(n)}</button>`).join("")}</div>`;
 };
 function loadEd(m){
@@ -472,6 +484,40 @@ function viewEdition(box, m){
     ${groups.length ? `<div class="pickbar"><button class="btn ghost" type="button" data-openall="${allOpen?0:1}">${allOpen?"모두 접기":"모두 펼치기"}</button><span class="note">영상 ${groups.length}개</span></div>` : ""}
     <div class="lgrid">${groups.map(([v, ps]) => edGroup(E, v, ps)).join("") || `<p class="note">${S.lt==="fav"?"'또 보고 싶음'을 누른 댓글이 여기 모여요.":"이 유형은 이번 달에 없어요."}</p>`}</div>
     <div class="card"><p class="note">고르는 법: 유튜브 공식 API로 그달 한국 인기 영상을 모으고, 영상마다 인기순 댓글을 받아 '영상 덕분에 웃긴 한 줄'만 사람이 골랐어요. 원문은 바꾸지 않았고, 실존 인물 외모·사생활 공격, 노래 가사 인용, 정치·혐오 댓글은 뺐어요. 좋아요 수는 ${esc(E.checkedAt)} 기준이에요.</p></div>`;
+}
+// ───────── 원본 데이터 (검토 전 후보 댓글) ─────────
+function loadRaw(m){
+  const e = (S.LG?.raws||[]).find(x => x.month===m); if(!e || S.RW[m]) return;
+  S.RW[m] = "loading";
+  fetch(BASE + e.file, {cache:"no-store"}).then(r => r.ok ? r.json() : null).then(j => { S.RW[m] = j || "error"; if(S.led==="raw") draw(); }).catch(() => { S.RW[m] = "error"; if(S.led==="raw") draw(); });
+}
+function viewRaw(box){
+  const raws = S.LG.raws || []; if(!S.rawM) S.rawM = raws[0]?.month;
+  const m = S.rawM; const R = S.RW[m]; loadRaw(m);
+  const head = `${modeSeg()}${edChips()}
+    <p class="lead">원본 데이터</p>
+    <p class="note">사람이 고르기 전, 수집기가 모은 그대로의 댓글이에요. 응원·구독·링크 같은 글과 좋아요 30 미만은 기계로 걸렀고, 노래 가사가 섞이기 쉬운 음악 영상은 뺐어요. 원문은 바꾸지 않았어요.</p>
+    <div class="rawbar"><label class="note" for="rawm">달</label><select id="rawm" data-rawm>${raws.map(r => `<option value="${esc(r.month)}"${r.month===m?" selected":""}>${esc(r.month.replace("-","년 "))}월 · 영상 ${r.videos} · 댓글 ${kNum(r.comments)}</option>`).join("")}</select></div>
+    <div class="seg2" role="group" aria-label="정렬"><button type="button" data-rawsort="likes" aria-pressed="${S.rawSort==="likes"}">좋아요순</button><button type="button" data-rawsort="video" aria-pressed="${S.rawSort==="video"}">영상별</button></div>
+    <input class="rawq" type="search" data-rawq placeholder="댓글·영상 제목에서 찾기" value="${esc(S.rawQ)}">`;
+  if(!R || R==="loading"){ box.innerHTML = head + `<p class="note">불러오는 중이에요…</p>`; return; }
+  if(R==="error"){ S.RW[m] = null; box.innerHTML = head + `<p class="note">불러오지 못했어요. 다시 눌러 주세요.</p>`; return; }
+  const V = R.videos, q = S.rawQ.trim().toLowerCase();
+  let cs = R.comments;
+  if(q) cs = cs.filter(c => c[2].toLowerCase().includes(q) || (V[c[0]]?.[0]||"").toLowerCase().includes(q));
+  const row = (c, showV) => `<li class="rw"><p>${esc(c[2])}</p><div class="lmeta"><span>좋아요 ${kNum(c[3])}</span><span>답글 ${kNum(c[4])}</span><span>${esc(c[5])}</span><a href="${at(c[0], c[1])}" target="_blank" rel="noopener">원문</a></div>${showV?`<div class="rwv">${esc(V[c[0]][1])} · ${esc(V[c[0]][0])}</div>`:""}</li>`;
+  let body, total, shown;
+  if(S.rawSort==="likes"){
+    total = cs.length; const part = cs.slice(0, S.rawN); shown = part.length;
+    body = `<ol class="rwl">${part.map(c => row(c, true)).join("")}</ol>`;
+  } else {
+    const g = {}; cs.forEach(c => (g[c[0]] = g[c[0]] || []).push(c));
+    const vs = Object.keys(g).sort((a,b) => V[b][3]-V[a][3]); total = vs.length;
+    const part = vs.slice(0, Math.ceil(S.rawN/5)); shown = part.length;
+    body = part.map(v => `<section class="rwg"><h3><a href="${watch(v)}" target="_blank" rel="noopener">${esc(V[v][0])}</a></h3><div class="note">${esc(V[v][1])} · ${esc(V[v][4])} · 조회 ${kNum(V[v][3])} · ${esc(V[v][2])} · 댓글 ${g[v].length}</div><ol class="rwl">${g[v].map(c => row(c, false)).join("")}</ol></section>`).join("");
+  }
+  box.innerHTML = head + `<p class="note">${S.rawSort==="likes"?`댓글 ${kNum(total)}개 중 ${shown}개`:`영상 ${total}개 중 ${shown}개`} · 좋아요는 ${esc(R.checkedAt)} 기준</p>${body || `<p class="note">찾는 댓글이 없어요.</p>`}
+    ${shown < total ? `<button class="btn ghost" type="button" data-rawmore>더 보기</button>` : ""}`;
 }
 const modeSeg = () => `<div class="seg2" role="group" aria-label="영상 보기 방식"><button type="button" data-vmode="legend" aria-pressed="${S.vmode==="legend"}">명댓글 감상</button><button type="button" data-vmode="month" aria-pressed="${S.vmode==="month"}">월간 인기 영상</button></div>`;
 
@@ -660,6 +706,9 @@ function show(v, keepScroll){
   draw(); if(!keepScroll) window.scrollTo(0,0);
 }
 function go(v){ stopPlay(); try{ history.replaceState(null, "", "#"+v); }catch(_){} show(v); }
+document.addEventListener("change", e => { const s = e.target.closest && e.target.closest("[data-rawm]"); if(!s) return; S.rawM = s.value; S.rawN = 100; draw(); });
+let rawT = null;
+document.addEventListener("input", e => { const i = e.target.closest && e.target.closest("[data-rawq]"); if(!i) return; S.rawQ = i.value; clearTimeout(rawT); rawT = setTimeout(() => { S.rawN = 100; draw(); const n = document.querySelector("[data-rawq]"); if(n){ n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }, 300); });
 document.addEventListener("input", e => { const ta = e.target.closest && e.target.closest("[data-mine]"); if(!ta) return; const k = ta.dataset.mine, v = ta.value.trim(); if(v) LGU.mine[k] = ta.value; else delete LGU.mine[k]; saveLGU(); });
 window.addEventListener("hashchange", () => show(location.hash.slice(1)));
 document.addEventListener("click", e => {
@@ -673,6 +722,8 @@ document.addEventListener("click", e => {
   const rv = t.closest("[data-reveal]"); if(rv){ S.rev.add(rv.dataset.reveal); const keep = window.scrollY; draw(); window.scrollTo(0, keep); return; }
   const rw = t.closest("[data-rewatch]"); if(rw){ const m = lmoms().find(x => x.id===rw.dataset.rewatch); if(!m) return; playing = m.vid; S.lstart = m.start|0; S.lnonce++; const keep = window.scrollY; draw(); window.scrollTo(0, keep); const el = document.getElementById("mo-"+m.id); if(el) el.scrollIntoView({block:"start", behavior:"smooth"}); return; }
   const fv = t.closest("[data-fav]"); if(fv){ const k = fv.dataset.fav; LGU.fav[k] = !LGU.fav[k]; if(!LGU.fav[k]) delete LGU.fav[k]; saveLGU(); fv.setAttribute("aria-pressed", String(!!LGU.fav[k])); fv.textContent = LGU.fav[k]?"저장됨":"또 보고 싶음"; toast(LGU.fav[k]?"저장했어요 · '저장' 칩에서 다시 볼 수 있어요":"저장을 뺐어요"); return; }
+  const rs = t.closest("[data-rawsort]"); if(rs){ S.rawSort = rs.dataset.rawsort; S.rawN = 100; draw(); return; }
+  if(t.closest("[data-rawmore]")){ const keep = window.scrollY; S.rawN += 100; draw(); window.scrollTo(0, keep); return; }
   const le = t.closest("[data-led]"); if(le){ stopPlay(); S.led = le.dataset.led; S.lt = "all"; S.pick = null; draw(); return; }
   const oa = t.closest("[data-openall]"); if(oa){ const E = S.LE[S.led]; if(E && E.picks){ const ks = [...new Set(E.picks.map(p => "ed:"+p.vid))]; ks.forEach(k => oa.dataset.openall==="1" ? S.rev.add(k) : S.rev.delete(k)); } const keep = window.scrollY; draw(); window.scrollTo(0, keep); return; }
   const lt = t.closest("[data-lt]"); if(lt){ stopPlay(); S.lt = lt.dataset.lt; S.pick = null; draw(); return; }

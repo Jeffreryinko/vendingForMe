@@ -558,5 +558,31 @@
    "count": 111,
    "videos": 52
   }
+ ],
+ "raws": [
+  {
+   "month": "2026-10",
+   "file": "raw-2026-10.json",
+   "videos": 118,
+   "comments": 2360
+  },
+  {
+   "month": "2026-09",
+   "file": "raw-2026-09.json",
+   "videos": 99,
+   "comments": 2171
+  },
+  {
+   "month": "2026-08",
+   "file": "raw-2026-08.json",
+   "videos": 127,
+   "comments": 2377
+  },
+  {
+   "month": "2026-07",
+   "file": "raw-2026-07.json",
+   "videos": 102,
+   "comments": 1827
+  }
  ]
 }
