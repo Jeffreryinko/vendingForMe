@@ -334,7 +334,10 @@ def cluster(raw, prev_deals, seen_url):
     """새 기사 + 지난 거래(최근 4일) → 거래 목록. 지난 거래에 붙으면 출처만 늘어남"""
     deals = []
     for d in prev_deals:
-        d = dict(d); d["d0"] = date.fromisoformat(d["date"]); d["tk"] = set(d.get("tk", [])) or toks(d["title"]); d["usd"] = d.get("usd"); deals.append(d)
+        d = dict(d); d["d0"] = date.fromisoformat(d["date"]); d["tk"] = set(d.get("tk", [])) or toks(d["title"]); d["usd"] = d.get("usd")
+        d["srcs"] = [[d.get("src", ""), d.get("url", ""), d.get("lang", "")]] + [x for x in d.get("srcs", []) if x[1] != d.get("url")]   # 화면 파일엔 대표 기사가 빠져 있음
+        d.setdefault("via", "gn"); d.setdefault("inv", []); d.setdefault("co", ""); d.setdefault("tgt", ""); d.setdefault("sum", "")
+        deals.append(d)
     seen_url |= {s[1] for d in deals for s in d.get("srcs", [])}
     for r in raw:
         if r["url"] in seen_url: continue
