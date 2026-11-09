@@ -9,17 +9,16 @@
 """
 
 # (id, 이름, 주소, 나라 기본값, 언어, 거르기: True 면 투자·M&A 낱말이 있을 때만)
+# Tech.eu·The Bridge(일본)는 GitHub 서버에서 403으로 막혀 뺌 (일본은 구글 뉴스 일본판으로)
 FEEDS = [
     ("cb", "Crunchbase News", "https://news.crunchbase.com/feed/", "US", "en", True),
     ("tc", "TechCrunch 벤처", "https://techcrunch.com/category/venture/feed/", "US", "en", True),
     ("sifted", "Sifted (유럽)", "https://sifted.eu/feed", "EU", "en", True),
-    ("techeu", "Tech.eu (유럽)", "https://tech.eu/feed/", "EU", "en", True),
     ("pew", "Private Equity Wire", "https://www.privateequitywire.co.uk/feed", "", "en", True),
     ("inc42", "Inc42 (인도)", "https://inc42.com/feed/", "IN", "en", True),
     ("tcabal", "TechCabal (아프리카)", "https://techcabal.com/feed/", "AF", "en", True),
     ("wamda", "Wamda (중동)", "https://www.wamda.com/feed", "ME", "en", True),
     ("latam", "LatamList (중남미)", "https://latamlist.com/feed/", "LATAM", "en", True),
-    ("bridge", "The Bridge (일본)", "https://thebridge.jp/feed", "JP", "ja", True),
     ("platum", "플래텀", "https://platum.kr/feed", "KR", "ko", True),
     ("vsq", "벤처스퀘어", "https://www.venturesquare.net/feed", "KR", "ko", True),
     ("stn", "스타트업엔", "https://www.startupn.kr/rss/allArticle.xml", "KR", "ko", True),
