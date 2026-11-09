@@ -20,6 +20,9 @@ FEEDS = [
     ("wamda", "Wamda (중동)", "https://www.wamda.com/feed", "ME", "en", True),
     ("latam", "LatamList (중남미)", "https://latamlist.com/feed/", "LATAM", "en", True),
     ("platum", "플래텀", "https://platum.kr/feed", "KR", "ko", True),
+    ("platinv", "플래텀 투자", "https://platum.kr/archives/category/investment/feed", "KR", "ko", True),
+    ("wowtale", "와우테일", "https://wowtale.net/feed/", "KR", "ko", True),
+    ("besuccess", "비석세스", "https://www.besuccess.com/feed/", "KR", "ko", True),
     ("vsq", "벤처스퀘어", "https://www.venturesquare.net/feed", "KR", "ko", True),
     ("stn", "스타트업엔", "https://www.startupn.kr/rss/allArticle.xml", "KR", "ko", True),
     ("srecipe", "스타트업레시피", "https://www.startuprecipe.co.kr/feed", "KR", "ko", True),
@@ -28,7 +31,10 @@ FEEDS = [
 
 # (나라판 hl, gl, ceid, 언어, 나라 기본값, [검색어]) — 검색어마다 하루치(when:1d) 최대 100개
 GNEWS = [
-    ("ko", "KR", "KR:ko", "ko", "KR", ["투자 유치 시리즈", "프리A OR 시드 투자 유치", "억원 투자 유치", "인수합병 OR M&A 인수", "지분 인수 계약", "경영권 인수", "사모펀드 OR PEF 인수", "IPO 공모 상장", "벤처펀드 결성 OR 모태펀드"]),
+    ("ko", "KR", "KR:ko", "ko", "KR", ["투자 유치 시리즈", "프리A OR 시드 투자 유치", "억원 투자 유치",
+                                       # 한국 작은 거래 (시드·프리A·브릿지·팁스·엔젤) — 2026-11-10 더함
+                                       "스타트업 투자 유치", "시리즈A 투자 유치", "시리즈B 투자 유치", "시드 투자 유치", "프리시리즈A 투자", "브릿지 투자 유치",
+                                       "팁스 선정 스타트업", "엔젤 투자 유치", "후속 투자 유치 스타트업", "전략적 투자 유치", "인수합병 OR M&A 인수", "지분 인수 계약", "경영권 인수", "사모펀드 OR PEF 인수", "IPO 공모 상장", "벤처펀드 결성 OR 모태펀드"]),
     ("en-US", "US", "US:en", "en", "US", ["raises Series", "raises seed round", "funding round led by", "to acquire OR acquires OR acquisition", "agrees to buy deal billion", "private equity buyout OR take-private", "IPO prices OR files for IPO", "venture fund closes OR closes fund"]),
     ("en-GB", "GB", "GB:en", "en", "", ["startup raises funding", "acquisition deal agreed"]),
     ("en-IN", "IN", "IN:en", "en", "IN", ["startup raises funding", "acquires stake"]),
@@ -49,7 +55,7 @@ DEAL_WORDS = (r"\b(raise[sd]?|raising|funding|financing|round|seed|series [a-h]\
               r"|資金調達|調達|買収|出資|上場|融资|收购|并购|上市|Finanzierung|Übernahme|lève|rachat|rodada|aquisição|pendanaan")
 SKIP_WORDS = (r"(?i)\b(podcast|webinar|newsletter|opinion|how to|guide|tips|weekly|roundup|recap|this week in|should (the|we|you|i)|explained|what (it|this) means|raises (the bar|concerns?|questions?|prices?|rates?|guidance|forecast|outlook|dividend|awareness|alarm|eyebrows|the stakes)|"
               r"securiti[sz]ation|biggest (rounds|deals)|funding (recap|report|tracker)|^(series [a-h]|seed|venture|vc|funding|m&a|ipos?) (in|for) \d{4}|NFL|NBA|MLB|NHL|MLS|quarterback|outfielder|pitcher|linebacker|free agent|draft pick|trade deadline|via trade|roster|transfer window|signs with)\b|\?\s*$|？\s*$"
-              r"|칼럼|사설|기고|기자수첩|썰|위클리|브리핑\]|인터뷰\]|\[포토\]|\[사진\]|채용|세미나|설명회 개최|IR 행사|데모데이|모집|공모전|수상|선정$|전망\]|점검\]|분석\]|특징주|주가|목표가|네이버 블로그|티스토리")
+              r"|칼럼|사설|기고|기자수첩|썰|위클리|브리핑\]|인터뷰\]|\[포토\]|\[사진\]|채용|세미나|설명회 개최|IR 행사|데모데이|모집|공모전|수상|(?<!팁스 )(?<!TIPS )(?<!팁스)선정$|프로그램|캠프|챌린지|경진대회|투자\s?상담|상담회|아카데미|참가 기업|참가기업|간담회|포럼|박람회|교육생|역량 집중|개최|네트워킹|파트너링|MOU|업무협약|출범|모색|도전|행감|회의|협의체|턱없이|창조경제혁신센터|혁신센터|창경|테크노파크|투자\s?유치\s?(지원|희망|전략|역량|설명)|지원\s?(사업|확대|강화|나서|나선다|한다)|스타트업 \d+곳|\d+개사|기업 \d+곳|서머리\]|^\[(정책|금융|정책금융|마켓|증시|오늘의|주간|투자 ?노트)[^\]]*\]|브리프\]|Deal】|투자 동향|소식 모음|전망\]|점검\]|분석\]|특징주|주가|목표가|네이버 블로그|티스토리")
 
 # 종류 — 위에서부터 먼저 맞는 것 (펀드·사모·인수합병·상장이 투자보다 먼저)
 KIND_RX = [
@@ -57,7 +63,7 @@ KIND_RX = [
     ("pe", "사모·바이아웃", r"private equity|buyout|take-private|take private|LBO|leveraged|PE firm|사모펀드|PEF|바이아웃|경영권 매각|私募|Private-Equity"),
     ("ma", "인수합병", r"\b(acquir(e|es|ed|ing)|acquisition|to buy|buys|bought|merger|merge[sd]?|takeover|deal to buy|snaps up|purchase of)\b|인수|합병|M&A|매각|경영권|買収|経営統合|收购|并购|Übernahme|übernimmt|rachat|rachète|acquisizione|aquisição|adquire|akuisisi"),
     ("ipo", "상장", r"\bIPO\b|initial public offering|goes public|go public|went public|listing on|debut on (the )?(NYSE|Nasdaq)|SPAC|direct listing|상장|공모가|공모주|증권신고서|코스닥 입성|上場|上市|Börsengang|introduction en bourse|abertura de capital"),
-    ("vc", "투자 유치", r"\b(raise[sd]?|raising|funding|financing|seed|series [a-h]\b|pre-seed|round|invest(s|ment)|backed by|led by|secures?|lands|bags|nets)\b|투자 유치|투자유치|투자를 유치|시리즈|프리\s?A|시드|브릿지 투자|資金調達|調達|出資|融资|Finanzierungsrunde|lève|rodada|pendanaan|investimento"),
+    ("vc", "투자 유치", r"\b(raise[sd]?|raising|funding|financing|seed|series [a-h]\b|pre-seed|round|invest(s|ment)|backed by|led by|secures?|lands|bags|nets)\b|투자 유치|투자유치|투자를 유치|시리즈|프리\s?A|시드|브릿지 투자|팁스|TIPS|資金調達|調達|出資|融资|Finanzierungsrunde|lève|rodada|pendanaan|investimento"),
 ]
 KIND_NAME = {k: n for k, n, _ in KIND_RX} | {"etc": "기타"}
 
@@ -70,6 +76,7 @@ STAGE_RX = [
     ("b", "시리즈 B", r"series[ -]?b\b|시리즈\s?B|シリーズB|B轮|Serie[ -]B|Série B|seri B"),
     ("c", "시리즈 C", r"series[ -]?c\b|시리즈\s?C|シリーズC|C轮|Serie[ -]C|Série C|seri C"),
     ("d+", "시리즈 D 이상", r"series[ -]?[d-h]\b|시리즈\s?[D-H]|シリーズ[D-H]|[D-H]轮|Serie[ -][D-H]"),
+    ("tips", "팁스(TIPS)", r"팁스|\bTIPS\b"),
     ("growth", "그로스·후기", r"growth (round|equity|financing)|late-stage|pre-IPO|프리\s?IPO|그로스|戦略的|战略融资"),
     ("debt", "대출·채권", r"debt (financing|facility)|credit facility|venture debt|loan|convertible|대출|사채|CB 발행|전환사채|融資枠"),
     ("grant", "지원금", r"\bgrant\b|지원금|정부 지원|보조금"),

@@ -686,7 +686,7 @@ def filing_deals(fd_new, dart_new, fx):
                     "co": name, "tgt": "", "inv": [], "n": 1, "srcs": [], "ind": S.FORMD_KO.get(ind, ind), "ninv": ninv, "loc": loc, "at": now_iso()})
     for r in dart_new:
         iso, k, what, corp, cls, tgt, amt, eq, biz, rcp, nm = r
-        if k == "vc" and amt < 3e9: continue                                                                    # 30억 미만 증자는 뺌
+        if k == "vc" and amt < 1e8: continue                                                                    # 1억 미만 증자만 뺌 (작은 투자도 보이게)
         t = f"{corp}, {tgt + ' ' if tgt else ''}{what}" + (f" {eq}%" if eq and eq not in ("-", "") else "") + (f" · {won(amt)}" if amt else "") + " (공시)"
         out.append({"id": "d" + rcp, "t": "dart", "kind": k, "stage": "", "title": t, "ko": t, "url": f"https://dart.fss.or.kr/dsaf001/main.do?rcpNo={rcp}", "src": "DART 전자공시", "date": iso, "lang": "ko",
                     "amt": amt or None, "usd": round(amt / usd) if amt else None, "amtS": won(amt) if amt else "", "sec": sectors_of(biz + " " + tgt + " " + corp), "cc": "KR", "co": corp, "tgt": tgt, "inv": [],
@@ -781,7 +781,7 @@ def main():
     prev = rj(OUT / "now.json", {}).get("deals", []); tkm = rj(ST / "tk.json", {})
     for d in prev: d["tk"] = tkm.get(d["id"], [])
     cut = (date.today() - timedelta(days=NOW_DAYS)).isoformat()
-    prev_news = [d for d in prev if d.get("t") == "news" and d["date"] >= cut]
+    prev_news = [d for d in prev if d.get("t") == "news" and d["date"] >= cut and not SKIP.search(d.get("title", ""))]   # 빼는 낱말을 고치면 지난 거래에도 바로 적용
     urls = {u: v for u, v in rj(ST / "urls.json", {}).items() if v >= cut}                   # 이미 센 기사 주소 (같은 기사를 두 번 세지 않게)
     deals = cluster(raw, prev_news, set(urls))
     for r in raw: urls.setdefault(r["url"], day)
@@ -852,7 +852,9 @@ def main():
     for d in alld: by_day.setdefault(d["date"], []).append(d)
     for dd, lst in by_day.items():
         if dd < (date.today() - timedelta(days=NOW_DAYS + 2)).isoformat(): continue
-        f = NEWS / f"{dd}.json"; cur = rj(f, {"day": dd, "items": []}); pos = {x["id"]: i for i, x in enumerate(cur["items"])}
+        f = NEWS / f"{dd}.json"; cur = rj(f, {"day": dd, "items": []})
+        cur["items"] = [x for x in cur["items"] if not SKIP.search(x.get("title", ""))]                # 빼는 낱말을 고치면 쌓인 것도 정리
+        pos = {x["id"]: i for i, x in enumerate(cur["items"])}
         for d in lst:
             a = slim(d, arch=True)
             if d["id"] in pos: cur["items"][pos[d["id"]]] = a

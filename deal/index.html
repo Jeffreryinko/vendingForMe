@@ -216,11 +216,13 @@ function renderToday() {
   h += kindChips(all.filter(d => d.date >= cut));
   if (!LS.g("helpSeen", 0)) h += `<div class="help"><b>이 앱은</b> 세계 스타트업 투자 유치·인수합병(M&A)·사모펀드·상장(IPO)·펀드 결성 소식을 하루 4번 모아, 같은 거래를 다룬 기사끼리 한 장으로 묶어 둡니다. 금액은 그날 환율로 원으로 바꿔 보여 줘요.<br>미국 SEC·한국 DART 공식 신고 자료도 함께 쌓아요(탐색 → 숫자·공시). 회사·투자사 이름을 <b>따라가기</b>에 넣으면 새 거래가 뜰 때 표시해 줍니다. <button class="btn sm" data-act="helpok" style="margin-top:6px">알겠어요</button></div>`;
   h += modeBar();
-  if (isDeck()) return h + `<p class="note">오늘·어제 금액 큰 거래부터, 네 장마다 한국 거래 한 장. 옆으로 밀면 다음.</p>` + makeDeck("deal-today" + (S.kind || ""), todayOrder, "새 거래 카드를 다 봤어요").html();
+  const krN = vis(all.filter(d => d.date >= cut && d.cc === "KR" && d.kind === "vc")).length;
+  if (isDeck()) return h + `<button class="tile" style="width:100%;margin:0 0 10px" data-go="#kr"><b>🇰🇷 한국 벤처 투자 ${krN}건 ›</b><small>오늘·어제 · 시드·프리A·팁스 같은 작은 투자도 날짜순으로 전부</small></button><p class="note">오늘·어제 금액 큰 거래부터, 네 장마다 한국 거래 한 장. 옆으로 밀면 다음.</p>` + makeDeck("deal-today" + (S.kind || ""), todayOrder, "새 거래 카드를 다 봤어요").html();
   const top = recent.slice().sort(big);
   h += `<h2 class="sec">오늘의 큰 거래<small>오늘·어제, 금액 순</small><button data-go="#x" data-per="3">전부 ›</button></h2>` + (top.filter(d => d.amt).slice(0, 10).map(card).join("") || '<p class="note">금액이 나온 거래가 아직 없어요</p>');
-  const kr = top.filter(d => d.cc === "KR");
-  if (kr.length) h += `<h2 class="sec">🇰🇷 한국<small>${kr.length}건</small><button data-go="#x" data-cc="KR">전부 ›</button></h2>` + kr.slice(0, 8).map(card).join("");
+  const krv = recent.filter(d => d.cc === "KR" && d.kind === "vc").sort(newest), kro = top.filter(d => d.cc === "KR" && d.kind !== "vc");
+  h += `<h2 class="sec">🇰🇷 한국 벤처 투자<small>오늘·어제 ${krv.length}건 · 작은 것도 전부</small><button data-go="#kr">더 보기 ›</button></h2>` + (krv.length ? krRows(krv) : '<p class="note">오늘·어제 들어온 한국 투자 소식이 아직 없어요</p>');
+  if (kro.length) h += `<h2 class="sec">🇰🇷 한국 인수합병·상장·펀드<small>${kro.length}건</small><button data-go="#x" data-cc="KR">전부 ›</button></h2>` + kro.slice(0, 6).map(card).join("");
   if (!S.kind) for (const k of ["ma", "pe", "ipo", "fund"]) {
     const l = top.filter(d => d.kind === k && d.cc !== "KR"); if (!l.length) continue;
     h += `<h2 class="sec">${esc(KN()[k])}<small>${l.length}건</small><button data-go="#x" data-k="${k}">전부 ›</button></h2>` + l.slice(0, 5).map(card).join("");
@@ -236,6 +238,31 @@ function renderToday() {
 function secList(rows) {
   const F2 = S.idx.secForms || {};
   return `<div class="list">${rows.map(r => `<a class="li" href="https://www.sec.gov/Archives/${esc(r[4])}" target="_blank" rel="noopener"><div class="bx"><p class="t">${esc(r[2])}</p><p class="s">${esc(F2[r[1]] || r[1])} · ${dayLbl(r[0])}</p></div></a>`).join("")}</div>`;
+}
+
+/* ───── 화면: 한국 벤처 투자 (작은 거래까지 날짜순 전부) ───── */
+const newest = (a, b) => (b.date + (b.at || "")).localeCompare(a.date + (a.at || "")) || (b.amt || 0) - (a.amt || 0);
+function krRows(lst) {
+  return `<div class="list">${lst.map(d => {
+    const nm = d.co || (d.ko || d.title).split(/[,…]/)[0];
+    const sub = [STN()[d.stage] || "", (d.inv || []).length ? "투자: " + d.inv.slice(0, 3).join("·") : "", (d.sec || []).filter(x => x !== "etc").map(x => SN()[x] || x)[0] || "", (d.n || 1) > 1 ? `보도 ${d.n}곳` : ""].filter(Boolean).join(" · ");
+    return `<button class="li${S.read[d.id] ? " read" : ""}" data-open="${esc(d.id)}" style="${S.read[d.id] ? "opacity:.55" : ""}"><div class="bx"><p class="t">${S.star[d.id] ? "★ " : ""}${esc(nm)}${d.new ? ' <span class="bd new">NEW</span>' : ""}${folHit(d).length ? ' <span class="bd fol">따라감</span>' : ""}</p><p class="s">${esc(d.ko || d.title)}</p>${sub ? `<p class="s">${esc(sub)}</p>` : ""}</div><span class="v">${d.amt ? won(d.amt).replace(" 원", "") : '<small style="color:var(--muted);font-weight:400">비공개</small>'}</span></button>`;
+  }).join("")}</div>`;
+}
+let krPer = 7, krStage = "";
+async function renderKr() {
+  const pool = (await loadDays(krPer)).filter(d => d.cc === "KR" && d.kind === "vc" && !S.hide[d.id]);
+  const sc = {}; for (const d of pool) sc[d.stage || "none"] = (sc[d.stage || "none"] || 0) + 1;
+  const lst = pool.filter(d => !krStage || (d.stage || "none") === krStage).sort(newest);
+  const withAmt = lst.filter(d => d.amt), sum = withAmt.reduce((a, d) => a + d.amt, 0);
+  let h = backTop() + head("한국 벤처 투자", `최근 ${krPer}일 ${lst.length}건 · 금액 나온 ${withAmt.length}건 합 ${won(sum) || "-"}`);
+  h += `<p class="note">스타트업 시드·프리A·팁스(TIPS)·브릿지부터 큰 시리즈까지, 금액이 작거나 안 밝혀진 것도 날짜순으로 전부. 같은 회사 기사 여러 개는 한 줄로 묶었어요.</p>`;
+  h += `<div class="chips">${[[7, "7일"], [30, "30일"], [90, "90일"]].map(([v, n]) => `<button data-krper="${v}" class="${krPer === v ? "on" : ""}">${n}</button>`).join("")}</div>`;
+  h += `<div class="chips"><button data-krst="" class="${krStage ? "" : "on"}">모든 단계<small>${pool.length}</small></button>${(S.idx.stages || []).filter(x => sc[x[0]]).map(x => `<button data-krst="${x[0]}" class="${krStage === x[0] ? "on" : ""}">${esc(x[1])}<small>${sc[x[0]]}</small></button>`).join("")}${sc.none ? `<button data-krst="none" class="${krStage === "none" ? "on" : ""}">단계 모름<small>${sc.none}</small></button>` : ""}</div>`;
+  if (!lst.length) return h + '<p class="empty">없어요</p>';
+  const byDay = {}; for (const d of lst) (byDay[d.date] = byDay[d.date] || []).push(d);
+  for (const day of Object.keys(byDay).sort().reverse()) h += `<p class="flab" style="margin-top:14px">${dayLbl(day)} · ${byDay[day].length}건</p>` + krRows(byDay[day]);
+  return h;
 }
 
 /* ───── 화면: 탐색 ───── */
@@ -255,7 +282,7 @@ async function renderX() {
   const ck = cnt("kind", d => d.kind), cs = cnt("stage", d => d.stage), cse = cnt("sec", d => d.sec), cc = cnt("cc", d => d.cc), cb = cnt("band", d => d.band);
   let h = head("탐색", `최근 ${F.per}일 거래 ${pool0.length.toLocaleString()}건 중 ${lst.length.toLocaleString()}건`);
   h += `<input class="search" id="xq" type="search" placeholder="회사·투자사·낱말 (예: 엔비디아, 시리즈 B, 소프트뱅크)" value="${esc(F.q)}">`;
-  h += `<div class="grid"><button class="tile" data-go="#stats"><b>숫자로 보기</b><small>달·분기마다 돈 흐름</small></button><button class="tile" data-go="#formd"><b>미국 비상장 신고</b><small>${S.idx.secKey ? `Form D ${(S.idx.formd || []).length}분기` : "이메일 넣으면 시작"}</small></button><button class="tile" data-go="#sec"><b>미국 상장·합병 서류</b><small>S-1·S-4·공개매수 등</small></button><button class="tile" data-go="#dart"><b>한국 공시</b><small>${S.idx.dartKey ? "합병·지분 인수·증자" : "열쇠 넣으면 시작"}</small></button></div>`;
+  h += `<div class="grid"><button class="tile" data-go="#kr" style="grid-column:1/-1"><b>🇰🇷 한국 벤처 투자</b><small>시드·프리A·팁스 같은 작은 투자까지 날짜순으로 전부</small></button><button class="tile" data-go="#stats"><b>숫자로 보기</b><small>달·분기마다 돈 흐름</small></button><button class="tile" data-go="#formd"><b>미국 비상장 신고</b><small>${S.idx.secKey ? `Form D ${(S.idx.formd || []).length}분기` : "이메일 넣으면 시작"}</small></button><button class="tile" data-go="#sec"><b>미국 상장·합병 서류</b><small>S-1·S-4·공개매수 등</small></button><button class="tile" data-go="#dart"><b>한국 공시</b><small>${S.idx.dartKey ? "합병·지분 인수·증자" : "열쇠 넣으면 시작"}</small></button></div>`;
   h += `<p class="flab">기간</p><div class="chips">${[[4, "4일"], [7, "7일"], [30, "30일"], [90, "90일"]].map(([v, n]) => `<button data-per="${v}" class="${F.per === v ? "on" : ""}">${n}</button>`).join("")}</div>`;
   h += chipRow("kind", (S.idx.kinds || []).filter(k => ck[k[0]]).map(k => [k[0], k[1], ck[k[0]]]), "종류");
   if (F.kind === "vc" || F.stage) h += chipRow("stage", (S.idx.stages || []).filter(k => cs[k[0]]).map(k => [k[0], k[1], cs[k[0]]]), "단계");
@@ -480,11 +507,12 @@ async function paint() {
     try { history.replaceState(history.state, "", location.pathname + location.search + h); localStorage.setItem("vfm:mode:" + MODE, '"deck"'); } catch (e) { }
     if (D && S.byId[fid]) { S.kind = ""; const dk = makeDeck("deal-today", todayOrder); dk.queue = null; dk.hist = []; dk.pos = -1; dk.cur = fid; }
   }
-  const tab = ["#stats", "#formd", "#sec", "#dart", "#find"].includes(h) ? "x" : h.slice(1);
+  const tab = ["#stats", "#formd", "#sec", "#dart", "#find"].includes(h) ? "x" : h === "#kr" ? "today" : h.slice(1);
   document.querySelectorAll("#tabs button").forEach(b => { if (b.dataset.v === tab) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   try {
     if (h === "#x" || h === "#find") { app.innerHTML = await renderX(); bindSearch("xq", v => { F.q = v; xLimit = 60; }, async () => { app.innerHTML = await renderX(); bindSearch("xq", v => { F.q = v; }, paint); }); if (h === "#find") setTimeout(() => { const q = document.getElementById("xq"); if (q) q.focus(); }, 50); }
     else if (h === "#stats") app.innerHTML = await renderStats();
+    else if (h === "#kr") app.innerHTML = await renderKr();
     else if (h === "#formd") { app.innerHTML = await renderFormd(); bindSearch("fdq", v => { fdF.q = v; }, paint); }
     else if (h === "#sec") { app.innerHTML = await renderSec(); bindSearch("secq", v => { secQ = v; }, paint); }
     else if (h === "#dart") { app.innerHTML = await renderDart(); bindSearch("dartq", v => { dartQ = v; }, paint); }
@@ -498,7 +526,7 @@ function debounce(f, ms) { let t; return () => { clearTimeout(t); t = setTimeout
 function saveF() { const o = Object.assign({}, F); delete o.q; LS.s("F", o); }
 
 document.addEventListener("click", async e => {
-  const t = e.target.closest("[data-v],[data-go],[data-open],[data-kind],[data-act],[data-f],[data-per],[data-sort],[data-wk],[data-tfol],[data-unfol],[data-fol],[data-fdq],[data-fdt],[data-fdi],[data-secy],[data-secf],[data-darty],[data-dartk]"); if (!t) return;
+  const t = e.target.closest("[data-v],[data-go],[data-open],[data-kind],[data-act],[data-f],[data-per],[data-sort],[data-wk],[data-tfol],[data-unfol],[data-fol],[data-fdq],[data-fdt],[data-fdi],[data-secy],[data-secf],[data-darty],[data-dartk],[data-krper],[data-krst]"); if (!t) return;
   const d = t.dataset;
   if (d.v) { closeSheet(); return nav("#" + d.v); }
   if (d.go) {                                                                    // '전부 ›' → 탐색 (조건 넣어서)
@@ -520,6 +548,8 @@ document.addEventListener("click", async e => {
   if (d.secy) { secY = d.secy; return paint(); }
   if (d.secf != null) { secF = d.secf; return paint(); }
   if (d.darty) { dartY = d.darty; return paint(); }
+  if (d.krper) { krPer = +d.krper; return paint(); }
+  if (d.krst != null) { krStage = d.krst; return paint(); }
   if (d.dartk != null) { dartK = d.dartk; return paint(); }
   const a = d.act;
   if (a === "back") { if (!back()) nav("#today"); return; }
