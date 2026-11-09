@@ -1,6 +1,6 @@
 # 시사 자판기 (vendingForMe)
 
-**시사 · 도구 · AI** — 자판기를 세 사이트로 나눈 것 중 하나예요 (2026-11-08). 서버 없이 GitHub 하나로 돌아가요 (카드 결제 0원, **유지 토큰 0**).
+**시사 · 도구 · AI · 딜** — 자판기를 세 사이트로 나눈 것 중 하나예요 (2026-11-08). 서버 없이 GitHub 하나로 돌아가요 (카드 결제 0원, **유지 토큰 0**).
 - 주소: https://jeffreryinko.github.io/vendingForMe/
 - 다른 자판기: [이야기 자판기](https://jeffreryinko.github.io/vfm-story/) (이야기·역사·뇌) · [사람 자판기](https://jeffreryinko.github.io/vfm-mind/) (배댓·맨탈)
 - 같은 주소(jeffreryinko.github.io)라서 폰에 저장된 별표·메모·보관함은 세 사이트가 함께 써요.
@@ -13,10 +13,11 @@
 | AI 로봇 `robot/ai_run.py` + `easy_tools.py auto` | 논문·발표·코드·소식 + 새 기능 정리·풀이 요청(초록 기계번역 정리) — 예전 편집장 07시 회차 대신 | 매일 04:30 (`ai.yml`) |
 | 도구 로봇 `robot/tools_run.py` | GitHub 급상승·긱뉴스·해커뉴스·유튜브 해설·모음 목록 | 하루 4번 (`tools.yml`) |
 | 배댓 로봇 `robot/baedat_run.py` | 지난달 한국 유튜브 인기 영상 50개 × 배댓 10개, 유형·감정은 낱말 규칙(토큰 0). 예전 클로드 '배댓 월간판' 예약 작업 대신. 화면은 [사람 자판기](https://jeffreryinko.github.io/vfm-mind/baedat/) 가 이 자료를 읽어요 | 매월 1일 05:23 (`baedat.yml`) |
+| **딜 로봇** `robot/deal_run.py` | 세계 투자 유치·인수합병·사모·상장·펀드 결성 뉴스(직접 RSS 15곳 + 구글 뉴스 13개 나라판) → 같은 거래끼리 묶기·금액 원 환산·단계·분야·나라·회사·투자사, 무료 기계번역. 미국 SEC Form D·상장·합병 서류, 한국 DART 공시를 3년치 + 매일 쌓음. 분류 낱말은 `robot/deal_sources.py` | 하루 4번 07:50·13:50·19:50·00:50 (`deal.yml`) |
 | 라디오 `robot/radio_run.py` | 그날 카드를 오픈소스 음성으로 | `radio.yml` |
 
 ## 비밀 설정 (저장소 Settings → Secrets and variables → Actions)
-`DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`, `YOUTUBE_API_KEY`, `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `REDDIT_USERNAME`
+`DEEPL_API_KEY`, `GOOGLE_TRANSLATE_API_KEY`, `YOUTUBE_API_KEY`, `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `REDDIT_USERNAME`, `SEC_CONTACT_EMAIL`(딜: 미국 SEC가 요구하는 연락처 이메일), `DART_API_KEY`(딜: opendart.fss.or.kr 무료 인증키)
 (없는 키는 그 부분만 건너뜁니다. 번역 키가 둘 다 없으면 제목은 원문으로 보입니다.)
 
 ## 데이터 모양
@@ -39,3 +40,11 @@
 - `_state/stars.tsv` 저장소별 지난 별 수(하루 +N 계산) · `_state/awesome.json` 모음 목록에 이미 있던 줄(처음 돌 때 있던 건 `0` = 새 항목 아님) · `_state/yt.json` 하루 한 번 검색 결과
 - 유튜브 채널 더하기: 채널 주소(@이름)에서 UC로 시작하는 ID를 찾아 `robot/tools_sources.py` 의 `CHANNELS` 에 한 줄
 
+
+## 딜 앱 자료 (`data/deal/`)
+- `now.json` 지금 화면 (최근 4일 거래 `deals` · 이번 주 돈 흐름 `week` · 미국 공시 최근 `secToday`)
+- `news/<날짜>.json` 그날 처음 본 거래 (계속 쌓음, 요약 빼고 가볍게)
+- `formd/<YYYY>Q<n>.json` 미국 Form D 한 줄 = [신고일, 이름, 주/나라, 업종, 펀드종류, 판매액$, 모집액$(-1 무기한), 투자자 수, CIK, 접수번호, 설립연도]
+- `sec/<연도>.json` 상장·합병 서류 [날짜, 서류, 회사, CIK, 경로] · `dart/<연도>.json` [날짜, 종류, 내용, 회사, 시장, 상대, 금액원, 지분%, 사업, 접수번호, 보고서명]
+- `stats.json` 숫자로 보기 · `people.json` 자주 나오는 투자사·회사 · `_state/` 진행 기록(되돌아보기 위치·이미 센 기사 주소)
+- 거래 묶기: 같은 회사+종류, 또는 금액이 10% 안 + 같은 영문 낱말, 또는 제목 낱말 60% 겹침 (4일 안)

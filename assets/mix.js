@@ -7,15 +7,15 @@
 (function () {
   "use strict";
   var D = window.VfmDeck, T = window.VfmTrend, esc = D.esc, flag = T.flag;
-  var KINDS = [["sisa", "시사 이야기·단신"], ["trend", "트렌드 (검색어·영상)"], ["meme", "레딧·밈"], ["ai", "AI 새 기능"], ["tool", "도구·오픈소스"], ["nation", "나라별 오늘"],
+  var KINDS = [["sisa", "시사 이야기·단신"], ["trend", "트렌드 (검색어·영상)"], ["meme", "레딧·밈"], ["ai", "AI 새 기능"], ["tool", "도구·오픈소스"], ["deal", "딜 (투자·인수합병)"], ["nation", "나라별 오늘"],
     ["story", "이야기·역사"], ["wiki", "이야기 원문 (위키백과)"], ["brain", "뇌 부위·뇌과학 소식"], ["baedat", "배댓 (베스트 댓글)"], ["mental", "멘탈리스트 기술"], ["book", "책 (권장도서·목차)"]];
   if (window.VFM_KINDS) KINDS = KINDS.filter(function (k) { return window.VFM_KINDS.indexOf(k[0]) >= 0; });
   var HAS = {}; KINDS.forEach(function (k) { HAS[k[0]] = 1; });
   var ONLY_STORY = HAS.story && !HAS.sisa;                              // 이야기 자판기: 이야기·역사가 주인공
-  var DEF = { sisa: 3, trend: 3, meme: 2, ai: 2, tool: 2, nation: 2, story: ONLY_STORY ? 3 : 1, wiki: 2, brain: 2, baedat: 3, mental: 3, book: 3 };
+  var DEF = { sisa: 3, trend: 3, meme: 2, ai: 2, tool: 2, deal: 2, nation: 2, story: ONLY_STORY ? 3 : 1, wiki: 2, brain: 2, baedat: 3, mental: 3, book: 3 };
   var WNAME = ["끄기", "적게", "보통", "많이", "아주 많이"];
   var W = Object.assign({}, DEF, (function () { try { return JSON.parse(localStorage.getItem("vfm:mix:w") || "{}"); } catch (e) { return {}; } })());
-  var POOL = { sisa: [], trend: [], meme: [], ai: [], tool: [], nation: [], story: [], wiki: [], brain: [], baedat: [], mental: [], book: [] };
+  var POOL = { sisa: [], trend: [], meme: [], ai: [], tool: [], deal: [], nation: [], story: [], wiki: [], brain: [], baedat: [], mental: [], book: [] };
   var CAT = { war: "전쟁·안보", pol: "정치·외교", eco: "경제·시장", tech: "기술·과학", dis: "재난·사고", soc: "사회", spo: "스포츠", cul: "문화" };
   var RK = null; try { RK = new Intl.DisplayNames(["ko"], { type: "region" }); } catch (e) { }
   var cname = function (c) { if (c === "WW") return "세계"; try { return RK ? RK.of(c) : c; } catch (e) { return c; } };
@@ -181,6 +181,28 @@
         } };
     });
     add("tool", []);
+  });
+  // 딜 (data/deal/now.json, 딜 로봇): 오늘·어제 금액 큰 거래 + 한국 거래
+  if (HAS.deal) j("data/deal/now.json").then(function (N) {
+    if (!N || !N.deals) return;
+    var KN = { vc: "투자 유치", ma: "인수합병", pe: "사모·바이아웃", ipo: "상장", fund: "펀드 결성", etc: "기타" };
+    var cut = new Date(Date.now() + 9 * 3600e3 - 864e5).toISOString().slice(0, 10);
+    var won = function (v) { v = +v || 0; return v >= 1e12 ? (v / 1e12).toFixed(v >= 1e13 ? 0 : 1).replace(/\.0$/, "") + "조 원" : v >= 1e8 ? Math.round(v / 1e8).toLocaleString() + "억 원" : ""; };
+    var l = N.deals.filter(function (d) { return d.date >= cut && (d.amt >= 1e10 || (d.cc === "KR" && d.amt)); }).sort(function (a, b) { return (b.amt || 0) - (a.amt || 0); }).slice(0, 40);
+    var out = l.map(function (d) {
+      var ko = d.ko || d.title, orig = d.ko && d.ko !== d.title ? d.title : "";
+      return { key: d.id, kw: KWOF(ko, d.title), sa: "deal", kind: "deal", title: ko, url: d.url, shareText: ko + "\n" + d.url, q: [d.title, ko, d.co, d.tgt, (d.inv || []).join(" ")].join(" "),
+        html: function () {
+          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag deal">딜</span><span>' + esc(KN[d.kind] || "") + "</span><span>" + (d.cc && d.cc.length === 2 ? flag(d.cc) + " " + esc(cname(d.cc)) : "") + "</span></div>" +
+            (d.amt ? '<p class="vdk-t" style="color:#B07A00;margin-bottom:2px">' + esc(won(d.amt)) + "</p>" : "") +
+            '<h2 class="vdk-t">' + esc(ko) + "</h2>" + (orig ? '<p class="vdk-note" style="margin:-6px 0 10px">' + esc(orig) + "</p>" : "") +
+            (d.co ? '<p class="vdk-p"><b>' + esc(d.co) + "</b>" + (d.tgt ? " → " + esc(d.tgt) : "") + "</p>" : "") +
+            ((d.inv || []).length ? '<p class="vdk-note">투자: ' + esc(d.inv.join(" · ")) + "</p>" : "") +
+            '<a class="vdk-more" href="' + esc(d.url) + '" target="_blank" rel="noopener">' + (d.t === "formd" ? "SEC 신고서 보기 ↗" : d.t === "dart" ? "DART 공시 보기 ↗" : "기사 원문 ↗") + "</a>" +
+            '<button type="button" class="vdk-more"' + go("deal/#f=" + encodeURIComponent(d.id)) + ">딜 앱에서 이 카드부터 보기 ›</button></div>";
+        } };
+    });
+    add("deal", out);
   });
   // 이야기·역사 (가끔): 첫 카드가 뜬 다음에 받음
   if (HAS.story) (function () {
@@ -516,6 +538,6 @@
     ".mx-tag.nation{background:color-mix(in srgb,var(--ap-teal) 18%,transparent);color:var(--ap-teal)}.mx-tag.ai{background:color-mix(in srgb,var(--ap-purple) 15%,transparent);color:var(--ap-purple-t)}" +
     ".mx-tag.story{background:color-mix(in srgb,var(--ap-orange) 16%,transparent);color:var(--ap-orange-t)}.mx-tag.tool{background:color-mix(in srgb,#30B0C7 18%,transparent);color:#0A7A8C}" +
     ".mx-tag.brain{background:color-mix(in srgb,#E0457B 15%,transparent);color:#C2185B}.mx-tag.baedat{background:color-mix(in srgb,var(--ap-red,#FF3B30) 14%,transparent);color:#D70015}" +
-    ".mx-tag.book{background:color-mix(in srgb,#34A853 16%,transparent);color:#1E7E34}.mx-tag.mental{background:color-mix(in srgb,#5856D6 15%,transparent);color:#4B49C8}.mx-cm{font-size:19px;line-height:1.55;font-weight:600;margin:6px 0 4px;white-space:pre-line;letter-spacing:-.01em}.vdk .new{color:var(--ap-blue-t)}";
+    ".mx-tag.deal{background:color-mix(in srgb,#E0A100 18%,transparent);color:#8F6200}.mx-tag.book{background:color-mix(in srgb,#34A853 16%,transparent);color:#1E7E34}.mx-tag.mental{background:color-mix(in srgb,#5856D6 15%,transparent);color:#4B49C8}.mx-cm{font-size:19px;line-height:1.55;font-weight:600;margin:6px 0 4px;white-space:pre-line;letter-spacing:-.01em}.vdk .new{color:var(--ap-blue-t)}";
   document.head.appendChild(css);
 })();

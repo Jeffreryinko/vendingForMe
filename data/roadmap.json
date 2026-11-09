@@ -1,6 +1,18 @@
 {
-"updatedAt": "2026-11-09T17:30:00+09:00",
+"updatedAt": "2026-11-10T07:20:00+09:00",
 "items": [
+{
+"app": "deal",
+"who": "me",
+"t": "SEC 연락처 이메일 넣기",
+"d": "GitHub 저장소 → Settings → Secrets → SEC_CONTACT_EMAIL (미국 Form D·상장·합병 3년치가 열림)"
+},
+{
+"app": "deal",
+"who": "me",
+"t": "DART 열쇠 넣기",
+"d": "opendart.fss.or.kr 무료 인증키 → Secrets → DART_API_KEY (한국 합병·지분 인수·증자 3년치)"
+},
 {
 "app": "baedat",
 "who": "claude",

@@ -29,6 +29,7 @@
   .ic.ai{background:linear-gradient(160deg,#D68CFF 0%,#A346F0 55%,#6E2BD9 100%)}
   .ic.history{background:linear-gradient(160deg,#C9A57A 0%,#A2845E 55%,#7A5F3E 100%)}
   .ic.tools{background:linear-gradient(160deg,#6FDCEB 0%,#30B0C7 55%,#0A7A8C 100%)}
+  .ic.deal{background:linear-gradient(160deg,#FFD66B 0%,#E0A100 55%,#8F6200 100%)}
   .ic.brain{background:linear-gradient(160deg,#FF9DBD 0%,#E0457B 55%,#A3124A 100%)}
   .ic.box{background:linear-gradient(160deg,#9DA3AF 0%,#6B7280 55%,#4B5160 100%)}
   .nm{font:700 20px/1.2 var(--ap-display);letter-spacing:-.02em;margin:0}
@@ -54,7 +55,7 @@
 </style>
 </head>
 <body>
-<script>window.VFM_APP = "home"; window.VFM_KINDS = ["sisa", "trend", "meme", "ai", "tool", "nation"];</script>
+<script>window.VFM_APP = "home"; window.VFM_KINDS = ["sisa", "trend", "meme", "ai", "tool", "deal", "nation"];</script>
 <script src="assets/claude-shim.js"></script>
 <script src="assets/deck.js"></script>
 <script src="assets/trendcard.js"></script>
@@ -77,6 +78,11 @@
     <button class="app" data-app="tools">
       <span class="ic tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0 5 5l-8.4 8.4a2.1 2.1 0 0 1-3-3z"/><path d="M14.7 6.3L17 4l3 3-2.3 2.3"/><path d="M4 4l5 5M3 7.5L7.5 3"/></svg></span>
       <span><p class="nm">도구</p><p class="ds">요즘 뜨는 AI 도구·오픈소스·활용법</p><p class="st" id="st-tools"><i></i><span>불러오는 중</span></p></span>
+      <span class="chev">›</span>
+    </button>
+    <button class="app" data-app="deal">
+      <span class="ic deal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 4 8-8"/><path d="M14 8h6v6"/></svg></span>
+      <span><p class="nm">딜</p><p class="ds">세계 투자 유치·인수합병·상장·펀드</p><p class="st" id="st-deal"><i></i><span>불러오는 중</span></p></span>
       <span class="chev">›</span>
     </button>
     <button class="app" data-app="box">
@@ -125,7 +131,7 @@
   j("data/roadmap.json").then(function (r) {
     var box = document.getElementById("plan"); if (!box) return;
     if (!r || !r.items || !r.items.length) { box.innerHTML = '<div class="it"><div class="d">예정된 일이 없어요</div></div>'; return; }
-    var NM = { mental: "맨탈", baedat: "배댓", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌" };
+    var NM = { mental: "맨탈", baedat: "배댓", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", deal: "딜" };
     function e(x) { return String(x || "").replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
     box.innerHTML = r.items.map(function (it) {
       return '<div class="it"><div class="t"><span class="tag">' + e(NM[it.app] || it.app) + '</span>' + e(it.t) + (it.who === "me" ? '<span class="tag me">내가 할 일</span>' : "") + '</div><div class="d">' + e(it.d) + "</div></div>";
@@ -135,8 +141,9 @@
   j("data/sisa/_meta.json").then(function (m) { paint("sisa", m && m.updatedAt, m ? "<b>새 소식 " + (m.counts ? n(m.counts.new_news != null ? m.counts.new_news : m.counts.new_items) : "") + "</b>" : "", 6); });
   j("data/ai/_index.json").then(function (x) { var c = (x && x.counts) || {}; paint("ai", x && x.at, x ? "<b>추천 논문 " + n(c.hf) + "편</b>" : "", 30); });
   j("data/tools/_index.json").then(function (x) { paint("tools", x && x.at, x ? "<b>새 것 " + n(x.new) + "개</b>" : "", 12); });
+  j("data/deal/_index.json").then(function (x) { paint("deal", x && x.at, x ? "<b>새 거래 " + n(x.new) + "건</b>" : "", 12); });
   try { var nq = JSON.parse(localStorage.getItem("vfm:box:qs") || "[]").length, nt = JSON.parse(localStorage.getItem("vfm:box:think") || "[]").length; if (nq || nt) document.getElementById("boxN").textContent = "질문 " + nq + " · 생각 " + nt; } catch (e) { }
-  var NAME = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", baedat: "배댓", mental: "맨탈" }, lastApp = null;
+  var NAME = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", baedat: "배댓", mental: "맨탈", deal: "딜" }, lastApp = null;
   try { lastApp = localStorage.getItem("vfm:tab"); } catch (e) { }
   if (NAME[lastApp]) document.getElementById("last").innerHTML = "&nbsp;지난번에 본 곳: " + NAME[lastApp];
 

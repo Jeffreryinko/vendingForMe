@@ -1,0 +1,548 @@
+<!doctype html><html lang="ko" class="ap ap-deal"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>window.VFM_APP="deal";</script>
+<script src="../assets/claude-shim.js"></script>
+<script src="../assets/deck.js"></script>
+<link rel="manifest" href="../manifest.webmanifest"><meta name="theme-color" content="#F2F2F7"><link rel="apple-touch-icon" href="../assets/icon-192.png">
+<title>딜 자판기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../assets/apple.css">
+<style>
+/* 딜 — 세계 투자 유치·인수합병·사모·상장·펀드 결성. 로봇(robot/deal_run.py)이 하루 4번 모아 같은 거래끼리 묶어 둠. 자료는 data/deal/
+   메뉴 [오늘 · 탐색 · 따라가기 · 보관함]. 공식 신고 자료(미국 SEC Form D·상장·합병 서류, 한국 DART)는 탐색 아래 '숫자·공시'에서. */
+:root{--bg:#F2F2F7;--surface:#fff;--sunk:#E9E9EE;--ink:#000;--muted:#6E6E73;--line:#E5E5EA;--accent:#8F6200;--accent-ink:#fff;--accent-soft:#FBF0D5;
+  --up:#1E7F4F;--up-soft:#DDF2E6;--fs:1;--r:14px;--nav-h:58px;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--surface:#1C1C1E;--sunk:#2C2C2E;--ink:#fff;--muted:#98989F;--line:#38383A;--accent:#FFC94D;--accent-soft:#3A2E12;--up:#5BD18F;--up-soft:#173325;color-scheme:dark}
+  html.ap.ap-deal:not([data-theme="light"]){--accent-ink:#2B1D00}}
+:root[data-theme="dark"]{--bg:#000;--surface:#1C1C1E;--sunk:#2C2C2E;--ink:#fff;--muted:#98989F;--line:#38383A;--accent:#FFC94D;--accent-soft:#3A2E12;--up:#5BD18F;--up-soft:#173325;color-scheme:dark}
+html.ap.ap-deal[data-theme="dark"]{--accent-ink:#2B1D00}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--ap-font,system-ui);font-size:calc(15px*var(--fs));line-height:1.55;word-break:keep-all;overflow-wrap:break-word;
+  padding:0 max(14px,env(safe-area-inset-right,0px)) calc(var(--nav-h) + 24px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
+[hidden]{display:none!important}button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}a{color:var(--accent)}
+.wrap{max-width:660px;margin:0 auto}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding:14px 2px 2px}
+.lt{margin:0;font:800 34px/1.15 var(--ap-display);letter-spacing:-.03em}
+.ib{width:36px;height:36px;border-radius:50%;border:0;background:var(--ap-fill);color:var(--accent);display:grid;place-items:center;font-size:17px;font-weight:600;flex:none}
+.sub{font-size:13px;color:var(--muted);margin:2px 2px 8px}
+h2.sec{font:700 20px/1.25 var(--ap-display);letter-spacing:-.02em;margin:24px 2px 8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+h2.sec small{font:400 13px var(--ap-font);color:var(--muted);letter-spacing:0;flex:1}h2.sec button{background:none;border:0;color:var(--accent);font:600 14px var(--ap-font);padding:0;flex:none}
+.note{font-size:13px;color:var(--muted);margin:0 2px 8px}.health{font-size:13px;color:#C24E00;margin:6px 2px}
+.chips{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:6px -14px;padding:0 14px}.chips::-webkit-scrollbar{display:none}
+.chips button{flex:0 0 auto;padding:7px 13px;border-radius:999px;border:0;background:var(--ap-fill);font-size:14px;color:var(--ink)}.chips button small{color:var(--muted);font-size:12px;margin-left:3px}
+.chips button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}.chips button.on small{color:inherit;opacity:.8}
+.flab{font-size:12px;color:var(--muted);font-weight:600;margin:10px 2px 0}
+.card{display:flex;gap:12px;width:100%;text-align:left;background:var(--surface);border:0;border-radius:var(--r);padding:13px 14px;margin:0 0 8px;position:relative;transition:transform .12s}.card:active{transform:scale(.985)}
+.card.read{opacity:.55}.card.star{box-shadow:inset 0 0 0 1.5px var(--ap-orange)}
+.card .bx{flex:1;min-width:0}
+.card .amt{font:750 17px/1.25 var(--ap-display);letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin:0 0 2px;color:var(--accent)}
+.card .amt small{font:500 12.5px var(--ap-font);color:var(--muted);letter-spacing:0;margin-left:5px}
+.card .t{font-weight:650;letter-spacing:-.015em;font-size:calc(15px*var(--fs));line-height:1.42;margin:0 0 3px}
+.card .o{font-size:12.5px;color:var(--muted);margin:0 0 5px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.card .fl{flex:none;width:34px;height:34px;border-radius:10px;background:var(--sunk);display:grid;place-items:center;font-size:20px}
+.meta{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:12px;color:var(--muted)}
+.bd{display:inline-block;padding:2px 7px;border-radius:6px;font-weight:600;font-size:11.5px;background:var(--ap-fill)}
+.bd.k{background:var(--accent-soft);color:var(--accent)}.bd.new{background:var(--up-soft);color:var(--up)}.bd.fil{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}.bd.fol{background:var(--up);color:#fff}
+.btn{font-size:15px;font-weight:600;padding:11px 18px;border-radius:12px;border:0;background:var(--ap-fill);color:var(--accent);text-decoration:none;display:inline-block;text-align:center}
+.btn.pri{background:var(--accent);color:var(--accent-ink)}.btn.sm{padding:8px 13px;font-size:14px;border-radius:10px}.more{width:100%;margin:4px 0 0}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0}
+.tile{border:0;background:var(--surface);border-radius:14px;padding:12px 14px;text-align:left}.tile b{display:block;font:700 16px var(--ap-display)}.tile small{color:var(--muted);font-size:12.5px;line-height:1.35;display:block}
+.search{width:100%;padding:11px 14px;border-radius:10px;border:0;background:var(--ap-fill);color:inherit;font:inherit;font-size:16px;margin:8px 0}
+.empty{text-align:center;color:var(--muted);padding:40px 0;font-size:14px}
+.list{background:var(--surface);border-radius:var(--r);padding:0 16px;margin:0 0 10px}
+.list .li{display:flex;gap:10px;align-items:center;width:100%;text-align:left;padding:11px 0;border:0;border-bottom:.5px solid var(--ap-sep);background:none;color:inherit;text-decoration:none}.list .li:last-child{border-bottom:0}
+.list .li .bx{flex:1;min-width:0}.list .li .t{font-weight:600;margin:0 0 1px;font-size:calc(14.5px*var(--fs))}.list .li .s{font-size:12.5px;color:var(--muted);margin:0}
+.list .li .v{flex:none;font-weight:650;font-variant-numeric:tabular-nums;font-size:14px;color:var(--accent);text-align:right}
+.bars{background:var(--surface);border-radius:var(--r);padding:12px 14px;margin:0 0 10px}
+.bar{display:grid;grid-template-columns:7.5em 1fr auto;gap:8px;align-items:center;font-size:13px;margin:5px 0}
+.bar i{display:block;height:10px;border-radius:5px;background:var(--accent);min-width:2px}.bar span{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12.5px;text-align:right}
+.bar b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cols{display:flex;align-items:flex-end;gap:3px;height:120px;margin:10px 0 4px}.cols div{flex:1;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;position:relative}
+.cols div.alt{background:var(--up)}.cols-l{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.fol-row{display:flex;gap:8px;margin:8px 0}.fol-row input{flex:1;margin:0}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);display:flex;z-index:6}
+nav.tabs button{flex:1;border:0;background:none;display:grid;justify-items:center;align-content:center;gap:1px}
+nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
+.back{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9500;display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:560px;max-height:88vh;overflow:auto;background:var(--bg);border-radius:14px 14px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom,0px));animation:up .24s cubic-bezier(.2,.8,.2,1)}
+@keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
+.sheet .grab{width:36px;height:5px;border-radius:3px;background:var(--ap-label3);margin:0 auto 10px}
+.sheet h3{margin:0 0 4px;font:700 20px/1.35 var(--ap-display);letter-spacing:-.02em}
+.sheet .big{font:800 26px/1.2 var(--ap-display);letter-spacing:-.02em;color:var(--accent);margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.sheet .orig{font-size:13px;color:var(--muted);margin:0 0 8px}
+.sheet .body{background:var(--surface);border-radius:12px;padding:12px 14px;margin:10px 0;font-size:calc(14.5px*var(--fs))}
+.kv{display:grid;grid-template-columns:5.5em 1fr;gap:6px 10px;font-size:14px}.kv dt{color:var(--muted)}.kv dd{margin:0}
+.nm{display:inline-flex;align-items:center;gap:4px;border:0;background:var(--ap-fill);border-radius:999px;padding:4px 10px;margin:2px 4px 2px 0;font-size:13.5px}.nm.on{background:var(--up);color:#fff}
+.sheet textarea{width:100%;min-height:70px;border-radius:10px;border:0;background:var(--surface);padding:10px 12px;font:inherit;font-size:15px;color:inherit;resize:vertical}
+.sheet .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(30,30,30,.92);color:#fff;padding:9px 15px;border-radius:14px;font-size:13.5px;z-index:9600}
+.help{background:var(--surface);border-radius:var(--r);padding:12px 14px;margin:8px 0;font-size:13.5px;color:var(--muted)}.help b{color:var(--ink)}
+.vdk .vdk-amt{font:800 30px/1.15 var(--ap-display);letter-spacing:-.02em;color:var(--accent);margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.vdk .vdk-amt small{display:block;font:500 13px var(--ap-font);color:var(--muted);letter-spacing:0;margin-top:3px}
+</style></head><body>
+<div class="wrap" id="app"></div>
+<nav class="tabs" id="tabs">
+  <button data-v="today" aria-current="page"><b>☀︎</b>오늘</button>
+  <button data-v="x"><b>⌕</b>탐색</button>
+  <button data-v="follow"><b>◎</b>따라가기</button>
+  <button data-v="shelf"><b>☆</b>보관함</button>
+</nav>
+<script>
+"use strict";
+/* ───── 상태 (폰 브라우저에만 저장) ───── */
+const LS = { g(k, d) { try { const v = localStorage.getItem("vfm:deal:" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+             s(k, v) { try { localStorage.setItem("vfm:deal:" + k, JSON.stringify(v)); } catch (e) { toast("저장 공간이 꽉 찼어요"); } } };
+const S = { star: LS.g("star", {}), read: LS.g("read", {}), hide: LS.g("hide", {}), memo: LS.g("memo", {}), fol: LS.g("fol", {}), kind: LS.g("kind", ""),
+            idx: null, now: null, byId: {}, days: {}, files: {}, wk: LS.g("wk", "sec") };
+const F = Object.assign({ q: "", per: 7, kind: "", stage: "", sec: "", cc: "", band: "", sort: "amt" }, LS.g("F", {}), { q: "" });
+function save(k) { LS.s(k, S[k]); }
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+function toast(m) { const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); }
+const getJ = p => fetch("../data/deal/" + p, { cache: "no-cache" }).then(r => { if (!r.ok) throw new Error(p + " " + r.status); return r.json(); });
+function ago(iso) { if (!iso) return ""; const m = Math.round((Date.now() - Date.parse(iso)) / 60000); if (m < 60) return Math.max(m, 1) + "분 전"; const h = Math.floor(m / 60); if (h < 48) return h + "시간 전"; return Math.floor(h / 24) + "일 전"; }
+const kst = (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
+function dayLbl(d) { if (!d) return ""; const td = kst(), y = kst(Date.now() - 864e5); return d === td ? "오늘" : d === y ? "어제" : (+d.slice(5, 7)) + "/" + (+d.slice(8, 10)); }
+// 금액 (원) → '1.2조 원' · '3,400억 원' · '12억 원'
+function won(v) { v = +v || 0; if (!v) return ""; if (v >= 1e12) return (v / 1e12).toFixed(v >= 1e13 ? 0 : 1).replace(/\.0$/, "") + "조 원"; if (v >= 1e8) return Math.round(v / 1e8).toLocaleString() + "억 원"; return Math.round(v / 1e4).toLocaleString() + "만 원"; }
+function usd(v) { v = +v || 0; return v >= 1e9 ? "$" + (v / 1e9).toFixed(1).replace(/\.0$/, "") + "B" : v >= 1e6 ? "$" + Math.round(v / 1e6) + "M" : "$" + Math.round(v / 1e3) + "K"; }
+const FLAG = { EU: "🇪🇺", ME: "🌍", AF: "🌍", LATAM: "🌎", SEA: "🌏", WW: "🌐" };
+const flag = c => FLAG[c] || (c && c.length === 2 ? String.fromCodePoint(...[...c].map(x => 0x1F1A5 + x.charCodeAt(0))) : "🌐");
+const KN = () => Object.fromEntries((S.idx.kinds || []).map(x => [x[0], x[1]]));
+const SN = () => Object.fromEntries((S.idx.sectors || []).map(x => [x[0], x[1]]));
+const STN = () => Object.fromEntries((S.idx.stages || []).map(x => [x[0], x[1]]));
+const CN = c => (S.idx.regions || {})[c] || c;
+const SRC_T = { formd: "미국 Form D 신고", dart: "한국 공시" };
+
+/* ───── 자료 ───── */
+async function loadAll() {
+  [S.idx, S.now] = await Promise.all([getJ("_index.json"), getJ("now.json")]);
+  for (const d of S.now.deals || []) S.byId[d.id] = d;
+}
+async function loadDays(n) {                                                  // 최근 n일 쌓인 파일 (now.json 보다 넓게)
+  const want = (S.idx.days || []).slice(-n);
+  await Promise.all(want.filter(d => !S.days[d]).map(d => getJ(`news/${d}.json`).then(x => { S.days[d] = x.items || []; }).catch(() => { S.days[d] = []; })));
+  const seen = new Set(), out = [];
+  for (const d of (S.now.deals || [])) { seen.add(d.id); out.push(d); }
+  for (const day of want.slice().reverse()) for (const d of S.days[day]) if (!seen.has(d.id)) { seen.add(d.id); out.push(d); if (!S.byId[d.id]) S.byId[d.id] = d; }
+  const cut = kst(Date.now() - (n - 1) * 864e5);
+  return out.filter(d => d.date >= cut);
+}
+const vis = l => l.filter(d => !S.hide[d.id] && (!S.kind || d.kind === S.kind));
+const big = (a, b) => (b.amt || 0) - (a.amt || 0) || (b.n || 1) - (a.n || 1);
+const folNames = () => Object.keys(S.fol);
+function folHit(d) { const hay = [d.title, d.ko, d.co, d.tgt, (d.inv || []).join(" ")].join(" ").toLowerCase(); return folNames().filter(n => hay.includes(n.toLowerCase())); }
+
+/* ───── 카드 ───── */
+function amtLine(d) {
+  if (!d.amt) return "";
+  const orig = d.amtS && !/[원조억만]$/.test(d.amtS) ? d.amtS : d.usd ? usd(d.usd) : "";
+  return `<p class="amt">${won(d.amt)}${orig ? `<small>${esc(orig)}</small>` : ""}</p>`;
+}
+function badges(d) {
+  const b = [`<span class="bd k">${esc(KN()[d.kind] || "기타")}</span>`];
+  if (d.stage) b.push(`<span class="bd">${esc(STN()[d.stage] || d.stage)}</span>`);
+  if (SRC_T[d.t]) b.push(`<span class="bd fil">${SRC_T[d.t]}</span>`);
+  if (d.new) b.push('<span class="bd new">NEW</span>');
+  if (folHit(d).length) b.push('<span class="bd fol">따라가는 이름</span>');
+  return b.join("");
+}
+function card(d) {
+  const read = S.read[d.id] ? " read" : "", star = S.star[d.id] ? " star" : "";
+  const ko = d.ko || d.title, orig = d.ko && d.ko !== d.title ? d.title : "";
+  const sec = (d.sec || []).filter(s => s !== "etc").map(s => SN()[s] || s).join(" · ");
+  return `<button class="card${read}${star}" data-open="${esc(d.id)}"><span class="fl" aria-hidden="true">${flag(d.cc)}</span><div class="bx">${amtLine(d)}
+    <p class="t">${esc(ko)}</p>${orig ? `<p class="o">${esc(orig)}</p>` : ""}
+    <div class="meta">${badges(d)}<span>${esc(CN(d.cc))}</span>${sec ? `<span>${esc(sec)}</span>` : ""}${(d.n || 1) > 1 ? `<span>보도 ${d.n}곳</span>` : ""}<span>${dayLbl(d.date)}</span>${S.memo[d.id] ? "<span>✎ 메모</span>" : ""}</div></div></button>`;
+}
+function kindChips(lst) {
+  const cnt = {}; for (const d of lst) cnt[d.kind] = (cnt[d.kind] || 0) + 1;
+  return `<div class="chips"><button data-kind="" class="${S.kind ? "" : "on"}">전체<small>${lst.length}</small></button>${(S.idx.kinds || []).filter(k => cnt[k[0]]).map(k => `<button data-kind="${k[0]}" class="${S.kind === k[0] ? "on" : ""}">${esc(k[1])}<small>${cnt[k[0]]}</small></button>`).join("")}</div>`;
+}
+
+/* ───── 넘겨보기 (assets/deck.js) ───── */
+const D = window.VfmDeck || null;
+const MODE = "deal";
+const isDeck = () => !!D && D.mode(MODE) === "deck";
+function toList() { try { localStorage.setItem("vfm:mode:" + MODE, '"list"'); } catch (e) { } paint(); }
+function deckCard(d) {
+  const ko = d.ko || d.title, orig = d.ko && d.ko !== d.title ? d.title : "";
+  const sec = (d.sec || []).filter(s => s !== "etc").map(s => SN()[s] || s).join(" · ");
+  const sum = d.ksum || d.sum || "";
+  return `<div class="vdk-body"><div class="vdk-k">${badges(d)}<span>${flag(d.cc)} ${esc(CN(d.cc))}</span><span>${dayLbl(d.date)}</span></div>
+    ${d.amt ? `<p class="vdk-amt">${won(d.amt)}<small>${esc(d.amtS && !/[원조억만]$/.test(d.amtS) ? d.amtS : d.usd ? usd(d.usd) : "")}${d.val ? " · 기업가치 " + won(d.val) : ""}</small></p>` : ""}
+    <h2 class="vdk-t">${esc(ko)}</h2>${orig ? `<p class="vdk-note" style="margin:-6px 0 10px">${esc(orig)}</p>` : ""}
+    ${who(d)}
+    ${sum ? `<p class="vdk-h">기사 요약</p><p class="vdk-p">${esc(sum.slice(0, 360))}</p>` : ""}
+    ${sec ? `<p class="vdk-note">분야: ${esc(sec)}${(d.n || 1) > 1 ? ` · 보도 ${d.n}곳` : ""}</p>` : (d.n || 1) > 1 ? `<p class="vdk-note">보도 ${d.n}곳</p>` : ""}
+    <a class="vdk-more" href="${esc(d.url)}" target="_blank" rel="noopener">${d.t === "formd" ? "SEC 신고서 보기 ↗" : d.t === "dart" ? "DART 공시 보기 ↗" : "기사 원문 ↗"}</a>
+    <button type="button" class="vdk-more" data-open="${esc(d.id)}">자세히 · 따라가기 · 별표 ›</button></div>`;
+}
+function who(d) {
+  const r = [];
+  if (d.co) r.push(`<p class="vdk-p" style="margin:0 0 4px"><b>${esc(d.co)}</b>${d.tgt ? ` → ${esc(d.tgt)}` : ""}</p>`);
+  if ((d.inv || []).length) r.push(`<p class="vdk-note" style="margin:0 0 8px">투자: ${esc(d.inv.join(" · "))}</p>`);
+  return r.join("");
+}
+function deckItems(lst) { return lst.map(d => ({ key: d.id, sa: "deal", title: d.ko || d.title, url: d.url, shareText: shareText(d), html: () => deckCard(d), d })); }
+function todayOrder() {                                                        // 오늘·어제 큰 거래 먼저, 네 장마다 한국 한 장
+  const cut = kst(Date.now() - 864e5);
+  const pool = vis(S.now.deals || []).filter(d => d.date >= cut).sort(big);
+  const kr = pool.filter(d => d.cc === "KR"), rest = pool.filter(d => d.cc !== "KR"), out = [];
+  while (kr.length || rest.length) { for (let i = 0; i < 3 && rest.length; i++) out.push(rest.shift()); if (kr.length) out.push(kr.shift()); }
+  const older = vis(S.now.deals || []).filter(d => d.date < cut).sort(big);
+  return out.concat(older);
+}
+function makeDeck(id, list, empty) {
+  return D.create({ id, app: "deal", emptyTitle: empty || "카드가 없어요", items: () => deckItems(list()),
+    onShow(x) { if (x.d && !S.read[x.d.id]) { S.read[x.d.id] = 1; save("read"); } }, onList: toList });
+}
+function modeBar() { return D ? D.modeSwitch(MODE, () => paint()) : ""; }
+
+/* ───── 화면: 오늘 ───── */
+function head(title, sub, right = "") { return `<div class="top"><h1 class="lt">${title}</h1><div class="row">${right}</div></div>${sub ? `<p class="sub">${sub}</p>` : ""}`; }
+function backTop(right = "") { return `<div class="top"><button class="ib" data-act="back" aria-label="뒤로">‹</button><div class="row">${right}</div></div>`; }
+function broken() { const b = Object.keys(S.idx.broken || {}); return b.length ? `<p class="health">⚠︎ 지금 못 읽는 출처 ${b.length}곳: ${esc(b.slice(0, 4).join(", "))}${b.length > 4 ? " 등" : ""} (나머지 출처로 보여 줘요)</p>` : ""; }
+function bars(map, nameOf, n = 8) {
+  const rows = Object.entries(map || {}).filter(([k]) => k !== "etc" && k !== "WW").sort((a, b) => b[1][1] - a[1][1] || b[1][0] - a[1][0]).slice(0, n);
+  const mx = Math.max(1, ...rows.map(r => r[1][1]));
+  return rows.length ? `<div class="bars">${rows.map(([k, v]) => `<div class="bar"><b>${esc(nameOf(k))}</b><i style="width:${Math.max(2, 100 * v[1] / mx)}%"></i><span>${won(v[1]) || "-"} · ${v[0]}건</span></div>`).join("")}</div>` : "";
+}
+function renderToday() {
+  const all = (S.now.deals || []).filter(d => !S.hide[d.id]);
+  const cut = kst(Date.now() - 864e5), recent = vis(all.filter(d => d.date >= cut));
+  let h = head("딜", `${ago(S.now.at)} 갱신 · 새 거래 ${S.idx.new || 0}건 · 1달러 ${Math.round((S.idx.fx || {}).USD || 0).toLocaleString()}원`, '<button class="ib" data-act="find" aria-label="찾기">⌕</button>') + broken();
+  const fh = all.filter(d => d.new && folHit(d).length);
+  if (fh.length) h += `<button class="tile" style="width:100%;margin:6px 0" data-go="#follow"><b>◎ 따라가는 이름 새 소식 ${fh.length}건</b><small>${esc([...new Set(fh.flatMap(folHit))].slice(0, 5).join(" · "))}</small></button>`;
+  h += kindChips(all.filter(d => d.date >= cut));
+  if (!LS.g("helpSeen", 0)) h += `<div class="help"><b>이 앱은</b> 세계 스타트업 투자 유치·인수합병(M&A)·사모펀드·상장(IPO)·펀드 결성 소식을 하루 4번 모아, 같은 거래를 다룬 기사끼리 한 장으로 묶어 둡니다. 금액은 그날 환율로 원으로 바꿔 보여 줘요.<br>미국 SEC·한국 DART 공식 신고 자료도 함께 쌓아요(탐색 → 숫자·공시). 회사·투자사 이름을 <b>따라가기</b>에 넣으면 새 거래가 뜰 때 표시해 줍니다. <button class="btn sm" data-act="helpok" style="margin-top:6px">알겠어요</button></div>`;
+  h += modeBar();
+  if (isDeck()) return h + `<p class="note">오늘·어제 금액 큰 거래부터, 네 장마다 한국 거래 한 장. 옆으로 밀면 다음.</p>` + makeDeck("deal-today" + (S.kind || ""), todayOrder, "새 거래 카드를 다 봤어요").html();
+  const top = recent.slice().sort(big);
+  h += `<h2 class="sec">오늘의 큰 거래<small>오늘·어제, 금액 순</small><button data-go="#x" data-per="3">전부 ›</button></h2>` + (top.filter(d => d.amt).slice(0, 10).map(card).join("") || '<p class="note">금액이 나온 거래가 아직 없어요</p>');
+  const kr = top.filter(d => d.cc === "KR");
+  if (kr.length) h += `<h2 class="sec">🇰🇷 한국<small>${kr.length}건</small><button data-go="#x" data-cc="KR">전부 ›</button></h2>` + kr.slice(0, 8).map(card).join("");
+  if (!S.kind) for (const k of ["ma", "pe", "ipo", "fund"]) {
+    const l = top.filter(d => d.kind === k && d.cc !== "KR"); if (!l.length) continue;
+    h += `<h2 class="sec">${esc(KN()[k])}<small>${l.length}건</small><button data-go="#x" data-k="${k}">전부 ›</button></h2>` + l.slice(0, 5).map(card).join("");
+  }
+  const W = S.now.week || {}, wn = { sec: "분야", cc: "나라", kind: "종류" }[S.wk];
+  h += `<h2 class="sec">이번 주 돈 흐름<small>지난 7일 · 금액 합</small></h2><div class="chips">${["sec", "cc", "kind"].map(k => `<button data-wk="${k}" class="${S.wk === k ? "on" : ""}">${{ sec: "분야별", cc: "나라별", kind: "종류별" }[k]}</button>`).join("")}</div>`;
+  h += bars(W[S.wk], S.wk === "sec" ? (k => SN()[k] || k) : S.wk === "cc" ? (k => flag(k) + " " + CN(k)) : (k => KN()[k] || k)) || `<p class="note">아직 ${wn}별로 쌓인 게 없어요</p>`;
+  h += `<p class="note">기사에 금액이 나온 거래만 더해요. 같은 거래를 여러 매체가 써도 한 번만.</p>`;
+  const st = S.now.secToday || [];
+  if (st.length) h += `<h2 class="sec">미국 공시 최근<small>상장·합병 서류 ${st.length}건</small><button data-go="#sec">전부 ›</button></h2>` + secList(st.slice(-8).reverse());
+  return h;
+}
+function secList(rows) {
+  const F2 = S.idx.secForms || {};
+  return `<div class="list">${rows.map(r => `<a class="li" href="https://www.sec.gov/Archives/${esc(r[4])}" target="_blank" rel="noopener"><div class="bx"><p class="t">${esc(r[2])}</p><p class="s">${esc(F2[r[1]] || r[1])} · ${dayLbl(r[0])}</p></div></a>`).join("")}</div>`;
+}
+
+/* ───── 화면: 탐색 ───── */
+let xLimit = 60;
+function chipRow(key, items, label) {
+  return `<p class="flab">${label}</p><div class="chips"><button data-f="${key}" data-val="" class="${F[key] ? "" : "on"}">전체</button>${items.map(([v, n, c]) => `<button data-f="${key}" data-val="${esc(v)}" class="${String(F[key]) === String(v) ? "on" : ""}">${esc(n)}${c != null ? `<small>${c}</small>` : ""}</button>`).join("")}</div>`;
+}
+async function renderX() {
+  const pool0 = await loadDays(F.per);
+  const q = F.q.trim().toLowerCase();
+  const pass = (d, skip) => (!F.kind || skip === "kind" || d.kind === F.kind) && (!F.stage || skip === "stage" || d.stage === F.stage) && (!F.sec || skip === "sec" || (d.sec || []).includes(F.sec))
+    && (!F.cc || skip === "cc" || d.cc === F.cc) && (!F.band || skip === "band" || d.band === F.band) && !S.hide[d.id]
+    && (!q || [d.title, d.ko, d.co, d.tgt, (d.inv || []).join(" "), d.src, S.memo[d.id]].join(" ").toLowerCase().includes(q));
+  const cnt = (key, f) => { const m = {}; for (const d of pool0) if (pass(d, key)) for (const v of [].concat(f(d) || [])) if (v) m[v] = (m[v] || 0) + 1; return m; };
+  let lst = pool0.filter(d => pass(d));
+  lst.sort(F.sort === "new" ? ((a, b) => (b.date + (b.at || "")).localeCompare(a.date + (a.at || ""))) : F.sort === "n" ? ((a, b) => (b.n || 1) - (a.n || 1) || big(a, b)) : big);
+  const ck = cnt("kind", d => d.kind), cs = cnt("stage", d => d.stage), cse = cnt("sec", d => d.sec), cc = cnt("cc", d => d.cc), cb = cnt("band", d => d.band);
+  let h = head("탐색", `최근 ${F.per}일 거래 ${pool0.length.toLocaleString()}건 중 ${lst.length.toLocaleString()}건`);
+  h += `<input class="search" id="xq" type="search" placeholder="회사·투자사·낱말 (예: 엔비디아, 시리즈 B, 소프트뱅크)" value="${esc(F.q)}">`;
+  h += `<div class="grid"><button class="tile" data-go="#stats"><b>숫자로 보기</b><small>달·분기마다 돈 흐름</small></button><button class="tile" data-go="#formd"><b>미국 비상장 신고</b><small>${S.idx.secKey ? `Form D ${(S.idx.formd || []).length}분기` : "이메일 넣으면 시작"}</small></button><button class="tile" data-go="#sec"><b>미국 상장·합병 서류</b><small>S-1·S-4·공개매수 등</small></button><button class="tile" data-go="#dart"><b>한국 공시</b><small>${S.idx.dartKey ? "합병·지분 인수·증자" : "열쇠 넣으면 시작"}</small></button></div>`;
+  h += `<p class="flab">기간</p><div class="chips">${[[4, "4일"], [7, "7일"], [30, "30일"], [90, "90일"]].map(([v, n]) => `<button data-per="${v}" class="${F.per === v ? "on" : ""}">${n}</button>`).join("")}</div>`;
+  h += chipRow("kind", (S.idx.kinds || []).filter(k => ck[k[0]]).map(k => [k[0], k[1], ck[k[0]]]), "종류");
+  if (F.kind === "vc" || F.stage) h += chipRow("stage", (S.idx.stages || []).filter(k => cs[k[0]]).map(k => [k[0], k[1], cs[k[0]]]), "단계");
+  h += chipRow("sec", (S.idx.sectors || []).filter(k => cse[k[0]]).map(k => [k[0], k[1], cse[k[0]]]), "분야");
+  h += chipRow("cc", Object.entries(cc).sort((a, b) => b[1] - a[1]).map(([k, n]) => [k, flag(k) + " " + CN(k), n]), "나라");
+  h += chipRow("band", (S.idx.bands || []).filter(k => cb[k[0]]).map(k => [k[0], k[1], cb[k[0]]]), "금액대");
+  h += `<p class="flab">순서</p><div class="chips">${[["amt", "금액 큰 순"], ["new", "최신 순"], ["n", "보도 많은 순"]].map(([v, n]) => `<button data-sort="${v}" class="${F.sort === v ? "on" : ""}">${n}</button>`).join("")}</div>`;
+  h += `<div style="height:8px"></div>` + (lst.length ? lst.slice(0, xLimit).map(card).join("") + (lst.length > xLimit ? `<button class="btn more" data-act="xmore">${(lst.length - xLimit).toLocaleString()}건 더 보기</button>` : "") : '<p class="empty">조건에 맞는 거래가 없어요</p>');
+  return h;
+}
+
+/* ───── 화면: 숫자로 보기 ───── */
+async function renderStats() {
+  const st = S.files.stats || (S.files.stats = await getJ("stats.json"));
+  let h = backTop() + head("숫자로 보기", "쌓인 자료로 본 돈의 흐름");
+  const months = Object.keys(st.news || {}).sort().slice(-12);
+  if (months.length) {
+    h += `<h2 class="sec">뉴스로 모은 거래<small>달마다 건수</small></h2><div class="bars">`;
+    const mx = Math.max(1, ...months.map(m => st.news[m].n));
+    h += months.map(m => { const b = st.news[m]; return `<div class="bar"><b>${m.slice(2).replace("-", "년 ")}월</b><i style="width:${100 * b.n / mx}%"></i><span>${b.n.toLocaleString()}건 · ${won(b.amt)}</span></div>`; }).join("") + "</div>";
+    const last = st.news[months[months.length - 1]];
+    h += `<p class="note">${months[months.length - 1]} 투자 유치 분야별 (금액 합)</p>` + bars(last.sec, k => SN()[k] || k, 10);
+    h += `<p class="note">${months[months.length - 1]} 나라별</p>` + bars(last.cc, k => flag(k) + " " + CN(k), 10);
+    h += `<p class="note">뉴스는 ${esc((S.idx.days || [])[0] || "")}부터 쌓기 시작했어요.</p>`;
+  }
+  const qs = Object.keys(st.formd || {}).sort();
+  if (qs.length) {
+    const mx = Math.max(1, ...qs.map(q => st.formd[q].sold));
+    const fmx = Math.max(1, ...qs.map(q => fundSum(st.formd[q], "Venture Capital Fund") + fundSum(st.formd[q], "Private Equity Fund")));
+    h += `<h2 class="sec">미국 비상장 투자 신고<small>Form D · 분기마다</small></h2><div class="bars">${qs.map(q => { const b = st.formd[q]; return `<div class="bar"><b>${q.slice(2).replace("Q", "년 ")}분기</b><i style="width:${100 * b.sold / mx}%"></i><span>${usd(b.sold)} · ${b.n.toLocaleString()}건</span></div>`; }).join("")}</div>`;
+    h += `<p class="note">회사(펀드 빼고)가 신고한 판매액 합. 진행 중인 분기는 아직 다 안 모였어요.</p>`;
+    h += `<h2 class="sec">미국 VC·PE 펀드 결성<small>Form D · 분기마다</small></h2><div class="bars">${qs.map(q => { const b = st.formd[q], v = fundSum(b, "Venture Capital Fund"), p = fundSum(b, "Private Equity Fund"); return `<div class="bar"><b>${q.slice(2).replace("Q", "년 ")}분기</b><i style="width:${100 * (v + p) / fmx}%"></i><span>VC ${usd(v)} · PE ${usd(p)}</span></div>`; }).join("")}</div>`;
+    const lq = st.formd[qs[qs.length - 1]], pq = qs.length > 1 ? st.formd[qs[qs.length - 2]] : null;
+    const ind = (pq && Object.keys(lq.ind || {}).length < 3 ? pq : lq).ind || {};
+    h += `<p class="note">최근 분기 분야별 판매액</p>` + bars(Object.fromEntries(Object.entries(ind).map(([k, v]) => [k, [v[0], v[1] * ((S.idx.fx || {}).USD || 1400)]])), k => SN()[k] || k, 10);
+  }
+  const sm = Object.keys(st.sec || {}).sort().slice(-24);
+  if (sm.length) {
+    const ipo = m => Object.entries(st.sec[m]).filter(([f]) => ["S-1", "F-1", "424B4"].includes(f)).reduce((a, b) => a + b[1], 0);
+    const ma = m => Object.entries(st.sec[m]).filter(([f]) => !["S-1", "F-1", "424B4"].includes(f)).reduce((a, b) => a + b[1], 0);
+    const mx = Math.max(1, ...sm.map(m => ipo(m) + ma(m)));
+    h += `<h2 class="sec">미국 상장·합병 서류<small>달마다 건수</small></h2><div class="bars">${sm.map(m => `<div class="bar"><b>${m.slice(2).replace("-", "년 ")}월</b><i style="width:${100 * (ipo(m) + ma(m)) / mx}%"></i><span>상장 ${ipo(m)} · 합병 ${ma(m)}</span></div>`).join("")}</div>`;
+  }
+  const dm = Object.keys(st.dart || {}).sort().slice(-24);
+  if (dm.length) {
+    const tot = m => Object.values(st.dart[m]).reduce((a, b) => a + b[0], 0), mx = Math.max(1, ...dm.map(tot));
+    h += `<h2 class="sec">한국 공시<small>달마다 건수</small></h2><div class="bars">${dm.map(m => `<div class="bar"><b>${m.slice(2).replace("-", "년 ")}월</b><i style="width:${100 * tot(m) / mx}%"></i><span>${tot(m)}건 · ${won(Object.values(st.dart[m]).reduce((a, b) => a + b[1], 0)) || "-"}</span></div>`).join("")}</div>`;
+  } else h += `<h2 class="sec">한국 공시</h2><p class="note">${S.idx.dartKey ? "되돌아보기 중이에요" : "DART 열쇠(무료)를 넣으면 3년치를 모아요 — 한국 공시 화면에 방법이 있어요"}</p>`;
+  return h;
+}
+const fundSum = (b, t) => ((b.fund || {})[t] || [0, 0])[1];
+
+function secHelp() {
+  return S.idx.secKey ? '<p class="empty">모으는 중이에요 (처음엔 3년치를 받느라 한두 번 실행이 걸려요)</p>' : `<div class="help"><b>미국 SEC 자료는 연락처 이메일이 있어야 받을 수 있어요.</b> SEC가 자동 수집 프로그램에 연락처를 꼭 적으라고 해서요 (돈·가입 없음).<br>① GitHub 저장소 → Settings → Secrets and variables → Actions → New secret<br>② 이름 <b>SEC_CONTACT_EMAIL</b>, 값에 연락받을 이메일 하나 → 다음 실행부터 3년치 + 매일</div>`;
+}
+/* ───── 화면: 미국 Form D ───── */
+let fdQ = "", fdF = { q: "", ty: "co", ind: "" }, fdLimit = 80;
+async function renderFormd() {
+  const qs = (S.idx.formd || []).slice().reverse(); if (!fdQ) fdQ = qs[0] || "";
+  let h = backTop() + head("미국 비상장 신고", "Form D — 미국에서 비상장 회사·펀드가 투자를 받으면 SEC에 내는 신고서. 투자자 이름은 없고 회사·금액·업종이 나와요");
+  if (!fdQ) return h + secHelp();
+  const Q = S.files["fd" + fdQ] || (S.files["fd" + fdQ] = await getJ(`formd/${fdQ}.json`));
+  const IK = S.idx.formdKo || {}, FK = S.idx.fundKo || {};
+  h += `<div class="chips">${qs.map(q => `<button data-fdq="${q}" class="${q === fdQ ? "on" : ""}">${q.slice(2).replace("Q", "년 ")}분기</button>`).join("")}</div>`;
+  h += `<div class="chips">${[["co", "회사"], ["vc", "VC 펀드"], ["pe", "PE 펀드"], ["fund", "펀드 전체"]].map(([v, n]) => `<button data-fdt="${v}" class="${fdF.ty === v ? "on" : ""}">${n}</button>`).join("")}</div>`;
+  let rows = Q.rows.filter(r => fdF.ty === "co" ? r[3] !== "Pooled Investment Fund" : r[3] === "Pooled Investment Fund" && (fdF.ty === "fund" || r[4] === (fdF.ty === "vc" ? "Venture Capital Fund" : "Private Equity Fund")));
+  if (fdF.ty === "co") {
+    const ic = {}; for (const r of rows) ic[r[3]] = (ic[r[3]] || 0) + 1;
+    h += `<div class="chips"><button data-fdi="" class="${fdF.ind ? "" : "on"}">모든 업종</button>${Object.entries(ic).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<button data-fdi="${esc(k)}" class="${fdF.ind === k ? "on" : ""}">${esc(IK[k] || k)}<small>${n}</small></button>`).join("")}</div>`;
+    if (fdF.ind) rows = rows.filter(r => r[3] === fdF.ind);
+  }
+  h += `<input class="search" id="fdq" type="search" placeholder="회사·펀드 이름" value="${esc(fdF.q)}">`;
+  const q = fdF.q.trim().toLowerCase(); if (q) rows = rows.filter(r => r[1].toLowerCase().includes(q));
+  rows = rows.slice().sort((a, b) => b[5] - a[5]);
+  const sum = rows.reduce((a, r) => a + r[5], 0);
+  h += `<p class="note">${rows.length.toLocaleString()}건 · 판매액 합 ${usd(sum)} (약 ${won(sum * ((S.idx.fx || {}).USD || 1400))}) · ${Q.src === "dataset" ? "SEC 분기 자료" : "매일 새 신고에서 모으는 중"}</p>`;
+  h += `<div class="list">${rows.slice(0, fdLimit).map(r => `<a class="li" href="https://www.sec.gov/Archives/edgar/data/${esc(r[8])}/${esc(String(r[9]).replace(/-/g, ""))}/xslFormDX01/primary_doc.xml" target="_blank" rel="noopener"><div class="bx"><p class="t">${esc(r[1])}</p><p class="s">${esc(r[3] === "Pooled Investment Fund" ? (FK[r[4]] || "펀드") : (IK[r[3]] || r[3]))} · ${esc(r[2])}${r[7] ? ` · 투자자 ${r[7]}명` : ""}${r[10] ? ` · ${esc(r[10])}년 설립` : ""} · ${esc(r[0].slice(5).replace("-", "/"))}</p></div><span class="v">${usd(r[5])}${r[6] > r[5] ? `<br><small style="color:var(--muted);font-weight:400">목표 ${usd(r[6])}</small>` : r[6] === -1 ? `<br><small style="color:var(--muted);font-weight:400">목표 무기한</small>` : ""}</span></a>`).join("")}</div>`;
+  if (rows.length > fdLimit) h += `<button class="btn more" data-act="fdmore">더 보기</button>`;
+  return h;
+}
+
+/* ───── 화면: 미국 상장·합병 서류 ───── */
+let secY = "", secF = "", secQ = "";
+async function renderSec() {
+  const ys = (S.idx.sec || []).slice().reverse(); if (!secY) secY = ys[0] || "";
+  let h = backTop() + head("미국 상장·합병 서류", "SEC에 들어온 상장 신청(S-1·F-1)·공모가 확정(424B4)·합병 등록(S-4)·합병 주총 안내·공개매수 서류 목록");
+  if (!secY) return h + secHelp();
+  const Y = S.files["sec" + secY] || (S.files["sec" + secY] = await getJ(`sec/${secY}.json`));
+  const F2 = S.idx.secForms || {}, fc = {}; for (const r of Y.rows) fc[r[1]] = (fc[r[1]] || 0) + 1;
+  h += `<div class="chips">${ys.map(y => `<button data-secy="${y}" class="${y === secY ? "on" : ""}">${y}년</button>`).join("")}</div>`;
+  h += `<div class="chips"><button data-secf="" class="${secF ? "" : "on"}">모두</button>${Object.entries(fc).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<button data-secf="${esc(k)}" class="${secF === k ? "on" : ""}">${esc(F2[k] || k)}<small>${n}</small></button>`).join("")}</div>`;
+  h += `<input class="search" id="secq" type="search" placeholder="회사 이름" value="${esc(secQ)}">`;
+  const q = secQ.trim().toLowerCase();
+  const rows = Y.rows.filter(r => (!secF || r[1] === secF) && (!q || r[2].toLowerCase().includes(q))).slice().reverse();
+  h += `<p class="note">${rows.length.toLocaleString()}건 (최근 것 먼저 200건)</p>` + secList(rows.slice(0, 200));
+  return h;
+}
+
+/* ───── 화면: 한국 공시 ───── */
+let dartY = "", dartK = "", dartQ = "";
+async function renderDart() {
+  let h = backTop() + head("한국 공시", "DART(금융감독원 전자공시) — 합병·다른 회사 지분 인수·영업 양수·제3자배정 증자(투자 유치)·최대주주 바뀌는 주식 매매·처음 상장하는 증권신고서");
+  if (!S.idx.dartKey) return h + `<div class="help"><b>아직 DART 열쇠가 없어요.</b> 무료예요.<br>① <a href="https://opendart.fss.or.kr/uss/umt/EgovMberInsertView.do" target="_blank" rel="noopener">opendart.fss.or.kr</a> 에서 '인증키 신청' (이메일로 바로 나와요)<br>② GitHub 저장소 → Settings → Secrets and variables → Actions → New secret<br>③ 이름 <b>DART_API_KEY</b>, 값에 받은 열쇠 → 다음 실행부터 매일 + 3년치를 모아요</div>`;
+  const ys = (S.idx.dart || []).slice().reverse(); if (!dartY) dartY = ys[0] || "";
+  if (!dartY) return h + '<p class="empty">모으는 중이에요</p>';
+  const Y = S.files["dart" + dartY] || (S.files["dart" + dartY] = await getJ(`dart/${dartY}.json`));
+  const kc = {}; for (const r of Y.rows) kc[r[2]] = (kc[r[2]] || 0) + 1;
+  h += `<div class="chips">${ys.map(y => `<button data-darty="${y}" class="${y === dartY ? "on" : ""}">${y}년</button>`).join("")}</div>`;
+  h += `<div class="chips"><button data-dartk="" class="${dartK ? "" : "on"}">모두</button>${Object.entries(kc).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<button data-dartk="${esc(k)}" class="${dartK === k ? "on" : ""}">${esc(k)}<small>${n}</small></button>`).join("")}</div>`;
+  h += `<input class="search" id="dartq" type="search" placeholder="회사 이름" value="${esc(dartQ)}">`;
+  const q = dartQ.trim().toLowerCase(), CLS = { Y: "코스피", K: "코스닥", N: "코넥스", E: "비상장" };
+  const rows = Y.rows.filter(r => (!dartK || r[2] === dartK) && (!q || (r[3] + " " + r[5]).toLowerCase().includes(q))).slice().reverse();
+  h += `<p class="note">${rows.length.toLocaleString()}건${S.idx.dartBack ? ` · ${esc(S.idx.dartBack)}까지 되돌아봤어요` : ""}</p><div class="list">${rows.slice(0, 200).map(r => `<a class="li" href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${esc(r[9])}" target="_blank" rel="noopener"><div class="bx"><p class="t">${esc(r[3])}${r[5] ? " → " + esc(r[5]) : ""}</p><p class="s">${esc(r[2])}${r[7] && r[7] !== "-" ? ` · 지분 ${esc(r[7])}%` : ""} · ${esc(CLS[r[4]] || "")} · ${esc(r[0].slice(5).replace("-", "/"))}${r[8] ? " · " + esc(r[8].slice(0, 30)) : ""}</p></div>${r[6] ? `<span class="v">${won(r[6])}</span>` : ""}</a>`).join("")}</div>`;
+  return h;
+}
+
+/* ───── 화면: 따라가기 ───── */
+async function renderFollow() {
+  const pool = await loadDays(30);
+  const names = folNames().sort((a, b) => (S.fol[b].at || 0) - (S.fol[a].at || 0));
+  let h = head("따라가기", "회사·투자사 이름을 넣어 두면 그 이름이 나온 거래를 모아 보고, 새로 뜨면 오늘 화면에 알려 줘요");
+  h += `<div class="fol-row"><input class="search" id="fadd" type="search" placeholder="예: 소프트뱅크, a16z, 토스, 엔비디아"><button class="btn pri" data-act="fadd">넣기</button></div>`;
+  if (names.length) {
+    h += `<h2 class="sec">따라가는 이름<small>최근 30일</small></h2><div class="list">${names.map(n => {
+      const hits = pool.filter(d => folHit(d).includes(n)), nw = hits.filter(d => d.date > (S.fol[n].seen || "")).length;
+      return `<button class="li" data-fol="${esc(n)}"><div class="bx"><p class="t">${esc(n)}${nw ? ` <span class="bd new">새 ${nw}</span>` : ""}</p><p class="s">${hits.length}건${hits[0] ? " · 최근 " + esc(hits.slice().sort((a, b) => b.date.localeCompare(a.date))[0].date.slice(5).replace("-", "/")) : ""}</p></div><span class="v" data-unfol="${esc(n)}" style="color:var(--muted);font-weight:400">빼기</span></button>`;
+    }).join("")}</div>`;
+  } else h += `<p class="note">아직 없어요. 위에 이름을 넣거나, 거래 카드 '자세히'에서 회사·투자사 이름을 누르세요.</p>`;
+  let P = S.files.people; try { P = P || (S.files.people = await getJ("people.json")); } catch (e) { P = null; }
+  if (P) {
+    const row = (x, t) => `<div class="li"><div class="bx"><p class="t">${esc(x[0])}</p><p class="s">${x[1]}건${x[2] ? " · " + won(x[2]) : ""} · 최근 ${esc(String(x[3]).slice(5).replace("-", "/"))}</p></div><button class="nm${S.fol[x[0]] ? " on" : ""}" data-tfol="${esc(x[0])}">${S.fol[x[0]] ? "✓ 따라가는 중" : "＋ 따라가기"}</button></div>`;
+    if ((P.inv || []).length) h += `<h2 class="sec">자주 나오는 투자사<small>최근 ${P.days}일 기사</small></h2><div class="list">${P.inv.slice(0, 30).map(x => row(x)).join("")}</div>`;
+    if ((P.co || []).length) h += `<h2 class="sec">자주 나오는 회사<small>투자받거나 사거나 팔린 곳</small></h2><div class="list">${P.co.slice(0, 30).map(x => row(x)).join("")}</div>`;
+    h += `<p class="note">이름은 기사 제목에서 로봇이 낱말 규칙으로 뽑은 것이라 가끔 틀려요.</p>`;
+  }
+  return h;
+}
+function follow(n, on) {
+  n = String(n || "").trim(); if (!n) return;
+  if (on === false || (on == null && S.fol[n])) { delete S.fol[n]; toast("뺐어요"); }
+  else { S.fol[n] = { at: Date.now(), seen: "" }; toast(`'${n}' 따라가요`); }
+  save("fol");
+}
+
+/* ───── 화면: 보관함 · 찾기 ───── */
+function renderShelf() {
+  const st = Object.entries(S.star).sort((a, b) => b[1].at - a[1].at);
+  let h = head("보관함", `별표 ${st.length} · 메모 ${Object.keys(S.memo).filter(k => S.memo[k]).length} · 따라가는 이름 ${folNames().length}`);
+  h += `<h2 class="sec">별표<small>영구 보관</small></h2>`;
+  h += st.length ? st.map(([id, v]) => card(Object.assign({}, v.item, { id }))).join("") : '<p class="note">거래 카드를 열고 ☆ 별표를 누르면 여기에 모여요</p>';
+  const memos = Object.keys(S.memo).filter(k => S.memo[k] && !S.star[k]);
+  if (memos.length) h += `<h2 class="sec">메모만 한 것</h2><div class="list">${memos.map(k => `<button class="li" data-open="${esc(k)}"><div class="bx"><p class="t">${esc((S.byId[k] || {}).ko || (S.byId[k] || {}).title || k)}</p><p class="s">✎ ${esc(S.memo[k])}</p></div></button>`).join("")}</div>`;
+  h += `<h2 class="sec">정리</h2><div class="row"><button class="btn sm" data-act="unhide">숨긴 것 되살리기 (${Object.keys(S.hide).length})</button><button class="btn sm" data-act="clearread">읽음 표시 지우기</button></div>`;
+  h += `<p class="note" style="margin-top:12px">별표·메모·따라가기는 이 폰에 저장돼요(구글 로그인하면 PC와 이어짐). 금액은 그날 환율로 바꾼 대략값이에요.</p>`;
+  return h;
+}
+
+/* ───── 자세히 (아래에서 올라오는 창) ───── */
+function shareText(d) { return `${d.ko || d.title}${d.amt ? "\n" + won(d.amt) + (d.amtS ? " (" + d.amtS + ")" : "") : ""}\n${d.url}`; }
+function openItem(id) {
+  const d = S.byId[id] || (S.star[id] && Object.assign({}, S.star[id].item, { id })); if (!d) return;
+  S.read[id] = 1; save("read");
+  const ko = d.ko || d.title, orig = d.ko && d.ko !== d.title ? d.title : "";
+  const sum = d.ksum || d.sum || "";
+  const nm = n => `<button class="nm${S.fol[n] ? " on" : ""}" data-tfol="${esc(n)}">${S.fol[n] ? "✓" : "＋"} ${esc(n)}</button>`;
+  const sec = (d.sec || []).filter(s => s !== "etc").map(s => SN()[s] || s).join(" · ");
+  let kv = `<dt>종류</dt><dd>${esc(KN()[d.kind] || "기타")}${d.stage ? " · " + esc(STN()[d.stage] || d.stage) : ""}</dd><dt>나라</dt><dd>${flag(d.cc)} ${esc(CN(d.cc))}${d.loc ? " (" + esc(d.loc) + ")" : ""}</dd>`;
+  if (sec || d.ind) kv += `<dt>분야</dt><dd>${esc(sec || "")}${d.ind ? (sec ? " · " : "") + esc(d.ind) : ""}${d.biz ? " · " + esc(d.biz) : ""}</dd>`;
+  if (d.val) kv += `<dt>기업가치</dt><dd>${won(d.val)}</dd>`;
+  if (d.ninv) kv += `<dt>투자자 수</dt><dd>${d.ninv}명 (신고서)</dd>`;
+  kv += `<dt>처음 본 날</dt><dd>${esc(d.date)}${(d.n || 1) > 1 ? ` · 보도 ${d.n}곳` : ""}</dd>`;
+  let names = "";
+  if (d.co) names += `<p class="note" style="margin:10px 2px 4px">${d.kind === "ma" || d.kind === "pe" ? "사는 쪽 → 팔리는 쪽" : "회사"} <small>(눌러서 따라가기)</small></p>${nm(d.co)}${d.tgt ? " → " + nm(d.tgt) : ""}`;
+  if ((d.inv || []).length) names += `<p class="note" style="margin:10px 2px 4px">투자한 곳</p>${d.inv.map(nm).join("")}`;
+  const srcs = (d.srcs || []).length ? `<p class="note" style="margin:12px 2px 4px">같은 거래를 쓴 곳${(d.n || 1) > d.srcs.length + 1 ? ` (${d.n}곳 중 ${d.srcs.length + 1}곳)` : ""}</p><div class="list">${[[d.src, d.url, d.lang]].concat(d.srcs).map(s => `<a class="li" href="${esc(s[1])}" target="_blank" rel="noopener"><div class="bx"><p class="t" style="font-weight:500">${esc(s[0])}</p></div><span class="v" style="font-weight:400">${s[2] && s[2] !== "ko" ? "번역 ↗" : "↗"}</span></a>`).join("")}</div>` : "";
+  const isNews = d.t === "news" || !d.t;
+  const acts = [`<a class="btn pri" href="${esc(d.url)}" target="_blank" rel="noopener">${d.t === "formd" ? "SEC 신고서 ↗" : d.t === "dart" ? "DART 공시 ↗" : "기사 원문 ↗"}</a>`];
+  if (isNews && d.lang !== "ko") acts.push(`<a class="btn" href="https://translate.google.com/translate?sl=auto&tl=ko&u=${encodeURIComponent(d.url)}" target="_blank" rel="noopener">번역해서 열기 ↗</a>`);
+  acts.push(`<a class="btn" href="https://www.google.com/search?q=${encodeURIComponent((d.co || ko) + (d.tgt ? " " + d.tgt : "") + " " + (KN()[d.kind] || ""))}&tbm=nws" target="_blank" rel="noopener">관련 뉴스 찾기 ↗</a>`);
+  acts.push(`<button class="btn" data-act="star">${S.star[id] ? "★ 별표 해제" : "☆ 별표"}</button>`, `<button class="btn" data-act="think">✎ 생각</button>`, `<button class="btn" data-act="share">공유</button>`, `<button class="btn" data-act="hide">숨기기</button>`);
+  const back = document.createElement("div"); back.className = "back"; back.dataset.id = id;
+  back.innerHTML = `<div class="sheet" role="dialog"><div class="grab"></div>
+    <div class="meta" style="margin-bottom:4px">${badges(d)}<span>${esc(d.src || "")}</span></div>
+    ${d.amt ? `<p class="big">${won(d.amt)}</p><p class="orig">${esc(d.amtS && !/[원조억만]$/.test(d.amtS) ? d.amtS : d.usd ? usd(d.usd) : "")}${(S.idx.fx || {}).day ? ` · ${esc(S.idx.fx.day)} 환율로 바꾼 대략값` : ""}</p>` : ""}
+    <h3>${esc(ko)}</h3>${orig ? `<p class="orig">${esc(orig)}</p>` : ""}
+    ${sum ? `<div class="body">${esc(sum)}${d.ksum && d.sum && d.ksum !== d.sum ? `<p class="orig" style="margin:8px 0 0">원문: ${esc(d.sum)}</p>` : ""}</div>` : ""}
+    <div class="body"><dl class="kv">${kv}</dl></div>${names}${srcs}
+    <div class="acts">${acts.join("")}</div>
+    <p class="note" style="margin:12px 2px 4px">내 메모</p><textarea id="memo" placeholder="왜 눈에 띄었는지, 우리 일과 어떤 관계인지 적어 두기">${esc(S.memo[id] || "")}</textarea></div>`;
+  document.body.appendChild(back);
+  const ta = back.querySelector("#memo");
+  ta.addEventListener("input", () => { if (ta.value.trim()) S.memo[id] = ta.value; else delete S.memo[id]; save("memo"); if (S.star[id]) { S.star[id].memo = ta.value; save("star"); } });
+  back.addEventListener("click", e => { if (e.target === back) closeSheet(); });
+  const c = document.querySelector(`.card[data-open="${CSS.escape(id)}"]`); if (c) c.classList.add("read");
+}
+function closeSheet() { const b = document.querySelector(".back"); if (!b) return false; b.remove(); paint(); return true; }
+function entry(d) { const keep = ["t", "kind", "stage", "title", "ko", "url", "src", "date", "lang", "amt", "usd", "amtS", "val", "sec", "cc", "co", "tgt", "inv", "n", "ind", "loc", "biz"]; const o = {}; for (const k of keep) if (d[k] != null && d[k] !== "") o[k] = d[k]; return o; }
+
+/* ───── 이동 (뒤로가기 = 한 단계 위로) ───── */
+let navStack = [];
+const TABS = ["#today", "#x", "#follow", "#shelf"];
+function nav(h, isBack) {
+  const cur = location.hash || "#today"; if (h === cur) return paint();
+  if (!isBack) { if (TABS.includes(h)) navStack = []; else { navStack.push({ h: cur, y: scrollY }); if (navStack.length > 30) navStack.shift(); } }
+  try { history.replaceState(history.state, "", location.pathname + location.search + h); } catch (e) { location.hash = h; return; }
+  scrollTo(0, 0); paint();
+}
+function back() {
+  if (closeSheet()) return true;
+  if (navStack.length) { const o = navStack.pop(); nav(o.h, true); setTimeout(() => scrollTo(0, o.y), 60); return true; }
+  const h = location.hash || "#today"; if (h !== "#today") { nav("#today", true); return true; }
+  return false;
+}
+function bindSearch(id, set, rerender) {
+  const q = document.getElementById(id); if (!q) return;
+  q.addEventListener("input", debounce(async () => { set(q.value); const pos = q.selectionStart; await rerender(); const q2 = document.getElementById(id); if (q2) { q2.focus(); q2.setSelectionRange(pos, pos); } }, 300));
+}
+async function paint() {
+  let h = location.hash || "#today"; const app = document.getElementById("app"); const y = scrollY;
+  if (h.startsWith("#f=")) {                                                    // 홈 랜덤 카드에서 '이 카드부터 보기'
+    const fid = decodeURIComponent(h.slice(3)); h = "#today";
+    try { history.replaceState(history.state, "", location.pathname + location.search + h); localStorage.setItem("vfm:mode:" + MODE, '"deck"'); } catch (e) { }
+    if (D && S.byId[fid]) { S.kind = ""; const dk = makeDeck("deal-today", todayOrder); dk.queue = null; dk.hist = []; dk.pos = -1; dk.cur = fid; }
+  }
+  const tab = ["#stats", "#formd", "#sec", "#dart", "#find"].includes(h) ? "x" : h.slice(1);
+  document.querySelectorAll("#tabs button").forEach(b => { if (b.dataset.v === tab) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  try {
+    if (h === "#x" || h === "#find") { app.innerHTML = await renderX(); bindSearch("xq", v => { F.q = v; xLimit = 60; }, async () => { app.innerHTML = await renderX(); bindSearch("xq", v => { F.q = v; }, paint); }); if (h === "#find") setTimeout(() => { const q = document.getElementById("xq"); if (q) q.focus(); }, 50); }
+    else if (h === "#stats") app.innerHTML = await renderStats();
+    else if (h === "#formd") { app.innerHTML = await renderFormd(); bindSearch("fdq", v => { fdF.q = v; }, paint); }
+    else if (h === "#sec") { app.innerHTML = await renderSec(); bindSearch("secq", v => { secQ = v; }, paint); }
+    else if (h === "#dart") { app.innerHTML = await renderDart(); bindSearch("dartq", v => { dartQ = v; }, paint); }
+    else if (h === "#follow") { app.innerHTML = await renderFollow(); const i = document.getElementById("fadd"); if (i) i.addEventListener("keydown", e => { if (e.key === "Enter") { follow(i.value, true); paint(); } }); }
+    else if (h === "#shelf") app.innerHTML = renderShelf();
+    else app.innerHTML = renderToday();
+  } catch (e) { app.innerHTML = `<p class="empty">못 불러왔어요<br><small>${esc(e.message)}</small></p>`; }
+  if (document.querySelector(".back") == null) scrollTo(0, y);
+}
+function debounce(f, ms) { let t; return () => { clearTimeout(t); t = setTimeout(f, ms); }; }
+function saveF() { const o = Object.assign({}, F); delete o.q; LS.s("F", o); }
+
+document.addEventListener("click", async e => {
+  const t = e.target.closest("[data-v],[data-go],[data-open],[data-kind],[data-act],[data-f],[data-per],[data-sort],[data-wk],[data-tfol],[data-unfol],[data-fol],[data-fdq],[data-fdt],[data-fdi],[data-secy],[data-secf],[data-darty],[data-dartk]"); if (!t) return;
+  const d = t.dataset;
+  if (d.v) { closeSheet(); return nav("#" + d.v); }
+  if (d.go) {                                                                    // '전부 ›' → 탐색 (조건 넣어서)
+    if (d.go === "#x") { Object.assign(F, { kind: d.k || S.kind || "", stage: "", sec: "", cc: d.cc || "", band: "", sort: "amt", per: d.per ? +d.per : F.per }); saveF(); }
+    return nav(d.go);
+  }
+  if (d.open) return openItem(d.open);
+  if (d.tfol) { follow(d.tfol); const on = !!S.fol[d.tfol]; document.querySelectorAll(`[data-tfol="${CSS.escape(d.tfol)}"]`).forEach(b => { b.classList.toggle("on", on); b.textContent = b.closest(".sheet") ? (on ? "✓ " : "＋ ") + d.tfol : on ? "✓ 따라가는 중" : "＋ 따라가기"; }); return; }
+  if (d.unfol) { e.stopPropagation(); follow(d.unfol, false); return paint(); }
+  if (d.fol) { S.fol[d.fol].seen = kst(); save("fol"); Object.assign(F, { q: d.fol, kind: "", stage: "", sec: "", cc: "", band: "", per: 30, sort: "new" }); return nav("#x"); }
+  if (d.kind != null) { S.kind = d.kind; save("kind"); if (D) D.stale("deal"); return paint(); }
+  if (d.f) { F[d.f] = d.val; if (d.f === "kind" && d.val !== "vc") F.stage = ""; xLimit = 60; saveF(); return paint(); }
+  if (d.per) { F.per = +d.per; saveF(); return paint(); }
+  if (d.sort) { F.sort = d.sort; saveF(); return paint(); }
+  if (d.wk) { S.wk = d.wk; save("wk"); return paint(); }
+  if (d.fdq) { fdQ = d.fdq; fdLimit = 80; return paint(); }
+  if (d.fdt) { fdF.ty = d.fdt; fdF.ind = ""; fdLimit = 80; return paint(); }
+  if (d.fdi != null) { fdF.ind = d.fdi; fdLimit = 80; return paint(); }
+  if (d.secy) { secY = d.secy; return paint(); }
+  if (d.secf != null) { secF = d.secf; return paint(); }
+  if (d.darty) { dartY = d.darty; return paint(); }
+  if (d.dartk != null) { dartK = d.dartk; return paint(); }
+  const a = d.act;
+  if (a === "back") { if (!back()) nav("#today"); return; }
+  if (a === "find") return nav("#find");
+  if (a === "helpok") { LS.s("helpSeen", 1); return paint(); }
+  if (a === "xmore") { xLimit += 60; return paint(); }
+  if (a === "fdmore") { fdLimit += 120; return paint(); }
+  if (a === "fadd") { const i = document.getElementById("fadd"); follow(i && i.value, true); return paint(); }
+  if (a === "unhide") { S.hide = {}; save("hide"); toast("다시 보여요"); return paint(); }
+  if (a === "clearread") { S.read = {}; save("read"); toast("지웠어요"); return paint(); }
+  const sh = t.closest(".back"); if (!sh) return;
+  const id = sh.dataset.id, p = S.byId[id] || (S.star[id] && S.star[id].item) || {};
+  if (a === "think") { if (window.vfm && window.vfm.think) window.vfm.think({ app: "deal", key: id, title: p.ko || p.title, url: p.url }); return; }
+  if (a === "star") { if (S.star[id]) { delete S.star[id]; toast("별표 해제"); } else { S.star[id] = { at: Date.now(), item: entry(p), memo: S.memo[id] || "" }; toast("보관함에 넣었어요"); } save("star"); t.textContent = S.star[id] ? "★ 별표 해제" : "☆ 별표"; }
+  else if (a === "hide") { S.hide[id] = 1; save("hide"); toast("숨겼어요 (보관함에서 되살리기)"); closeSheet(); }
+  else if (a === "share") { const text = shareText(p) + (S.memo[id] ? "\n메모: " + S.memo[id] : ""); if (navigator.share) navigator.share({ title: p.ko || p.title, text, url: p.url }).catch(() => { }); else { try { await navigator.clipboard.writeText(text); toast("복사했어요"); } catch (x) { } } }
+});
+
+window.vfmApp = { back, go: h => nav(h), route: paint, top: () => nav("#today") };
+(async () => {
+  try { await loadAll(); } catch (e) { document.getElementById("app").innerHTML = `<div class="top"><h1 class="lt">딜</h1></div><p class="empty">아직 자료가 없어요. 로봇이 처음 돌고 나면 채워집니다.<br><small>${esc(e.message)}</small></p>`; return; }
+  paint();
+})();
+</script>
+<script src="../assets/shell.js"></script>
+</body></html>
