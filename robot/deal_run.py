@@ -257,7 +257,7 @@ def collect_news(health):
             txt = it["title"] + " " + it.get("sum", "")
             if filt and not DEAL.search(it["title"]): continue
             if SKIP.search(it["title"]): continue
-            raw.append({"title": it["title"], "sum": clean(it.get("sum"), 300), "url": it["url"], "src": name, "date": A.parse_date(it.get("date", "")) or today(), "lang": lang, "cc0": cc, "via": fid})
+            raw.append({"title": it["title"], "sum": LEAD_SKIP.sub("", clean(it.get("sum"), 300)), "url": it["url"], "src": name, "date": A.parse_date(it.get("date", "")) or today(), "lang": lang, "cc0": cc, "via": fid})
         log(f"RSS {name}: {len(raw) - n0}개")
     for hl, gl, ceid, lang, cc, qs in S.GNEWS:
         for q in qs:
@@ -274,7 +274,116 @@ def collect_news(health):
                 raw.append({"title": clean(title, 220), "sum": "", "url": re.sub(r"\?oc=\d+$", "", it["url"]), "src": pub or "구글 뉴스", "date": A.parse_date(it.get("date", "")) or today(), "lang": lang, "cc0": cc, "via": "gn"})
             log(f"구글 뉴스 [{gl}] {q}: {len(raw) - n0}개")
             time.sleep(0.6)
+    for q in S.BING_KR:
+        try:
+            its = bing_items(q, "&qft=sortbydate%3d%221%22&setlang=ko&cc=KR"); ok(health, "bing/kr")
+        except Exception as e:
+            fail(health, "bing/kr", e); break
+        n0 = len(raw); cut = (date.today() - timedelta(days=2)).isoformat()
+        for it in its:
+            if not it["date"] or it["date"] < cut or not DEAL.search(it["title"]) or SKIP.search(it["title"]): continue
+            raw.append({"title": it["title"], "sum": LEAD_SKIP.sub("", it["sum"]), "url": it["url"], "src": it["src"], "date": it["date"], "lang": "ko", "cc0": "KR", "via": "bing"})
+        log(f"빙 뉴스 [KR] {q}: {len(raw) - n0}개")
+        time.sleep(1.0)
     return raw
+
+
+# ───────── 빙 뉴스 (진짜 기사 주소 + 첫 문단이 같이 옴, 토큰 0) ─────────
+from urllib.parse import unquote, quote_plus
+
+
+def bing_items(q, extra=""):
+    """빙 뉴스 검색 RSS → [{title, url(진짜 기사), sum(첫 문단), date, src}]"""
+    x = get(f"https://www.bing.com/news/search?q={quote_plus(q)}&format=rss{extra}", headers={"Accept-Language": "ko,en;q=0.8"}).text
+    out = []
+    for it in re.findall(r"<item>(.*?)</item>", x, re.S):
+        t = re.search(r"<title>(.*?)</title>", it, re.S); l = re.search(r"<link>(.*?)</link>", it, re.S)
+        if not t or not l: continue
+        link = A.html.unescape(l.group(1)); m = re.search(r"[?&]url=([^&]+)", link)
+        url = unquote(m.group(1)) if m else link
+        d = re.search(r"<description>(.*?)</description>", it, re.S); p = re.search(r"<pubDate>(.*?)</pubDate>", it)
+        src = re.search(r"<News:Source>(.*?)</News:Source>", it) or re.search(r"<source[^>]*>(.*?)</source>", it)
+        out.append({"title": clean(t.group(1), 220), "url": url, "sum": clean(d.group(1) if d else "", 400), "date": A.parse_date(p.group(1)) if p else "",
+                    "src": clean(src.group(1), 60) if src else re.sub(r"^www\.", "", re.sub(r"^https?://([^/]+).*$", r"\1", url))})
+    return out
+
+
+def sum_lang(t):
+    if re.search(r"[가-힣]", t): return "ko"
+    if re.search(r"[\u3040-\u30ff]", t): return "ja"
+    if re.search(r"[\u4e00-\u9fff]{4,}", t): return "zh"
+    return "en"
+
+
+class _LeadSkip:                                                                  # 기사 첫 문단 앞의 안내문·기자 이름 떼기
+    RX = [re.compile(r"^\s*\[?(이 기사에 나온|스타트업에 대한 보다)[^\]]*\]\s*"),
+          re.compile(r"^\s*[\[\(（【][^\]\)）】]{0,40}(기자|특파원|=)[^\]\)）】]{0,30}[\]\)）】]\s*(=\s*)?"),
+          re.compile(r"^\s*[^|]{0,40}기자\s*[|=]\s*"), re.compile(r"^\s*[가-힣]{2,4}\s?기자\s*=\s*")]
+    def sub(self, _, t):
+        t = t or ""
+        for _i in range(2):
+            for rx in self.RX: t = rx.sub("", t)
+        return t.strip()
+
+
+LEAD_SKIP = _LeadSkip()
+
+
+def page_lead(url):
+    """기사 페이지의 소개글(og:description·description) → 없으면 첫 문단"""
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent)); from ogimg import _html
+        h = _html(url, 250_000)
+    except Exception:
+        return ""
+    for p in (r'<meta[^>]+property=["\']og:description["\'][^>]+content=["\']([^"\']{40,})', r'<meta[^>]+content=["\']([^"\']{40,})["\'][^>]+property=["\']og:description',
+              r'<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']{40,})', r'<meta[^>]+content=["\']([^"\']{40,})["\'][^>]+name=["\']description'):
+        m = re.search(p, h, re.I)
+        if m: return clean(m.group(1), 400)
+    for m in re.finditer(r"<p[^>]*>(.*?)</p>", h, re.S | re.I):
+        t = clean(m.group(1), 400)
+        if len(t) >= 80 and not re.search(r"copyright|저작권|무단|구독|로그인|cookie", t, re.I): return t
+    return ""
+
+
+def fill_leads(deals, health, deadline, bing_budget=120, page_budget=80):
+    """요약 없는 거래에 기사 첫 문단 붙이기 (토큰 0): ① 빙 뉴스에서 같은 제목 찾기 ② 진짜 기사 주소면 그 페이지 소개글"""
+    mem = rj(ST / "lead.json", {}); nb = npg = got = 0
+    need = [d for d in deals if not d.get("sum")]
+    need.sort(key=lambda d: (not (d.get("cc") == "KR" and d.get("kind") == "vc"), -(d.get("amt") or 0), -(d.get("n") or 1)))   # 한국 벤처 먼저, 그다음 큰 거래
+    for d in need:
+        if time.time() > deadline: break
+        k = hid(d["title"])
+        if k in mem:
+            v = mem[k]
+        else:
+            v = None; tried = False
+            real = d["url"] if "news.google." not in d["url"] else next((x[1] for x in d.get("srcs", []) if "news.google." not in x[1]), "")
+            if not real and nb < bing_budget:
+                nb += 1; tried = True
+                try:
+                    q = re.sub(r"\s+[-–|]\s+[^-–|]{2,40}$", "", d["title"])[:120]
+                    tk = toks(q); best = None
+                    for it in bing_items(q):
+                        ov = len(tk & toks(it["title"])) / max(min(len(tk), len(toks(it["title"]))), 1)
+                        if ov >= 0.5 and (best is None or ov > best[0]): best = (ov, it)
+                    if best: v = {"u": best[1]["url"], "s": LEAD_SKIP.sub("", best[1]["sum"]), "src": best[1]["src"]}
+                    ok(health, "bing/lookup")
+                except Exception as e:
+                    fail(health, "bing/lookup", e)
+                    if "429" in str(e): nb = bing_budget
+                time.sleep(1.0)
+            elif real and npg < page_budget:
+                npg += 1; tried = True; t = LEAD_SKIP.sub("", page_lead(real))
+                if t: v = {"u": real, "s": t}
+            if not tried: continue                                                           # 이번엔 한도가 다 차서 못 봄 → 다음에
+            mem[k] = v or {}
+        if v and v.get("s"):
+            d["sum"] = v["s"]; got += 1
+            if v.get("u") and "news.google." in d.get("url", ""): d["gurl"] = d["url"]; d["url"] = v["u"]           # 진짜 기사 주소로
+    if len(mem) > 8000: mem = dict(list(mem.items())[-6000:])
+    wj(ST / "lead.json", mem)
+    log(f"기사 첫 문단: {got}건 붙임 (빙 찾기 {nb} · 기사 페이지 {npg})")
 
 
 # ───────── 같은 거래 묶기 ─────────
@@ -326,7 +435,7 @@ PRIO = {"ko": 0, "en": 1}
 
 def better(a, b):
     """대표 기사 고르기: 직접 RSS > 금액 있음 > 한국어(한국 거래) / 영어 > 짧은 출처"""
-    def score(x): return ((x["via"] != "gn") * 2 + (x.get("amt") is not None) * 3 + (x.get("co") != "") + (2 if (x["lang"] == "ko" and x["cc"] == "KR") else 1 if x["lang"] == "en" else 0) + (1 if x.get("sum") else 0))
+    def score(x): return ((x["via"] != "gn") * 2 + (x["via"] == "bing") + (x.get("amt") is not None) * 3 + (x.get("co") != "") + (2 if (x["lang"] == "ko" and x["cc"] == "KR") else 1 if x["lang"] == "en" else 0) + (1 if x.get("sum") else 0))
     return a if score(a) >= score(b) else b
 
 
@@ -758,7 +867,7 @@ def people(days=90):
 
 
 # ───────── 실행 ─────────
-KEEP = ("id", "t", "kind", "stage", "title", "ko", "sum", "ksum", "url", "src", "date", "lang", "amt", "usd", "amtS", "val", "sec", "cc", "co", "tgt", "inv", "n", "srcs", "ind", "ninv", "loc", "biz", "rep", "cls", "at", "via")
+KEEP = ("id", "gurl", "t", "kind", "stage", "title", "ko", "sum", "ksum", "url", "src", "date", "lang", "amt", "usd", "amtS", "val", "sec", "cc", "co", "tgt", "inv", "n", "srcs", "ind", "ninv", "loc", "biz", "rep", "cls", "at", "via")
 
 
 def slim(d, arch=False):
@@ -788,6 +897,9 @@ def main():
     wj(ST / "urls.json", urls)
     log(f"기사 {len(raw)}건 → 거래 {len(deals)}건")
 
+    try: fill_leads(deals, health, t0 + (deadline - t0) * 0.3)
+    except Exception as e: log(f"기사 첫 문단 실패 — 건너뜀: {e}")
+
     # 2) 공시
     fd_new, dart_new = [], []
     if not NO_FIL:
@@ -815,8 +927,8 @@ def main():
             ko = Ko(mem_path); pairs, where = [], []
             for d in deals:
                 if d["lang"] != "ko" and not d.get("ko"): pairs.append((d["title"], d["lang"])); where.append((d, "ko"))
-            for d in sorted([d for d in deals if d.get("sum") and d["lang"] != "ko" and not d.get("ksum")], key=lambda d: -(d.get("amt") or 0))[:200]:
-                pairs.append((d["sum"][:300], d["lang"])); where.append((d, "ksum"))
+            for d in sorted([d for d in deals if d.get("sum") and sum_lang(d["sum"]) != "ko" and not d.get("ksum")], key=lambda d: (not (d.get("cc") == "KR"), -(d.get("amt") or 0)))[:260]:
+                pairs.append((d["sum"][:300], sum_lang(d["sum"]))); where.append((d, "ksum"))
             res = ko.many(pairs, deadline=deadline - 120)
             for (d, k), v in zip(where, res):
                 if v: d[k] = v

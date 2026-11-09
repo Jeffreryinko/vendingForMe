@@ -22,7 +22,6 @@ FEEDS = [
     ("platum", "플래텀", "https://platum.kr/feed", "KR", "ko", True),
     ("platinv", "플래텀 투자", "https://platum.kr/archives/category/investment/feed", "KR", "ko", True),
     ("wowtale", "와우테일", "https://wowtale.net/feed/", "KR", "ko", True),
-    ("besuccess", "비석세스", "https://www.besuccess.com/feed/", "KR", "ko", True),
     ("vsq", "벤처스퀘어", "https://www.venturesquare.net/feed", "KR", "ko", True),
     ("stn", "스타트업엔", "https://www.startupn.kr/rss/allArticle.xml", "KR", "ko", True),
     ("srecipe", "스타트업레시피", "https://www.startuprecipe.co.kr/feed", "KR", "ko", True),
@@ -48,6 +47,9 @@ GNEWS = [
     ("pt-BR", "BR", "BR:pt-419", "pt", "BR", ["rodada de investimento", "aquisição compra empresa"]),
     ("id", "ID", "ID:id", "id", "ID", ["pendanaan seri startup"]),
 ]
+
+# 빙 뉴스 검색 (한국, 최신순) — 진짜 기사 주소와 첫 문단이 같이 와서 요약이 바로 붙음
+BING_KR = ["투자 유치 스타트업", "시드 투자 유치", "프리A 투자 유치", "시리즈A 투자 유치", "시리즈B 투자 유치", "브릿지 투자 유치", "팁스 선정", "억원 투자 유치", "인수합병 계약", "지분 인수"]
 
 # 이 낱말이 하나도 없으면 투자·M&A 글이 아님 (직접 받는 RSS 거르기)
 DEAL_WORDS = (r"\b(raise[sd]?|raising|funding|financing|round|seed|series [a-h]\b|invest(s|ment|or)?|acquir(e|es|ed|ing|ition)|buy(s|out)?|bought|merger|merge|takeover|take-private|stake|IPO|listing|went public|go public|SPAC|private equity|buyout|fund (close|closes|closed)|closes? .*fund|valuation|unicorn|backed|led by)\b"
