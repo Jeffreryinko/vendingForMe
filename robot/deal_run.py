@@ -876,6 +876,15 @@ def main():
     wj(OUT / "now.json", now)
 
     st = stats(fx); people()
+    try:                                                                                 # 주요 투자사 (위키 소개 + 쌓인 거래·펀드 신고)
+        import deal_firms
+        ko_tr = None
+        if not NO_TR:
+            from nllb_multi import Ko
+            ko_tr = Ko(OUT / "_tr.json")
+        deal_firms.build(OUT, NEWS, FD, alld, min(deadline, time.time() + 300), ko_tr)
+        if ko_tr is not None: ko_tr.save(keep=20000)
+    except Exception as e: log(f"주요 투자사 실패 — 건너뜀: {e}")
     broken = {k: v for k, v in health.items() if v.get("n", 0) >= 6}                    # 하루 4번 × 1.5일 넘게 계속 실패
     days = sorted(f.stem for f in NEWS.glob("????-??-??.json"))
     idx = {"at": now_iso(), "today": day, "days": days, "broken": broken, "new": sum(1 for d in alld if d.get("new")), "counts": {"deals": len(alld), "news": len(deals), "filings": len(fil)},
