@@ -38,9 +38,9 @@ jobs:
     needs: guard
     if: needs.guard.outputs.skip != '1'
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 80
     env:
-      TG_MINUTES: "15"      # 구글 번역기(TranslateGemma)에 쓸 시간 — 넘으면 NLLB로 이어서
+      TG_MINUTES: "38"      # 구글 번역기(TranslateGemma)에 쓸 시간 — 넘으면 NLLB로 이어서 (3시간마다 새 제목 약 400~700개 → 대부분 이 번역기로)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

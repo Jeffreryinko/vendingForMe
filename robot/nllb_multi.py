@@ -65,15 +65,19 @@ class Ko:
                 res[k] = tok.decode(tok.convert_tokens_to_ids(hyp), skip_special_tokens=True).replace("⁇", "").strip()
         return res
 
-    def many(self, pairs, deadline=None):
-        """pairs: [(글, 언어)] → [한국어 또는 None]. 한국어 글은 그대로."""
+    def many(self, pairs, deadline=None, headline=False):
+        """pairs: [(글, 언어)] → [한국어 또는 None]. 한국어 글은 그대로.
+        headline=True: 제목이라 '~했습니다.' → '~했다' (신문 제목체).
+        엉뚱한 번역(다른 글을 옮김·잘림·외국 문자 남음)은 버리고 다음 번역기로 → 그래도 안 되면 None(화면은 원문)."""
+        from ko_polish import bad, headline as hl, nllb_fix
+        fin = (lambda y: hl(y)) if headline else (lambda y: y)
         out = [None] * len(pairs); need = {}
         for i, (t, lang) in enumerate(pairs):
             t = (t or "").strip()
             if not t: continue
             if lang == "ko": out[i] = t; continue
             k = hid(t, lang)
-            if k in self.mem: out[i] = self.mem[k]; self.used.add(k)
+            if k in self.mem: out[i] = fin(self.mem[k]); self.used.add(k)
             else: need.setdefault(lang, []).append(i)
         # 1) 구글 TranslateGemma (시간 예산 안에서, 글 통째로 — 문맥이 살아 더 자연스러움)
         if need:
@@ -87,8 +91,10 @@ class Ko:
                     rest = []
                     for i in need[lang]:
                         y = tg.tr(pairs[i][0], lang, "ko", deadline) if tg.ok() else None
+                        if y and bad(pairs[i][0], y, lang):
+                            print(f"  번역 버림({bad(pairs[i][0], y, lang)}): {pairs[i][0][:60]}", flush=True); y = None
                         if y:
-                            out[i] = y; k = hid(pairs[i][0].strip(), lang); self.mem[k] = y; self.used.add(k)
+                            y = fin(y); out[i] = y; k = hid(pairs[i][0].strip(), lang); self.mem[k] = y; self.used.add(k)
                         else:
                             rest.append(i)
                     if rest: need[lang] = rest
@@ -104,9 +110,11 @@ class Ko:
             res = self._run(sents, lang); got = {}
             for k, r in enumerate(res): got.setdefault(owner[k], []).append(r)
             for i, parts in got.items():
-                t = " ".join(p for p in parts if p).strip()
+                t = nllb_fix(" ".join(p for p in parts if p).strip())
+                if t and bad(pairs[i][0], t, lang):
+                    print(f"  번역 버림·NLLB({bad(pairs[i][0], t, lang)}): {pairs[i][0][:60]}", flush=True); t = ""
                 if t:
-                    out[i] = t; k = hid(pairs[i][0].strip(), lang); self.mem[k] = t; self.used.add(k)
+                    t = fin(t); out[i] = t; k = hid(pairs[i][0].strip(), lang); self.mem[k] = t; self.used.add(k)
         return out
 
     def save(self, keep=6000):

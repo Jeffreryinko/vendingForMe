@@ -30,7 +30,7 @@ CM_PICKS = 5                                                   # 글당 번역�
 
 sys.path.insert(0, str(ROBOT / "crawler")); sys.path.insert(0, str(ROBOT))
 import yaml  # noqa: E402
-from translate import Translator, deepl_month_usage  # noqa: E402
+from translate import Translator, deepl_month_usage, DEEPL_SRC  # noqa: E402
 
 DRY = "--dry" in sys.argv
 if DRY:
@@ -120,19 +120,26 @@ def save_usage(tr, mk):
 
 
 def translate_titles(tr, totr_tsv: str, lang_of_source: dict) -> dict:
+    """DeepL·Google(가장 좋은 번역) 예산은 '많이 보이는 제목'부터 채움.
+    목록은 출처 안 순위(위쪽 기사)가 높은 순으로 와서, 예산이 남는 만큼 앞에서부터 담고 나머지는 무료 번역기로.
+    (예전: 한 언어를 통째로 못 담으면 그 언어 전체를 건너뛰어 회차당 25개 정도만 DeepL 로 번역됐음)"""
+    from ko_polish import headline
     rows = [l.split("\t", 2) for l in totr_tsv.splitlines() if l and not l.startswith("#") and "\t" in l]
-    by_lang = {}
+    left = tr.available; by_lang = {}
     for iid, sid, title in rows:
         lang = lang_of_source.get(sid, "en")
         if lang == "ko": continue
-        by_lang.setdefault(lang, []).append((iid, title))
+        if lang not in DEEPL_SRC and tr.google_left <= 0: continue      # DeepL 이 못 하는 언어(힌디어 등)는 구글 키가 없으면 무료 번역기로
+        if len(title) > left: continue
+        left -= len(title); by_lang.setdefault(lang, []).append((iid, title))
     ko = {}
     for lang, group in by_lang.items():
         res, eng = tr.translate([t for _, t in group], lang)
         if res:
-            for (iid, _), t in zip(group, res): ko[iid] = t
+            for (iid, _), t in zip(group, res):
+                if t: ko[iid] = headline(t)
         else:
-            log(f"  번역 예산 부족: {lang} {len(group)}개 건너뜀")
+            log(f"  번역 예산 부족: {lang} {len(group)}개 → 무료 번역기로")
     log(f"제목 번역 {len(ko)}/{len(rows)}개 (DeepL {tr.used['deepl']:,}자, Google {tr.used['google']:,}자)")
     return ko
 
@@ -145,9 +152,9 @@ def nllb_titles(totr_tsv: str, lang_of_source: dict, have: dict) -> dict:
     if not rows: return {}
     from nllb_multi import Ko
     k = Ko(None)
-    out = k.many([(t, lang) for _, lang, t in rows], deadline=time.time() + int(os.environ.get("NLLB_TITLE_MINUTES", "12")) * 60)
+    out = k.many([(t, lang) for _, lang, t in rows], deadline=time.time() + int(os.environ.get("NLLB_TITLE_MINUTES", "40")) * 60, headline=True)
     got = {iid: o for (iid, _, _), o in zip(rows, out) if o}
-    log(f"제목 기계번역(NLLB) {len(got)}/{len(rows)}개")
+    log(f"제목 기계번역(TranslateGemma → NLLB) {len(got)}/{len(rows)}개")
     return got
 
 

@@ -120,8 +120,16 @@ class TG:
     def _prompt(self, text, src, tgt):
         s, t = NAMES[src], NAMES[tgt]
         sc, tc = CODE.get(src, src), CODE.get(tgt, tgt)
+        gl = ""
+        if tgt == "ko":   # 이 글에 나오는 이름의 한국어 표기를 귀띔 (젠슨 황을 '제넨 훙'으로 옮기던 문제)
+            try:
+                from ko_polish import glossary_for
+                g = glossary_for(text)
+                if g: gl = "Use these Korean spellings for names: " + "; ".join(f"{a} = {b}" for a, b in g) + ".\n"
+            except Exception:
+                gl = ""
         return (f"<start_of_turn>user\nYou are a professional {s} ({sc}) to {t} ({tc}) translator. Your goal is to accurately convey the meaning "
-                f"and nuances of the original {s} text while adhering to {t} grammar, vocabulary, and cultural sensitivities.\n"
+                f"and nuances of the original {s} text while adhering to {t} grammar, vocabulary, and cultural sensitivities.\n{gl}"
                 f"Produce only the {t} translation, without any additional explanations or commentary. Please translate the following {s} text "
                 f"into {t}:\n\n\n{text.strip()}<end_of_turn>\n<start_of_turn>model\n")
 

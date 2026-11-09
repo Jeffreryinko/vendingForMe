@@ -13,6 +13,8 @@ HERE = Path(__file__).parent
 CRAWLER = HERE.parent / "crawler"
 sys.path.insert(0, str(CRAWLER))
 from cluster import build_stories, tokens  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from ko_polish import bad as _bad  # noqa: E402
 
 WORK = Path(os.environ.get("WORK", "."))
 LIMIT = {"news": 8, "community": 10, "trend": 10}
@@ -53,8 +55,11 @@ def cmd_crawl(ed):
 def cmd_totr(ed, prev):
     _, items = load_raw(ed)
     _, prev_items = load_prev(prev)
-    todo = [i for i in items if i["first_rank"] <= TR_TOP.get(i["kind"], 3)
-            and not (prev_items.get(i["guid_hash"][:12], {}).get("ko"))]
+    def need(i):   # 번역이 없거나, 지난번 번역이 엉뚱하면(다른 글을 옮김·외국 문자 남음) 다시
+        old = prev_items.get(i["guid_hash"][:12], {}).get("ko")
+        return not old or bool(_bad(i["title"], old, i.get("lang", "en")))
+    todo = [i for i in items if i["first_rank"] <= TR_TOP.get(i["kind"], 3) and need(i)]
+    todo.sort(key=lambda i: i["first_rank"])     # 출처 안 위쪽 기사(많이 보이는 것)부터 → 좋은 번역기·시간이 먼저 쓰임
     new_total = sum(1 for i in items if i["guid_hash"][:12] not in prev_items)
     print(f"# 글 {len(items)}개 중 이전 판에 없던 새 글 {new_total}개, 번역할 제목 {len(todo)}개")
     for i in todo:
@@ -129,7 +134,9 @@ def cmd_build(ed, prev, ko_file, label):
     for i in items:
         sid = i["guid_hash"][:12]
         p = prev_items.get(sid)
-        i["title_ko"] = ko.get(sid) or (p or {}).get("ko")
+        old = (p or {}).get("ko")
+        if old and _bad(i["title"], old, i.get("lang", "en")): old = None      # 엉뚱한 옛 번역은 버리고 원문 제목으로
+        i["title_ko"] = ko.get(sid) or old
         i["_first"] = (p or {}).get("first", prev) if p else ed
     stories = build_stories(items, ed[:10])
     idmap = {i["id"]: i["guid_hash"][:12] for i in items}
