@@ -15,6 +15,8 @@ sys.path.insert(0, str(CRAWLER))
 from cluster import build_stories, tokens  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from ko_polish import bad as _bad, headline as _headline  # noqa: E402
+import fresh as _fresh  # noqa: E402
+from collections import Counter  # noqa: E402
 
 WORK = Path(os.environ.get("WORK", "."))
 LIMIT = {"news": 8, "community": 10, "trend": 10}
@@ -27,6 +29,12 @@ def raw_path(ed): return WORK / f"raw_{ed}.json"
 def load_raw(ed):
     d = json.loads(raw_path(ed).read_text())
     items = [i for i in d["items"] if i["first_rank"] <= LIMIT.get(i["kind"], 10)]
+    # 발행된 지 72시간 넘은 글은 판에 안 실음 (RSS 가 옛 글을 오래 걸어 두는 출처 — 인민망 정치 1.4년, NHK 94일 등)
+    # 발행 시각이 없는 글은 여기서 못 가름 → 로봇이 처음 본 시각으로 이슈 쪽(robot/fresh.py)에서 셈
+    now = _fresh.now_of(ed)
+    old = Counter(i["source_id"] for i in items if i.get("kind") != "trend" and _fresh.too_old(i.get("published_at"), now))
+    items = [i for i in items if i.get("kind") == "trend" or not _fresh.too_old(i.get("published_at"), now)]
+    d["_old"] = dict(old)
     return d, items
 
 
@@ -166,7 +174,8 @@ def cmd_build(ed, prev, ko_file, label):
         sources.append({"id": s["id"], "n": s["name"], "l": s["lang"], "c": s["country"], "k": s["kind"], "st": s["status"],
                         "ax": s.get("axis", ""), "lean": s.get("lean", ""),
                         "note": s.get("note", ""), "tier": s.get("tier", ""), "home": s.get("homepage", ""),
-                        "ok": None if st is None else ("error" not in st), "cnt": sum(1 for i in items if i["source_id"] == s["id"])})
+                        "ok": None if st is None else ("error" not in st), "cnt": sum(1 for i in items if i["source_id"] == s["id"]),
+                        **({"old": d["_old"][s["id"]]} if d.get("_old", {}).get(s["id"]) else {})})      # old = 72시간 넘어 뺀 글 수 (cnt 0 이고 old 만 있으면 '멈춘 출처')
     edition = {"label": label, "crawledAt": run["started_at"], "slot": ed[-2:], "sources": sources, "stories": out_stories,
                "delta": {"prev": prev, "gone": gone},
                "counts": {"items": len(items), "ko": sum(1 for i in items if i.get("title_ko")),
@@ -187,6 +196,8 @@ def cmd_build(ed, prev, ko_file, label):
             arr.append(o)
         (seed / f"feed__{ed}__{lang}.json").write_text(json.dumps({"edition": ed, "lang": lang, "items": arr}, ensure_ascii=False))
     print(json.dumps(edition["counts"], ensure_ascii=False))
+    stale = [s["id"] for s in sources if s.get("old") and not s["cnt"]]
+    print(f"72시간 넘어 뺀 글 {sum(d.get('_old', {}).values())}개 · 새 글이 하나도 없는 '멈춘 출처' {len(stale)}곳: {', '.join(stale[:12])}")
     for s in out_stories:
         print(f'  [{s["delta"]}{"+"+str(s.get("grow")) if s.get("grow") else ""}] {s["label"]}  ({len(s["items"])}개, {",".join(s["langs"])})')
     print("  사라진 사건:", gone)

@@ -28,6 +28,7 @@ DATA = ROOT / "data/sisa"
 KST = timezone(timedelta(hours=9))
 sys.path.insert(0, str(ROOT / "robot/crawler")); sys.path.insert(0, str(ROOT / "robot"))
 from cluster import tokens, GENERIC  # noqa: E402
+import fresh as F  # noqa: E402
 from nllb_multi import Ko  # noqa: E402
 
 UA = "vendingForMe/1.0 (https://jeffreryinko.github.io/; robot)"
@@ -143,9 +144,8 @@ class Ed:
         return max(its, key=sc)
 
     def score(self, s):
-        its = [self.items[i] for i in s["items"] if i in self.items]
-        cs = {self.ctry(i) for i in its}; ns = {i["s"] for i in its}
-        return len(cs) * 3 + len(ns) * 2 + min(len(its), 30) * 0.5 + (s.get("grow") or 0) * 1.5 + (3 if "KR" in cs else 0) + (2 if s.get("delta") == "new" else 0)
+        """순위 점수 = 최근 24시간에 불어난 폭 ÷ (가장 새 글 나이 + 2시간)^1.2 — 새 글이 끊기면 내려감 (robot/fresh.py)"""
+        return F.heat(s, self.items, self.ed, self.ctry)
 
     # ── 번역 묶음: 대표 기사·단신의 피드 설명 ──
     def translate_sm(self, ids):
@@ -195,6 +195,7 @@ class Ed:
 
     # ── 2. 정리 + top ──
     def rank(self):
+        for s in self.stories(): F.stamp(s, self.items, self.ed, added=bool(s.get("grow")))     # 수명 표시(new·hot·on·cool)
         st = sorted(self.stories(), key=self.score, reverse=True)
         # 같은 사건이 두 이슈로 갈라진 것 합치기: 제목 핵심 낱말이 2개 이상 겹치면 큰 쪽으로
         kept = []
@@ -207,13 +208,17 @@ class Ed:
                 h["delta"] = "grown" if h.get("delta") == "same" else h.get("delta"); continue
             kept.append((s, tk))
         st = [k[0] for k in kept]
+        for s in st: F.stamp(s, self.items, self.ed, added=bool(s.get("grow")))
+        st.sort(key=self.score, reverse=True)
         keep = st[:MAX_STORIES]
         br = self.briefs()
         br.sort(key=lambda s: (s.get("delta") != "new", -(s.get("grow") or 0)))
         self.E["stories"] = keep + br[:MAX_BRIEFS]
         for s in self.E["stories"]: s.pop("top", None)
-        for k, s in enumerate(keep[:5]): s["top"] = k + 1
-        log(f"이슈 {len(keep)}개 (뺀 것 {len(st) - len(keep)}) · top 5: " + " / ".join(s.get("title", "")[:20] for s in keep[:5]))
+        # 꼭 알아야 할 것: 새 이슈·커지는 이슈만, 2개국·2곳 이상이 다룬 것, 같은 분야·나라 2개까지 (모자라면 억지로 안 채움)
+        tops = F.pick_top(keep, tokens, GENERIC, wide=lambda s: F.breadth(s, self.items, self.ed, self.ctry), proper=self.proper())
+        for k, s in enumerate(tops): s["top"] = k + 1
+        log(f"이슈 {len(keep)}개 (뺀 것 {len(st) - len(keep)}) · 꼭 알아야 할 {len(tops)}개: " + " / ".join(f"[{s.get('life')}] " + s.get("title", "")[:20] for s in tops))
 
     def proper(self):
         if not hasattr(self, "_proper"):
@@ -279,7 +284,9 @@ class Ed:
         have = len(self.briefs())
         want = max(0, BRIEF_TARGET - sum(1 for s in self.briefs() if s.get("delta") == "new")) if have < MAX_BRIEFS else 0
         want = min(want, MAX_BRIEFS - have + 20)
+        now = F.now_of(self.ed)
         pool = [i for i in self.items.values() if i["k"] == "news" and i["id"] not in used and i.get("first") == self.ed
+                and F.age_h(i, now) <= F.COOL_H            # 처음 본 글이라도 발행된 지 24시간 넘었으면 단신으로 안 올림
                 and self.kt(i) and not SKIP_RE.search(self.kt(i) + " " + i["t"]) and len(self.kt(i)) >= 12]
         pool.sort(key=lambda i: (not i.get("sm"), i.get("r", 9)))
         per, pick = Counter(), []
