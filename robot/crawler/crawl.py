@@ -148,6 +148,9 @@ def parse_rss(src, content):
             summary = ""
         img = rss_img(e)
         if img: metric["img"] = img                          # 대표 사진 (DB 칸을 새로 만들지 않고 metric 에 담음)
+        tg = [clean(x.get("term") or x.get("label") or "", 40) for x in (e.get("tags") or [])]
+        tg = [x for x in dict.fromkeys(tg) if x and len(x) <= 40][:4]
+        if tg: metric["tg"] = tg                             # 언론사가 붙인 분류 꼬리표(국제·경제·스포츠…) — 분야 가르기에 씀
         rows.append({
             "guid_hash": h(e.get("id") or link),
             "url": link,

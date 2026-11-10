@@ -574,7 +574,8 @@ b.rnew{color:var(--accent);font-weight:700}
 .dend{display:grid;gap:4px;text-align:center;padding:20px 0 8px}
 .dend b{font-size:18px}.dend span{font-size:13px;color:var(--muted)}
 .wkb{font-size:11.5px;font-weight:700;padding:1px 6px;border-radius:6px;background:color-mix(in srgb,#3366cc 14%,var(--surface));color:#3366cc;white-space:nowrap}
-.iwk{display:grid;gap:4px;font-size:13px;margin:4px 0 8px}
+.iwk{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:13px;margin:4px 0 8px}
+.iwk small{flex-basis:100%}
 .iwk small{color:var(--muted);font-size:12.5px;line-height:1.5}
 h4.rh{font-size:13px;color:var(--muted);margin:12px 0 4px;font-weight:700}
 .rlines,.rdays{list-style:none;margin:0;padding:0;display:grid;gap:6px}
@@ -1846,6 +1847,7 @@ document.addEventListener("pointerup", () => {
 function findStory(k){ return (S.ed.stories||[]).find(x => x.id === k) || (S.ed.stories||[]).find(x => x.sid && x.sid === k); }
 function showIssue(sid){
   const s = findStory(sid); if(!s) return; sid = s.id;
+  if(S.sheetOpen === "daily") S.backTo = "daily";               // 오늘의 정리에서 연 이슈 → 뒤로 가면 정리 목록으로
   S.sheetOpen = "issue:" + sid; markStorySeen(s);
   if(!issueOpened(s) || Date.now() - Date.parse(stOf(issueKey(sid)).opened) > 10*60e3) setState(issueKey(sid), {opened:new Date().toISOString(), kind:"issue", title:s.title, key:s.key||s.sum||""});
   drawIssue(sid);
@@ -1923,7 +1925,7 @@ function issueInner(s, inDeck){
         <div class="irows">${changed.slice(0, 4).map(rowItem).join("")}</div>${changed.length > 4 ? `<button type="button" class="linkbtn" data-jump="sec-tl">흐름에서 나머지 ${changed.length - 4}개 보기 ›</button>` : ""}</div>`
         : rb ? `<p class="ichg-none">✓ ${esc(ago(new Date(rb).toISOString()))} 읽으신 뒤로 새 글이 없어요.</p>` : ""}
       <h2 class="ititle">${esc(s.title || storyTitle(s, its))}</h2>
-      ${s.wk ? `<p class="iwk"><span class="wkb">위키백과 '요즘 화제'에 실린 사건</span> <a href="https://en.wikipedia.org/wiki/Portal:Current_events/${encodeURIComponent(String(s.wk.d||"").replace(/ /g,"_"))}" target="_blank" rel="noopener">${esc(s.wk.d || "")} 원문 ›</a><small>${esc(s.wk.t)}</small></p>` : ""}
+      ${s.wk ? `<p class="iwk"><span class="wkb">위키백과 '요즘 화제'에 실린 사건</span> <a href="https://en.wikipedia.org/wiki/Portal:Current_events/${encodeURIComponent(String(s.wk.d||"").replace(/ /g,"_"))}" target="_blank" rel="noopener">${esc(wkDay(s.wk.d))} 원문 ›</a><small>${esc(s.wk.t)}</small></p>` : ""}
       ${(() => { const ps = its.map(i => i.p).filter(Boolean).sort(); if(!ps.length) return ""; const a = mdDay(ps[0]), b = mdDay(ps[ps.length-1]);
         return `<p class="idates">🗓 기사 날짜 ${a === b ? a : a + " ~ " + b} · 기사 ${its.length}개 · 가장 최근 ${ago(ps[ps.length-1])}</p>`; })()}
       ${(() => { const ph = storyPhoto(s); return ph ? `<figure class="iphoto has-ph"><a href="${esc(ph.i.u || "#")}" target="_blank" rel="noopener" aria-label="사진이 실린 기사 열기">${phImg(ph.u, "ip-img")}</a>
@@ -1989,6 +1991,7 @@ function drawTheme(k){
 }
 
 // ───────── 하루 정리판: 아침 6시 이후 첫 판에서 고정한 큰 이슈 10 + 단신 20 (끝이 있는 읽기) ─────────
+const wkDay = d => { const m = String(d||"").match(/(\d{4}) (\w+) (\d+)/); const M = ["January","February","March","April","May","June","July","August","September","October","November","December"]; return m ? `${M.indexOf(m[2]) + 1}월 ${m[3]}일` : d || ""; };
 function dailyOf(){ const d = S.ed && S.ed.daily; return d && (d.stories||[]).length ? d : null; }
 function dailyProg(d){ const all = [...d.stories, ...(d.briefs||[])]; return {all, read: all.filter(x => RD.at(x) > 0).length}; }
 function dailyCard(){
@@ -2758,6 +2761,8 @@ async function translateSummary(id){
   S.busy = false; drawSheet();
 }
 function closeSheet(){
+  if(S.backTo && S.sheetOpen !== S.backTo){ const b = S.backTo; S.backTo = null; S.drawnId = null; return navTo(b); }
+  S.backTo = null;
   S.sheetOpen = null; $("#sheetHost").innerHTML = "";
   hashSwap("#" + (S.view==="src" ? "sources" : S.view));
 }

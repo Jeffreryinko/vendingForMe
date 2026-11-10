@@ -83,7 +83,7 @@ def cmd_build(ed, prev, ko, label):
             used |= set(rest); F.stamp(s, items, ed)
             cand.append(s)
     E["stories"] = F.give_sid(out + cand, ed)     # 판이 바뀌어도 그대로인 이슈 번호 (폰의 '읽은 이슈' 기억용)
-    for k in ("themes", "countryDigest", "explainMethod", "storyMethod"):
+    for k in ("themes", "countryDigest", "explainMethod", "storyMethod", "daily"):      # daily = 하루 정리판 (다음 날 아침까지 그대로)
         if k in P and k not in E:
             E[k] = P[k]
     E["carriedFrom"] = prev

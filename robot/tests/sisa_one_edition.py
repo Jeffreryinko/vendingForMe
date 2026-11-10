@@ -29,7 +29,8 @@ D = T + "/data/sisa"; os.makedirs(D + "/editions"); os.makedirs(D + "/feed"); os
 shutil.copy(seed / f"editions__{ed}.json", f"{D}/editions/{ed}.json")
 for f in seed.glob(f"feed__{ed}__*.json"): shutil.copy(f, f"{D}/feed/{ed}__{f.stem.split('__')[2]}.json")
 shutil.copy("data/sisa/brief/ents.json", D + "/brief/ents.json")
-shutil.copy("data/sisa/editions/_index.json", D + "/editions/_index.json")          # '이어진 이야기'용 지난 판
+shutil.copy("data/sisa/editions/_index.json", D + "/editions/_index.json")
+if os.environ.get("SISA_TEST_WIKI"): shutil.copy(os.environ["SISA_TEST_WIKI"], D + "/brief/_wikinews.json")   # 위키백과 요즘 화제 시험용 (네트워크 없이)          # '이어진 이야기'용 지난 판
 for e in json.load(open("data/sisa/editions/_index.json"))[-20:]:
     if e["id"] != ed and os.path.exists(f"data/sisa/editions/{e['id']}.json"): shutil.copy(f"data/sisa/editions/{e['id']}.json", f"{D}/editions/{e['id']}.json")
 import sisa_edit
@@ -66,5 +67,10 @@ for s in ms[:8]:
     for x in s.get("lines", []): print("   지금까지:", x["t"][:90])
     for x in s.get("nums", []): print("   숫자:", x["w"], " / ".join(f"{v['v']}({v['s']})" for v in x["vals"]), "← 출처마다 다름" if x["diff"] else "")
     for x in s.get("quotes", []): print("   말:", x.get("who") or "?", "“" + x["q"][:60] + "”", f"({x['s']})")
+    if s.get("wk"): print("   위키:", s["wk"]["t"][:80], s["wk"]["hit"])
     for x in s.get("rel", []): print("   이어진:", "지금판" if x["cur"] else x.get("label"), x["t"][:50])
+dl = E.get("daily") or {}
+print(f"\n하루 정리판 {dl.get('date')} · 큰 이슈 {len(dl.get('stories', []))} · 단신 {len(dl.get('briefs', []))}")
+for x in dl.get("stories", []): print("   ", x["cat"], x["title"][:50], "(위키)" if x.get("wk") else "")
+print("분야", dict(collections.Counter(s.get("cat") for s in E["stories"]).most_common()))
 shutil.rmtree(T)

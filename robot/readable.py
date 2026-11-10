@@ -124,3 +124,81 @@ def lead_sentence(sm, n=220):
 
 def jacc(a, b):
     return len(a & b) / max(1, len(a | b))
+
+
+# ── 4단계: 언론사가 붙인 분류 꼬리표로 분야 가르기 ──
+TAGCAT = [  # (분야, 꼬리표에 들어 있으면 그 분야로 보는 말 — 여러 언어, 소문자)
+    ("spo", "sport deporte esporte futebol fútbol football soccer calcio fussball fußball basketball tennis olymp スポーツ 体育 足球 스포츠 축구 야구"),
+    ("tech", "tech technolog tecnolog science ciencia ciência wissenschaft digital internet cyber ai ia 科技 テクノロジー 科学 it·과학 과학 기술 테크"),
+    ("eco", "business econom wirtschaft finanz finance market mercado bolsa negocios empresas money 経済 经济 财经 金融 경제 증권 금융 산업 부동산"),
+    ("cul", "culture cultura kultur entertainment arts music cinema film movie celebrity showbiz 文化 娱乐 エンタメ 문화 연예 엔터"),
+    ("pol", "politic polític politik politique election elecciones government gobierno 政治 时政 정치 선거"),
+    ("war", "war guerra krieg guerre conflict defen military militar 军事 군사 국방 안보"),
+    ("dis", "disaster weather climate clima desastre accident 灾害 災害 재난 사고 날씨"),
+    ("soc", "society sociedad sociedade gesellschaft health salud saúde crime justice education 社会 社会 사회 건강 교육 사건"),
+]
+_GENERIC_TAG = re.compile(r"^(world|news|top|international|internacional|mundo|welt|monde|国际|国際|세계|국제|latest|breaking|home|главное|мир)\b", re.I)
+
+
+def cat_from_tags(tag_lists, min_votes=2, share=0.4):
+    """여러 기사의 분류 꼬리표 → 분야 하나 (표가 모자라면 None → 낱말 사전으로)"""
+    votes = Counter(); n = 0
+    for tg in tag_lists:
+        hit = set()
+        for x in tg or []:
+            x = x.lower().strip()
+            if not x or _GENERIC_TAG.match(x): continue
+            for c, ws in TAGCAT:
+                if any(w in x for w in ws.split()): hit.add(c); break
+        if hit: n += 1; votes.update(hit)
+    if not votes: return None
+    c, v = votes.most_common(1)[0]
+    return c if v >= min_votes and v >= share * n else None
+
+
+# ── 4단계: 위키백과 '요즘 화제'(Portal:Current events) 대조 ──
+_LINK = re.compile(r"\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]+))?\]\]")
+_SKIPLINK = re.compile(r"^(File|Image|Category|Template|Wikipedia|Portal):|^\d{4}$|^(List of|Timeline of)", re.I)
+
+
+def wiki_events(wikitext):
+    """하루치 위키텍스트 → [{text, names}] (맨 아래 글머리표 한 줄 = 사건 하나, 위 줄의 주제 이름도 이어받음)"""
+    out, ctx = [], {}
+    for line in (wikitext or "").splitlines():
+        m = re.match(r"^(\*+)\s*(.*)", line)
+        if not m: continue
+        lv, body = len(m.group(1)), m.group(2)
+        names = []
+        for a, b in _LINK.findall(body):
+            if _SKIPLINK.search(a): continue
+            for n in {a.strip(), (b or "").strip()}:
+                n = re.sub(r"\s*\([^)]*\)$", "", n)
+                if len(n) >= 4 and re.search(r"[A-Z]", n): names.append(n)
+        ctx[lv] = names; [ctx.pop(k) for k in list(ctx) if k > lv]
+        text = re.sub(r"\s+", " ", re.sub(r"<ref.*?(</ref>|/>)|''+|\{\{[^}]*\}\}", "", _LINK.sub(lambda x: x.group(2) or x.group(1), body))).strip()
+        if len(text) >= 40:                                   # 사건 문장 (주제 제목 줄은 짧음)
+            allnames = list(dict.fromkeys(names + [n for k in sorted(ctx) if k < lv for n in ctx[k]]))
+            if allnames: out.append({"text": text[:300], "names": allnames[:12]})
+    return out
+
+
+COMMON = {"united states", "donald trump", "european union", "united nations", "china", "russia", "ukraine", "israel", "india", "united kingdom",
+          "president of the united states", "prime minister", "joe biden", "vladimir putin", "xi jinping"}
+
+
+def wiki_match(events, titles):
+    """이슈의 영어(라틴 문자) 기사 제목들에 같은 사건의 이름이 2개 이상 나오고, 그중 하나는 흔하지 않은 이름일 때 그 사건.
+    점수 = 흔하지 않은 이름이 든 제목의 비율 (이슈의 중심 사건인지) — 20% 아래면 곁가지로 보고 안 맞춤"""
+    freq = Counter(n.lower() for ev in events for n in set(ev["names"]))
+    low = " ".join(titles).lower(); tl = [x.lower() for x in titles]; best = None
+    def pat(n):                                              # 'Pete Hegseth' 은 'Hegseth' 만 나와도 맞음 (성만 쓰는 제목이 많음)
+        v = [n] + ([n.split()[-1]] if len(n.split()) == 2 and n.split()[0][0].isupper() and len(n.split()[-1]) >= 5 and n.split()[-1][0].isupper() and n.lower() not in COMMON else [])
+        return re.compile(r"\b(?:" + "|".join(re.escape(x.lower()) for x in v) + r")\b")
+    for ev in events:
+        hit = [n for n in ev["names"] if pat(n).search(low)]
+        rare = [n for n in hit if n.lower() not in COMMON and freq[n.lower()] <= 3]
+        if len(hit) < 2 or not rare: continue
+        ps = [pat(n) for n in rare]
+        share = sum(1 for x in tl if any(p.search(x) for p in ps)) / max(1, len(tl))
+        if share >= 0.2 and (best is None or share > best[0]): best = (share, ev, hit)
+    return best

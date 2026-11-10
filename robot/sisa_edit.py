@@ -145,8 +145,77 @@ class Ed:
         return max(its, key=sc)
 
     def score(self, s):
-        """순위 점수 = 최근 24시간에 불어난 폭 ÷ (가장 새 글 나이 + 2시간)^1.2 — 새 글이 끊기면 내려감 (robot/fresh.py)"""
-        return F.heat(s, self.items, self.ed, self.ctry)
+        """순위 점수 = 최근 24시간에 불어난 폭 ÷ (가장 새 글 나이 + 2시간)^1.2 — 새 글이 끊기면 내려감 (robot/fresh.py)
+        위키백과 '요즘 화제'에 실린 사건이면 ×1.5 (사람 편집자들이 고른 세계적 사건)"""
+        return F.heat(s, self.items, self.ed, self.ctry) * (1.5 if s.get("wk") else 1.0)
+
+    # 분야: 언론사가 붙인 꼬리표가 충분하면 그것, 아니면 낱말 사전
+    def tags(self, it): return (it.get("m") or {}).get("tg") or []
+    def cat_for(self, ids):
+        its = [self.items[i] for i in ids if i in self.items]
+        return R.cat_from_tags([self.tags(i) for i in its]) or cat_of([self.kt(i) for i in its])
+
+    # ── 1-2. 분야 다시 보기: '사회'로 떨어진 로봇 이슈를 꼬리표로 다시 가름 ──
+    def recat(self):
+        n = 0
+        for s in self.E.get("stories", []):
+            if s.get("method") == "ai-v1" or s.get("cat") not in (None, "", "soc"): continue
+            c = R.cat_from_tags([self.tags(self.items[i]) for i in s["items"] if i in self.items], 1 if s.get("kind") == "brief" else 2)
+            if c and c != s.get("cat"): s["cat"] = c; n += 1
+        log(f"분야 다시 가름 {n}개 (언론사 꼬리표)")
+
+    # ── 1-3. 위키백과 '요즘 화제'와 대조 (오늘·어제, 사람 편집자가 고른 세계 사건) ──
+    def wiki_news(self):
+        cache = rj(DATA / "brief/_wikinews.json", {})
+        now = datetime.now(timezone.utc); evs = []
+        for d in (now, now - timedelta(days=1)):
+            key = f"{d.year} {d.strftime('%B')} {d.day}"
+            if key not in cache or d.date() == now.date():
+                j = get_json("https://en.wikipedia.org/w/api.php?action=parse&format=json&formatversion=2&prop=wikitext&page="
+                             + urllib.parse.quote("Portal:Current_events/" + key.replace(" ", "_")))
+                wt = ((j or {}).get("parse") or {}).get("wikitext")
+                if wt: cache[key] = R.wiki_events(wt)
+            evs += [dict(e, d=key) for e in cache.get(key, [])]
+        wj(DATA / "brief/_wikinews.json", dict(list(cache.items())[-6:]))
+        best = {}                                           # 사건 하나는 가장 잘 맞는 이슈 하나에만
+        for s in self.E.get("stories", []):
+            s.pop("wk", None)
+            if s.get("kind") == "brief" or not evs: continue
+            en = [self.items[i]["t"] for i in s["items"] if i in self.items and self.items[i]["_lang"] not in ("ko", "zh", "ja", "ar", "ru", "th", "hi", "bn", "fa", "uk", "el")]
+            m = R.wiki_match(evs, en) if en else None
+            if m:
+                sc = (m[0], F.breadth(s, self.items, self.ed, self.ctry)); k = m[1]["text"]
+                if k not in best or sc > best[k][0]: best[k] = (sc, s, m)
+        for _, s, m in best.values(): s["wk"] = {"t": m[1]["text"], "d": m[1]["d"], "hit": m[2][:4]}
+        n = len(best)
+        log(f"위키백과 요즘 화제: 사건 {len(evs)}개 · 맞춘 이슈 {n}개")
+
+    # ── 6. 하루 정리판: 하루에 한 번(아침 6시 이후 첫 판) 지난 24시간 큰 이슈 10 + 단신 20 을 고정 ──
+    def daily(self):
+        F.give_sid(self.E["stories"], self.ed)
+        today = self.ed[:10]; hour = int(self.ed[-2:]) if self.ed[-2:].isdigit() else 0
+        d = self.E.get("daily") or {}
+        if d.get("date") == today or hour < 6:
+            log(f"하루 정리판: 그대로 ({d.get('date') or '없음'})"); return
+        ms = [s for s in self.stories() if len(s.get("items") or []) >= 2]
+        ms.sort(key=lambda s: (F.breadth(s, self.items, self.ed, self.ctry) * (1.5 if s.get("wk") else 1)), reverse=True)
+        pick, per = [], Counter()
+        for s in ms:
+            if per[s.get("cat")] >= 3: continue
+            per[s.get("cat")] += 1; pick.append(s)
+            if len(pick) >= 10: break
+        br = [s for s in self.briefs() if s.get("key") and s.get("delta") == "new"] or [s for s in self.briefs() if s.get("key")]
+        bp, bc = [], Counter()
+        for s in br:
+            c = (s.get("countries") or [""])[0]
+            if bc[c] >= (6 if c == "KR" else 3): continue
+            bc[c] += 1; bp.append(s)
+            if len(bp) >= 20: break
+        snap = lambda s: {"sid": s.get("sid"), "id": s.get("id"), "title": s.get("title", ""), "key": short(s.get("key") or s.get("sum") or "", 200),
+                          "cat": s.get("cat", ""), "c": (s.get("countries") or [])[:5], "n": len(s.get("items") or []), **({"wk": 1} if s.get("wk") else {})}
+        self.E["daily"] = {"date": today, "ed": self.ed, "label": self.E.get("label", self.ed), "at": self.E.get("crawledAt", ""),
+                           "stories": [snap(s) for s in pick], "briefs": [snap(s) for s in bp]}
+        log(f"하루 정리판 새로 만듦: {today} · 큰 이슈 {len(pick)} · 단신 {len(bp)}")
 
     # ── 번역 묶음: 대표 기사·단신의 피드 설명 ──
     def translate_sm(self, ids):
@@ -180,7 +249,7 @@ class Ed:
             r = self.rep(s)
             if not r or not self.tighten(s, r): s["_drop"] = True; continue
             s["title"] = clean_title(self.kt(r))
-            s["cat"] = cat_of([self.kt(self.items[i]) for i in s["items"] if i in self.items])
+            s["cat"] = self.cat_for(s["items"])
             s["method"] = "auto-v1"; s["rep"] = r["id"]; s["rep_id"] = r["id"]
             cs = sorted({self.ctry(self.items[i]) for i in s["items"] if i in self.items})
             s["kind"] = "global" if len(cs) >= 2 else "local"; s["where"] = cs[:3] if len(cs) <= 3 else [Counter(self.ctry(self.items[i]) for i in s["items"] if i in self.items).most_common(1)[0][0]]
@@ -206,6 +275,7 @@ class Ed:
             host = next((k for k in kept if len(tk & k[1]) >= 2 or (tk & k[1] & self.proper())), None)
             if host and s.get("method") != "ai-v1":
                 h = host[0]; h["items"] = h["items"] + [i for i in s["items"] if i not in h["items"]]
+                if s.get("wk") and not h.get("wk"): h["wk"] = s["wk"]          # 합쳐진 쪽의 위키백과 표시도 넘겨받음
                 h["delta"] = "grown" if h.get("delta") == "same" else h.get("delta"); continue
             kept.append((s, tk))
         st = [k[0] for k in kept]
@@ -401,7 +471,7 @@ class Ed:
         new = []
         for i in pick:
             mx += 1; t = clean_title(self.kt(i))
-            new.append({"id": f"g{mx}", "kind": "brief", "cat": cat_of([t]), "where": [self.ctry(i)], "title": t,
+            new.append({"id": f"g{mx}", "kind": "brief", "cat": R.cat_from_tags([self.tags(i)], 1, 0) or cat_of([t]), "where": [self.ctry(i)], "title": t,
                         "key": tr.get(i["id"]) or "", "items": [i["id"]], "delta": "new", "method": "auto-v1",
                         "countries": [self.ctry(i)], "langs": [i["_lang"]], "grow": 0})
             if tr.get(i["id"]):
@@ -498,7 +568,7 @@ class Ed:
 def main():
     ed = sys.argv[1] if len(sys.argv) > 1 else max(rj(DATA / "editions/_index.json", []), key=lambda e: e.get("crawledAt", ""))["id"]
     t0 = time.time(); X = Ed(ed); log(f"로봇 편집장: {ed}")
-    for step in (X.name_candidates, X.rank, X.extras, X.readables, X.add_briefs, X.themes, X.grow_ents):
+    for step in (X.name_candidates, X.recat, X.wiki_news, X.rank, X.extras, X.readables, X.add_briefs, X.daily, X.themes, X.grow_ents):
         try: step()
         except Exception as e: log(f"  {step.__name__} 실패 — 건너뜀: {e!r}")
     X.save()
