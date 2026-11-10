@@ -423,6 +423,8 @@ def enrich(r, fx):
         if val: r["val"] = round(val[0] * fx.get(val[1], 1))
     r["sec"] = sectors_of(txt)
     r["cc"] = country_of(txt, r["cc0"], r["lang"])
+    CUR_CC = {"CNY": "CN", "JPY": "JP", "INR": "IN", "GBP": "GB", "EUR": "EU", "SGD": "SG", "IDR": "ID", "BRL": "BR", "HKD": "CN"}
+    if r["cc"] == "KR" and mo and mo[1] in CUR_CC and not CTRY[0][1].search(txt): r["cc"] = CUR_CC[mo[1]]      # 한국 매체가 쓴 '5억 위안' 거래 → 중국
     r["co"], r["tgt"], r["inv"] = names(r["title"], r["lang"], r["kind"])
     try: r["d0"] = date.fromisoformat(r["date"])
     except Exception: r["d0"] = date.today()

@@ -57,7 +57,7 @@ DEAL_WORDS = (r"\b(raise[sd]?|raising|funding|financing|round|seed|series [a-h]\
               r"|資金調達|調達|買収|出資|上場|融资|收购|并购|上市|Finanzierung|Übernahme|lève|rachat|rodada|aquisição|pendanaan")
 SKIP_WORDS = (r"(?i)\b(podcast|webinar|newsletter|opinion|how to|guide|tips|weekly|roundup|recap|this week in|should (the|we|you|i)|explained|what (it|this) means|raises (the bar|concerns?|questions?|prices?|rates?|guidance|forecast|outlook|dividend|awareness|alarm|eyebrows|the stakes)|"
               r"securiti[sz]ation|biggest (rounds|deals)|funding (recap|report|tracker)|^(series [a-h]|seed|venture|vc|funding|m&a|ipos?) (in|for) \d{4}|NFL|NBA|MLB|NHL|MLS|quarterback|outfielder|pitcher|linebacker|free agent|draft pick|trade deadline|via trade|roster|transfer window|signs with)\b|\?\s*$|？\s*$"
-              r"|칼럼|사설|기고|기자수첩|썰|위클리|브리핑\]|인터뷰\]|\[포토\]|\[사진\]|채용|세미나|설명회 개최|IR 행사|데모데이|모집|공모전|수상|(?<!팁스 )(?<!TIPS )(?<!팁스)선정$|프로그램|캠프|챌린지|경진대회|투자\s?상담|상담회|아카데미|참가 기업|참가기업|간담회|포럼|박람회|교육생|역량 집중|개최|네트워킹|파트너링|MOU|업무협약|출범|모색|도전|행감|회의|협의체|턱없이|창조경제혁신센터|혁신센터|창경|테크노파크|투자\s?유치\s?(지원|희망|전략|역량|설명)|지원\s?(사업|확대|강화|나서|나선다|한다)|스타트업 \d+곳|\d+개사|기업 \d+곳|서머리\]|^\[(정책|금융|정책금융|마켓|증시|오늘의|주간|투자 ?노트)[^\]]*\]|브리프\]|Deal】|투자 동향|소식 모음|전망\]|점검\]|분석\]|특징주|주가|목표가|네이버 블로그|티스토리")
+              r"|칼럼|사설|기고|기자수첩|썰|위클리|브리핑\]|인터뷰\]|\[포토\]|\[사진\]|채용|세미나|설명회 개최|IR 행사|데모데이|모집|공모전|수상|(?<!팁스 )(?<!TIPS )(?<!팁스)선정$|프로그램|캠프|챌린지|경진대회|투자\s?상담|상담회|아카데미|참가 기업|참가기업|간담회|포럼|박람회|교육생|역량 집중|개최|네트워킹|파트너링|MOU|업무협약|출범|모색|도전|행감|회의|협의체|턱없이|창조경제혁신센터|혁신센터|창경|테크노파크|투자\s?유치\s?(지원|희망|전략|역량|설명)|지원\s?(사업|확대|강화|나서|나선다|한다)|지원$|육성\W|스타트업 \d+곳|\d+개사|기업 \d+곳|서머리\]|^\[(정책|금융|정책금융|마켓|증시|오늘의|주간|투자 ?노트)[^\]]*\]|브리프\]|Deal】|투자 동향|소식 모음|전망\]|점검\]|분석\]|특징주|주가|목표가|네이버 블로그|티스토리")
 
 # 종류 — 위에서부터 먼저 맞는 것 (펀드·사모·인수합병·상장이 투자보다 먼저)
 KIND_RX = [

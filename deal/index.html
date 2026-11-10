@@ -66,6 +66,9 @@ nav.tabs button{flex:1;border:0;background:none;display:grid;justify-items:cente
 nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
 .back{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9500;display:flex;align-items:flex-end;justify-content:center}
 .sheet{width:100%;max-width:560px;max-height:88vh;overflow:auto;background:var(--bg);border-radius:14px 14px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom,0px));animation:up .24s cubic-bezier(.2,.8,.2,1)}
+.snav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px;font-size:12.5px;color:var(--muted)}.snav .ib{width:34px;height:34px}.snav .ib:disabled{opacity:.3}
+.sheet.in-r{animation:inr .22s ease-out}.sheet.in-l{animation:inl .22s ease-out}
+@keyframes inr{from{transform:translateX(40px);opacity:.4}to{transform:none;opacity:1}}@keyframes inl{from{transform:translateX(-40px);opacity:.4}to{transform:none;opacity:1}}
 @keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
 .sheet .grab{width:36px;height:5px;border-radius:3px;background:var(--ap-label3);margin:0 auto 10px}
 .sheet h3{margin:0 0 4px;font:700 20px/1.35 var(--ap-display);letter-spacing:-.02em}
@@ -540,7 +543,9 @@ function renderShelf() {
 
 /* ───── 자세히 (아래에서 올라오는 창) ───── */
 function shareText(d) { return `${d.ko || d.title}${d.amt ? "\n" + won(d.amt) + (d.amtS ? " (" + d.amtS + ")" : "") : ""}\n${d.url}`; }
-function openItem(id) {
+let sheetList = [];                                                              // 지금 화면에 보이던 카드 순서 (자세히 창에서 옆으로 넘기기)
+function openItem(id, dir) {
+  const old = document.querySelector(".back"); if (old) old.remove();
   const d = S.byId[id] || (S.star[id] && Object.assign({}, S.star[id].item, { id })); if (!d) return;
   S.read[id] = 1; save("read");
   const ko = d.ko || d.title, orig = d.ko && d.ko !== d.title ? d.title : "";
@@ -557,14 +562,16 @@ function openItem(id) {
   if ((d.inv || []).length) names += `<p class="note" style="margin:10px 2px 4px">투자한 곳</p>${d.inv.map(nm).join("")}`;
   const fids = FI && FI.byDeal ? FI.byDeal[d.id] || [] : [];
   if (fids.length) names += `<p class="note" style="margin:10px 2px 4px">투자사 정보</p>${fids.map(k => { const f = FI.firms.find(x => x.id === k); return f ? `<button class="nm" data-firm="${esc(k)}">🏦 ${esc(f.ko)} ›</button>` : ""; }).join("")}`;
-  const srcs = (d.srcs || []).length ? `<p class="note" style="margin:12px 2px 4px">같은 거래를 쓴 곳${(d.n || 1) > d.srcs.length + 1 ? ` (${d.n}곳 중 ${d.srcs.length + 1}곳)` : ""}</p><div class="list">${[[d.src, d.url, d.lang]].concat(d.srcs).map(s => `<a class="li" href="${esc(s[1])}" target="_blank" rel="noopener"><div class="bx"><p class="t" style="font-weight:500">${esc(s[0])}</p></div><span class="v" style="font-weight:400">${s[2] && s[2] !== "ko" ? "번역 ↗" : "↗"}</span></a>`).join("")}</div>` : "";
+  const srcs = (d.srcs || []).length ? `<p class="note" style="margin:12px 2px 4px">같은 거래를 쓴 곳${(d.n || 1) > d.srcs.length + 1 ? ` (${d.n}곳 중 ${d.srcs.length + 1}곳)` : ""}</p><div class="list">${[[d.src, d.url, d.lang]].concat(d.srcs.filter((x, i, a) => x[0] !== d.src && a.findIndex(y => y[0] === x[0]) === i)).map(s => `<a class="li" href="${esc(s[1])}" target="_blank" rel="noopener"><div class="bx"><p class="t" style="font-weight:500">${esc(s[0])}</p></div><span class="v" style="font-weight:400">${s[2] && s[2] !== "ko" ? "번역 ↗" : "↗"}</span></a>`).join("")}</div>` : "";
   const isNews = d.t === "news" || !d.t;
   const acts = [`<a class="btn pri" href="${esc(d.url)}" target="_blank" rel="noopener">${d.t === "formd" ? "SEC 신고서 ↗" : d.t === "dart" ? "DART 공시 ↗" : "기사 원문 ↗"}</a>`];
   if (isNews && d.lang !== "ko") acts.push(`<a class="btn" href="https://translate.google.com/translate?sl=auto&tl=ko&u=${encodeURIComponent(d.url)}" target="_blank" rel="noopener">번역해서 열기 ↗</a>`);
   acts.push(`<a class="btn" href="https://www.google.com/search?q=${encodeURIComponent((d.co || ko) + (d.tgt ? " " + d.tgt : "") + " " + (KN()[d.kind] || ""))}&tbm=nws" target="_blank" rel="noopener">관련 뉴스 찾기 ↗</a>`);
   acts.push(`<button class="btn" data-act="star">${S.star[id] ? "★ 별표 해제" : "☆ 별표"}</button>`, `<button class="btn" data-act="think">✎ 생각</button>`, `<button class="btn" data-act="share">공유</button>`, `<button class="btn" data-act="hide">숨기기</button>`);
   const back = document.createElement("div"); back.className = "back"; back.dataset.id = id;
-  back.innerHTML = `<div class="sheet" role="dialog"><div class="grab"></div>
+  const pos = sheetList.indexOf(id), tot = sheetList.length;
+  const navRow = pos >= 0 && tot > 1 ? `<div class="snav"><button class="ib" data-sgo="-1" aria-label="이전" ${pos === 0 ? "disabled" : ""}>‹</button><span>${pos + 1} / ${tot} · 옆으로 밀면 넘어가요</span><button class="ib" data-sgo="1" aria-label="다음" ${pos === tot - 1 ? "disabled" : ""}>›</button></div>` : "";
+  back.innerHTML = `<div class="sheet${dir ? (dir > 0 ? " in-r" : " in-l") : ""}" role="dialog"><div class="grab"></div>${navRow}
     <div class="meta" style="margin-bottom:4px">${badges(d)}<span>${esc(d.src || "")}</span></div>
     ${d.amt ? `<p class="big">${won(d.amt)}</p><p class="orig">${esc(d.amtS && !/[원조억만]$/.test(d.amtS) ? d.amtS : d.usd ? usd(d.usd) : "")}${(S.idx.fx || {}).day ? ` · ${esc(S.idx.fx.day)} 환율로 바꾼 대략값` : ""}</p>` : ""}
     <h3>${esc(ko)}</h3>${orig ? `<p class="orig">${esc(orig)}</p>` : ""}
@@ -576,7 +583,19 @@ function openItem(id) {
   const ta = back.querySelector("#memo");
   ta.addEventListener("input", () => { if (ta.value.trim()) S.memo[id] = ta.value; else delete S.memo[id]; save("memo"); if (S.star[id]) { S.star[id].memo = ta.value; save("star"); } });
   back.addEventListener("click", e => { if (e.target === back) closeSheet(); });
+  const sh = back.querySelector(".sheet"); let x0 = null, y0 = 0;                       // 옆으로 밀어 다음·이전 카드
+  sh.addEventListener("touchstart", e => { if (e.target.closest("textarea")) { x0 = null; return; } x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  sh.addEventListener("touchend", e => {
+    if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) sheetStep(dx < 0 ? 1 : -1);
+  }, { passive: true });
   const c = document.querySelector(`.card[data-open="${CSS.escape(id)}"]`); if (c) c.classList.add("read");
+}
+function sheetStep(k) {
+  const b = document.querySelector(".back"); if (!b) return;
+  const i = sheetList.indexOf(b.dataset.id) + k;
+  if (i < 0 || i >= sheetList.length) { toast(k > 0 ? "마지막 카드예요" : "첫 카드예요"); return; }
+  openItem(sheetList[i], k);
 }
 function closeSheet() { const b = document.querySelector(".back"); if (!b) return false; b.remove(); paint(); return true; }
 function entry(d) { const keep = ["t", "kind", "stage", "title", "ko", "url", "src", "date", "lang", "amt", "usd", "amtS", "val", "sec", "cc", "co", "tgt", "inv", "n", "ind", "loc", "biz"]; const o = {}; for (const k of keep) if (d[k] != null && d[k] !== "") o[k] = d[k]; return o; }
@@ -630,14 +649,15 @@ function debounce(f, ms) { let t; return () => { clearTimeout(t); t = setTimeout
 function saveF() { const o = Object.assign({}, F); delete o.q; LS.s("F", o); }
 
 document.addEventListener("click", async e => {
-  const t = e.target.closest("[data-v],[data-go],[data-open],[data-kind],[data-act],[data-f],[data-per],[data-sort],[data-wk],[data-tfol],[data-unfol],[data-fol],[data-fdq],[data-fdt],[data-fdi],[data-secy],[data-secf],[data-darty],[data-dartk],[data-krper],[data-krst],[data-fity],[data-ficc],[data-fisort],[data-tfol2],[data-firm],[data-kvs]"); if (!t) return;
+  const t = e.target.closest("[data-v],[data-go],[data-open],[data-kind],[data-act],[data-f],[data-per],[data-sort],[data-wk],[data-tfol],[data-unfol],[data-fol],[data-fdq],[data-fdt],[data-fdi],[data-secy],[data-secf],[data-darty],[data-dartk],[data-krper],[data-krst],[data-fity],[data-ficc],[data-fisort],[data-tfol2],[data-firm],[data-kvs],[data-sgo]"); if (!t) return;
   const d = t.dataset;
   if (d.v) { closeSheet(); return nav("#" + d.v); }
   if (d.go) {                                                                    // '전부 ›' → 탐색 (조건 넣어서)
     if (d.go === "#x") { Object.assign(F, { kind: d.k || S.kind || "", stage: "", sec: "", cc: d.cc || "", band: "", sort: "amt", per: d.per ? +d.per : F.per }); saveF(); }
     return nav(d.go);
   }
-  if (d.open) return openItem(d.open);
+  if (d.sgo) return sheetStep(+d.sgo);
+  if (d.open) { if (!t.closest(".back")) sheetList = [...new Set([...document.querySelectorAll("#app [data-open]")].map(e => e.dataset.open))]; return openItem(d.open); }
   if (d.tfol) { follow(d.tfol); const on = !!S.fol[d.tfol]; document.querySelectorAll(`[data-tfol="${CSS.escape(d.tfol)}"]`).forEach(b => { b.classList.toggle("on", on); b.textContent = b.closest(".sheet") ? (on ? "✓ " : "＋ ") + d.tfol : on ? "✓ 따라가는 중" : "＋ 따라가기"; }); return; }
   if (d.unfol) { e.stopPropagation(); follow(d.unfol, false); return paint(); }
   if (d.fol) { S.fol[d.fol].seen = kst(); save("fol"); Object.assign(F, { q: d.fol, kind: "", stage: "", sec: "", cc: "", band: "", per: 30, sort: "new" }); return nav("#x"); }
