@@ -188,7 +188,7 @@
     var KN = { vc: "투자 유치", ma: "인수합병", pe: "사모·바이아웃", ipo: "상장", fund: "펀드 결성", etc: "기타" };
     var cut = new Date(Date.now() + 9 * 3600e3 - 864e5).toISOString().slice(0, 10);
     var won = function (v) { v = +v || 0; return v >= 1e12 ? (v / 1e12).toFixed(v >= 1e13 ? 0 : 1).replace(/\.0$/, "") + "조 원" : v >= 1e8 ? Math.round(v / 1e8).toLocaleString() + "억 원" : ""; };
-    var l = N.deals.filter(function (d) { return d.date >= cut && (d.amt >= 1e10 || (d.cc === "KR" && d.amt)); }).sort(function (a, b) { return (b.amt || 0) - (a.amt || 0); }).slice(0, 40);
+    var l = N.deals.filter(function (d) { return d.date >= cut && (!d.st || d.st === "done") && (!d.g || d.g === "f" || d.g === "m") && (d.amt >= 1e10 || (d.cc === "KR" && d.amt)); }).sort(function (a, b) { return (b.amt || 0) - (a.amt || 0); }).slice(0, 40);
     var out = l.map(function (d) {
       var ko = d.ko || d.title, orig = d.ko && d.ko !== d.title ? d.title : "";
       return { key: d.id, kw: KWOF(ko, d.title), sa: "deal", kind: "deal", title: ko, url: d.url, shareText: ko + "\n" + d.url, q: [d.title, ko, d.co, d.tgt, (d.inv || []).join(" ")].join(" "),

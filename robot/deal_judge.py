@@ -24,9 +24,9 @@ import ai_run as A
 rj, wj, log, now_iso = A.rj, A.wj, A.log, A.now_iso
 
 # ───────── 상태 ─────────
-RX_FAIL = re.compile(r"\b(withdraw[sn]?|withdrew|terminat\w*|scrap(s|ped)?|call(s|ed)? off|abandon\w*|reject\w*|rebuff\w*|turn(s|ed)? down|postpone\w*|"
+RX_FAIL = re.compile(r"\b(withdraw[sn]?|withdrew|terminat\w*|scrap(s|ped)?|call(s|ed)? off|abandon\w*|reject\w*|rebuff\w*|turn(s|ed)? down|"
                      r"pull(s|ed)? (its |the )?(IPO|listing|offer)|block(s|ed)|collaps\w*|fall(s|en)? through|fell through|shelve[sd]?|walks? away)\b"
-                     r"|철회|무산|결렬|거절|좌초|불발|백지화|해지|파기|연기|중단|무효|撤回|中止|白紙|見送り|终止|放弃|撤销|暂停", re.I)
+                     r"|철회|무산|결렬|거절|좌초|불발|백지화|해지|파기|중단|무효|撤回|中止|白紙|見送り|终止|放弃|撤销|暂停", re.I)
 RX_RUMOR = re.compile(r"\b(in talks|talks (to|with|for)|considering|consider(s)?|weigh(s|ing)?|explor(es|ing)|nears?|nearing|plans? to|planning|set to|seek(s|ing)?|"
                       r"said to|reportedly|sources say|people familiar|could|may|might|in discussions|eyes|eyeing|mulls?|mulling|bid(s)? for|offer(s)? for|proposal|"
                       r"prepar(es|ing)|expected to|poised|set for|plan|planned|rumou?rs?|speculat\w*)\b|Gerücht|erwägt|envisage|envisagerait|negocia"
@@ -50,7 +50,8 @@ def status(d):
     t = " ".join(x for x in (d.get("title", ""), d.get("ko", "")) if x)
     if d.get("t") in ("formd", "dart"): return "done"
     if d.get("kind") == "etc": return "news"
-    if RX_FAIL.search(t): return "fail"
+    tf = d.get("title", "") if d.get("lang") == "en" else t                                   # 영어 기사는 번역 말고 원문으로만 (번역이 '철회'를 지어내기도)
+    if RX_FAIL.search(tf) and not re.search(r"\b(raise[sd]?|secure[sd]?|lands?|closes?|closed)\b|유치|확보", tf, re.I): return "fail"
     if RX_TALK.search(t) or RX_ROUND.search(t): return "news"
     if (not (d.get("co") or d.get("tgt")) or RX_AGG.search(d.get("co") or "")) and RX_AGG.search(t): return "news"   # '올해 홍콩 IPO 69조' 같은 모음 숫자
     if RX_RUMOR.search(t) and not re.search(r"\b(raised|closed|completed|acquired)\b|완료|체결했|마무리", t, re.I):

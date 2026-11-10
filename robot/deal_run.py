@@ -433,6 +433,7 @@ def enrich(r, fx):
     r["cc"] = country_of(txt, r["cc0"], r["lang"])
     CUR_CC = {"CNY": "CN", "JPY": "JP", "INR": "IN", "GBP": "GB", "EUR": "EU", "SGD": "SG", "IDR": "ID", "BRL": "BR", "HKD": "CN"}
     if r["cc"] == "KR" and mo and mo[1] in CUR_CC and not CTRY[0][1].search(txt): r["cc"] = CUR_CC[mo[1]]      # 한국 매체가 쓴 '5억 위안' 거래 → 중국
+    if r["cc"] == "KR" and re.search(r"\([A-Z]{1,5}\.(O|N|OQ|K)\)", txt): r["cc"] = "US"           # '폭스(FOXA.O)' 같은 미국 종목 기호
     if r["cc"] in ("US", "WW") and mo and mo[1] == "KRW" and not any(k not in ("KR", "US") and rx.search(txt) for k, rx in CTRY): r["cc"] = "KR"   # '40억원' → 한국
     r["co"], r["tgt"], r["inv"] = names(r["title"], r["lang"], r["kind"])
     try: r["d0"] = date.fromisoformat(r["date"])
@@ -987,6 +988,7 @@ def main():
             if info.get("cc"): d["cc"] = info["cc"]
             if d["sec"] == ["etc"] and info.get("desc"): d["sec"] = sectors_of(info["desc"])
             if info.get("desc") or info.get("since"): d["coinfo"] = {k: info[k] for k in ("desc", "since", "qid") if info.get(k)}
+        if d.get("tgt") and J.norm(d["tgt"]) == J.norm(d.get("co")): d["tgt"] = None             # 사는 쪽 = 팔리는 쪽으로 잘못 뽑힌 것
         d["st"] = J.status(d)
     cod.save(); log(f"회사 사전: 새로 {cod.n}곳 찾음 · 모두 {len(cod.d)}곳")
 

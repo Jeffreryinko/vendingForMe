@@ -81,14 +81,27 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
 .sheet .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(30,30,30,.92);color:#fff;padding:9px 15px;border-radius:14px;font-size:13.5px;z-index:9600}
 .help{background:var(--surface);border-radius:var(--r);padding:12px 14px;margin:8px 0;font-size:13.5px;color:var(--muted)}.help b{color:var(--ink)}
+.gd{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:var(--muted)}.gd i{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--ap-label3)}
+.gd i{background:#AEAEB2}.gd.f i{background:var(--up)}.gd.m i{background:#2F7CF6}.gd.c i{background:#E07A00}.gd.c{color:#C24E00}
+.bd.rum{background:#FDEBD3;color:#A34700}.bd.fail{background:var(--sunk);color:var(--muted);text-decoration:line-through}.bd.slot{background:var(--ink);color:var(--bg)}.bd.lens{background:#E4E1FF;color:#4B49C8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .bd.rum{background:#3D2A12;color:#FFB45C}:root:not([data-theme="light"]) .bd.lens{background:#26244A;color:#A7A5FF}}
+.card .hl{font:700 15.5px/1.35 var(--ap-display);letter-spacing:-.015em;margin:0 0 2px}
+.sh2{font:700 15px var(--ap-display);margin:18px 2px 6px;display:flex;align-items:baseline;gap:6px}.sh2 small{font:400 12.5px var(--ap-font);color:var(--muted)}
+.ruler{background:var(--surface);border-radius:12px;padding:10px 14px;margin:0 0 8px;font-size:13.5px}.ruler p{margin:4px 0}.ruler b{color:var(--accent);font-variant-numeric:tabular-nums}
+.tl{background:var(--surface);border-radius:12px;padding:6px 14px;margin:0 0 8px}.tl .e{display:grid;grid-template-columns:3.6em 1fr;gap:8px;padding:7px 0;border-bottom:.5px solid var(--ap-sep);font-size:13.5px;text-align:left;width:100%;background:none;border-left:0;border-right:0;border-top:0;color:inherit;text-decoration:none}.tl .e:last-child{border-bottom:0}.tl .e span{color:var(--muted);font-variant-numeric:tabular-nums}
+.qs{background:var(--accent-soft);border-radius:12px;padding:10px 14px;margin:0 0 8px;font-size:14px}.qs p{margin:4px 0}
+.mapg{display:grid;gap:3px;font-size:11.5px;margin:6px 0 10px;overflow-x:auto}.mapg div,.mapg button{border:0;border-radius:6px;padding:6px 4px;text-align:center;min-width:0;font-variant-numeric:tabular-nums;line-height:1.25}
+.mapg .h{font-weight:600;color:var(--muted);background:none}.mapg .r{text-align:left;font-weight:600;background:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mapg button small{display:block;color:var(--muted);font-size:10.5px}
+.quiz{background:var(--surface);border-radius:var(--r);padding:13px 14px;margin:8px 0}.quiz .row button{flex:1}
+.endnote{text-align:center;color:var(--muted);font-size:13px;margin:14px 0 4px}
 .vdk .vdk-amt{font:800 30px/1.15 var(--ap-display);letter-spacing:-.02em;color:var(--accent);margin:4px 0 2px;font-variant-numeric:tabular-nums}
 .vdk .vdk-amt small{display:block;font:500 13px var(--ap-font);color:var(--muted);letter-spacing:0;margin-top:3px}
 </style></head><body>
 <div class="wrap" id="app"></div>
 <nav class="tabs" id="tabs">
   <button data-v="today" aria-current="page"><b>☀︎</b>오늘</button>
-  <button data-v="x"><b>⌕</b>탐색</button>
-  <button data-v="follow"><b>◎</b>따라가기</button>
+  <button data-v="map"><b>◫</b>지도</button>
+  <button data-v="names"><b>◎</b>이름</button>
   <button data-v="shelf"><b>☆</b>보관함</button>
 </nav>
 <script>
@@ -97,8 +110,9 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
 const LS = { g(k, d) { try { const v = localStorage.getItem("vfm:deal:" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
              s(k, v) { try { localStorage.setItem("vfm:deal:" + k, JSON.stringify(v)); } catch (e) { toast("저장 공간이 꽉 찼어요"); } } };
 const S = { star: LS.g("star", {}), read: LS.g("read", {}), hide: LS.g("hide", {}), memo: LS.g("memo", {}), fol: LS.g("fol", {}), kind: LS.g("kind", ""),
-            idx: null, now: null, byId: {}, days: {}, files: {}, wk: LS.g("wk", "sec") };
-const F = Object.assign({ q: "", per: 7, kind: "", stage: "", sec: "", cc: "", band: "", sort: "amt" }, LS.g("F", {}), { q: "" });
+            idx: null, now: null, byId: {}, days: {}, files: {}, wk: LS.g("wk", "sec"),
+            lens: LS.g("lens", { sec: ["fit", "sw"], kw: ["키오스크"] }), seen: LS.g("seen", { at: "", ids: [] }), quiz: LS.g("quiz", {}), mapX: LS.g("mapX", 0) };
+const F = Object.assign({ q: "", st: "", per: 7, kind: "", stage: "", sec: "", cc: "", band: "", sort: "amt" }, LS.g("F", {}), { q: "" });
 function save(k) { LS.s(k, S[k]); }
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 function toast(m) { const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); }
@@ -108,6 +122,7 @@ const kst = (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 
 function dayLbl(d) { if (!d) return ""; const td = kst(), y = kst(Date.now() - 864e5); return d === td ? "오늘" : d === y ? "어제" : (+d.slice(5, 7)) + "/" + (+d.slice(8, 10)); }
 // 금액 (원) → '1.2조 원' · '3,400억 원' · '12억 원'
 function won(v) { v = +v || 0; if (!v) return ""; if (v >= 1e12) return (v / 1e12).toFixed(v >= 1e13 ? 0 : 1).replace(/\.0$/, "") + "조 원"; if (v >= 1e8) return Math.round(v / 1e8).toLocaleString() + "억 원"; return Math.round(v / 1e4).toLocaleString() + "만 원"; }
+function wonS(v) { return v >= 1e11 ? (v / 1e12).toFixed(v >= 1e13 ? 0 : 1).replace(/\.0$/, "") + "조" : Math.max(1, Math.round(v / 1e8)) + "억"; }
 function usd(v) { v = +v || 0; return v >= 1e9 ? "$" + (v / 1e9).toFixed(1).replace(/\.0$/, "") + "B" : v >= 1e6 ? "$" + Math.round(v / 1e6) + "M" : "$" + Math.round(v / 1e3) + "K"; }
 const FLAG = { EU: "🇪🇺", ME: "🌍", AF: "🌍", LATAM: "🌎", SEA: "🌏", WW: "🌐" };
 const flag = c => FLAG[c] || (c && c.length === 2 ? String.fromCodePoint(...[...c].map(x => 0x1F1A5 + x.charCodeAt(0))) : "🌐");
@@ -121,6 +136,7 @@ const SRC_T = { formd: "미국 Form D 신고", dart: "한국 공시" };
 async function loadAll() {
   [S.idx, S.now] = await Promise.all([getJ("_index.json"), getJ("now.json")]);
   for (const d of S.now.deals || []) S.byId[d.id] = d;
+  S.seenPrev = S.seen; markSeen();
   loadFirms();
 }
 async function loadDays(n) {                                                  // 최근 n일 쌓인 파일 (now.json 보다 넓게)
@@ -143,21 +159,42 @@ function amtLine(d) {
   const orig = d.amtS && !/[원조억만]$/.test(d.amtS) ? d.amtS : d.usd ? usd(d.usd) : "";
   return `<p class="amt">${won(d.amt)}${orig ? `<small>${esc(orig)}</small>` : ""}</p>`;
 }
+/* 믿음 등급: f 공시로 확인 · m 여러 매체 일치 · s 한 매체 · c 확인 필요 */
+const GRADE = { f: ["공시로 확인", "공식 신고 자료(DART·SEC)에도 나온 거래"], m: ["여러 매체 일치", "두 곳 넘는 매체가 같은 거래를 썼고 금액도 맞아요"], s: ["한 매체", "아직 한 곳에서만 본 소식이에요"], c: ["확인 필요", "매체마다 금액이 다르거나, 금액 모양이 이상하거나, 아직 소문이에요 — 합계엔 안 넣어요"] };
+const ST_B = { rumor: '<span class="bd rum">소문·협상 중</span>', fail: '<span class="bd fail">무산</span>', news: '<span class="bd">딜 소식</span>' };
+function gdot(d) { const g = GRADE[d.g]; return g ? `<span class="gd ${d.g}" title="${esc(g[1])}"><i></i>${g[0]}</span>` : ""; }
 function badges(d) {
-  const b = [`<span class="bd k">${esc(KN()[d.kind] || "기타")}</span>`];
+  const b = [];
+  if (ST_B[d.st]) b.push(ST_B[d.st]);
+  b.push(`<span class="bd k">${esc(KN()[d.kind] || "기타")}</span>`);
   if (d.stage) b.push(`<span class="bd">${esc(STN()[d.stage] || d.stage)}</span>`);
   if (SRC_T[d.t]) b.push(`<span class="bd fil">${SRC_T[d.t]}</span>`);
+  if (d.quiet) b.push('<span class="bd fil">기사 없이 공시만</span>');
   if (d.new) b.push('<span class="bd new">NEW</span>');
+  if (lensHit(d)) b.push('<span class="bd lens">내 렌즈</span>');
   if (folHit(d).length) b.push('<span class="bd fol">따라가는 이름</span>');
-  return b.join("");
+  return b.join("") + gdot(d);
 }
-function card(d) {
+// 정리된 한 줄: 회사 → 대상 · 나라 · 분야 — 단계/종류 금액 · 투자 누구
+function hlName(d) { return d.co ? esc(d.co) + (d.tgt && d.tgt !== d.co ? " → " + esc(d.tgt) : "") : ""; }
+function hlLine(d) {
+  const sec = (d.sec || []).filter(s => s !== "etc").slice(0, 1).map(s => SN()[s] || s)[0];
+  const what = d.stage ? STN()[d.stage] || d.stage : KN()[d.kind] || "";
+  const r = [CN(d.cc), sec, what + (d.amt ? " " + won(d.amt) : d.st === "done" && ["vc", "ma", "pe"].includes(d.kind) ? " (금액 비공개)" : "")].filter(Boolean);
+  const inv = (d.inv || []).slice(0, 2);
+  return r.join(" · ") + (inv.length ? " · 투자 " + inv.join(", ") + ((d.inv || []).length > 2 ? " 외" : "") : "");
+}
+function card(d, slot) {
   const read = S.read[d.id] ? " read" : "", star = S.star[d.id] ? " star" : "";
-  const ko = d.ko || d.title, orig = d.ko && d.ko !== d.title ? d.title : "";
-  const sec = (d.sec || []).filter(s => s !== "etc").map(s => SN()[s] || s).join(" · ");
-  return `<button class="card${read}${star}" data-open="${esc(d.id)}"><span class="fl" aria-hidden="true">${flag(d.cc)}</span><div class="bx">${amtLine(d)}
-    <p class="t">${esc(ko)}</p>${orig ? `<p class="o">${esc(orig)}</p>` : ""}${d.ksum || d.sum ? `<p class="s">${esc(d.ksum || d.sum)}</p>` : ""}
-    <div class="meta">${badges(d)}<span>${esc(CN(d.cc))}</span>${sec ? `<span>${esc(sec)}</span>` : ""}${(d.n || 1) > 1 ? `<span>보도 ${d.n}곳</span>` : ""}<span>${dayLbl(d.date)}</span>${S.memo[d.id] ? "<span>✎ 메모</span>" : ""}</div></div></button>`;
+  const ko = d.ko || d.title, nm = hlName(d);
+  return `<button class="card${read}${star}" data-open="${esc(d.id)}"><span class="fl" aria-hidden="true">${flag(d.cc)}</span><div class="bx">${slot ? `<div class="meta" style="margin-bottom:3px"><span class="bd slot">${esc(slot)}</span></div>` : ""}${amtLine(d)}
+    ${nm ? `<p class="hl">${nm}</p><p class="o" style="-webkit-line-clamp:1">${esc(hlLine(d))}</p><p class="s">${esc(ko)}</p>` : `<p class="t">${esc(ko)}</p><p class="o">${esc(hlLine(d))}</p>`}
+    <div class="meta">${badges(d)}${(d.n || 1) > 1 ? `<span>보도 ${d.n}곳</span>` : ""}<span>${dayLbl(d.date)}</span>${S.memo[d.id] ? "<span>✎ 메모</span>" : ""}</div></div></button>`;
+}
+function lensHit(d) {
+  const L = S.lens || {}; if ((d.sec || []).some(x => (L.sec || []).includes(x))) return true;
+  const hay = [d.title, d.ko, d.co, d.tgt, d.ksum, d.sum, d.biz, d.ind].join(" ").toLowerCase();
+  return (L.kw || []).some(k => k && hay.includes(k.toLowerCase()));
 }
 function kindChips(lst) {
   const cnt = {}; for (const d of lst) cnt[d.kind] = (cnt[d.kind] || 0) + 1;
@@ -175,7 +212,7 @@ function deckCard(d) {
   const sum = d.ksum || d.sum || "";
   return `<div class="vdk-body"><div class="vdk-k">${badges(d)}<span>${flag(d.cc)} ${esc(CN(d.cc))}</span><span>${dayLbl(d.date)}</span></div>
     ${d.amt ? `<p class="vdk-amt">${won(d.amt)}<small>${esc(d.amtS && !/[원조억만]$/.test(d.amtS) ? d.amtS : d.usd ? usd(d.usd) : "")}${d.val ? " · 기업가치 " + won(d.val) : ""}</small></p>` : ""}
-    <h2 class="vdk-t">${esc(ko)}</h2>${orig ? `<p class="vdk-note" style="margin:-6px 0 10px">${esc(orig)}</p>` : ""}
+    <h2 class="vdk-t">${esc(ko)}</h2><p class="vdk-note" style="margin:-6px 0 10px">${esc(hlLine(d))}</p>
     ${who(d)}
     ${sum ? `<p class="vdk-h">기사 첫 문단</p><p class="vdk-p">${esc(sum.slice(0, 360))}</p>` : ""}
     ${sec ? `<p class="vdk-note">분야: ${esc(sec)}${(d.n || 1) > 1 ? ` · 보도 ${d.n}곳` : ""}</p>` : (d.n || 1) > 1 ? `<p class="vdk-note">보도 ${d.n}곳</p>` : ""}
@@ -189,14 +226,19 @@ function who(d) {
   return r.join("");
 }
 function deckItems(lst) { return lst.map(d => ({ key: d.id, sa: "deal", title: d.ko || d.title, url: d.url, shareText: shareText(d), html: () => deckCard(d), d })); }
-function todayOrder() {                                                        // 오늘·어제 큰 거래 먼저, 네 장마다 한국 한 장
-  const cut = kst(Date.now() - 864e5);
-  const pool = vis(S.now.deals || []).filter(d => d.date >= cut).sort(big);
-  const kr = pool.filter(d => d.cc === "KR"), rest = pool.filter(d => d.cc !== "KR"), out = [];
-  while (kr.length || rest.length) { for (let i = 0; i < 3 && rest.length; i++) out.push(rest.shift()); if (kr.length) out.push(kr.shift()); }
-  const older = vis(S.now.deals || []).filter(d => d.date < cut).sort(big);
-  return out.concat(older);
+const SLOT = { big: "큰 돈", kr: "한국", ma: "인수합병", quiet: "조용한 돈", lens: "내 렌즈", far: "낯선 곳" };
+const NEAR = ["KR", "US", "CN", "JP", "GB", "HK", "WW"];
+function todayPicks() {                                                        // 오늘의 딜 12 = 로봇이 고른 9 + 내 렌즈 2 + 낯선 곳 1
+  const dl = (S.now.daily || {}).items || [], out = [], used = new Set();
+  for (const [id, slot] of dl) { const d = S.byId[id]; if (d && !S.hide[id]) { out.push([d, slot]); used.add(id); } }
+  const pool = (S.now.deals || []).filter(d => !S.hide[d.id] && !used.has(d.id) && d.st === "done");
+  const ln = pool.filter(lensHit).sort(big).slice(0, 2); for (const d of ln) { out.push([d, "lens"]); used.add(d.id); }
+  const far = pool.filter(d => !used.has(d.id) && d.cc && !NEAR.includes(d.cc) && d.cc.length === 2).sort((a, b) => (b.n || 1) - (a.n || 1) || big(a, b))[0];
+  if (far) out.push([far, "far"]);
+  for (const d of pool.filter(d => !used.has(d.id) && d.g !== "c").sort(big)) { if (out.length >= 12) break; if (d === far) continue; out.push([d, "big"]); used.add(d.id); }
+  return out.slice(0, 12);
 }
+function todayOrder() { return todayPicks().map(x => x[0]); }
 function makeDeck(id, list, empty) {
   return D.create({ id, app: "deal", emptyTitle: empty || "카드가 없어요", items: () => deckItems(list()),
     onShow(x) { if (x.d && !S.read[x.d.id]) { S.read[x.d.id] = 1; save("read"); } }, onList: toList });
@@ -212,32 +254,47 @@ function bars(map, nameOf, n = 8) {
   const mx = Math.max(1, ...rows.map(r => r[1][1]));
   return rows.length ? `<div class="bars">${rows.map(([k, v]) => `<div class="bar"><b>${esc(nameOf(k))}</b><i style="width:${Math.max(2, 100 * v[1] / mx)}%"></i><span>${won(v[1]) || "-"} · ${v[0]}건</span></div>`).join("")}</div>` : "";
 }
+function seenLine() {                                                           // 지난번 이후
+  const sn = S.seenPrev || {}, ids = new Set(sn.ids || []), all = (S.now.deals || []).filter(d => d.st === "done");
+  if (!sn.at) return "";
+  const nw = all.filter(d => !ids.has(d.id)), big1 = nw.slice().sort(big)[0];
+  return nw.length ? `<p class="note">지난번(${ago(sn.at)}) 이후 새로 들어온 거래 ${nw.length}건${big1 && big1.amt ? ` · 가장 큰 것: ${esc(big1.co || big1.ko || big1.title)} ${won(big1.amt)}` : ""}</p>` : `<p class="note">지난번(${ago(sn.at)}) 이후 새 거래는 없어요</p>`;
+}
+function markSeen() { S.seen = { at: S.now.at, ids: (S.now.deals || []).map(d => d.id).slice(0, 800) }; save("seen"); }
+function quizCard(picks) {                                                       // 맞혀 보기: 금액을 가리고 세 개 중 고르기
+  const day = (S.now.daily || {}).day || kst(), qd = picks.map(x => x[0]).find(d => d.amt >= 1e9 && d.g !== "c" && d.st === "done");
+  if (!qd) return "";
+  const ans = S.quiz[day], seed = [...qd.id].reduce((a, c) => a + c.charCodeAt(0), 0);
+  const opts = [qd.amt, qd.amt * (seed % 2 ? 0.25 : 0.1), qd.amt * (seed % 3 ? 4 : 10)].map(v => v >= 1e12 ? Math.round(v / 1e11) * 1e11 : Math.round(v / 1e8) * 1e8);
+  const ord = [[0, 1, 2], [1, 0, 2], [2, 1, 0]][seed % 3].map(i => opts[i]);
+  let h = `<div class="quiz"><p class="flab" style="margin:0 0 4px">맞혀 보기 · 하루 한 문제</p><p style="margin:0 0 8px;font-weight:600">${esc(qd.co || qd.ko || qd.title)}${qd.tgt ? " → " + esc(qd.tgt) : ""} (${esc(CN(qd.cc))}, ${esc(STN()[qd.stage] || KN()[qd.kind] || "")}) — 얼마였을까요?</p>`;
+  if (ans == null) return h + `<div class="row">${ord.map((v, i) => `<button class="btn sm" data-quiz="${i}" data-qv="${v}" data-qa="${opts[0]}">${won(v)}</button>`).join("")}</div></div>`;
+  const ok = ans === opts[0];
+  return h + `<p style="margin:0">${ok ? "✓ 맞았어요" : "✗ 아쉬워요"} — 실제로는 <b>${won(qd.amt)}</b>${qd.amtS && !/[원조억만]$/.test(qd.amtS) ? ` (${esc(qd.amtS)})` : ""}. ${rulerOne(qd)}</p><button class="btn sm" data-open="${esc(qd.id)}" style="margin-top:8px">이 거래 자세히 ›</button></div>`;
+}
 function renderToday() {
   const all = (S.now.deals || []).filter(d => !S.hide[d.id]);
-  const cut = kst(Date.now() - 864e5), recent = vis(all.filter(d => d.date >= cut));
-  let h = head("딜", `${ago(S.now.at)} 갱신 · 새 거래 ${S.idx.new || 0}건 · 1달러 ${Math.round((S.idx.fx || {}).USD || 0).toLocaleString()}원`, '<button class="ib" data-act="find" aria-label="찾기">⌕</button>') + broken();
+  const picks = todayPicks(), dl = S.now.daily || {};
+  let h = head("딜", `${ago(S.now.at)} 갱신 · 1달러 ${Math.round((S.idx.fx || {}).USD || 0).toLocaleString()}원`, '<button class="ib" data-act="find" aria-label="찾기">⌕</button>') + broken() + seenLine();
   const fh = all.filter(d => d.new && folHit(d).length);
-  if (fh.length) h += `<button class="tile" style="width:100%;margin:6px 0" data-go="#follow"><b>◎ 따라가는 이름 새 소식 ${fh.length}건</b><small>${esc([...new Set(fh.flatMap(folHit))].slice(0, 5).join(" · "))}</small></button>`;
-  h += kindChips(all.filter(d => d.date >= cut));
-  if (!LS.g("helpSeen", 0)) h += `<div class="help"><b>이 앱은</b> 세계 스타트업 투자 유치·인수합병(M&A)·사모펀드·상장(IPO)·펀드 결성 소식을 하루 4번 모아, 같은 거래를 다룬 기사끼리 한 장으로 묶어 둡니다. 금액은 그날 환율로 원으로 바꿔 보여 줘요.<br>미국 SEC·한국 DART 공식 신고 자료도 함께 쌓아요(탐색 → 숫자·공시). 회사·투자사 이름을 <b>따라가기</b>에 넣으면 새 거래가 뜰 때 표시해 줍니다. <button class="btn sm" data-act="helpok" style="margin-top:6px">알겠어요</button></div>`;
+  if (fh.length) h += `<button class="tile" style="width:100%;margin:6px 0" data-go="#names"><b>◎ 따라가는 이름 새 소식 ${fh.length}건</b><small>${esc([...new Set(fh.flatMap(folHit))].slice(0, 5).join(" · "))}</small></button>`;
+  if (!LS.g("helpSeen2", 0)) h += `<div class="help"><b>하루 12장이면 충분하게.</b> 로봇이 세계 투자·인수합병·사모·상장·펀드 소식을 하루 4번 모아 같은 거래끼리 묶고, 아침 6시 판에서 <b>오늘의 딜 12</b>를 골라요 — 큰 돈 3 · 한국 3 · 인수합병 2 · 조용한 돈 1 · 내 렌즈 2 · 낯선 곳 1.<br>카드의 점은 믿을 만한 정도예요: <span class="gd f"><i></i>공시로 확인</span> <span class="gd m"><i></i>여러 매체 일치</span> <span class="gd s"><i></i>한 매체</span> <span class="gd c"><i></i>확인 필요</span>. 소문·무산은 따로 두고 합계엔 안 넣어요. <button class="btn sm" data-act="helpok" style="margin-top:6px">알겠어요</button></div>`;
+  const L = S.lens || {}, lensTxt = [...(L.sec || []).map(x => SN()[x] || x), ...(L.kw || [])].join(" · ");
+  h += `<button class="tile" style="width:100%;margin:6px 0" data-go="#lens"><b>내 렌즈 ✎</b><small>${esc(lensTxt || "아직 없음 — 관심 분야·낱말을 넣으면 매일 2장 골라 줘요")}</small></button>`;
   h += modeBar();
-  const krN = vis(all.filter(d => d.date >= cut && d.cc === "KR" && d.kind === "vc")).length;
-  if (isDeck()) return h + `<button class="tile" style="width:100%;margin:0 0 10px" data-go="#kr"><b>🇰🇷 한국 벤처 투자 ${krN}건 ›</b><small>오늘·어제 · 시드·프리A·팁스 같은 작은 투자도 날짜순으로 전부</small></button><p class="note">오늘·어제 금액 큰 거래부터, 네 장마다 한국 거래 한 장. 옆으로 밀면 다음.</p>` + makeDeck("deal-today" + (S.kind || ""), todayOrder, "새 거래 카드를 다 봤어요").html();
-  const top = recent.slice().sort(big);
-  h += `<h2 class="sec">오늘의 큰 거래<small>오늘·어제, 금액 순</small><button data-go="#x" data-per="3">전부 ›</button></h2>` + (top.filter(d => d.amt).slice(0, 10).map(card).join("") || '<p class="note">금액이 나온 거래가 아직 없어요</p>');
-  const krv = recent.filter(d => d.cc === "KR" && d.kind === "vc").sort(newest), kro = top.filter(d => d.cc === "KR" && d.kind !== "vc");
-  h += `<h2 class="sec">🇰🇷 한국 벤처 투자<small>오늘·어제 ${krv.length}건 · 작은 것도 전부</small><button data-go="#kr">더 보기 ›</button></h2>` + (krv.length ? krRows(krv) : '<p class="note">오늘·어제 들어온 한국 투자 소식이 아직 없어요</p>');
-  if (kro.length) h += `<h2 class="sec">🇰🇷 한국 인수합병·상장·펀드<small>${kro.length}건</small><button data-go="#x" data-cc="KR">전부 ›</button></h2>` + kro.slice(0, 6).map(card).join("");
-  if (!S.kind) for (const k of ["ma", "pe", "ipo", "fund"]) {
-    const l = top.filter(d => d.kind === k && d.cc !== "KR"); if (!l.length) continue;
-    h += `<h2 class="sec">${esc(KN()[k])}<small>${l.length}건</small><button data-go="#x" data-k="${k}">전부 ›</button></h2>` + l.slice(0, 5).map(card).join("");
-  }
-  const W = S.now.week || {}, wn = { sec: "분야", cc: "나라", kind: "종류" }[S.wk];
-  h += `<h2 class="sec">이번 주 돈 흐름<small>지난 7일 · 금액 합</small></h2><div class="chips">${["sec", "cc", "kind"].map(k => `<button data-wk="${k}" class="${S.wk === k ? "on" : ""}">${{ sec: "분야별", cc: "나라별", kind: "종류별" }[k]}</button>`).join("")}</div>`;
-  h += bars(W[S.wk], S.wk === "sec" ? (k => SN()[k] || k) : S.wk === "cc" ? (k => flag(k) + " " + CN(k)) : (k => KN()[k] || k)) || `<p class="note">아직 ${wn}별로 쌓인 게 없어요</p>`;
-  h += `<p class="note">기사에 금액이 나온 거래만 더해요. 같은 거래를 여러 매체가 써도 한 번만.</p>`;
-  const st = S.now.secToday || [];
-  if (st.length) h += `<h2 class="sec">미국 공시 최근<small>상장·합병 서류 ${st.length}건</small><button data-go="#sec">전부 ›</button></h2>` + secList(st.slice(-8).reverse());
+  h += `<h2 class="sec">오늘의 딜 12<small>${esc(dl.label || "")}</small></h2>`;
+  if (isDeck()) h += `<p class="note">옆으로 밀면 다음 장. 다 보면 오늘은 여기까지예요.</p>` + makeDeck("deal-today12-" + (dl.day || ""), todayOrder, "오늘의 딜 12장을 다 봤어요").html();
+  else h += picks.length ? picks.map(([d, sl]) => card(d, SLOT[sl])).join("") : '<p class="note">아직 골라 둔 카드가 없어요. 로봇이 아침 6시 뒤 첫 판에서 골라요.</p>';
+  h += `<p class="endnote">오늘은 여기까지 ✓ 나머지는 아래에서 골라 보세요</p>` + quizCard(picks);
+  const rum = all.filter(d => d.st === "rumor").sort(big);
+  if (rum.length) h += `<h2 class="sec">확인 중인 큰 소식<small>소문·협상 중 ${rum.length}건 · 합계엔 안 넣어요</small></h2>` + rum.slice(0, 4).map(d => card(d)).join("") + (rum.length > 4 ? `<button class="btn more" data-go="#x" data-st="rumor">소문 ${rum.length}건 전부 ›</button>` : "");
+  const fl = all.filter(d => d.st === "fail").sort(big);
+  if (fl.length) h += `<h2 class="sec">안 된 거래<small>무산·철회 ${fl.length}건 — 왜 안 됐는지도 공부</small></h2>` + fl.slice(0, 3).map(d => card(d)).join("");
+  const krN = all.filter(d => d.cc === "KR" && d.kind === "vc" && d.st === "done").length;
+  h += `<h2 class="sec">더 보기</h2><div class="grid"><button class="tile" data-go="#kr" style="grid-column:1/-1"><b>🇰🇷 한국 벤처 투자 ${krN}건 ›</b><small>시드·프리A·팁스 같은 작은 투자까지 날짜순으로 전부</small></button>
+    <button class="tile" data-go="#x" data-st=""><b>전부 보기</b><small>오늘 확정 거래 ${all.filter(d => d.st === "done").length}건 · 조건으로 고르기</small></button>
+    <button class="tile" data-go="#x" data-st="news"><b>딜 소식</b><small>정리·분석 기사, 행사·인사 (거래 아님)</small></button></div>`;
+  h += `<p class="note" style="margin-top:14px">싣는 기준: 돈이 오갔거나 오가기로 한 거래만 카드로 묶어요. 소문·협상은 '소문', 깨진 건 '무산', 정리 기사는 '딜 소식'으로 따로 두고, 합계·지도엔 확정 거래만 더해요. 금액은 기사 숫자를 그날 환율로 바꾼 대략값이에요.</p>`;
   return h;
 }
 function secList(rows) {
@@ -272,16 +329,18 @@ function chipRow(key, items, label) {
 async function renderX() {
   const pool0 = await loadDays(F.per);
   const q = F.q.trim().toLowerCase();
-  const pass = (d, skip) => (!F.kind || skip === "kind" || d.kind === F.kind) && (!F.stage || skip === "stage" || d.stage === F.stage) && (!F.sec || skip === "sec" || (d.sec || []).includes(F.sec))
+  const stOk = (d, skip) => skip === "st" || (F.st ? (d.st || "done") === F.st : (d.st || "done") !== "news");
+  const pass = (d, skip) => stOk(d, skip) && (!F.kind || skip === "kind" || d.kind === F.kind) && (!F.stage || skip === "stage" || d.stage === F.stage) && (!F.sec || skip === "sec" || (d.sec || []).includes(F.sec))
     && (!F.cc || skip === "cc" || d.cc === F.cc) && (!F.band || skip === "band" || d.band === F.band) && !S.hide[d.id]
     && (!q || [d.title, d.ko, d.co, d.tgt, (d.inv || []).join(" "), d.src, S.memo[d.id]].join(" ").toLowerCase().includes(q));
   const cnt = (key, f) => { const m = {}; for (const d of pool0) if (pass(d, key)) for (const v of [].concat(f(d) || [])) if (v) m[v] = (m[v] || 0) + 1; return m; };
   let lst = pool0.filter(d => pass(d));
   lst.sort(F.sort === "new" ? ((a, b) => (b.date + (b.at || "")).localeCompare(a.date + (a.at || ""))) : F.sort === "n" ? ((a, b) => (b.n || 1) - (a.n || 1) || big(a, b)) : big);
   const ck = cnt("kind", d => d.kind), cs = cnt("stage", d => d.stage), cse = cnt("sec", d => d.sec), cc = cnt("cc", d => d.cc), cb = cnt("band", d => d.band);
-  let h = head("탐색", `최근 ${F.per}일 거래 ${pool0.length.toLocaleString()}건 중 ${lst.length.toLocaleString()}건`);
+  const cst = cnt("st", d => d.st || "done");
+  let h = backTop() + head("전부 보기", `최근 ${F.per}일 ${pool0.length.toLocaleString()}건 중 ${lst.length.toLocaleString()}건`);
   h += `<input class="search" id="xq" type="search" placeholder="회사·투자사·낱말 (예: 엔비디아, 시리즈 B, 소프트뱅크)" value="${esc(F.q)}">`;
-  h += `<div class="grid"><button class="tile" data-go="#kr" style="grid-column:1/-1"><b>🇰🇷 한국 벤처 투자</b><small>시드·프리A·팁스 같은 작은 투자까지 날짜순으로 전부</small></button><button class="tile" data-go="#stats"><b>숫자로 보기</b><small>달·분기마다 돈 흐름</small></button><button class="tile" data-go="#formd"><b>미국 비상장 신고</b><small>${S.idx.secKey ? `Form D ${(S.idx.formd || []).length}분기` : "이메일 넣으면 시작"}</small></button><button class="tile" data-go="#sec"><b>미국 상장·합병 서류</b><small>S-1·S-4·공개매수 등</small></button><button class="tile" data-go="#dart"><b>한국 공시</b><small>${S.idx.dartKey ? "합병·지분 인수·증자" : "열쇠 넣으면 시작"}</small></button></div>`;
+  h += `<p class="flab">상태</p><div class="chips">${[["", "거래 전부"], ["done", "확정"], ["rumor", "소문·협상"], ["fail", "무산"], ["news", "딜 소식"]].map(([v, n]) => `<button data-f="st" data-val="${v}" class="${F.st === v ? "on" : ""}">${n}${v && cst[v] ? `<small>${cst[v]}</small>` : ""}</button>`).join("")}</div>`;
   h += `<p class="flab">기간</p><div class="chips">${[[4, "4일"], [7, "7일"], [30, "30일"], [90, "90일"]].map(([v, n]) => `<button data-per="${v}" class="${F.per === v ? "on" : ""}">${n}</button>`).join("")}</div>`;
   h += chipRow("kind", (S.idx.kinds || []).filter(k => ck[k[0]]).map(k => [k[0], k[1], ck[k[0]]]), "종류");
   if (F.kind === "vc" || F.stage) h += chipRow("stage", (S.idx.stages || []).filter(k => cs[k[0]]).map(k => [k[0], k[1], cs[k[0]]]), "단계");
@@ -332,6 +391,108 @@ async function renderStats() {
   } else h += `<h2 class="sec">한국 공시</h2><p class="note">${S.idx.dartKey ? "되돌아보기 중이에요" : "DART 열쇠(무료)를 넣으면 3년치를 모아요 — 한국 공시 화면에 방법이 있어요"}</p>`;
   return h;
 }
+/* ───── 크기 자: 이 금액이 큰가? ───── */
+function times(x) { return x >= 1 ? (x < 10 ? x.toFixed(1).replace(/\.0$/, "") : Math.round(x).toLocaleString()) + "배" : Math.max(1, Math.round(x * 100)) + "% 크기"; }
+function rulers(d) {
+  const B = S.now.bench || {}, out = [], a = d.amt; if (!a || d.amtK === "debt") return out;
+  const st = (B.stage || {})[d.stage];
+  if (d.kind === "vc" && d.stage) {
+    if (st && st[0] >= 30) out.push([`${STN()[d.stage] || d.stage} 한가운데값`, st[1], `최근 90일 기사 ${st[0]}건`]);
+    else out.push([`${STN()[d.stage] || d.stage} 한가운데값`, 0, `모으는 중 ${st ? st[0] : 0}/30건 — 30건이 모이면 보여 줘요`]);
+  }
+  if (["vc", "fund"].includes(d.kind) && d.cc === "KR" && B.kvca && B.kvca.avg) out.push(["한국 VC가 한 회사에 넣는 평균", B.kvca.avg, `전자공시 ${String(B.kvca.yymm || "").replace(/(\d{4})(\d\d)/, "$1년 $2월")}까지 ${(B.kvca.n || 0).toLocaleString()}건`]);
+  if (d.kind === "vc" && B.formd) {
+    const sc = (d.sec || []).map(x => [x, (B.formd.sec || {})[x]]).find(x => x[1] && x[1][0] >= 30);
+    if (sc) out.push([`미국 비상장 ${SN()[sc[0]] || sc[0]} 투자 신고 한가운데값`, sc[1][1], `${B.formd.q} Form D ${sc[1][0].toLocaleString()}건`]);
+    else if (B.formd.med) out.push(["미국 비상장 투자 신고 한가운데값", B.formd.med, `${B.formd.q} Form D ${(B.formd.n || 0).toLocaleString()}건`]);
+  }
+  return out;
+}
+function rulerOne(d) { const r = rulers(d).find(x => x[1]); return r ? `${r[0]}(${won(r[1])})의 ${times(d.amt / r[1])}예요.` : ""; }
+function rulerHtml(d) {
+  const r = rulers(d); if (!r.length) return "";
+  return `<p class="sh2">얼마나 큰가<small>한가운데값 = 줄 세웠을 때 가운데 금액</small></p><div class="ruler">${r.map(x => x[1] ? `<p>${esc(x[0])} ${won(x[1])}의 <b>${times(d.amt / x[1])}</b><br><small style="color:var(--muted)">${esc(x[2])}</small></p>` : `<p>${esc(x[0])}: <small style="color:var(--muted)">${esc(x[2])}</small></p>`).join("")}</div>`;
+}
+
+/* ───── 화면: 지도 (돈이 어디로 가나) ───── */
+const MAPR = ["KR", "US", "CN", "EU", "JP", "IN", "ETC"], MAPRN = { KR: "한국", US: "미국", CN: "중화권", EU: "유럽", JP: "일본", IN: "인도", ETC: "그 밖" };
+async function renderMap() {
+  const M = S.now.map || {}, ex = S.mapX ? 3 : 2;
+  let h = head("지도", "지난 7일 확정 거래의 돈이 어느 분야·지역으로 갔나");
+  const secs = Object.keys(M).filter(k => k !== "etc").sort((a, b) => Object.values(M[b]).reduce((s, v) => s + v[ex], 0) - Object.values(M[a]).reduce((s, v) => s + v[ex], 0));
+  const cols = MAPR.filter(r => secs.some(k => (M[k][r] || [0])[0]));
+  if (secs.length && cols.length) {
+    const mx = Math.max(1, ...secs.flatMap(k => cols.map(r => (M[k][r] || [0, 0, 0, 0])[ex])));
+    h += `<p class="sh2">돈의 지도<small>칸 = 금액 합 · 아래 작은 숫자 = 건수</small></p><div class="chips"><button data-mapx="0" class="${S.mapX ? "" : "on"}">그대로</button><button data-mapx="1" class="${S.mapX ? "on" : ""}">가장 큰 한 건 빼기</button></div>`;
+    h += `<div class="mapg" style="grid-template-columns:6.2em repeat(${cols.length},minmax(2.9em,1fr))"><div class="h"></div>${cols.map(r => `<div class="h">${MAPRN[r]}</div>`).join("")}`;
+    for (const k of secs.slice(0, 14)) {
+      h += `<div class="r">${esc(SN()[k] || k)}</div>` + cols.map(r => {
+        const v = M[k][r]; if (!v || !v[0]) return `<div style="background:var(--sunk);opacity:.5"></div>`;
+        const t = v[ex] / mx, arrow = v[4] ? (v[0] > v[4] * 1.3 ? " ↑" : v[0] < v[4] * 0.7 ? " ↓" : "") : "";
+        return `<button data-msec="${esc(k)}" data-mreg="${r}" style="background:color-mix(in srgb,var(--accent) ${Math.round(8 + 72 * Math.sqrt(t))}%,var(--surface));color:${t > 0.45 ? "var(--accent-ink)" : "var(--ink)"}">${v[ex] ? wonS(v[ex]) : "-"}<small style="${t > 0.45 ? "color:inherit;opacity:.8" : ""}">${v[0]}건${arrow}</small></button>`;
+      }).join("");
+    }
+    h += `</div><p class="note">'가장 큰 한 건 빼기'를 누르면 초대형 한 건에 가려진 흐름이 보여요. ↑↓는 지난 4주 평균보다 건수가 30% 넘게 늘거나 준 칸(쌓인 지 4주가 지나야 나와요). 칸을 누르면 그 거래들.</p>`;
+  } else h += `<p class="note">아직 지도로 그릴 만큼 쌓이지 않았어요</p>`;
+  const W = S.now.week || {};
+  h += `<p class="sh2">이번 주 돈 흐름<small>지난 7일 · 금액 합</small></p><div class="chips">${["sec", "cc", "kind"].map(k => `<button data-wk="${k}" class="${S.wk === k ? "on" : ""}">${{ sec: "분야별", cc: "나라별", kind: "종류별" }[k]}</button>`).join("")}</div>`;
+  h += bars(W[S.wk], S.wk === "sec" ? (k => SN()[k] || k) : S.wk === "cc" ? (k => flag(k) + " " + CN(k)) : (k => KN()[k] || k)) || `<p class="note">아직 없어요</p>`;
+  const B = S.now.bench || {};
+  h += `<p class="sh2">크기 자<small>이 금액이 큰지 작은지 재는 기준</small></p><div class="ruler">`;
+  if (B.formd) h += `<p>미국 비상장 회사 투자 신고 한가운데값 <b>${won(B.formd.med)}</b> <small style="color:var(--muted)">(${esc(B.formd.q)} Form D ${(B.formd.n || 0).toLocaleString()}건)</small></p>`;
+  if (B.kvca) h += `<p>한국 VC가 한 회사에 넣는 평균 <b>${won(B.kvca.avg)}</b> <small style="color:var(--muted)">(전자공시 ${(B.kvca.n || 0).toLocaleString()}건)</small></p>`;
+  const stg = Object.entries(B.stage || {}).sort((a, b) => (S.idx.stages || []).findIndex(x => x[0] === a[0]) - (S.idx.stages || []).findIndex(x => x[0] === b[0]));
+  if (stg.length) h += `<p style="margin-top:8px"><small style="color:var(--muted)">단계별 한가운데값 (최근 90일 기사, 30건 넘어야 믿을 만)</small></p>` + stg.map(([k, v]) => `<p>${esc(STN()[k] || k)} ${v[0] >= 30 ? `<b>${won(v[1])}</b> <small style="color:var(--muted)">${v[0]}건</small>` : `<small style="color:var(--muted)">모으는 중 ${v[0]}/30</small>`}</p>`).join("");
+  h += `</div>`;
+  const pool = await loadDays(7);
+  const qt = pool.filter(d => d.quiet && !S.hide[d.id]).sort(big);
+  h += `<p class="sh2">조용한 돈<small>기사엔 안 나왔는데 공시엔 있는 큰 거래 · 7일</small></p>` + (qt.length ? qt.slice(0, 5).map(d => card(d)).join("") : `<p class="note">이번 주엔 없어요</p>`);
+  const fl = pool.filter(d => d.st === "fail" && !S.hide[d.id]).sort(big);
+  if (fl.length) h += `<p class="sh2">안 된 거래<small>7일 · ${fl.length}건</small></p>` + fl.slice(0, 5).map(d => card(d)).join("");
+  const far = pool.filter(d => d.st === "done" && d.cc && !NEAR.includes(d.cc) && d.cc.length === 2 && !S.hide[d.id]), fc = {};
+  for (const d of far) fc[d.cc] = (fc[d.cc] || 0) + 1;
+  if (far.length) h += `<p class="sh2">낯선 곳<small>한·미·중·일·영 밖 · 7일 ${far.length}건</small></p><div class="chips">${Object.entries(fc).sort((a, b) => b[1] - a[1]).map(([c, n]) => `<button data-go="#x" data-cc="${c}" data-per="7">${flag(c)} ${esc(CN(c))}<small>${n}</small></button>`).join("")}</div>` + far.sort(big).slice(0, 3).map(d => card(d)).join("");
+  h += `<p class="sh2">숫자·공식 신고</p><div class="grid"><button class="tile" data-go="#stats"><b>숫자로 보기</b><small>달·분기마다 돈 흐름</small></button><button class="tile" data-go="#formd"><b>미국 비상장 신고</b><small>${S.idx.secKey ? `Form D ${(S.idx.formd || []).length}분기` : "이메일 넣으면 시작"}</small></button><button class="tile" data-go="#sec"><b>미국 상장·합병 서류</b><small>S-1·S-4·공개매수 등</small></button><button class="tile" data-go="#dart"><b>한국 공시</b><small>${S.idx.dartKey ? "합병·지분 인수·증자" : "열쇠 넣으면 시작"}</small></button></div>`;
+  return h;
+}
+
+/* ───── 내 렌즈 ───── */
+function renderLens() {
+  const L = S.lens || { sec: [], kw: [] };
+  let h = backTop() + head("내 렌즈", "관심 분야·낱말을 넣어 두면 오늘의 딜 12에 매일 2장을 골라 넣고, 카드에 '내 렌즈' 표시를 붙여요");
+  h += `<p class="flab">분야</p><div class="chips" style="flex-wrap:wrap">${(S.idx.sectors || []).filter(x => x[0] !== "etc").map(([k, n]) => `<button data-lsec="${k}" class="${(L.sec || []).includes(k) ? "on" : ""}">${esc(n)}</button>`).join("")}</div>`;
+  h += `<p class="flab">낱말 (회사 소개·기사에 들어간 말)</p><div class="fol-row"><input class="search" id="lkw" type="search" placeholder="예: 키오스크, 무인매장, 헬스장"><button class="btn pri" data-act="lkw">넣기</button></div>`;
+  h += `<div>${(L.kw || []).map(k => `<button class="nm on" data-lkwx="${esc(k)}">${esc(k)} ✕</button>`).join("") || '<p class="note">아직 없어요</p>'}</div>`;
+  return h;
+}
+
+/* ───── 화면: 이름 (회사·투자사) ───── */
+async function renderNames() {
+  let h = (await renderFollow()).replace(/<h1 class="lt">따라가기<\/h1>/, '<h1 class="lt">이름</h1>');
+  return h;
+}
+async function renderName(n) {
+  const pool = await loadDays(90); await loadFirms();
+  const k = n.toLowerCase(), has = x => x && String(x).toLowerCase().includes(k);
+  const hits = pool.filter(d => has(d.co) || has(d.tgt) || (d.inv || []).some(has) || has(d.ko) || has(d.title)).sort((a, b) => b.date.localeCompare(a.date));
+  const role = d => has(d.co) ? (["ma", "pe"].includes(d.kind) ? "샀어요" : d.kind === "ipo" ? "상장" : "받았어요") : has(d.tgt) ? "팔렸어요" : (d.inv || []).some(has) ? "넣었어요" : "언급";
+  const asInv = hits.filter(d => role(d) === "넣었어요"), asCo = hits.filter(d => ["받았어요", "샀어요", "팔렸어요", "상장"].includes(role(d)));
+  const sum = l => l.filter(d => d.st === "done" && d.g !== "c" && d.amtK !== "debt").reduce((a, d) => a + (d.amt || 0), 0);
+  let h = backTop(`<button class="nm${S.fol[n] ? " on" : ""}" data-tfol2="${esc(n)}">${S.fol[n] ? "✓ 따라가는 중" : "＋ 따라가기"}</button>`) + head(esc(n), `최근 90일 기사 ${hits.length}건`);
+  const f = FI && FI.firms.find(x => [x.ko, x.en].concat(x.alias || []).some(y => y && y.toLowerCase() === k));
+  if (f) h += `<button class="tile" style="width:100%;margin:4px 0 8px" data-go="#firm=${esc(f.id)}"><b>🏦 ${esc(f.ko)} 투자사 정보 ›</b><small>소개·설립·운용자산·펀드</small></button>`;
+  const co = hits.map(d => d.coinfo).find(Boolean);
+  if (co) h += `<div class="ruler"><p>${esc(co.desc || "")}${co.since ? ` · ${esc(co.since)}년 설립` : ""}</p><p><small style="color:var(--muted)">위키데이터</small></p></div>`;
+  h += `<div class="ruler">${asCo.length ? `<p>돈을 받거나 사고판 거래 <b>${asCo.length}건</b>${sum(asCo) ? ` · ${won(sum(asCo))}` : ""}</p>` : ""}${asInv.length ? `<p>투자자로 나온 거래 <b>${asInv.length}건</b>${sum(asInv) ? ` · 그 거래들 합 ${won(sum(asInv))}` : ""}</p>` : ""}${!asCo.length && !asInv.length ? `<p>${hits.length ? "기사에 이름만 나왔어요" : "쌓인 기사에선 아직 못 찾았어요"}</p>` : ""}</div>`;
+  const co2 = {}; for (const d of hits) for (const x of [d.co, d.tgt, ...(d.inv || [])]) if (x && !has(x)) co2[x] = (co2[x] || 0) + 1;
+  const top = Object.entries(co2).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  if (top.length) h += `<p class="sh2">같이 나온 이름<small>함께 넣은 곳·상대 회사</small></p><div>${top.map(([x, c]) => `<button class="nm" data-name="${esc(x)}">${esc(x)} <small>${c}</small></button>`).join("")}</div>`;
+  const sc = {}; for (const d of hits) for (const x of (d.sec || []).filter(y => y !== "etc")) sc[x] = (sc[x] || 0) + 1;
+  if (Object.keys(sc).length) h += `<p class="note" style="margin-top:8px">주로 나온 분야: ${esc(Object.entries(sc).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([x, c]) => `${SN()[x] || x} ${c}`).join(" · "))}</p>`;
+  h += `<p class="sh2">흐름<small>최근 것 먼저</small></p>` + (hits.length ? hits.slice(0, 40).map(d => card(d, role(d))).join("") : '<p class="note">최근 90일엔 없어요</p>');
+  return h;
+}
+
 const fundSum = (b, t) => ((b.fund || {})[t] || [0, 0])[1];
 
 function secHelp() {
@@ -402,7 +563,7 @@ async function renderDart() {
 async function renderFollow() {
   const pool = await loadDays(30); await loadFirms();
   const names = folNames().sort((a, b) => (S.fol[b].at || 0) - (S.fol[a].at || 0));
-  let h = head("따라가기", "회사·투자사 이름을 넣어 두면 그 이름이 나온 거래를 모아 보고, 새로 뜨면 오늘 화면에 알려 줘요");
+  let h = head("따라가기", "회사·투자사 이름 한 장: 누가 어디에 넣었고 누구와 같이 나오는지. 넣어 두면 새로 뜰 때 오늘 화면에 알려 줘요");
   h += `<button class="tile" style="width:100%;margin:4px 0 8px" data-go="#firms"><b>🏦 주요 투자사 ${FI ? FI.firms.length + "곳" : ""} ›</b><small>세계·한국 VC·사모펀드·국부펀드 + 한국 VC 전체(전자공시) — 소개·투자 실적·펀드·최근 거래</small></button>`;
   h += `<div class="fol-row"><input class="search" id="fadd" type="search" placeholder="예: 소프트뱅크, a16z, 토스, 엔비디아"><button class="btn pri" data-act="fadd">넣기</button></div>`;
   if (names.length) {
@@ -413,7 +574,7 @@ async function renderFollow() {
   } else h += `<p class="note">아직 없어요. 위에 이름을 넣거나, 거래 카드 '자세히'에서 회사·투자사 이름을 누르세요.</p>`;
   let P = S.files.people; try { P = P || (S.files.people = await getJ("people.json")); } catch (e) { P = null; }
   if (P) {
-    const row = (x, t) => `<div class="li"><div class="bx"><p class="t">${esc(x[0])}</p><p class="s">${x[1]}건${x[2] ? " · " + won(x[2]) : ""} · 최근 ${esc(String(x[3]).slice(5).replace("-", "/"))}</p></div><button class="nm${S.fol[x[0]] ? " on" : ""}" data-tfol="${esc(x[0])}">${S.fol[x[0]] ? "✓ 따라가는 중" : "＋ 따라가기"}</button></div>`;
+    const row = (x, t) => `<div class="li"><button class="bx" data-name="${esc(x[0])}" style="border:0;background:none;text-align:left;padding:0;color:inherit"><p class="t">${esc(x[0])} ›</p><p class="s">${x[1]}건${x[2] ? " · " + won(x[2]) : ""} · 최근 ${esc(String(x[3]).slice(5).replace("-", "/"))}</p></button><button class="nm${S.fol[x[0]] ? " on" : ""}" data-tfol="${esc(x[0])}">${S.fol[x[0]] ? "✓ 따라가는 중" : "＋ 따라가기"}</button></div>`;
     if ((P.inv || []).length) h += `<h2 class="sec">자주 나오는 투자사<small>최근 ${P.days}일 기사</small></h2><div class="list">${P.inv.slice(0, 30).map(x => row(x)).join("")}</div>`;
     if ((P.co || []).length) h += `<h2 class="sec">자주 나오는 회사<small>투자받거나 사거나 팔린 곳</small></h2><div class="list">${P.co.slice(0, 30).map(x => row(x)).join("")}</div>`;
     h += `<p class="note">이름은 기사 제목에서 로봇이 낱말 규칙으로 뽑은 것이라 가끔 틀려요.</p>`;
@@ -543,6 +704,24 @@ function renderShelf() {
 
 /* ───── 자세히 (아래에서 올라오는 창) ───── */
 function shareText(d) { return `${d.ko || d.title}${d.amt ? "\n" + won(d.amt) + (d.amtS ? " (" + d.amtS + ")" : "") : ""}\n${d.url}`; }
+function thinkQs(d) {
+  const q = [], early = ["pre-seed", "seed", "pre-a", "a", "tips"].includes(d.stage);
+  if (d.st === "rumor") q.push("아직 확정이 아니에요. 무엇이 나오면 확정일까요? (회사 발표, 공시, 계약 소식)");
+  if (d.st === "fail") q.push("왜 안 됐을까요? 값이 안 맞았나, 규제·당국 문제인가, 돈이 모자랐나?");
+  if (d.kind === "vc" && early) q.push("이 돈이면 몇 명이 몇 달을 버틸 수 있을까요? (한 사람 한 달 1천만 원쯤으로 셈해 보기)");
+  if (d.kind === "vc" && !early && d.stage) q.push("이 단계까지 왔다면 매출이 있을 거예요. 무엇으로 돈을 버는 회사일까요?");
+  if (d.kind === "vc" && (d.follow || []).length) q.push(`${d.follow[0]}이(가) 또 넣었어요. 안을 아는 곳이 다시 건 이유는 뭘까요?`);
+  else if (d.kind === "vc" && (d.inv || []).length) q.push("앞에 선 투자사(리드)가 누구인지 보면, 이 회사를 어떤 판에 걸었는지 보여요.");
+  if (d.val && d.amt) q.push(`기업가치의 ${Math.max(1, Math.round(100 * d.amt / d.val))}%를 이번에 받았어요. 지분을 그만큼 내줬다는 뜻이에요 — 많나요, 적나요?`);
+  if (d.kind === "ma") q.push("사는 쪽은 이걸로 무엇을 얻나요 — 고객, 기술, 사람, 시장 중 무엇?", "팔린 회사에 투자했던 곳들은 몇 배를 벌었을까요?");
+  if (d.kind === "pe") q.push("사모펀드는 보통 빚(인수금융)을 얹어 사고 3~7년 뒤 되팔아요. 무엇을 바꿔 값을 올리려 할까요?");
+  if (d.kind === "ipo") q.push("상장으로 들어오는 돈 중 회사로 가는 몫(신주)과, 기존 주주가 파는 몫(구주)은 얼마일까요?");
+  if (d.kind === "fund") q.push("이 펀드 돈은 앞으로 3~5년 동안 어떤 분야·단계로 흘러갈까요?");
+  if (d.cc && d.cc !== "KR" && (d.sec || []).some(x => x !== "etc")) q.push("한국에 같은 일을 하는 회사가 있다면 누구일까요? 그 회사엔 좋은 소식일까요, 나쁜 소식일까요?");
+  if (lensHit(d)) q.push("내 렌즈와 겹쳐요 — 우리 일에 기회일까요, 경쟁일까요?");
+  if (d.g === "c") q.push("숫자가 아직 불확실해요. 원문 두 곳 이상을 열어 금액을 맞춰 보세요.");
+  return q.slice(0, 3);
+}
 let sheetList = [];                                                              // 지금 화면에 보이던 카드 순서 (자세히 창에서 옆으로 넘기기)
 function openItem(id, dir) {
   const old = document.querySelector(".back"); if (old) old.remove();
@@ -550,19 +729,47 @@ function openItem(id, dir) {
   S.read[id] = 1; save("read");
   const ko = d.ko || d.title, orig = d.ko && d.ko !== d.title ? d.title : "";
   const sum = d.ksum || d.sum || "";
-  const nm = n => `<button class="nm${S.fol[n] ? " on" : ""}" data-tfol="${esc(n)}">${S.fol[n] ? "✓" : "＋"} ${esc(n)}</button>`;
+  const nm = (n, tag) => `<button class="nm${S.fol[n] ? " on" : ""}" data-tfol="${esc(n)}">${S.fol[n] ? "✓" : "＋"} ${esc(n)}</button><button class="nm" data-name="${esc(n)}" aria-label="${esc(n)} 이름 한 장">›</button>${tag ? `<small style="color:var(--up);font-weight:600;margin-right:6px">${tag}</small>` : ""}`;
   const sec = (d.sec || []).filter(s => s !== "etc").map(s => SN()[s] || s).join(" · ");
+  const sh2 = (t, sm) => `<p class="sh2">${t}${sm ? `<small>${sm}</small>` : ""}</p>`;
+  // 믿음 한 줄
+  const gl = GRADE[d.g] ? `<p class="note" style="margin:2px 2px 6px">${gdot(d)} — ${esc(GRADE[d.g][1])}${d.chk ? ` (${esc(d.chk)})` : ""}${d.amtK === "debt" ? " · 빌린 돈(대출·채권)이라 투자 합계엔 안 넣어요" : ""}${d.garb ? " · 번역이 깨져 원문 제목으로 보여요" : ""}</p>` : "";
+  // 무슨 회사
   let kv = `<dt>종류</dt><dd>${esc(KN()[d.kind] || "기타")}${d.stage ? " · " + esc(STN()[d.stage] || d.stage) : ""}</dd><dt>나라</dt><dd>${flag(d.cc)} ${esc(CN(d.cc))}${d.loc ? " (" + esc(d.loc) + ")" : ""}</dd>`;
   if (sec || d.ind) kv += `<dt>분야</dt><dd>${esc(sec || "")}${d.ind ? (sec ? " · " : "") + esc(d.ind) : ""}${d.biz ? " · " + esc(d.biz) : ""}</dd>`;
-  if (d.val) kv += `<dt>기업가치</dt><dd>${won(d.val)}</dd>`;
+  if (d.coinfo) kv += `<dt>회사 소개</dt><dd>${esc(d.coinfo.desc || "")}${d.coinfo.since ? ` · ${esc(d.coinfo.since)}년 설립` : ""} <small style="color:var(--muted)">위키데이터</small></dd>`;
+  if (d.val) kv += `<dt>기업가치</dt><dd>${won(d.val)}${d.amt ? ` · 이번 돈은 그 ${Math.max(1, Math.round(100 * d.amt / d.val))}%쯤` : ""}</dd>`;
   if (d.ninv) kv += `<dt>투자자 수</dt><dd>${d.ninv}명 (신고서)</dd>`;
   kv += `<dt>처음 본 날</dt><dd>${esc(d.date)}${(d.n || 1) > 1 ? ` · 보도 ${d.n}곳` : ""}</dd>`;
-  let names = "";
-  if (d.co) names += `<p class="note" style="margin:10px 2px 4px">${d.kind === "ma" || d.kind === "pe" ? "사는 쪽 → 팔리는 쪽" : "회사"} <small>(눌러서 따라가기)</small></p>${nm(d.co)}${d.tgt ? " → " + nm(d.tgt) : ""}`;
-  if ((d.inv || []).length) names += `<p class="note" style="margin:10px 2px 4px">투자한 곳</p>${d.inv.map(nm).join("")}`;
+  let what = sh2("무슨 일", "") + (sum ? `<div class="body">${esc(sum)}${d.ksum && d.sum && d.ksum !== d.sum ? `<p class="orig" style="margin:8px 0 0">원문: ${esc(d.sum)}</p>` : ""}<p class="orig" style="margin:6px 0 0">기사 첫 문단(로봇 번역)</p></div>` : "") + `<div class="body"><dl class="kv">${kv}</dl></div>`;
+  // 누가 넣었나
+  let who = "";
+  if (d.co) who += `<p class="note" style="margin:6px 2px 4px">${d.kind === "ma" || d.kind === "pe" ? "사는 쪽 → 팔리는 쪽" : "회사"}</p>${nm(d.co)}${d.tgt && d.tgt !== d.co ? " → " + nm(d.tgt) : ""}`;
+  if ((d.inv || []).length) who += `<p class="note" style="margin:10px 2px 4px">투자한 곳 <small>(＋ 따라가기 · › 이름 한 장)</small></p>${d.inv.map(n => nm(n, (d.follow || []).includes(n) ? "또 넣음" : "")).join("")}${(d.follow || []).length ? `<p class="note" style="margin:6px 2px 0">'또 넣음' = 전에도 이 회사에 넣었던 곳이 다시 돈을 냈다는 뜻 — 안을 아는 사람이 한 번 더 걸었어요.</p>` : ""}`;
   const fids = FI && FI.byDeal ? FI.byDeal[d.id] || [] : [];
-  if (fids.length) names += `<p class="note" style="margin:10px 2px 4px">투자사 정보</p>${fids.map(k => { const f = FI.firms.find(x => x.id === k); return f ? `<button class="nm" data-firm="${esc(k)}">🏦 ${esc(f.ko)} ›</button>` : ""; }).join("")}`;
-  const srcs = (d.srcs || []).length ? `<p class="note" style="margin:12px 2px 4px">같은 거래를 쓴 곳${(d.n || 1) > d.srcs.length + 1 ? ` (${d.n}곳 중 ${d.srcs.length + 1}곳)` : ""}</p><div class="list">${[[d.src, d.url, d.lang]].concat(d.srcs.filter((x, i, a) => x[0] !== d.src && a.findIndex(y => y[0] === x[0]) === i)).map(s => `<a class="li" href="${esc(s[1])}" target="_blank" rel="noopener"><div class="bx"><p class="t" style="font-weight:500">${esc(s[0])}</p></div><span class="v" style="font-weight:400">${s[2] && s[2] !== "ko" ? "번역 ↗" : "↗"}</span></a>`).join("")}</div>` : "";
+  if (fids.length) who += `<p class="note" style="margin:10px 2px 4px">투자사 정보</p>${fids.map(k => { const f = FI.firms.find(x => x.id === k); return f ? `<button class="nm" data-firm="${esc(k)}">🏦 ${esc(f.ko)} ›</button>` : ""; }).join("")}`;
+  if (who) who = sh2("누가", "") + who;
+  // 이 회사 지난 이야기
+  const HT = { news: "기사", dart: "공시", formd: "SEC 신고" };
+  const hist = (d.hist || []).length ? sh2("이 회사 지난 이야기", "쌓인 기사·공시에서") + `<div class="tl">${d.hist.map(e => {
+    const inner = `<span>${String(e[0]).slice(0, 4) !== kst().slice(0, 4) ? String(e[0]).slice(2, 4) + "." : ""}${+String(e[0]).slice(5, 7)}/${+String(e[0]).slice(8, 10)}</span><div>${esc(e[2])}${e[3] ? ` · <b style="color:var(--accent)">${won(e[3])}</b>` : ""} <small style="color:var(--muted)">${HT[e[1]] || ""}</small></div>`;
+    if (e[1] === "news" && S.byId[e[4]]) return `<button class="e" data-open="${esc(e[4])}">${inner}</button>`;
+    if (e[1] === "dart") return `<a class="e" href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${esc(e[4])}" target="_blank" rel="noopener">${inner}</a>`;
+    if (/^https?:/.test(e[4] || "")) return `<a class="e" href="${esc(e[4])}" target="_blank" rel="noopener">${inner}</a>`;
+    return `<div class="e">${inner}</div>`;
+  }).join("")}</div>${d.filed ? `<p class="note">기사 며칠 사이 같은 회사 공시가 있어 '공시로 확인'으로 올렸어요.</p>` : ""}` : "";
+  // 매체마다 다르게
+  const ss = [[d.src, d.url, d.title, d.amtS]].concat((d.srcs || []).filter(x => x[1] !== d.url)).filter((x, i, a) => x[0] && a.findIndex(y => y[0] === x[0]) === i);
+  const amtsDiff = new Set(ss.map(x => x[3]).filter(Boolean)).size > 1;
+  const srcs = d.t === "news" || !d.t ? sh2(ss.length > 1 ? "매체마다 다르게" : "출처", ss.length > 1 ? `${(d.n || 1) > ss.length ? `${d.n}곳 중 ${ss.length}곳 · ` : ""}같은 거래를 어떻게 썼나${amtsDiff ? " · 금액이 서로 달라요" : ""}` : "") + `<div class="list">${ss.map(x => `<a class="li" href="${esc(x[1])}" target="_blank" rel="noopener"><div class="bx"><p class="t" style="font-weight:600">${esc(x[0])}${x[3] ? ` <small style="color:${amtsDiff ? "#C24E00" : "var(--muted)"};font-weight:500">${esc(x[3])}</small>` : ""}</p>${x[2] ? `<p class="s">${esc(x[2])}</p>` : ""}</div><span class="v" style="font-weight:400">↗</span></a>`).join("")}</div>` : "";
+  // 닮은 거래 (같은 분야·단계, 다른 나라)
+  const ms = (d.sec || []).filter(x => x !== "etc");
+  const like = ms.length && d.amt ? Object.values(S.byId).filter(x => x.id !== d.id && x.st === "done" && x.amt && x.kind === d.kind && (!d.stage || x.stage === d.stage) && x.cc !== d.cc && (x.sec || []).some(y => ms.includes(y)))
+    .sort((a, b) => Math.abs(Math.log(a.amt / d.amt)) - Math.abs(Math.log(b.amt / d.amt))).slice(0, 3) : [];
+  const likeH = like.length ? sh2("닮은 거래", "같은 분야·단계, 다른 나라") + `<div class="list">${like.map(x => `<button class="li" data-open="${esc(x.id)}"><div class="bx"><p class="t">${flag(x.cc)} ${esc(x.co || x.ko || x.title)}</p><p class="s">${esc(CN(x.cc))} · ${dayLbl(x.date)}</p></div><span class="v">${won(x.amt)}</span></button>`).join("")}</div>` : "";
+  // 생각거리 (낱말 규칙, 토큰 0)
+  const qs = thinkQs(d);
+  const think = qs.length ? sh2("생각거리", "읽으면서 물어볼 것") + `<div class="qs">${qs.map(q => `<p>· ${esc(q)}</p>`).join("")}</div>` : "";
   const isNews = d.t === "news" || !d.t;
   const acts = [`<a class="btn pri" href="${esc(d.url)}" target="_blank" rel="noopener">${d.t === "formd" ? "SEC 신고서 ↗" : d.t === "dart" ? "DART 공시 ↗" : "기사 원문 ↗"}</a>`];
   if (isNews && d.lang !== "ko") acts.push(`<a class="btn" href="https://translate.google.com/translate?sl=auto&tl=ko&u=${encodeURIComponent(d.url)}" target="_blank" rel="noopener">번역해서 열기 ↗</a>`);
@@ -573,12 +780,11 @@ function openItem(id, dir) {
   const navRow = pos >= 0 && tot > 1 ? `<div class="snav"><button class="ib" data-sgo="-1" aria-label="이전" ${pos === 0 ? "disabled" : ""}>‹</button><span>${pos + 1} / ${tot} · 옆으로 밀면 넘어가요</span><button class="ib" data-sgo="1" aria-label="다음" ${pos === tot - 1 ? "disabled" : ""}>›</button></div>` : "";
   back.innerHTML = `<div class="sheet${dir ? (dir > 0 ? " in-r" : " in-l") : ""}" role="dialog"><div class="grab"></div>${navRow}
     <div class="meta" style="margin-bottom:4px">${badges(d)}<span>${esc(d.src || "")}</span></div>
-    ${d.amt ? `<p class="big">${won(d.amt)}</p><p class="orig">${esc(d.amtS && !/[원조억만]$/.test(d.amtS) ? d.amtS : d.usd ? usd(d.usd) : "")}${(S.idx.fx || {}).day ? ` · ${esc(S.idx.fx.day)} 환율로 바꾼 대략값` : ""}</p>` : ""}
-    <h3>${esc(ko)}</h3>${orig ? `<p class="orig">${esc(orig)}</p>` : ""}
-    ${sum ? `<div class="body">${esc(sum)}${d.ksum && d.sum && d.ksum !== d.sum ? `<p class="orig" style="margin:8px 0 0">원문: ${esc(d.sum)}</p>` : ""}</div>` : ""}
-    <div class="body"><dl class="kv">${kv}</dl></div>${names}${srcs}
+    ${d.amt ? `<p class="big">${won(d.amt)}</p><p class="orig">${esc(d.amtS && !/[원조억만]$/.test(d.amtS) ? d.amtS : d.usd ? usd(d.usd) : "")}${(S.idx.fx || {}).day ? ` · ${esc(S.idx.fx.day)} 환율로 바꾼 대략값` : ""}</p>` : ["vc", "ma", "pe", "fund"].includes(d.kind) ? `<p class="orig">금액은 안 밝혔어요</p>` : ""}
+    ${d.co ? `<h3>${hlName(d)}</h3><p class="orig" style="margin:0 0 4px">${esc(hlLine(d))}</p><p style="margin:6px 0 2px;font-weight:600">${esc(ko)}</p>` : `<h3>${esc(ko)}</h3>`}${orig ? `<p class="orig">${esc(orig)}</p>` : ""}${gl}
+    ${rulerHtml(d)}${what}${who}${hist}${srcs}${likeH}${think}
     <div class="acts">${acts.join("")}</div>
-    <p class="note" style="margin:12px 2px 4px">내 메모</p><textarea id="memo" placeholder="왜 눈에 띄었는지, 우리 일과 어떤 관계인지 적어 두기">${esc(S.memo[id] || "")}</textarea></div>`;
+    ${sh2("생각 3줄", "이 폰에만 저장")}<textarea id="memo" placeholder="① 무슨 일인가&#10;② 왜 중요한가 (돈·사람·기술 중 무엇이 움직였나)&#10;③ 우리 일과는 어떤 관계인가">${esc(S.memo[id] || "")}</textarea></div>`;
   document.body.appendChild(back);
   const ta = back.querySelector("#memo");
   ta.addEventListener("input", () => { if (ta.value.trim()) S.memo[id] = ta.value; else delete S.memo[id]; save("memo"); if (S.star[id]) { S.star[id].memo = ta.value; save("star"); } });
@@ -602,7 +808,7 @@ function entry(d) { const keep = ["t", "kind", "stage", "title", "ko", "url", "s
 
 /* ───── 이동 (뒤로가기 = 한 단계 위로) ───── */
 let navStack = [];
-const TABS = ["#today", "#x", "#follow", "#shelf"];
+const TABS = ["#today", "#map", "#names", "#shelf"];
 function nav(h, isBack) {
   const cur = location.hash || "#today"; if (h === cur) return paint();
   if (!isBack) { if (TABS.includes(h)) navStack = []; else { navStack.push({ h: cur, y: scrollY }); if (navStack.length > 30) navStack.shift(); } }
@@ -623,10 +829,11 @@ async function paint() {
   let h = location.hash || "#today"; const app = document.getElementById("app"); const y = scrollY;
   if (h.startsWith("#f=")) {                                                    // 홈 랜덤 카드에서 '이 카드부터 보기'
     const fid = decodeURIComponent(h.slice(3)); h = "#today";
-    try { history.replaceState(history.state, "", location.pathname + location.search + h); localStorage.setItem("vfm:mode:" + MODE, '"deck"'); } catch (e) { }
-    if (D && S.byId[fid]) { S.kind = ""; const dk = makeDeck("deal-today", todayOrder); dk.queue = null; dk.hist = []; dk.pos = -1; dk.cur = fid; }
+    try { history.replaceState(history.state, "", location.pathname + location.search + h); } catch (e) { }
+    if (S.byId[fid]) setTimeout(() => { sheetList = [fid]; openItem(fid); }, 30);
   }
-  const tab = ["#stats", "#formd", "#sec", "#dart", "#find"].includes(h) ? "x" : h === "#kr" ? "today" : h.startsWith("#firm") || h.startsWith("#vc") ? "follow" : h.slice(1);
+  if (h === "#follow") h = "#names";
+  const tab = ["#stats", "#formd", "#sec", "#dart"].includes(h) ? "map" : ["#kr", "#x", "#find", "#lens"].includes(h) ? "today" : h.startsWith("#firm") || h.startsWith("#vc") || h.startsWith("#name") ? "names" : h.slice(1);
   document.querySelectorAll("#tabs button").forEach(b => { if (b.dataset.v === tab) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   try {
     if (h === "#x" || h === "#find") { app.innerHTML = await renderX(); bindSearch("xq", v => { F.q = v; xLimit = 60; }, async () => { app.innerHTML = await renderX(); bindSearch("xq", v => { F.q = v; }, paint); }); if (h === "#find") setTimeout(() => { const q = document.getElementById("xq"); if (q) q.focus(); }, 50); }
@@ -639,7 +846,10 @@ async function paint() {
     else if (h === "#formd") { app.innerHTML = await renderFormd(); bindSearch("fdq", v => { fdF.q = v; }, paint); }
     else if (h === "#sec") { app.innerHTML = await renderSec(); bindSearch("secq", v => { secQ = v; }, paint); }
     else if (h === "#dart") { app.innerHTML = await renderDart(); bindSearch("dartq", v => { dartQ = v; }, paint); }
-    else if (h === "#follow") { app.innerHTML = await renderFollow(); const i = document.getElementById("fadd"); if (i) i.addEventListener("keydown", e => { if (e.key === "Enter") { follow(i.value, true); paint(); } }); }
+    else if (h === "#map") app.innerHTML = await renderMap();
+    else if (h === "#lens") { app.innerHTML = renderLens(); const i = document.getElementById("lkw"); if (i) i.addEventListener("keydown", e => { if (e.key === "Enter") { const v = i.value.trim(); if (v && !S.lens.kw.includes(v)) { S.lens.kw.push(v); save("lens"); } paint(); } }); }
+    else if (h.startsWith("#name=")) app.innerHTML = await renderName(decodeURIComponent(h.slice(6)));
+    else if (h === "#names") { app.innerHTML = await renderNames(); const i = document.getElementById("fadd"); if (i) i.addEventListener("keydown", e => { if (e.key === "Enter") { follow(i.value, true); paint(); } }); }
     else if (h === "#shelf") app.innerHTML = renderShelf();
     else app.innerHTML = renderToday();
   } catch (e) { app.innerHTML = `<p class="empty">못 불러왔어요<br><small>${esc(e.message)}</small></p>`; }
@@ -649,18 +859,24 @@ function debounce(f, ms) { let t; return () => { clearTimeout(t); t = setTimeout
 function saveF() { const o = Object.assign({}, F); delete o.q; LS.s("F", o); }
 
 document.addEventListener("click", async e => {
-  const t = e.target.closest("[data-v],[data-go],[data-open],[data-kind],[data-act],[data-f],[data-per],[data-sort],[data-wk],[data-tfol],[data-unfol],[data-fol],[data-fdq],[data-fdt],[data-fdi],[data-secy],[data-secf],[data-darty],[data-dartk],[data-krper],[data-krst],[data-fity],[data-ficc],[data-fisort],[data-tfol2],[data-firm],[data-kvs],[data-sgo]"); if (!t) return;
+  const t = e.target.closest("[data-v],[data-go],[data-open],[data-kind],[data-act],[data-f],[data-per],[data-sort],[data-wk],[data-tfol],[data-unfol],[data-fol],[data-fdq],[data-fdt],[data-fdi],[data-secy],[data-secf],[data-darty],[data-dartk],[data-krper],[data-krst],[data-fity],[data-ficc],[data-fisort],[data-tfol2],[data-firm],[data-kvs],[data-sgo],[data-name],[data-quiz],[data-mapx],[data-msec],[data-lsec],[data-lkwx]"); if (!t) return;
   const d = t.dataset;
   if (d.v) { closeSheet(); return nav("#" + d.v); }
   if (d.go) {                                                                    // '전부 ›' → 탐색 (조건 넣어서)
-    if (d.go === "#x") { Object.assign(F, { kind: d.k || S.kind || "", stage: "", sec: "", cc: d.cc || "", band: "", sort: "amt", per: d.per ? +d.per : F.per }); saveF(); }
+    if (d.go === "#x") { Object.assign(F, { kind: d.k || "", stage: "", sec: "", cc: d.cc || "", band: "", sort: "amt", per: d.per ? +d.per : F.per, st: d.st != null ? d.st : F.st }); saveF(); }
     return nav(d.go);
   }
   if (d.sgo) return sheetStep(+d.sgo);
   if (d.open) { if (!t.closest(".back")) sheetList = [...new Set([...document.querySelectorAll("#app [data-open]")].map(e => e.dataset.open))]; return openItem(d.open); }
   if (d.tfol) { follow(d.tfol); const on = !!S.fol[d.tfol]; document.querySelectorAll(`[data-tfol="${CSS.escape(d.tfol)}"]`).forEach(b => { b.classList.toggle("on", on); b.textContent = b.closest(".sheet") ? (on ? "✓ " : "＋ ") + d.tfol : on ? "✓ 따라가는 중" : "＋ 따라가기"; }); return; }
   if (d.unfol) { e.stopPropagation(); follow(d.unfol, false); return paint(); }
-  if (d.fol) { S.fol[d.fol].seen = kst(); save("fol"); Object.assign(F, { q: d.fol, kind: "", stage: "", sec: "", cc: "", band: "", per: 30, sort: "new" }); return nav("#x"); }
+  if (d.fol) { S.fol[d.fol].seen = kst(); save("fol"); return nav("#name=" + encodeURIComponent(d.fol)); }
+  if (d.name) { closeSheet(); return nav("#name=" + encodeURIComponent(d.name)); }
+  if (d.quiz != null) { S.quiz[(S.now.daily || {}).day || kst()] = +d.qv; save("quiz"); return paint(); }
+  if (d.mapx != null) { S.mapX = +d.mapx; save("mapX"); return paint(); }
+  if (d.msec) { Object.assign(F, { kind: "", stage: "", sec: d.msec, cc: ["KR", "US", "JP", "IN"].includes(d.mreg) ? d.mreg : "", band: "", sort: "amt", per: 7, st: "done" }); saveF(); return nav("#x"); }
+  if (d.lsec) { const L = S.lens; L.sec = L.sec.includes(d.lsec) ? L.sec.filter(x => x !== d.lsec) : L.sec.concat(d.lsec); save("lens"); if (D) D.stale("deal"); return paint(); }
+  if (d.lkwx) { S.lens.kw = S.lens.kw.filter(x => x !== d.lkwx); save("lens"); return paint(); }
   if (d.kind != null) { S.kind = d.kind; save("kind"); if (D) D.stale("deal"); return paint(); }
   if (d.f) { F[d.f] = d.val; if (d.f === "kind" && d.val !== "vc") F.stage = ""; xLimit = 60; saveF(); return paint(); }
   if (d.per) { F.per = +d.per; saveF(); return paint(); }
@@ -688,6 +904,7 @@ document.addEventListener("click", async e => {
   if (a === "xmore") { xLimit += 60; return paint(); }
   if (a === "fdmore") { fdLimit += 120; return paint(); }
   if (a === "kvmore") { kvLimit += 120; return paint(); }
+  if (a === "lkw") { const i = document.getElementById("lkw"), v = i && i.value.trim(); if (v && !S.lens.kw.includes(v)) { S.lens.kw.push(v); save("lens"); } return paint(); }
   if (a === "fadd") { const i = document.getElementById("fadd"); follow(i && i.value, true); return paint(); }
   if (a === "unhide") { S.hide = {}; save("hide"); toast("다시 보여요"); return paint(); }
   if (a === "clearread") { S.read = {}; save("read"); toast("지웠어요"); return paint(); }
