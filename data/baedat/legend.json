@@ -1346,6 +1346,36 @@
    "file": "raw-2025-08.json",
    "videos": 182,
    "comments": 4142
+  },
+  {
+   "month": "2025-07",
+   "file": "raw-2025-07.json",
+   "videos": 238,
+   "comments": 5499
+  },
+  {
+   "month": "2025-06",
+   "file": "raw-2025-06.json",
+   "videos": 193,
+   "comments": 4393
+  },
+  {
+   "month": "2025-05",
+   "file": "raw-2025-05.json",
+   "videos": 176,
+   "comments": 4079
+  },
+  {
+   "month": "2025-04",
+   "file": "raw-2025-04.json",
+   "videos": 243,
+   "comments": 5698
+  },
+  {
+   "month": "2025-03",
+   "file": "raw-2025-03.json",
+   "videos": 208,
+   "comments": 4820
   }
  ]
 }
