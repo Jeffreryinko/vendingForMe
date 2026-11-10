@@ -1,0 +1,38 @@
+name: 배댓 창고 매일 로봇 (매일 새벽, 토큰 0, 검색 0)
+
+# 한국 인기 차트 8개 + 채널 씨앗 120곳 + 링크 제보함(data/baedat/daily/links.txt)에서 새 영상을 찾고,
+# 올라온 지 3일째·14일째에 댓글을 받아 관문(웃음 20%↑, 음악·아이돌 제외)을 통과한 것만 창고(raw-YYYY-MM.json)에 넣어요.
+# 25일 넘은 자료는 다시 확인해 지워진 댓글을 빼요(30일 규칙). 하루 약 1,000단위 / 무료 10,000.
+on:
+  schedule:
+    - cron: "41 17 * * *"       # 한국시간 매일 02:41
+  workflow_dispatch:
+
+concurrency:
+  group: data-baedat
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 모으고 거르기
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: python robot/baedat_daily.py
+      - name: 저장소에 올리기
+        run: |
+          git config user.name "baedat-robot"
+          git config user.email "robot@users.noreply.github.com"
+          git add data/baedat
+          git diff --cached --quiet && echo "변경 없음" && exit 0
+          git commit -m "배댓 창고: $(TZ=Asia/Seoul date '+%Y-%m-%d')"
+          for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 10; done

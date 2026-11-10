@@ -1,0 +1,727 @@
+{
+"updatedAt": "2026-11-10",
+"rule": "명댓글 채널 + 관문을 자주 통과한 채널. '최고' 받은 채널은 추가, 3달 동안 '최고' 없으면 제외(사이트에서 보내는 취향은 로봇이 못 읽어서 손으로 갱신)",
+"channels": [
+{
+"id": "UCDNvRZRgvkBTUkQzFoT_8rA",
+"name": "뜬뜬 DdeunDdeun",
+"why": "관문 통과 영상 55개",
+"since": "2026-11-10"
+},
+{
+"id": "UC1B6SalAoiJD7eHfMUA9QrA",
+"name": "숏박스",
+"why": "관문 통과 영상 48개",
+"since": "2026-11-10"
+},
+{
+"id": "UCaxbXRPhdHPXjM-e-F00LVA",
+"name": "띱 Deep",
+"why": "관문 통과 영상 46개",
+"since": "2026-11-10"
+},
+{
+"id": "UC-3Fh1L6hOSV9ylvpr5g8_Q",
+"name": "숏플레이",
+"why": "관문 통과 영상 46개",
+"since": "2026-11-10"
+},
+{
+"id": "UCmjjgsm51PYMPf5REDylbSA",
+"name": "김켈리 Kellyfornia",
+"why": "관문 통과 영상 46개",
+"since": "2026-11-10"
+},
+{
+"id": "UCScf00O9p1oavQYC06_pL8A",
+"name": "이상준쇼",
+"why": "관문 통과 영상 40개",
+"since": "2026-11-10"
+},
+{
+"id": "UC-OcDPFxfY9Hhdf5P9zq7-A",
+"name": "메타코미디클럽",
+"why": "관문 통과 영상 37개",
+"since": "2026-11-10"
+},
+{
+"id": "UC6yEsiYQjnLve24g34lVa1w",
+"name": "낭만박상환",
+"why": "관문 통과 영상 32개",
+"since": "2026-11-10"
+},
+{
+"id": "UC5xLohcPE65Y-U62X6snmRQ",
+"name": "빠더너스 BDNS",
+"why": "관문 통과 영상 30개",
+"since": "2026-11-10"
+},
+{
+"id": "UCHw9p667e9l0qoYfY8calaA",
+"name": "유병재",
+"why": "관문 통과 영상 24개",
+"since": "2026-11-10"
+},
+{
+"id": "UCoCvTlU0KpNYwnMIgs7MPrA",
+"name": "보다 BODA",
+"why": "관문 통과 영상 23개",
+"since": "2026-11-10"
+},
+{
+"id": "UCRmm8763aqO0CoeLCA2jNSA",
+"name": "ootb STUDIO",
+"why": "관문 통과 영상 23개",
+"since": "2026-11-10"
+},
+{
+"id": "UCzT7nHtzVqwiarTH8sqHaJA",
+"name": " 개그콘서트",
+"why": "관문 통과 영상 21개",
+"since": "2026-11-10"
+},
+{
+"id": "UCpcD2T7V2TTzaT4ZMQEOm1w",
+"name": "웃다가!",
+"why": "관문 통과 영상 20개",
+"since": "2026-11-10"
+},
+{
+"id": "UCGX5sP4ehBkihHwt5bs5wvg",
+"name": "피식대학Psick Univ",
+"why": "관문 통과 영상 18개",
+"since": "2026-11-10"
+},
+{
+"id": "UCRWxH4fGhuNsh0klWnDbt0w",
+"name": "언더월드 UNDER WORLD",
+"why": "관문 통과 영상 17개",
+"since": "2026-11-10"
+},
+{
+"id": "UCPDKAhacqpqmP7aXWem3_Jg",
+"name": "지식줄고양",
+"why": "관문 통과 영상 17개",
+"since": "2026-11-10"
+},
+{
+"id": "UCRstLhO5i-Qg5W0VFefuKSw",
+"name": "하이파이브 : LA 최고 예능라디오",
+"why": "관문 통과 영상 17개",
+"since": "2026-11-10"
+},
+{
+"id": "UCI2T1_bAtgnKKzfhw3Qib9w",
+"name": "빵빵이의 일상",
+"why": "관문 통과 영상 16개",
+"since": "2026-11-10"
+},
+{
+"id": "UC9sJx0j0AbtRQX55PTdsyJg",
+"name": "코밈 KOMEME",
+"why": "관문 통과 영상 15개",
+"since": "2026-11-10"
+},
+{
+"id": "UCCLD41Qs7YnqLsXhWjkX8qQ",
+"name": "민쩌미",
+"why": "관문 통과 영상 15개",
+"since": "2026-11-10"
+},
+{
+"id": "UCQffyh2MAb8742wpl2a38mQ",
+"name": "스타뚜",
+"why": "관문 통과 영상 15개",
+"since": "2026-11-10"
+},
+{
+"id": "UCXEKwWflysXu312NmIP_dlw",
+"name": "너덜트",
+"why": "관문 통과 영상 15개",
+"since": "2026-11-10"
+},
+{
+"id": "UClgQvJio7ylGa9kV9b7VzLQ",
+"name": "스낵타운 SNACKTOWN",
+"why": "관문 통과 영상 13개",
+"since": "2026-11-10"
+},
+{
+"id": "UCHUqcHqlaxm5NpmbK8hHD4g",
+"name": "웃고리즘",
+"why": "관문 통과 영상 13개",
+"since": "2026-11-10"
+},
+{
+"id": "UCgWTakd2YED6wSBSmTe78LQ",
+"name": "깔깔쇼츠",
+"why": "관문 통과 영상 13개",
+"since": "2026-11-10"
+},
+{
+"id": "UCAVFRIdu3yhXROEdeUOzVCw",
+"name": "멜로컷",
+"why": "관문 통과 영상 13개",
+"since": "2026-11-10"
+},
+{
+"id": "UClrOEuBPOU5Gg60dJ_49M-g",
+"name": "푸디젠 Foodie Jen",
+"why": "관문 통과 영상 12개",
+"since": "2026-11-10"
+},
+{
+"id": "UCjMyadoeP4Gj0EL1z1W9D7Q",
+"name": "밈슐랭guide",
+"why": "관문 통과 영상 11개",
+"since": "2026-11-10"
+},
+{
+"id": "UC3m0s5XAQydCtbLHc8j1Uog",
+"name": "KBS 한국방송",
+"why": "관문 통과 영상 10개",
+"since": "2026-11-10"
+},
+{
+"id": "UCIwWKCKdfyaDTNXxn5pj84A",
+"name": "Mic On Korea",
+"why": "관문 통과 영상 10개",
+"since": "2026-11-10"
+},
+{
+"id": "UCzsI83uQ4rrFk8a4cYggkcQ",
+"name": "1분순삭",
+"why": "관문 통과 영상 9개",
+"since": "2026-11-10"
+},
+{
+"id": "UCWYFmqYrYyLdyuExjDuBn3Q",
+"name": "쇼츠클립",
+"why": "관문 통과 영상 9개",
+"since": "2026-11-10"
+},
+{
+"id": "UCw1DsweY9b2AKGjV4kGJP1A",
+"name": "LCK",
+"why": "관문 통과 영상 9개",
+"since": "2026-11-10"
+},
+{
+"id": "UCZffS3HZmQz18zuCWStcfSA",
+"name": "셰프 안성재 Chef Sung Anh",
+"why": "관문 통과 영상 9개",
+"since": "2026-11-10"
+},
+{
+"id": "UC1OU9eIk4JGnh9DN1yxwW9A",
+"name": "인생 녹음 중",
+"why": "관문 통과 영상 9개",
+"since": "2026-11-10"
+},
+{
+"id": "UCg6N52snDwhatFhprYkVuOQ",
+"name": "네자매모먼트 [4sisters]",
+"why": "관문 통과 영상 8개",
+"since": "2026-11-10"
+},
+{
+"id": "UCIKPuhVfWDTaCj6gJqcP7aw",
+"name": "숏싹숏싹",
+"why": "관문 통과 영상 8개",
+"since": "2026-11-10"
+},
+{
+"id": "UCF1MSeJpguIvkw77YP-fFug",
+"name": "MuskLab",
+"why": "관문 통과 영상 8개",
+"since": "2026-11-10"
+},
+{
+"id": "UCtybqqaTj6Nx74Azdz1KrsA",
+"name": "tvN SPORTS",
+"why": "관문 통과 영상 8개",
+"since": "2026-11-10"
+},
+{
+"id": "UCws4JGGdvP40qWNj30ZIKjg",
+"name": "예능상회",
+"why": "명댓글",
+"since": "2026-11-10"
+},
+{
+"id": "UCj2xeKmlkaRvsAXndCqohrQ",
+"name": "제로비",
+"why": "관문 통과 영상 8개",
+"since": "2026-11-10"
+},
+{
+"id": "UCA_HPCVwiZZNKqQpVJWEhxA",
+"name": "추추의 한끼식사",
+"why": "관문 통과 영상 7개",
+"since": "2026-11-10"
+},
+{
+"id": "UCpTlj6pukpEPvPnC1PGo9uw",
+"name": "스튜디오ㅋㅇㅋ",
+"why": "관문 통과 영상 7개",
+"since": "2026-11-10"
+},
+{
+"id": "UCXL7AV3nkQbvz9JiIFiGpgg",
+"name": "엄은향",
+"why": "관문 통과 영상 7개",
+"since": "2026-11-10"
+},
+{
+"id": "UCWpY0eSJtyO-qNAPbKFRSSg",
+"name": "안녕하세요원이입니다잘부탁드립니다",
+"why": "명댓글",
+"since": "2026-11-10"
+},
+{
+"id": "UCXVfodmlGhUpLREncSjuYAw",
+"name": "KBS COMEDY: 크큭티비",
+"why": "관문 통과 영상 7개",
+"since": "2026-11-10"
+},
+{
+"id": "UCHX_Bm--j_8cQaartbi5tEg",
+"name": "숏스마일",
+"why": "관문 통과 영상 7개",
+"since": "2026-11-10"
+},
+{
+"id": "UC6yZnz9Q4p13VlwyreEpFpA",
+"name": "예능감각",
+"why": "관문 통과 영상 6개",
+"since": "2026-11-10"
+},
+{
+"id": "UCee1MvXr6E8qC_d2WEYTU5g",
+"name": "강형욱의 보듬TV",
+"why": "관문 통과 영상 6개",
+"since": "2026-11-10"
+},
+{
+"id": "UCnBht7BrOx-A328KFXgysqQ",
+"name": "쿠팡플레이 스포츠",
+"why": "관문 통과 영상 6개",
+"since": "2026-11-10"
+},
+{
+"id": "UCv-HJGOUupbVHCEBRdcLuVA",
+"name": "180초",
+"why": "관문 통과 영상 6개",
+"since": "2026-11-10"
+},
+{
+"id": "UCArLZtok93cO5R9RI4_Y5Jw",
+"name": "ENHYPEN",
+"why": "관문 통과 영상 6개",
+"since": "2026-11-10"
+},
+{
+"id": "UCZsEnOEGCtVtiXvGvRAW_xQ",
+"name": "우주농부 Alien farmer",
+"why": "관문 통과 영상 6개",
+"since": "2026-11-10"
+},
+{
+"id": "UCiBr0bK06imaMbLc8sAEz0A",
+"name": "MBCentertainment",
+"why": "관문 통과 영상 6개",
+"since": "2026-11-10"
+},
+{
+"id": "UC2oODoNCEQZubUbIf_1K42A",
+"name": "납작개",
+"why": "관문 통과 영상 6개",
+"since": "2026-11-10"
+},
+{
+"id": "UCF24NMvY6K0wUUaRR2jscQA",
+"name": "일분일초",
+"why": "관문 통과 영상 6개",
+"since": "2026-11-10"
+},
+{
+"id": "UCDwGp3xQZvMkcWdxhOfcMfA",
+"name": "라온이네하우스 Raonine House",
+"why": "관문 통과 영상 6개",
+"since": "2026-11-10"
+},
+{
+"id": "UCSc2DcSzzjHgBn8Hg0KG7PA",
+"name": "꼰대희",
+"why": "관문 통과 영상 5개",
+"since": "2026-11-10"
+},
+{
+"id": "UCsRIHt5FkbGc6cQtCxt-ufA",
+"name": "tvN D ENT",
+"why": "관문 통과 영상 5개",
+"since": "2026-11-10"
+},
+{
+"id": "UCFzjsxlOqoJ-U5QJmGBlJ_g",
+"name": "김동희 세계관",
+"why": "관문 통과 영상 5개",
+"since": "2026-11-10"
+},
+{
+"id": "UC1JtVFtN_4MUIMg75-rqMUA",
+"name": "연예인한입",
+"why": "관문 통과 영상 5개",
+"since": "2026-11-10"
+},
+{
+"id": "UCeeEjvHE2Ah1IUhgdQNFOGg",
+"name": "윤정한 너로 정한다",
+"why": "관문 통과 영상 5개",
+"since": "2026-11-10"
+},
+{
+"id": "UC5AAf4_zZxk-mCl46TogZQQ",
+"name": "냥이아빠",
+"why": "관문 통과 영상 5개",
+"since": "2026-11-10"
+},
+{
+"id": "UCQmGQPqJyCE722ML7GoOL8Q",
+"name": "유스데스크 YOO'S DESK.",
+"why": "관문 통과 영상 5개",
+"since": "2026-11-10"
+},
+{
+"id": "UCiEEF51uRAeZeCo8CJFhGWw",
+"name": "Netflix Korea 넷플릭스 코리아",
+"why": "관문 통과 영상 5개",
+"since": "2026-11-10"
+},
+{
+"id": "UCRMA_Nb5VF-YoWApSVeXPVA",
+"name": "디글 클래식 :Diggle Classic",
+"why": "관문 통과 영상 5개",
+"since": "2026-11-10"
+},
+{
+"id": "UCFL1sCAksD6_7JIZwwHcwjQ",
+"name": "JTBC Entertainment",
+"why": "관문 통과 영상 5개",
+"since": "2026-11-10"
+},
+{
+"id": "UCpBpsIYfgEe2s-zazZ643xw",
+"name": "모르면개손해",
+"why": "관문 통과 영상 5개",
+"since": "2026-11-10"
+},
+{
+"id": "UCpCDVbUD-3-A_SIfHuGNdFA",
+"name": "예상치 못한 필름",
+"why": "관문 통과 영상 5개",
+"since": "2026-11-10"
+},
+{
+"id": "UCiwQRG2sCcfjKkgxMEdJGPg",
+"name": "엠뚜루마뚜루 : MBC 공식 종합 채널",
+"why": "관문 통과 영상 5개",
+"since": "2026-11-10"
+},
+{
+"id": "UC0oRRcVleNBmELYTgzwoBpg",
+"name": "유브이 방 - UV BANG",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCYrjhCOq1rH2GnXSK-sq0Gg",
+"name": "근육TV",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UC9cG7NOH9Pdvbw2sbhkwFOA",
+"name": "달쑤",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCnjtxIWLsy-esVVCe_f66bw",
+"name": "냥숏",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UC2VBdyLJeio41pc89RHBUPQ",
+"name": "케슛슛",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCT3CumbFIJiW33uq0UI3zlg",
+"name": "\b고기남자",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UC6IqHw1J10LWb-Qos5Xs0Nw",
+"name": "하이픽션",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCN5oT4zGJX-_H6pE5isAEeg",
+"name": "군림보",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UC0zVOxvxiFlvelR59C_sUzQ",
+"name": "고양이탐정 : 원룸사는 고양이",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCWaWvDRyhmSKOQWah7t7wuA",
+"name": "일일칠 - 117",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UChhKBlh_wvspTh5n4mL0b5g",
+"name": "BOYNEXTDOOR",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCWYzc_p0GgfCepIWDHGFmEg",
+"name": "디글 :Diggle",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UC0kWYJDvhh4bmcnafXn8tgw",
+"name": "아침밥 차려주는 남편 YoriHoney",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCvpvxehqmA95v9Q5RS6B_DQ",
+"name": "우낌표",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCJo6G1u0e_-wS-JQn3T-zEw",
+"name": "머니코믹스 Money Comics",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UC35F9WnUgEoY_Pd2jOy5Ktg",
+"name": "알룔료",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCW945UjEs6Jm3rVNvPEALdg",
+"name": "우정잉",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCcWAJWPoAk1hwBazPd6nXaQ",
+"name": "머스트씨무비",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCAY8JxD-YYco20giwL8GRRA",
+"name": "오늘도이제이쿡",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCnUAyD4t2LkvW68YrDh7fDg",
+"name": "NMIXX",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UC7_CFRfhIj-fSk3patOQOaw",
+"name": "싱글벙글 SGBG",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCWzTOKxY6zLP0ah1E_89SZg",
+"name": "역사를 보다",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCgY7PwYABVXoOWk8K_zODGQ",
+"name": "인싸가족",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCQ4UlSwfi-n5TdltVfsJc5A",
+"name": "잠깐, 쉼표",
+"why": "관문 통과 영상 4개",
+"since": "2026-11-10"
+},
+{
+"id": "UCtI10h_MLO1DHNa2JPKg8dA",
+"name": "썰로별",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UC78PMQprrZTbU0IlMDsYZPw",
+"name": "tvN Joy",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UC_BVJYxQxN5jberGxAFDlyg",
+"name": "은수저",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCIH367rEoVIRwRr1GKUuk2w",
+"name": "냥심멍심",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCU5Bngb-griCg_96ZXpXOgg",
+"name": "정서불안 김햄찌",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UC9_093tAK3bXyZfT84efbvg",
+"name": "esports KBS",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCyCL5k8P1iUOc1EymhhMW1A",
+"name": "더블비",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCqwUnggBBct-AY2lAdI88jQ",
+"name": "BABYMONSTER",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCF3UEVPt5zZTlBVJwDG317g",
+"name": "JTBC Voyage",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCp0yW5VactuZaV5H417reUQ",
+"name": "점심이네",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCWyRRMy7Bca5DG-KEXpDGpg",
+"name": "묘하다",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UC5BMQOsAB8hKUyHu9KI6yig",
+"name": "KBS WORLD TV",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCIvwq0KixXN8kW4Ml26ptYw",
+"name": "광 gwang series",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCAhKKbDO9-ymWZ_7iAFLBQQ",
+"name": "KBS동물티비 : 애니멀포유 animal4u",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCmbGE7Y2ov7pTBuUrkXgtTQ",
+"name": "할명수",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCaHGOzOyeYzLQeKsVkfLEGA",
+"name": "지무비 : G Movie",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCFyuG1irEQYwPUB6bfbZdXA",
+"name": "지구촌 가족",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCSTXQWvYlj8A3JtU4y_nTjw",
+"name": "맥박선계란",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCZMYvSPulDSUdx7bdtTFdrg",
+"name": "CORTIS",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCaQEpOgPoBizJihfJ7CW6og",
+"name": "애니멀숏츠",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UC9ZLv1m7QDLv991X1-p50AA",
+"name": "보물섬",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UC270ueFEsQ21S26TYI_9yVA",
+"name": "야신야덕",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCIigIgtZ65TiGQSmnVJaUCQ",
+"name": "코마",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UC9w-h_ciMmX64TcLRcb1xPg",
+"name": "tvN DRAMA",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+},
+{
+"id": "UCgwho5LJTUFaZsLmXnt1Mlw",
+"name": "마법소년  김셰프",
+"why": "관문 통과 영상 3개",
+"since": "2026-11-10"
+}
+],
+"block": []
+}
