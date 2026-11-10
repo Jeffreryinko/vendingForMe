@@ -1589,7 +1589,7 @@ const issueKey = sid => `iss_${S.edId}_${sid}`;
 const RD = {k:"vfm:sisa:read", m:null,
   all(){ if(!this.m){ try{ this.m = JSON.parse(localStorage.getItem(this.k) || "{}") || {}; }catch(_){ this.m = {}; } } return this.m; },
   key: s => s.sid || "t:" + (s.title || s.id),
-  at(s){ const a = this.all()[this.key(s)] || 0, b = Date.parse(stOf(issueKey(s.id)).opened || "") || 0; return Math.max(a, b); },
+  at(s){ const m = this.all(), a = Math.max(m[this.key(s)] || 0, m["t:" + (s.title || s.id)] || 0),   // 번호가 생기기 전 제목으로 남긴 기록도 봄 b = Date.parse(stOf(issueKey(s.id)).opened || "") || 0; return Math.max(a, b); },
   mark(s){ const m = this.all(), k = this.key(s); if(!(k in (S.lastRead ||= {}))) S.lastRead[k] = this.at(s); m[k] = Date.now();
     const ks = Object.keys(m); if(ks.length > 500) ks.sort((a,b) => m[a]-m[b]).slice(0, ks.length - 400).forEach(x => delete m[x]);
     try{ localStorage.setItem(this.k, JSON.stringify(m)); }catch(_){} }};
