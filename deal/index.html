@@ -400,7 +400,7 @@ async function renderFollow() {
   const pool = await loadDays(30); await loadFirms();
   const names = folNames().sort((a, b) => (S.fol[b].at || 0) - (S.fol[a].at || 0));
   let h = head("따라가기", "회사·투자사 이름을 넣어 두면 그 이름이 나온 거래를 모아 보고, 새로 뜨면 오늘 화면에 알려 줘요");
-  h += `<button class="tile" style="width:100%;margin:4px 0 8px" data-go="#firms"><b>🏦 주요 투자사 ${FI ? FI.firms.length + "곳" : ""} ›</b><small>세계·한국 VC·사모펀드·국부펀드 — 소개·설립·운용자산·최근 거래·함께 투자한 곳</small></button>`;
+  h += `<button class="tile" style="width:100%;margin:4px 0 8px" data-go="#firms"><b>🏦 주요 투자사 ${FI ? FI.firms.length + "곳" : ""} ›</b><small>세계·한국 VC·사모펀드·국부펀드 + 한국 VC 전체(전자공시) — 소개·투자 실적·펀드·최근 거래</small></button>`;
   h += `<div class="fol-row"><input class="search" id="fadd" type="search" placeholder="예: 소프트뱅크, a16z, 토스, 엔비디아"><button class="btn pri" data-act="fadd">넣기</button></div>`;
   if (names.length) {
     h += `<h2 class="sec">따라가는 이름<small>최근 30일</small></h2><div class="list">${names.map(n => {
@@ -437,6 +437,8 @@ function firmCard(f) {
 }
 async function renderFirms() {
   await loadFirms(); let h = backTop() + head("주요 투자사", "소개·설립·본사·운용자산은 위키백과·위키데이터에서, 최근 거래는 이 앱에 쌓인 기사에서 모았어요");
+  await loadKv();
+  if (KV) h += `<button class="tile" style="width:100%;margin:4px 0 8px" data-go="#vcs"><b>🇰🇷 한국 VC 전체 ${KV.vcs.length}곳 ›</b><small>작은 곳까지 — 올해 투자 금액·건수, 운용 펀드, 설립 연도 (전자공시)</small></button>`;
   if (!FI) return h + '<p class="empty">아직 자료가 없어요. 로봇이 다음에 돌면 채워져요.</p>';
   const tc = {}, rc = {}; for (const f of FI.firms) { tc[f.type] = (tc[f.type] || 0) + 1; rc[REG(f.cc)] = (rc[REG(f.cc)] || 0) + 1; }
   h += `<div class="chips"><button data-fity="" class="${fiTy ? "" : "on"}">모든 종류</button>${Object.entries(FI.types || {}).filter(([k]) => tc[k]).map(([k, n]) => `<button data-fity="${k}" class="${fiTy === k ? "on" : ""}">${esc(n)}<small>${tc[k]}</small></button>`).join("")}</div>`;
@@ -461,6 +463,8 @@ async function renderFirm(id) {
   kv += `<dt>최근 90일</dt><dd>${f.n90 ? `거래 기사 ${f.n90}건${f.amt90 ? " · 금액 합 " + won(f.amt90) : ""}` : "이 앱에 쌓인 기사 없음"}</dd>`;
   if (f.fundSum) kv += `<dt>미국 펀드 신고</dt><dd>${usd(f.fundSum)} (Form D)</dd>`;
   h += `<div class="bars"><dl class="kv">${kv}</dl></div>`;
+  await loadKv(); const kvv = f.cc === "KR" && kvFind(f.ko);
+  if (kvv) h += `<button class="tile" style="width:100%;margin:0 0 8px" data-go="#vc=${esc(kvv.id)}"><b>전자공시: 올해 ${kvv.cur[0]}곳에 ${won(kvv.cur[1]) || "0"} 투자 ›</b><small>운용 펀드 ${kvv.funds}개 · ${won(kvv.fundSum) || "0"} (${esc(kvv.name)})</small></button>`;
   if (f.desc) h += `<div class="bars" style="font-size:14.5px;line-height:1.6">${esc(f.desc)}<p class="note" style="margin:8px 0 0">${f.descLang === "ko" ? "한국어 위키백과" : f.descLang === "en" ? "영어 위키백과 · 기계번역" : "영어 위키백과"} 첫 문단</p></div>`;
   else if (f.wdDesc) h += `<p class="note">${esc(f.wdDesc)} (위키데이터)</p>`;
   h += `<div class="row" style="margin:6px 0">${f.site ? `<a class="btn sm" href="${esc(f.site)}" target="_blank" rel="noopener">홈페이지 ↗</a>` : ""}${f.kowiki || f.enwiki ? `<a class="btn sm" href="https://${f.kowiki ? "ko" : "en"}.wikipedia.org/wiki/${encodeURIComponent(f.kowiki || f.enwiki)}" target="_blank" rel="noopener">위키백과 ↗</a>` : ""}<a class="btn sm" href="https://www.google.com/search?q=${encodeURIComponent(f.ko + " 투자")}&tbm=nws" target="_blank" rel="noopener">뉴스 찾기 ↗</a></div>`;
@@ -468,6 +472,56 @@ async function renderFirm(id) {
   if ((f.co || []).length) h += `<h2 class="sec">자주 함께 나온 투자사</h2><div class="row">${f.co.map(([n, k, c]) => `<button class="nm" data-go="#firm=${esc(k)}">${esc(n)} <small>${c}</small></button>`).join("")}</div>`;
   h += `<h2 class="sec">최근 거래<small>${(f.deals || []).length}건</small></h2>` + ((f.deals || []).map(card).join("") || '<p class="note">최근 90일 동안 이 앱에 들어온 기사에는 안 나왔어요</p>');
   if ((f.funds || []).length) h += `<h2 class="sec">미국 펀드 결성 신고<small>Form D</small></h2><div class="list">${f.funds.map(r => `<div class="li"><div class="bx"><p class="t">${esc(r[1])}</p><p class="s">${esc((S.idx.fundKo || {})[r[3]] || r[3] || "펀드")} · ${esc(r[0])}</p></div><span class="v">${usd(r[2])}</span></div>`).join("")}</div>`;
+  return h;
+}
+
+/* ───── 화면: 한국 VC 전체 (DIVA 전자공시) ───── */
+let KV = null, kvSort = "cur", kvQ = "", kvLimit = 60;
+async function loadKv() { if (!KV) { try { KV = await getJ("kvca.json"); } catch (e) { KV = null; } } return KV; }
+const vstem = n => String(n || "").replace(/\(주\)|㈜|주식회사|\s/g, "").replace(/(창업투자|벤처투자|벤처캐피탈|인베스트먼트|인베스트|파트너스|벤처스|투자파트너스|캐피탈|캐피털|기술투자|투자|홀딩스|액셀러레이터|기술지주회사|기술지주)$/, "");
+function kvFind(name) { if (!KV) return null; const st = vstem(name); if (st.length < 2) return null; const l = KV.vcs.filter(v => vstem(v.name) === st); return l.length === 1 ? l[0] : null; }
+const ymTxt = ym => ym ? `${ym.slice(0, 4)}년 ${+ym.slice(4)}월` : "";
+function vcCard(v) {
+  return `<button class="card" data-go="#vc=${esc(v.id)}"><span class="fl" aria-hidden="true">🇰🇷</span><div class="bx">
+    ${v.cur[1] ? `<p class="amt">${won(v.cur[1])}<small>올해 ${v.cur[0]}곳에 투자</small></p>` : `<p class="amt" style="color:var(--muted);font-size:14px;font-weight:600">올해 투자 공시 없음</p>`}
+    <p class="t" style="font-size:16px">${esc(v.name)}${S.fol[v.name] ? ' <span class="bd fol">따라감</span>' : ""}</p>
+    <div class="meta">${v.funds ? `<span class="bd k">운용 펀드 ${v.funds}개 · ${won(v.fundSum)}</span>` : ""}${v.since ? `<span>${esc(v.since)}년 설립</span>` : ""}${v.city ? `<span>${esc(v.city)}</span>` : ""}${v.prev[1] ? `<span>작년 ${v.prev[0]}곳 · ${won(v.prev[1])}</span>` : ""}${v.n90 ? `<span>기사 ${v.n90}건</span>` : ""}</div></div></button>`;
+}
+async function renderVcs() {
+  await loadKv(); let h = backTop() + head("한국 VC 전체", "벤처투자회사 전자공시(DIVA)에 올라온 창업투자회사·신기술금융사·액셀러레이터 — 법으로 공시하는 투자 실적과 펀드");
+  if (!KV) return h + '<p class="empty">아직 자료가 없어요. 로봇이 다음에 돌면 채워져요.</p>';
+  h += `<input class="search" id="kvq" type="search" placeholder="이름으로 찾기 (예: 새한, 카카오, 블루포인트)" value="${esc(kvQ)}">`;
+  h += `<div class="chips">${[["cur", "올해 투자 금액"], ["curn", "올해 투자 건수"], ["fund", "운용 펀드 규모"], ["n90", "기사에 자주"], ["old", "오래된 순"]].map(([k, n]) => `<button data-kvs="${k}" class="${kvSort === k ? "on" : ""}">${n}</button>`).join("")}</div>`;
+  const q = vstem(kvQ).toLowerCase() || kvQ.trim().toLowerCase();
+  let l = KV.vcs.filter(v => !q || v.name.toLowerCase().includes(q) || vstem(v.name).toLowerCase().includes(q));
+  const by = { cur: (a, b) => b.cur[1] - a.cur[1], curn: (a, b) => b.cur[0] - a.cur[0] || b.cur[1] - a.cur[1], fund: (a, b) => b.fundSum - a.fundSum, n90: (a, b) => b.n90 - a.n90 || b.cur[1] - a.cur[1], old: (a, b) => (a.since || "9999").localeCompare(b.since || "9999") }[kvSort];
+  l = l.slice().sort(by);
+  const tot = KV.vcs.reduce((a, v) => a + v.cur[1], 0), totN = KV.vcs.reduce((a, v) => a + v.cur[0], 0);
+  h += `<p class="note">${l.length}곳 · ${ymTxt(KV.yymm)} 공시 기준 · 올해 전체 ${totN.toLocaleString()}건 ${won(tot)} (한 회사에 여러 VC가 넣으면 각각 셈)</p>`;
+  h += l.slice(0, kvLimit).map(vcCard).join("") + (l.length > kvLimit ? `<button class="btn more" data-act="kvmore">${l.length - kvLimit}곳 더 보기</button>` : "");
+  return h;
+}
+async function renderVc(id) {
+  await loadKv();
+  const v = S.files["vc" + id] || (S.files["vc" + id] = await getJ(`kvca/${id}.json`));
+  for (const d of v.deals || []) if (!S.byId[d.id]) S.byId[d.id] = d;
+  let h = backTop(`<button class="btn sm${S.fol[v.name] ? " pri" : ""}" data-tfol2="${esc(v.name)}">${S.fol[v.name] ? "✓ 따라가는 중" : "＋ 따라가기"}</button>`);
+  h += head(esc(v.name), `🇰🇷 벤처투자회사${v.city ? " · " + esc(v.city) : ""}`);
+  const d6 = (x, i) => x && x.length ? x[i] : 0;
+  let kv = "";
+  if (v.sinceFull) kv += `<dt>설립</dt><dd>${esc(v.sinceFull)}</dd>`;
+  if (v.emp) kv += `<dt>직원</dt><dd>${v.emp}명</dd>`;
+  kv += `<dt>올해 투자</dt><dd>${d6(v.curD, 4)}곳 · ${won(d6(v.curD, 5)) || "0"}<br><small style="color:var(--muted)">펀드로 ${d6(v.curD, 2)}곳 ${won(d6(v.curD, 3)) || "0"} · 회사 돈으로 ${d6(v.curD, 0)}곳 ${won(d6(v.curD, 1)) || "0"} (1월~${+String(v.yymm).slice(4)}월)</small></dd>`;
+  kv += `<dt>작년 투자</dt><dd>${d6(v.prevD, 4)}곳 · ${won(d6(v.prevD, 5)) || "0"}</dd>`;
+  kv += `<dt>운용 펀드</dt><dd>${v.funds}개 · ${won(v.fundSum) || "0"} <small style="color:var(--muted)">(만기 전) · 지금까지 ${v.allFunds}개</small></dd>`;
+  kv += `<dt>최근 90일</dt><dd>${v.n90 ? `기사 ${v.n90}건` : "이 앱에 쌓인 기사 없음"}</dd>`;
+  h += `<div class="bars"><dl class="kv">${kv}</dl></div>`;
+  h += `<div class="row" style="margin:6px 0">${v.site ? `<a class="btn sm" href="${esc(v.site)}" target="_blank" rel="noopener">홈페이지 ↗</a>` : ""}<a class="btn sm" href="http://diva.kvca.or.kr/div/cmn/DivCmnComInfo/pop1?OPER_INST_ID=${esc(v.id)}&DISCLS_YYMM=${esc(v.yymm)}" target="_blank" rel="noopener">전자공시 ↗</a><a class="btn sm" href="https://www.google.com/search?q=${encodeURIComponent(vstem(v.name) + " 투자")}&tbm=nws" target="_blank" rel="noopener">뉴스 찾기 ↗</a></div>`;
+  const fr = FI && FI.firms.find(f => f.cc === "KR" && vstem(f.ko) === vstem(v.name));
+  if (fr) h += `<button class="nm" data-go="#firm=${esc(fr.id)}">🏦 '${esc(fr.ko)}' 주요 투자사 화면 ›</button>`;
+  h += `<h2 class="sec">최근 기사<small>${(v.deals || []).length}건</small></h2>` + ((v.deals || []).map(card).join("") || '<p class="note">최근 90일 동안 이 앱에 들어온 기사에는 안 나왔어요</p>');
+  if ((v.fundList || []).length) h += `<h2 class="sec">펀드(투자조합)<small>최근 등록 순</small></h2><div class="list">${v.fundList.map(f => `<div class="li"><div class="bx"><p class="t">${esc(f[0])}</p><p class="s">${esc(f[1])} 등록 · 만기 ${esc(f[3])}${f[3] < kst() ? " (끝남)" : ""} · ${esc(f[4])}${f[7] && f[7].length ? " · 공동 운용 " + esc(f[7].join(", ")) : ""}</p></div><span class="v">${won(f[2])}</span></div>`).join("")}</div>`;
+  h += `<p class="note">출처: 한국벤처캐피탈협회 벤처투자회사 전자공시(DIVA), ${ymTxt(v.yymm)} 공시</p>`;
   return h;
 }
 
@@ -553,13 +607,15 @@ async function paint() {
     try { history.replaceState(history.state, "", location.pathname + location.search + h); localStorage.setItem("vfm:mode:" + MODE, '"deck"'); } catch (e) { }
     if (D && S.byId[fid]) { S.kind = ""; const dk = makeDeck("deal-today", todayOrder); dk.queue = null; dk.hist = []; dk.pos = -1; dk.cur = fid; }
   }
-  const tab = ["#stats", "#formd", "#sec", "#dart", "#find"].includes(h) ? "x" : h === "#kr" ? "today" : h.startsWith("#firm") ? "follow" : h.slice(1);
+  const tab = ["#stats", "#formd", "#sec", "#dart", "#find"].includes(h) ? "x" : h === "#kr" ? "today" : h.startsWith("#firm") || h.startsWith("#vc") ? "follow" : h.slice(1);
   document.querySelectorAll("#tabs button").forEach(b => { if (b.dataset.v === tab) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   try {
     if (h === "#x" || h === "#find") { app.innerHTML = await renderX(); bindSearch("xq", v => { F.q = v; xLimit = 60; }, async () => { app.innerHTML = await renderX(); bindSearch("xq", v => { F.q = v; }, paint); }); if (h === "#find") setTimeout(() => { const q = document.getElementById("xq"); if (q) q.focus(); }, 50); }
     else if (h === "#stats") app.innerHTML = await renderStats();
     else if (h === "#kr") app.innerHTML = await renderKr();
     else if (h === "#firms") app.innerHTML = await renderFirms();
+    else if (h === "#vcs") { app.innerHTML = await renderVcs(); bindSearch("kvq", v => { kvQ = v; kvLimit = 60; }, paint); }
+    else if (h.startsWith("#vc=")) app.innerHTML = await renderVc(decodeURIComponent(h.slice(4)));
     else if (h.startsWith("#firm=")) app.innerHTML = await renderFirm(decodeURIComponent(h.slice(6)));
     else if (h === "#formd") { app.innerHTML = await renderFormd(); bindSearch("fdq", v => { fdF.q = v; }, paint); }
     else if (h === "#sec") { app.innerHTML = await renderSec(); bindSearch("secq", v => { secQ = v; }, paint); }
@@ -574,7 +630,7 @@ function debounce(f, ms) { let t; return () => { clearTimeout(t); t = setTimeout
 function saveF() { const o = Object.assign({}, F); delete o.q; LS.s("F", o); }
 
 document.addEventListener("click", async e => {
-  const t = e.target.closest("[data-v],[data-go],[data-open],[data-kind],[data-act],[data-f],[data-per],[data-sort],[data-wk],[data-tfol],[data-unfol],[data-fol],[data-fdq],[data-fdt],[data-fdi],[data-secy],[data-secf],[data-darty],[data-dartk],[data-krper],[data-krst],[data-fity],[data-ficc],[data-fisort],[data-tfol2],[data-firm]"); if (!t) return;
+  const t = e.target.closest("[data-v],[data-go],[data-open],[data-kind],[data-act],[data-f],[data-per],[data-sort],[data-wk],[data-tfol],[data-unfol],[data-fol],[data-fdq],[data-fdt],[data-fdi],[data-secy],[data-secf],[data-darty],[data-dartk],[data-krper],[data-krst],[data-fity],[data-ficc],[data-fisort],[data-tfol2],[data-firm],[data-kvs]"); if (!t) return;
   const d = t.dataset;
   if (d.v) { closeSheet(); return nav("#" + d.v); }
   if (d.go) {                                                                    // '전부 ›' → 탐색 (조건 넣어서)
@@ -600,6 +656,7 @@ document.addEventListener("click", async e => {
   if (d.fity != null) { fiTy = d.fity; return paint(); }
   if (d.ficc != null) { fiCc = d.ficc; return paint(); }
   if (d.fisort) { fiSort = d.fisort; return paint(); }
+  if (d.kvs) { kvSort = d.kvs; kvLimit = 60; return paint(); }
   if (d.tfol2) { follow(d.tfol2); return paint(); }
   if (d.firm) { closeSheet(); return nav("#firm=" + d.firm); }
   if (d.krst != null) { krStage = d.krst; return paint(); }
@@ -610,6 +667,7 @@ document.addEventListener("click", async e => {
   if (a === "helpok") { LS.s("helpSeen", 1); return paint(); }
   if (a === "xmore") { xLimit += 60; return paint(); }
   if (a === "fdmore") { fdLimit += 120; return paint(); }
+  if (a === "kvmore") { kvLimit += 120; return paint(); }
   if (a === "fadd") { const i = document.getElementById("fadd"); follow(i && i.value, true); return paint(); }
   if (a === "unhide") { S.hide = {}; save("hide"); toast("다시 보여요"); return paint(); }
   if (a === "clearread") { S.read = {}; save("read"); toast("지웠어요"); return paint(); }

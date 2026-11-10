@@ -935,6 +935,19 @@ def main():
             ko.save(keep=20000); log(f"번역 {sum(1 for v in res if v)}/{len(pairs)}건")
         except Exception as e:
             log(f"번역 실패 — 원문으로: {e}")
+    try:                                                                                  # 한국어 제목·첫 문단에서 'OO벤처스·OO파트너스' 같은 투자사 이름 더 뽑기
+        from deal_firms import investors_in, matchers, FIRMS
+        FM = matchers(); FKO = {f[0]: f[1] for f in FIRMS}
+        for d in deals:
+            stxt = " ".join(x for x in (d.get("sum", ""), d.get("ksum", "")) if x)            # 첫 문단에 나온 주요 투자사 (퓨처플레이·알토스처럼 이름 끝이 평범한 곳)
+            if stxt:
+                for fid, rx in FM:
+                    if rx.search(stxt) and FKO[fid] not in (d.get("inv") or []) and FKO[fid] != d.get("co") and not rx.search(d.get("co") or ""): d["inv"] = (d.get("inv") or []) + [FKO[fid]]
+            txt = " ".join(x for x in (d["title"] if d["lang"] == "ko" else "", d.get("sum", "") if sum_lang(d.get("sum", "")) == "ko" else "", d.get("ksum", "")) if x)
+            for n in investors_in(txt):
+                if n != d.get("co") and n not in (d.get("inv") or []) and not (d.get("co") and n in d["co"]): d["inv"] = (d.get("inv") or []) + [n]
+            if d.get("inv"): d["inv"] = d["inv"][:8]
+    except Exception as e: log(f"투자사 이름 뽑기 실패: {e}")
     for d in deals:
         if d["lang"] == "ko": d["ko"] = d["title"]
         if d.get("ko") and d["kind"] in ("vc", "etc") and not d.get("stage"): d["stage"] = stage_of(d["ko"])
@@ -997,6 +1010,10 @@ def main():
         deal_firms.build(OUT, NEWS, FD, alld, min(deadline, time.time() + 300), ko_tr)
         if ko_tr is not None: ko_tr.save(keep=20000)
     except Exception as e: log(f"주요 투자사 실패 — 건너뜀: {e}")
+    try:                                                                                 # 한국 VC 전체 (DIVA 전자공시)
+        import deal_kvca
+        deal_kvca.build(OUT, NEWS, alld, min(deadline, time.time() + 300))
+    except Exception as e: log(f"한국 VC 공시 실패 — 건너뜀: {e}")
     broken = {k: v for k, v in health.items() if v.get("n", 0) >= 6}                    # 하루 4번 × 1.5일 넘게 계속 실패
     days = sorted(f.stem for f in NEWS.glob("????-??-??.json"))
     idx = {"at": now_iso(), "today": day, "days": days, "broken": broken, "new": sum(1 for d in alld if d.get("new")), "counts": {"deals": len(alld), "news": len(deals), "filings": len(fil)},

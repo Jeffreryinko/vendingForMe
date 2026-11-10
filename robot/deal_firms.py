@@ -179,6 +179,37 @@ FIRMS = [
 ]
 
 
+# 한국 VC·액셀러레이터 더 (이름만 — 소개는 위키에 있으면 붙음). 2026-11-10 새한벤처스 등 더함
+KR_MORE = ["새한벤처스", "스프링캠프", "슈미트", "위벤처스", "대성창업투자", "티인베스트먼트", "한국투자액셀러레이터", "패스트벤처스", "디티앤인베스트먼트",
+           "SBI인베스트먼트", "유안타인베스트먼트", "NH벤처투자", "원익투자파트너스", "나우아이비캐피탈", "코오롱인베스트먼트", "인라이트벤처스", "비하이인베스트먼트",
+           "데일리파트너스", "이앤벤처파트너스", "HB인베스트먼트", "쿨리지코너인베스트먼트", "LSK인베스트먼트", "파트너스인베스트먼트", "서울투자파트너스", "대교인베스트먼트",
+           "다올인베스트먼트", "키움인베스트먼트", "마그나인베스트먼트", "메디치인베스트먼트", "시너지IB투자", "엠벤처투자", "소풍벤처스", "씨엔티테크", "한국과학기술지주",
+           "에이벤처스", "오픈워터인베스트먼트", "지앤텍벤처투자", "BNK벤처투자", "스마일게이트인베스트먼트", "인포뱅크", "젠엑시스", "에스에스투인베스트먼트",
+           "베이스인베스트먼트", "알바트로스인베스트먼트", "크릿벤처스", "프라이머사제파트너스", "에트리홀딩스", "펜처인베스트", "킹슬리벤처스", "임팩트스퀘어",
+           "MYSC", "엔젤리그", "와이앤아처", "로간벤처스", "씨엔티테크", "한양대기술지주", "카이스트청년창업투자지주", "포항공대기술지주", "UTC인베스트먼트",
+           "어니스트벤처스", "rhinos", "라이트하우스컴바인인베스트", "케이넷투자파트너스", "아이디벤처스", "나이스투자파트너스", "솔리더스인베스트먼트", "QUAD벤처스",
+           "옐로우독", "N15파트너스", "롯데액셀러레이터", "넥스트지인베스트먼트", "한국투자증권", "미래에셋증권", "삼성증권", "NH투자증권", "KB증권", "신한투자증권"]
+_have = {f[1] for f in FIRMS}
+for _n in KR_MORE:
+    if _n in _have or not re.search(r"[가-힣]", _n): continue
+    _have.add(_n)
+    FIRMS.append(("k" + __import__("hashlib").md5(_n.encode()).hexdigest()[:8], _n, "", "ac" if re.search(r"액셀러레이터|지주|MYSC|임팩트|엔젤|소풍|씨엔티|와이앤아처|로간|옐로우독|킹슬리", _n) else "gr" if "증권" in _n else "vc", "KR", []))
+
+# 이름 끝이 이런 말이면 투자사로 봄 (자동으로 '주요 투자사'에 올림)
+VC_SUFFIX = r"(?:벤처스|벤처투자|파트너스|인베스트먼트|인베스트|투자파트너스|창업투자|캐피탈|캐피털|액셀러레이터|기술지주|투자조합|Ventures|Capital|Partners|Investments?)"
+INV_RX = re.compile(r"([가-힣A-Za-z0-9&·]{1,16}" + VC_SUFFIX + r")(?=[\s,·와과이가은는의도로에서측]|$)")
+
+
+def investors_in(text):
+    """한국어 글에서 'OO벤처스·OO파트너스' 같은 투자사 이름 뽑기"""
+    out = []
+    for m in INV_RX.finditer(text or ""):
+        n = m.group(1).strip("·")
+        n = re.sub(r"^(기존|신규|투자사|주요|국내|해외|글로벌|전략적|재무적)\s?", "", n)
+        if len(n) >= 4 and n not in out and not re.match(r"^(국민성장|모태|정책|벤처|사모|PEF)", n): out.append(n)
+    return out[:8]
+
+
 def matchers():
     out = []
     for fid, ko, en, ty, cc, al in FIRMS:
@@ -306,6 +337,13 @@ def build(out_dir: Path, news_dir: Path, fd_dir: Path, now_deals, deadline, ko_t
         if f.stem < cut: break
         for d in rj(f, {}).get("items", []):
             if d["id"] not in seen: seen.add(d["id"]); pool.append(d)
+    known = matchers()
+    auto = {}
+    for d in pool:
+        for n in (d.get("inv") or []):
+            if re.search(VC_SUFFIX + "$", n) and not any(rx.search(n) for _, rx in known): auto[n] = auto.get(n, 0) + 1
+    for n, c in sorted(auto.items(), key=lambda kv: -kv[1])[:150]:
+        FIRMS.append(("a" + __import__("hashlib").md5(n.encode()).hexdigest()[:8], n, "" if re.search(r"[가-힣]", n) else n, "vc", "KR" if re.search(r"[가-힣]", n) else "WW", [re.escape(n)]))
     M = matchers(); hits = {fid: [] for fid, _ in M}
     for d in pool:
         if d.get("t") in ("formd", "dart"): continue
@@ -339,7 +377,7 @@ def build(out_dir: Path, news_dir: Path, fd_dir: Path, now_deals, deadline, ko_t
         w = cache.get(fid, {})
         fs = sorted(funds[fid], reverse=True)[:12]
         amt = sum(d.get("amt") or 0 for d in hs)
-        base = {"id": fid, "ko": ko, "en": re.sub(r"\s*\(.*\)$", "", en or ""), "type": ty, "cc": cc, "n90": len(hs), "amt90": amt,
+        base = {"id": fid, "auto": fid.startswith("a") and len(fid) == 9, "ko": ko, "en": re.sub(r"\s*\(.*\)$", "", en or ""), "type": ty, "cc": cc, "n90": len(hs), "amt90": amt,
                 "last": hs[0]["date"] if hs else "", "since": w.get("since", ""), "aum": w.get("aum"), "hasWiki": bool(w.get("desc"))}
         lst.append(base)
         det = dict(base, site=w.get("site", ""), hq=w.get("hq", ""), founders=w.get("founders", []), emp=w.get("emp"), desc=w.get("desc", ""), descLang=w.get("descLang", ""),
