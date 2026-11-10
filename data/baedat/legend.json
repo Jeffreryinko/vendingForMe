@@ -1260,8 +1260,8 @@
   {
    "month": "2026-11",
    "file": "raw-2026-11.json",
-   "videos": 363,
-   "comments": 1649,
+   "videos": 384,
+   "comments": 1746,
    "checkedAt": "2026-11-10",
    "live": true
   },
@@ -1411,16 +1411,16 @@
   {
    "month": "2026-11",
    "file": "talk-2026-11.json",
-   "videos": 15,
-   "comments": 71,
+   "videos": 20,
+   "comments": 90,
    "checkedAt": "2026-11-11",
    "live": true
   },
   {
    "month": "2026-10",
    "file": "talk-2026-10.json",
-   "videos": 1,
-   "comments": 5,
+   "videos": 2,
+   "comments": 10,
    "checkedAt": "2026-11-11",
    "live": true
   },
