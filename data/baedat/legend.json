@@ -1260,24 +1260,24 @@
   {
    "month": "2026-11",
    "file": "raw-2026-11.json",
-   "videos": 365,
-   "comments": 1659,
+   "videos": 363,
+   "comments": 1649,
    "checkedAt": "2026-11-10",
    "live": true
   },
   {
    "month": "2026-10",
    "file": "raw-2026-10.json",
-   "videos": 146,
-   "comments": 662,
+   "videos": 143,
+   "comments": 648,
    "checkedAt": "2026-11-08",
    "live": true
   },
   {
    "month": "2026-09",
    "file": "raw-2026-09.json",
-   "videos": 69,
-   "comments": 311,
+   "videos": 66,
+   "comments": 296,
    "checkedAt": "2026-11-08"
   },
   {
@@ -1290,15 +1290,15 @@
   {
    "month": "2026-07",
    "file": "raw-2026-07.json",
-   "videos": 64,
-   "comments": 304,
+   "videos": 63,
+   "comments": 299,
    "checkedAt": "2026-11-08"
   },
   {
    "month": "2026-06",
    "file": "raw-2026-06.json",
-   "videos": 73,
-   "comments": 339,
+   "videos": 70,
+   "comments": 324,
    "checkedAt": "2026-11-08"
   },
   {
@@ -1311,8 +1311,8 @@
   {
    "month": "2026-04",
    "file": "raw-2026-04.json",
-   "videos": 83,
-   "comments": 408,
+   "videos": 81,
+   "comments": 398,
    "checkedAt": "2026-11-08"
   },
   {
@@ -1332,22 +1332,22 @@
   {
    "month": "2026-01",
    "file": "raw-2026-01.json",
-   "videos": 79,
-   "comments": 383,
+   "videos": 77,
+   "comments": 375,
    "checkedAt": "2026-11-09"
   },
   {
    "month": "2025-12",
    "file": "raw-2025-12.json",
-   "videos": 69,
-   "comments": 340,
+   "videos": 67,
+   "comments": 330,
    "checkedAt": "2026-11-09"
   },
   {
    "month": "2025-11",
    "file": "raw-2025-11.json",
-   "videos": 91,
-   "comments": 444,
+   "videos": 88,
+   "comments": 429,
    "checkedAt": "2026-11-09"
   },
   {
@@ -1367,36 +1367,36 @@
   {
    "month": "2025-08",
    "file": "raw-2025-08.json",
-   "videos": 93,
-   "comments": 439,
+   "videos": 91,
+   "comments": 429,
    "checkedAt": "2026-11-09"
   },
   {
    "month": "2025-07",
    "file": "raw-2025-07.json",
-   "videos": 122,
-   "comments": 587,
+   "videos": 121,
+   "comments": 582,
    "checkedAt": "2026-11-10"
   },
   {
    "month": "2025-06",
    "file": "raw-2025-06.json",
-   "videos": 93,
-   "comments": 440,
+   "videos": 92,
+   "comments": 435,
    "checkedAt": "2026-11-10"
   },
   {
    "month": "2025-05",
    "file": "raw-2025-05.json",
-   "videos": 107,
-   "comments": 511,
+   "videos": 104,
+   "comments": 497,
    "checkedAt": "2026-11-10"
   },
   {
    "month": "2025-04",
    "file": "raw-2025-04.json",
-   "videos": 133,
-   "comments": 611,
+   "videos": 130,
+   "comments": 599,
    "checkedAt": "2026-11-10"
   },
   {
@@ -1405,6 +1405,157 @@
    "videos": 111,
    "comments": 533,
    "checkedAt": "2026-11-10"
+  }
+ ],
+ "talks": [
+  {
+   "month": "2026-11",
+   "file": "talk-2026-11.json",
+   "videos": 15,
+   "comments": 71,
+   "checkedAt": "2026-11-11",
+   "live": true
+  },
+  {
+   "month": "2026-10",
+   "file": "talk-2026-10.json",
+   "videos": 1,
+   "comments": 5,
+   "checkedAt": "2026-11-11",
+   "live": true
+  },
+  {
+   "month": "2026-09",
+   "file": "talk-2026-09.json",
+   "videos": 11,
+   "comments": 51,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2026-08",
+   "file": "talk-2026-08.json",
+   "videos": 28,
+   "comments": 121,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2026-07",
+   "file": "talk-2026-07.json",
+   "videos": 19,
+   "comments": 82,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2026-06",
+   "file": "talk-2026-06.json",
+   "videos": 21,
+   "comments": 101,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2026-05",
+   "file": "talk-2026-05.json",
+   "videos": 26,
+   "comments": 115,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2026-04",
+   "file": "talk-2026-04.json",
+   "videos": 22,
+   "comments": 101,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2026-03",
+   "file": "talk-2026-03.json",
+   "videos": 29,
+   "comments": 131,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2026-02",
+   "file": "talk-2026-02.json",
+   "videos": 24,
+   "comments": 112,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2026-01",
+   "file": "talk-2026-01.json",
+   "videos": 29,
+   "comments": 135,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2025-12",
+   "file": "talk-2025-12.json",
+   "videos": 21,
+   "comments": 100,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2025-11",
+   "file": "talk-2025-11.json",
+   "videos": 50,
+   "comments": 236,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2025-10",
+   "file": "talk-2025-10.json",
+   "videos": 44,
+   "comments": 208,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2025-09",
+   "file": "talk-2025-09.json",
+   "videos": 53,
+   "comments": 243,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2025-08",
+   "file": "talk-2025-08.json",
+   "videos": 38,
+   "comments": 168,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2025-07",
+   "file": "talk-2025-07.json",
+   "videos": 68,
+   "comments": 317,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2025-06",
+   "file": "talk-2025-06.json",
+   "videos": 49,
+   "comments": 221,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2025-05",
+   "file": "talk-2025-05.json",
+   "videos": 43,
+   "comments": 203,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2025-04",
+   "file": "talk-2025-04.json",
+   "videos": 55,
+   "comments": 248,
+   "checkedAt": "2026-11-11"
+  },
+  {
+   "month": "2025-03",
+   "file": "talk-2025-03.json",
+   "videos": 49,
+   "comments": 232,
+   "checkedAt": "2026-11-11"
   }
  ]
 }

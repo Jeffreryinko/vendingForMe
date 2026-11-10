@@ -17,7 +17,7 @@ LAUGH_MIN = 0.2
 
 
 # 아이돌 영상: 채널 이름이 아니어도 제목에 그룹 이름·안무·챌린지가 나오면 뺌
-IDOL_T = re.compile(r"안무|챌린지|challenge|댄스|dance|직캠|팬캠|아일릿|illit|뉴진스|newjeans|아이브|\bIVE\b|에스파|aespa|르세라핌|le ?sserafim|세븐틴|seventeen|방탄|\bBTS\b|블랙핑크|blackpink|트와이스|twice|스트레이 ?키즈|stray ?kids|\bNCT\b|엔시티|라이즈|riize|투어스|\bTWS\b|베이비몬스터|babymonster|키스오브라이프|\bITZY\b|있지|엔믹스|nmixx|제베원|제로베이스원|보이넥스트도어|투바투|\bTXT\b|엔하이픈|enhypen|올데이 ?프로젝트|키키|kiiikiii|하츠투하츠|코르티스|cortis|아이들|i-?dle|레드벨벳|에이티즈|ateez|더보이즈|트리플에스|tripleS|프로미스나인|fromis|케플러|kep1er|빌리프|아이돌|idol|케이팝|컴백|데뷔", re.I)
+IDOL_T = re.compile(r"안무|챌린지|challenge|댄스|dance|직캠|팬캠|아일릿|illit|뉴진스|newjeans|아이브|\bIVE\b|에스파|aespa|르세라핌|le ?sserafim|세븐틴|seventeen|방탄|\bBTS\b|블랙핑크|blackpink|트와이스|twice|스트레이 ?키즈|stray ?kids|\bNCT\b|엔시티|라이즈|riize|투어스|\bTWS\b|베이비몬스터|babymonster|키스오브라이프|\bITZY\b|있지|엔믹스|nmixx|제베원|제로베이스원|보이넥스트도어|투바투|\bTXT\b|엔하이픈|enhypen|올데이 ?프로젝트|키키|kiiikiii|하츠투하츠|코르티스|cortis|아이들|i-?dle|레드벨벳|에이티즈|ateez|더보이즈|트리플에스|tripleS|프로미스나인|fromis|케플러|kep1er|빌리프|아이돌|idol|케이팝|컴백|데뷔|비투비|BTOB|Special Clip|Performance|퍼포먼스|팬미팅|콘서트|concert", re.I)
 IDOL_C = re.compile(r"케이위키|kwiki|DIVE Studios|덕질|스튜디오 춤|STUDIO CHOOM|K-?pop", re.I)
 
 
@@ -62,3 +62,41 @@ def short_line(desc):
         if len(re.findall("[가-힣]", s)) < 8: continue
         return (s[:80] + "…") if len(s) > 80 else s
     return ""
+
+
+# ───────── 댓글 맛집 (이야기가 오가는 댓글창) ─────────
+# 웃음 관문과 별개: 경험담·정보·해석이 담긴 긴 댓글이 상위에 여럿 있고 답글로 대화가 이어지는 영상
+TALK_SPAM = re.compile(r"(1등|첫댓|알고리즘|구독|좋아요 ?눌|광고|협찬|http|www\.|@\w|이벤트|당첨|스트리밍|투표)")
+TALK_BAD = re.compile(r"정치|대통령|윤석열|이재명|문재인|박근혜|민주당|국민의힘|국힘|좌파|우파|좌빨|수꼴|빨갱이|일베|메갈|페미|한남|김치녀|짱깨|쪽바리|틀딱|급식충|맘충|홍어|전라디언|자살|자해|극단적 ?선택|죽고 ?싶|성추행|성폭행|강간|살인|학대|마약|도박|불륜|외모|못생|뚱뚱|얼평|성형|학폭|학교 ?폭력|괴롭힘|괴롭히|폭력|피해자|가해자|우울|공황|위험한 상태|힘들어서 죽|장애|암 투병|투병|시한부|돌아가신|사망|PPL|내돈내산", re.I)
+STORY = re.compile(r"저는|제가|저도|나도|내가|우리 |예전|어릴|옛날|했는데|했었|었는데|였는데|더라|거든|이라고|라고 |때문|사실|원래|실제로|경험|직업|일할|근무|알바|회사|학교|엄마|아빠|어머니|아버지|할머니|할아버지|남편|아내|와이프|친구|선생님|의사|간호|군대|이유는|그래서|덕분에|알고 ?보니")
+TALK_MIN, TALK_PER = 3, 5
+
+
+def is_story(c):
+    t = c["text"]; L = len(t)
+    if L < 30 or L > 400 or c["likes"] < 30: return False
+    if len(re.findall("[가-힣]", t)) < L * 0.4: return False
+    if TALK_SPAM.search(t) or TALK_BAD.search(t) or not STORY.search(t): return False
+    if FAN.search(t) and L < 70: return False
+    return True
+
+
+def talk_ok(comments):
+    """상위 20개(관련성 순) 중 이야기 댓글 3개 이상, 그중 답글 3개↑ 달린 게 1개 이상"""
+    top = comments[:20]; st = [c for c in top if is_story(c)]
+    return len(st) >= TALK_MIN and sum(c.get("replies", 0) >= 3 for c in st) >= 1
+
+
+def talk_pick(comments, k=TALK_PER):
+    st = sorted([c for c in comments if is_story(c)], key=lambda c: -(c["likes"] * (1 + min(c.get("replies", 0), 50) / 25)))
+    out, bags = [], []
+    for c in st:
+        b = _bg(c["text"])
+        if any(len(b & o) / max(1, len(b | o)) >= 0.35 for o in bags): continue
+        out.append(c); bags.append(b)
+        if len(out) >= k: break
+    return out
+
+
+def talk_video_ok(title, channel, cat):
+    return video_ok(title, channel, cat) and cat not in ("뉴스/정치", "25") and not TALK_BAD.search(title or "")

@@ -2,7 +2,8 @@
 
 1) 영상 찾기: 한국 인기 차트(전체 + 분야 7개, 최대 50개씩 4쪽) + 채널 씨앗 목록(seeds.json)의 새 영상 + 링크 제보함(daily/links.txt)
 2) 댓글 받기: 올라온 지 3일째·14일째 두 번, 인기순 100개 + 답글 5개 (영상당 1단위)
-3) 영상 관문·4) 댓글 거르기: robot/baedat_gate.py (웃음 표시 20%↑, 응원·칭찬·감동 제외, 비슷한 댓글 묶기, 영상당 5개)
+3) 영상 관문(웃긴 배댓) + 댓글 맛집(이야기 댓글 4개↑·답글 대화, robot/baedat_gate.py talk_*)
+   3-1) 영상 관문·4) 댓글 거르기: robot/baedat_gate.py (웃음 표시 20%↑, 응원·칭찬·감동 제외, 비슷한 댓글 묶기, 영상당 5개)
 6) 30일 규칙: 25일 넘게 확인 안 한 자료(창고·명댓글·월간판의 댓글)는 다시 받아 좋아요를 고치고, 지워진 댓글·영상은 뺌
 
   YOUTUBE_API_KEY=… python robot/baedat_daily.py
@@ -124,32 +125,42 @@ def video_info(ids):
 def comments(vid, owner):
     r = yt("commentThreads", part="snippet,replies", videoId=vid, maxResults=100, order="relevance", textFormat="plainText")
     if "_err" in r: return None
-    out = []
+    out = []                                        # 관련성 순 그대로 (채널 주인 댓글만 뺌)
     for it in r.get("items", []):
         s = it["snippet"]["topLevelComment"]["snippet"]
         if (s.get("authorChannelId") or {}).get("value") == owner: continue
-        tx = (s.get("textDisplay") or "").strip(); L = len(tx); han = len(re.findall("[가-힣]", tx))
-        if L < 4 or L > 90 or han < max(3, L * 0.35) or BAD.search(tx): continue
-        if len(re.sub(r"[ㅋㅎㅠㅜ!?.~ \n]", "", tx)) < 4: continue
-        if s.get("likeCount", 0) < 30: continue
         reps = []
         for rp in (it.get("replies") or {}).get("comments", []):
             rs = rp["snippet"]; rt = (rs.get("textDisplay") or "").strip()
-            if (rs.get("authorChannelId") or {}).get("value") == owner or not rt or len(rt) > 90 or BAD.search(rt): continue
-            if rs.get("likeCount", 0) >= 30: reps.append([rp["id"], rt, rs["likeCount"]])
+            if (rs.get("authorChannelId") or {}).get("value") == owner or not rt: continue
+            reps.append([rp["id"], rt, rs.get("likeCount", 0)])
         reps.sort(key=lambda x: -x[2])
-        out.append(dict(id=it["id"], text=tx, likes=s["likeCount"], replies=it["snippet"].get("totalReplyCount", 0), at=s["publishedAt"][:10], reps=reps[:2]))
-    out.sort(key=lambda c: -c["likes"])
+        out.append(dict(id=it["id"], text=(s.get("textDisplay") or "").strip(), likes=s.get("likeCount", 0), replies=it["snippet"].get("totalReplyCount", 0), at=s["publishedAt"][:10], reps=reps))
     return out
+
+
+def funny(cs):
+    """웃긴 배댓 후보: 4~90자, 한글, 스팸 아님, 좋아요 30↑. 답글은 90자 이하·좋아요 30↑ 2개"""
+    out = []
+    for c in cs:
+        tx = c["text"]; L = len(tx); han = len(re.findall("[가-힣]", tx))
+        if L < 4 or L > 90 or han < max(3, L * 0.35) or BAD.search(tx): continue
+        if len(re.sub(r"[ㅋㅎㅠㅜ!?.~ \n]", "", tx)) < 4 or c["likes"] < 30: continue
+        out.append(dict(c, reps=[r for r in c["reps"] if len(r[1]) <= 90 and not BAD.search(r[1]) and r[2] >= 30][:2]))
+    return sorted(out, key=lambda c: -c["likes"])
+
+
+def talk_reps(c):
+    return [r for r in c["reps"] if 4 <= len(r[1]) <= 300 and r[2] >= 5 and not G.TALK_SPAM.search(r[1]) and not G.TALK_BAD.search(r[1])][:3]
 
 
 def month_of(pub):
     return (datetime.fromisoformat(pub.replace("Z", "+00:00")).astimezone(KST)).strftime("%Y-%m")
 
 
-def put(month_files, vid, info, picks):
+def put(month_files, vid, info, picks, kind="raw"):
     M = month_of(info["pub"])
-    d = month_files.setdefault(M, jload(OUT / f"raw-{M}.json", {"month": M, "checkedAt": TODAY, "rule": "gate-v1", "videos": {}, "comments": []}))
+    d = month_files.setdefault((kind, M), jload(OUT / f"{kind}-{M}.json", {"month": M, "checkedAt": TODAY, "rule": "gate-v1" if kind == "raw" else "talk-v1", "videos": {}, "comments": []}))
     d["comments"] = [c for c in d["comments"] if c[0] != vid]
     d["videos"].pop(vid, None)
     if not picks: return
@@ -172,14 +183,20 @@ def collect(state, month_files):
         i = info.get(vid)
         if not i or not i["has_c"] or i["comments"] < 30: continue
         if not (i["lang"].startswith("ko") or len(re.findall("[가-힣]", i["title"])) >= 2): continue
-        if not G.video_ok(i["title"], i["channel"], i["cat"]): s["skip"] = "music/idol"; continue
-        cs = comments(vid, i["ch"])
-        if cs is None: continue
-        ok = G.laugh_ratio([c["text"] for c in cs]) >= G.LAUGH_MIN
+        fun_ok, talk_ok = G.video_ok(i["title"], i["channel"], i["cat"]), G.talk_video_ok(i["title"], i["channel"], i["cat"])
+        if not (fun_ok or talk_ok): s["skip"] = "music/idol"; continue
+        allc = comments(vid, i["ch"])
+        if allc is None: continue
+        cs = funny(allc)
+        ok = fun_ok and G.laugh_ratio([c["text"] for c in cs]) >= G.LAUGH_MIN
         s["gate"] = ok
         picks = G.pick(cs) if ok else []
         put(month_files, vid, i, picks)
-        passed += bool(picks)
+        tp = [dict(c, reps=talk_reps(c)) for c in G.talk_pick(allc)] if talk_ok and G.talk_ok(allc) else []
+        if len(tp) < 3: tp = []
+        put(month_files, vid, i, tp, "talk")
+        s["talk"] = bool(tp)
+        passed += bool(picks) + bool(tp)
     return len(due), passed
 
 
@@ -211,9 +228,9 @@ def stale(d):
 
 def refresh(month_files):
     n = 0
-    for p in sorted(glob.glob(str(OUT / "raw-*.json"))):
-        M = Path(p).stem[4:]
-        d = month_files.get(M) or jload(p, None)
+    for p in sorted(glob.glob(str(OUT / "raw-*.json")) + glob.glob(str(OUT / "talk-*.json"))):
+        kind, M = Path(p).stem.split("-", 1)
+        d = month_files.get((kind, M)) or jload(p, None)
         if not d or not stale(d): continue
         alive = alive_videos(list(d["videos"]))
         now = refresh_ids([c[1] for c in d["comments"] if c[0] in alive])
@@ -221,7 +238,7 @@ def refresh(month_files):
         keep = {c[0] for c in d["comments"]}
         d["videos"] = {k: v for k, v in d["videos"].items() if k in keep}
         d["comments"].sort(key=lambda r: -r[3]); d["checkedAt"] = TODAY
-        month_files[M] = d; n += 1
+        month_files[(kind, M)] = d; n += 1
     for p in sorted(glob.glob(str(OUT / "legend-*.json"))):          # 월간 명댓글
         d = jload(p, None)
         if not d or not stale(d): continue
@@ -250,13 +267,15 @@ def refresh(month_files):
 
 
 def write(month_files):
-    for M, d in month_files.items():
-        jsave(OUT / f"raw-{M}.json", d)
+    for (kind, M), d in month_files.items():
+        if d["videos"] or (OUT / f"{kind}-{M}.json").exists(): jsave(OUT / f"{kind}-{M}.json", d)
     lp = OUT / "legend.json"; L = jload(lp, {})
-    raws = {r["month"]: r for r in L.get("raws", [])}
-    for M, d in month_files.items():
-        raws[M] = {"month": M, "file": f"raw-{M}.json", "videos": len(d["videos"]), "comments": len(d["comments"]), "checkedAt": d.get("checkedAt", TODAY), **({"live": True} if d.get("live") else {})}
-    L["raws"] = sorted(raws.values(), key=lambda r: r["month"], reverse=True)
+    for kind, key in (("raw", "raws"), ("talk", "talks")):
+        lst = {r["month"]: r for r in L.get(key, [])}
+        for (k, M), d in month_files.items():
+            if k != kind or not (OUT / f"{kind}-{M}.json").exists(): continue
+            lst[M] = {"month": M, "file": f"{kind}-{M}.json", "videos": len(d["videos"]), "comments": len(d["comments"]), "checkedAt": d.get("checkedAt", TODAY), **({"live": True} if d.get("live") else {})}
+        L[key] = sorted(lst.values(), key=lambda r: r["month"], reverse=True)
     jsave(lp, L, compact=False)
 
 
