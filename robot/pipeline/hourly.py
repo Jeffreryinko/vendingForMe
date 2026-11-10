@@ -74,8 +74,10 @@ def cmd_build(ed, prev, ko, label):
     now = F.now_of(ed)
     # 새 판의 단어 묶음 중 어디에도 안 붙은 큰 묶음은 '새 이슈 후보'로 남김 (해설은 다음 정리 때)
     cand = []
+    PROPER0 = F.proper_names()
     for s in E.get("stories", []):
         rest = [i for i in s["items"] if i not in used and i in items and F.age_h(items[i], now) <= F.LIVE_H]   # 48시간 넘은 글은 새 이슈의 근거가 못 됨
+        rest = F.tighten(rest, items, title, tokens, GENERIC, PROPER0)                                         # 흔한 말 하나로 엮인 다른 사건 기사는 뺌
         srcs = {items[i]["s"] for i in rest if i in items}
         # 나라 안 이슈도 후보로: 글 2개 이상 + 출처 2곳 이상
         if len(rest) >= 2 and len(srcs) >= 2:

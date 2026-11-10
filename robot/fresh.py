@@ -95,7 +95,29 @@ def proper_names():
 
 
 # 어느 사건에나 나오는 말 — 핵심어로 안 씀 (이것만 겹쳐서 '스페인 폭발'이 '튀르키예 폭발'에 붙던 것 막기)
-WEAK = set("발생 발생한 발생해 수가 증가 감소 이후 관련 위해 대한 통해 지난 오늘 현지 당국 사건 소식 결과 상황 문제 가능성 예정 계획 최근 이번 처음 다시 이상 이하 사람들 사람 지역 국가 정부".split())
+WEAK = set(("발생 발생한 발생해 수가 증가 감소 이후 관련 위해 대한 통해 지난 오늘 현지 당국 사건 소식 결과 상황 문제 가능성 예정 계획 최근 이번 처음 다시 이상 이하 사람들 사람 지역 국가 정부 "
+             "입장 표명 입장을 밝혀 밝혔다 발표 발표했다 이유 이유는 무엇인가 계획된 지원 지원에 대해 관한 위한 관련된 논란 공개 주장 요구 경고 우려 가운데 앞두고 이어 따르면").split())
+
+
+def tighten(ids, items, title_of, tokens, GENERIC, proper):
+    """새 이슈 후보의 글 중 서로 단단히 이어진 무리만 남김.
+    두 글이 '단단히 이어짐' = 흔하지 않은 낱말 2개 이상 겹치거나, 고유명사 1개가 겹침.
+    가장 큰 무리만 남기고 나머지(예: '입장 표명'만 겹친 다른 사건 기사)는 뺌."""
+    tk = {i: {t for t in tokens(title_of(items[i]) or "") if core_ok(t, GENERIC)} for i in ids if i in items}
+    blind = [i for i in tk if not tk[i]]                      # 아직 번역 안 돼 낱말이 없는 글은 판단 못 함 → 그대로 둠
+    ids = [i for i in tk if tk[i]]; par = {i: i for i in ids}
+    def root(x):
+        while par[x] != x: par[x] = par[par[x]]; x = par[x]
+        return x
+    for a in range(len(ids)):
+        for b in range(a + 1, len(ids)):
+            ov = tk[ids[a]] & tk[ids[b]]
+            if len(ov) >= 2 or (ov & proper): par[root(ids[a])] = root(ids[b])
+    grp = {}
+    for i in ids: grp.setdefault(root(i), []).append(i)
+    best = max(grp.values(), key=len) if grp else []
+    if not ids: return blind
+    return best + blind if len(best) >= 2 else []
 _NUM = re.compile(r"\d")
 
 
