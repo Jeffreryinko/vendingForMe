@@ -82,6 +82,7 @@ def cmd_build(ed, prev, ko, label):
             s["items"] = rest; s["delta"] = "new"; s["title"] = s.get("label", ""); s["cat"] = ""; s["born"] = ed
             used |= set(rest); F.stamp(s, items, ed)
             cand.append(s)
+    n_cand = len(cand)
     E["stories"] = F.give_sid(out + cand, ed)     # 판이 바뀌어도 그대로인 이슈 번호 (폰의 '읽은 이슈' 기억용)
     for k in ("themes", "countryDigest", "explainMethod", "storyMethod", "daily"):      # daily = 하루 정리판 (다음 날 아침까지 그대로)
         if k in P and k not in E:
@@ -134,7 +135,7 @@ def cmd_build(ed, prev, ko, label):
         c = json.loads(pc.read_text()); c["map"] = {k: v for k, v in c.get("map", {}).items() if k in items}; c["edition"] = ed
         (SEED / f"brief__{ed}__cm.json").write_text(json.dumps(c, ensure_ascii=False))
     big = max((len(s["items"]) for s in E["stories"]), default=0)
-    print(f"이슈 {len(out)}개 이어받음 (새 글 붙은 것 {sum(1 for s in out if s.get('grow'))}) · 내려간 이슈 {len(ended)}개 · 새 이슈 후보 {len(cand)}개 · 가장 큰 이슈 글 {big}개")
+    print(f"이슈 {len(out)}개 이어받음 (새 글 붙은 것 {sum(1 for s in out if s.get('grow'))}) · 내려간 이슈 {len(ended)}개 · 새 이슈 후보 {n_cand}개 · 가장 큰 이슈 글 {big}개")
     for s in E["stories"][:12]:
         print(f'  {s["id"]} [{s["delta"]}{"+"+str(s.get("grow")) if s.get("grow") else ""}] {s.get("title")}  ({len(s["countries"])}개국)')
 
