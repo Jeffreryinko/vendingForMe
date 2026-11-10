@@ -82,7 +82,7 @@ def cmd_build(ed, prev, ko, label):
             s["items"] = rest; s["delta"] = "new"; s["title"] = s.get("label", ""); s["cat"] = ""; s["born"] = ed
             used |= set(rest); F.stamp(s, items, ed)
             cand.append(s)
-    E["stories"] = out + cand
+    E["stories"] = F.give_sid(out + cand, ed)     # 판이 바뀌어도 그대로인 이슈 번호 (폰의 '읽은 이슈' 기억용)
     for k in ("themes", "countryDigest", "explainMethod", "storyMethod"):
         if k in P and k not in E:
             E[k] = P[k]
@@ -94,6 +94,7 @@ def cmd_build(ed, prev, ko, label):
     try: og = json.loads(OG_CACHE.read_text())
     except Exception: og = {}
     tried = 0
+    PROPER = sorted(F.proper_names(), key=len, reverse=True)
     BAD = ("news.google.", "reddit.com", "youtube.com", "x.com/", "twitter.com")
     for k, s in enumerate(E["stories"]):
         s["id"] = f"g{k+1}"
@@ -103,9 +104,11 @@ def cmd_build(ed, prev, ko, label):
         stt = set(re.findall(r"[가-힣a-z0-9]{2,}", (s.get("title") or "").lower()))
         fit = lambda it: sum(1 for w in stt if w in (title(it) or it.get("t") or "").lower())   # 조사가 붙어도 맞게 '들어 있나'로 셈
         # 이슈 제목과 낱말이 겹치는 뉴스 기사 위쪽 3개 중에서 사진을 찾음(RSS 사진 → 없으면 og:image). 엉뚱한 기사 사진보다는 차라리 지도
-        cand = sorted([x for x in its if x["k"] == "news" and fit(x) >= 1], key=lambda it: (-fit(it), -cnt.get(ctry(it), 0)))[:3]
-        if not cand:   # 제목이 아직 번역 안 된 외국어 기사뿐이면: 처음부터 이 이슈로 묶인(목록 앞쪽) 뉴스 기사 2개
-            cand = [x for x in its if x["k"] == "news"][:2]
+        # 제목의 첫 고유명사(예: 바이낸스)가 기사 제목에 든 기사만 사진 후보 — 없으면 사진 대신 지도 (엉뚱한 사진 막기)
+        tt = s.get("title") or ""
+        nm = [n for _, n in sorted((tt.find(n), n) for n in PROPER if n in tt)]
+        has = (lambda it: nm[0] in ((title(it) or "") + " " + (it.get("t") or ""))) if nm else (lambda it: fit(it) >= 1)
+        cand = sorted([x for x in its if x["k"] == "news" and has(x)], key=lambda it: (-fit(it), -cnt.get(ctry(it), 0)))[:3]
         s.pop("ph", None)
         for it in cand:
             u = (it.get("m") or {}).get("img")

@@ -29,12 +29,15 @@ D = T + "/data/sisa"; os.makedirs(D + "/editions"); os.makedirs(D + "/feed"); os
 shutil.copy(seed / f"editions__{ed}.json", f"{D}/editions/{ed}.json")
 for f in seed.glob(f"feed__{ed}__*.json"): shutil.copy(f, f"{D}/feed/{ed}__{f.stem.split('__')[2]}.json")
 shutil.copy("data/sisa/brief/ents.json", D + "/brief/ents.json")
+shutil.copy("data/sisa/editions/_index.json", D + "/editions/_index.json")          # '이어진 이야기'용 지난 판
+for e in json.load(open("data/sisa/editions/_index.json"))[-20:]:
+    if e["id"] != ed and os.path.exists(f"data/sisa/editions/{e['id']}.json"): shutil.copy(f"data/sisa/editions/{e['id']}.json", f"{D}/editions/{e['id']}.json")
 import sisa_edit
 from pathlib import Path
 sisa_edit.DATA = Path(D)
 class NoKo:
     def __init__(self, *a): pass
-    def many(self, pairs, **k): return [None] * len(pairs)
+    def many(self, pairs, **k): return [t if l == "ko" else None for t, l in pairs]    # 한국어 글은 그대로 (실제 번역기와 같음), 외국어는 번역 안 함
     def save(self): pass
 sisa_edit.Ko = NoKo
 sys.argv = ["sisa_edit", ed]; sisa_edit.main()
@@ -53,4 +56,15 @@ def show(name, E):
         print(f"   {s['top']}. [{s.get('life', '-'):4}] 글 {len(s['items']):4} · 새 글 {newest(s)}시간 전 | {s['title'][:52]}")
 show("지금 사이트에 있는 판", O); show("새 규칙으로 만든 판", E)
 print("\n내려간 이슈", len(E.get("ended", [])), [e["title"][:30] for e in E.get("ended", []) if e.get("kind") != "brief"][:12])
+# 읽을거리 칸 보기
+OUT = os.environ.get("SISA_TEST_OUT")
+if OUT: shutil.copy(f"{D}/editions/{ed}.json", OUT)
+ms = [s for s in E["stories"] if s.get("kind") != "brief"]
+print(f"\n고정 번호 있는 이슈 {sum(1 for s in E['stories'] if s.get('sid'))}/{len(E['stories'])} · 겹친 번호 {len(E['stories']) - len({s.get('sid') for s in E['stories']})}")
+for s in ms[:8]:
+    print(f"\n▶ {s['title'][:60]}  (sid {s.get('sid')}, 사진 {'있음' if s.get('ph') else '지도'})")
+    for x in s.get("lines", []): print("   지금까지:", x["t"][:90])
+    for x in s.get("nums", []): print("   숫자:", x["w"], " / ".join(f"{v['v']}({v['s']})" for v in x["vals"]), "← 출처마다 다름" if x["diff"] else "")
+    for x in s.get("quotes", []): print("   말:", x.get("who") or "?", "“" + x["q"][:60] + "”", f"({x['s']})")
+    for x in s.get("rel", []): print("   이어진:", "지금판" if x["cur"] else x.get("label"), x["t"][:50])
 shutil.rmtree(T)

@@ -282,8 +282,11 @@ def reindex():
         d = rj(f, {}); eds.append({**d, "id": f.stem})
     # 화면이 처음 받는 파일을 가볍게: 최신 판 2개만 통째로, 나머지는 이름·시각만 (고르면 화면이 그 판 파일을 따로 받음)
     eds.sort(key=lambda e: e.get("crawledAt", ""))
+    n = len(eds)
     for k, e in enumerate(eds[:-2]):
         eds[k] = {"id": e["id"], "label": e.get("label", e["id"]), "crawledAt": e.get("crawledAt", ""), "stub": True}
+        if k >= n - 10 and e.get("ended"):      # 최근 열 판은 '끝난 이슈' 제목만 남김 (화면의 '지난번 이후 끝난 이슈' 셈용)
+            eds[k]["ended"] = [{"title": x.get("title", "")[:80], "cat": x.get("cat", ""), "kind": x.get("kind", "")} for x in e["ended"][:40]]
     wj(DATA / "editions/_index.json", eds)
     for col in ("feed", "brief", "tr"):
         (DATA / col).mkdir(exist_ok=True)

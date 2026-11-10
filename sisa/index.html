@@ -550,7 +550,43 @@ nav.tabs button[aria-current="page"] svg{stroke:var(--accent);stroke-width:2}
 .tc2-list{display:flex;flex-direction:column;gap:12px}
 .tc2{--tc:var(--c-pol);display:flex;gap:14px;text-align:left;width:100%;border:0;background:var(--surface);border-radius:var(--r);padding:18px 18px 18px 14px;box-shadow:var(--shadow);color:var(--ink);font:inherit;outline:1px solid var(--line);outline-offset:-1px}
 .tc2.t-war{--tc:var(--c-war)}.tc2.t-eco{--tc:var(--c-eco)}.tc2.t-tech{--tc:var(--c-tech)}.tc2.t-dis{--tc:var(--c-dis)}.tc2.t-soc{--tc:var(--c-soc)}.tc2.t-spo{--tc:var(--c-spo)}.tc2.t-cul{--tc:var(--c-cul)}
-.tc2.done{opacity:.6}
+.tc2.done{opacity:.6;padding-block:8px}
+.tc2.done .tc2-k,.tc2.done .th-x{display:none}
+.tc2.done .tc2-t{font-size:15px}
+b.rnew{color:var(--accent);font-weight:700}
+h4.rh{font-size:13px;color:var(--muted);margin:12px 0 4px;font-weight:700}
+.rlines,.rdays{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rlines button,.rdays button,.rrel button,.rn button,.rq,.rnum button{all:unset;cursor:pointer;display:grid;gap:2px;min-width:0}
+.rlines li{border-left:3px solid var(--line);padding-left:10px}
+.rlines span{font-size:15px;line-height:1.55}
+.rlines small,.rn small,.rq small,.rrel small,.rnum small{font-size:12px;color:var(--muted)}
+.rnums{display:grid;gap:10px}
+.rnum>b{font-size:14px}
+.rn-v{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.rnum .rn-v button{border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--surface)}
+.rn-n{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.rquotes{display:grid;gap:8px}
+.rq{border-left:3px solid var(--accent);padding:4px 0 4px 12px}
+.rq q{font-size:16px;line-height:1.5;font-weight:600}
+.rkr{font-size:14px;margin:0 0 8px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--accent) 7%,var(--surface))}
+.rkr.none{background:color-mix(in srgb,#e8a33d 18%,var(--surface))}
+.rnat{display:grid;gap:8px}
+.rn{display:grid;gap:3px}
+.rn-c{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;font-size:13px}
+.rn-c i{display:block;height:6px;border-radius:3px;background:var(--accent);opacity:.5}
+.rn-c b{font-size:12px;font-variant-numeric:tabular-nums}
+.rn button{font-size:14.5px;line-height:1.5;padding-left:2px}
+.rdays li{display:block}
+.rdays button{grid-template-columns:auto 1fr;gap:8px;font-size:14px}
+.rdays b{font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+.rrel{display:grid;gap:6px}
+.rrel button{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:14.5px}
+.ichg{border:1.5px solid var(--accent);border-radius:12px;padding:12px;margin:10px 0;display:grid;gap:6px;background:color-mix(in srgb,var(--accent) 6%,var(--surface))}
+.ichg>b{font-size:15px}
+.ichg-none{font-size:13px;color:var(--muted);margin:6px 0}
+.h-ended{margin-top:8px;font-size:13px;color:var(--muted)}
+.h-ended summary{cursor:pointer}
+.h-ended ul{margin:6px 0 0;padding-left:18px;display:grid;gap:3px}
 .tc2-n{flex:none;font-family:var(--f-display);font-weight:900;font-size:34px;line-height:.95;color:var(--tc);width:26px;text-align:center}
 .tc2-b{display:flex;flex-direction:column;gap:7px;min-width:0}
 .tc2-m{font-size:12.5px;color:var(--muted);font-weight:600}
@@ -1549,7 +1585,22 @@ function mfBind(){
 window.addEventListener("resize", () => { if(MF.key && MF.m){ const c = [MF.vb[0] + MF.vb[2]/2, MF.vb[1] + MF.vb[3]/2]; MF.vb0 = mfFit(MF.m.vb0, $("#mfStage")); const w = MF.vb[2]; const a = MF.vb0[2]/MF.vb0[3]; MF.vb = [c[0]-w/2, c[1]-w/a/2, w, w/a]; mfPaint(); } });
 
 const issueKey = sid => `iss_${S.edId}_${sid}`;
-const issueOpened = s => !!stOf(issueKey(s.id)).opened;
+// ── 읽음 기억 (이 폰에만): 판이 바뀌어도 그대로인 이슈 번호(sid) → 마지막으로 읽은 시각 ──
+const RD = {k:"vfm:sisa:read", m:null,
+  all(){ if(!this.m){ try{ this.m = JSON.parse(localStorage.getItem(this.k) || "{}") || {}; }catch(_){ this.m = {}; } } return this.m; },
+  key: s => s.sid || "t:" + (s.title || s.id),
+  at(s){ const a = this.all()[this.key(s)] || 0, b = Date.parse(stOf(issueKey(s.id)).opened || "") || 0; return Math.max(a, b); },
+  mark(s){ const m = this.all(), k = this.key(s); if(!(k in (S.lastRead ||= {}))) S.lastRead[k] = this.at(s); m[k] = Date.now();
+    const ks = Object.keys(m); if(ks.length > 500) ks.sort((a,b) => m[a]-m[b]).slice(0, ks.length - 400).forEach(x => delete m[x]);
+    try{ localStorage.setItem(this.k, JSON.stringify(m)); }catch(_){} }};
+const edAt = id => { const e = (S.eds||[]).find(x => x.id === id); return e ? Date.parse(e.crawledAt) || 0 : 0; };
+// 읽은 시각 t 뒤에 처음 들어온 글 (글이 처음 보인 판의 수집 시각으로 판단)
+const newSince = (s, t) => t ? storyItems(s).filter(i => i.k !== "trend" && edAt(i.first) > t) : [];
+// 이 이슈를 열기 전, 마지막으로 읽었던 시각 (열어 둔 동안에도 '달라진 것'이 사라지지 않게)
+const readBefore = s => { const k = RD.key(s); return S.lastRead && k in S.lastRead ? S.lastRead[k] : RD.at(s); };
+const readNew = s => { const t = RD.at(s); return t ? newSince(s, t).length : 0; };
+const issueOpened = s => RD.at(s) > 0 && readNew(s) === 0;     // 읽었고, 그 뒤로 새 글이 없음
+const rdBadge = s => { const t = RD.at(s); if(!t) return ""; const n = newSince(s, t).length; return n ? `<b class="rnew">읽은 뒤 새 글 ${n}</b>` : '<span class="ok">읽음</span>'; };
 function issueCountries(s){ const cc = {}; storyItems(s).forEach(i => { const c = ctry(i); cc[c] = (cc[c]||0) + 1; }); return Object.keys(cc).sort((a,b) => cc[b]-cc[a]); }
 
 // ───────── 이름 사전: 기사에 나오는 인물·정당·기관·지역·용어 배경지식 (brief/ents 문서 하나에 누적) ─────────
@@ -1769,8 +1820,9 @@ document.addEventListener("pointerup", () => {
 });
 
 // ───────── 이슈 해설 시트 ─────────
+function findStory(k){ return (S.ed.stories||[]).find(x => x.id === k) || (S.ed.stories||[]).find(x => x.sid && x.sid === k); }
 function showIssue(sid){
-  const s = (S.ed.stories||[]).find(x => x.id === sid); if(!s) return;
+  const s = findStory(sid); if(!s) return; sid = s.id;
   S.sheetOpen = "issue:" + sid; markStorySeen(s);
   if(!issueOpened(s) || Date.now() - Date.parse(stOf(issueKey(sid)).opened) > 10*60e3) setState(issueKey(sid), {opened:new Date().toISOString(), kind:"issue", title:s.title, key:s.key||s.sum||""});
   drawIssue(sid);
@@ -1800,8 +1852,7 @@ function issueInner(s, inDeck){
   const isNewIt = i => !!S.prevEdId && i.first === S.edId;
   const newIts = its.filter(isNewIt);
   // 마지막으로 읽은 뒤 새로 붙은 글
-  const crawled = Date.parse(S.ed.crawledAt);
-  const seenBefore = its.some(i => stOf(i.id).opened && Date.parse(stOf(i.id).opened) < crawled);
+  const rb = readBefore(s), changed = newSince(s, rb).sort((a,b) => String(b.p||"").localeCompare(String(a.p||"")));
   // 흐름: 게시 시각 순 (같은 제목은 한 번만)
   const seenT = new Set();
   const timeline = its.filter(i => i.p && i.k !== "trend").sort((a,b) => a.p.localeCompare(b.p)).filter(i => { const k = koOf(i)||i.t; if(seenT.has(k)) return false; seenT.add(k); return true; });
@@ -1825,9 +1876,29 @@ function issueInner(s, inDeck){
   const angBody = ((s.angles||[]).length || comm.length) ? `
       ${(s.angles||[]).length ? `<div class="angles">${s.angles.map(a => `<span class="ang"><span class="ang-f">${flag(a.c)}</span><span><b>${esc(cname(a.c))} 매체 ${new Set(its.filter(i => ctry(i) === a.c).map(i => i.s)).size || 1}곳</b>${a.f ? `<span class="fchip">${esc(a.f)}</span>` : ""} ${esc(a.t)}</span></span>`).join("")}</div><p class="note">기사 제목을 비교해 무엇을 강조했는지 정리했어요(본문 비교 아님).</p>` : ""}
       ${""}` : "";
+  // ── 읽을거리 칸 (로봇이 기사 제목·피드 설명에서 뽑은 것 · 지어낸 말 없음) ──
+  const sn = id => esc(srcOf(id).n);
+  const linesBody = (s.lines||[]).length >= 2 ? `<ul class="rlines">${s.lines.map(x => `<li><button type="button" data-open="${x.i}"><span>${esc(x.t)}</span><small>${flag(x.c)} ${sn(x.s)}${x.mt ? " · 기계번역" : ""}</small></button></li>`).join("")}</ul><p class="note">서로 다른 출처의 기사 첫 문장을 그대로 옮겼어요(요약을 새로 쓰지 않음).</p>` : "";
+  const numsBody = (s.nums||[]).length ? `<div class="rnums">${s.nums.map(g => `<div class="rnum"><b>${esc(g.w)}</b><div class="rn-v">${g.vals.map(v => `<button type="button" data-open="${v.i}"><span class="rn-n">${esc(v.v)}</span><small>${flag(v.c)} ${esc(v.s)}</small></button>`).join("")}</div>${g.diff ? '<p class="note">출처마다 숫자가 달라요 — 집계한 시각이나 기준이 다를 수 있어요.</p>' : ""}</div>`).join("")}</div>` : "";
+  const quoteBody = (s.quotes||[]).length ? `<div class="rquotes">${s.quotes.map(x => `<button type="button" class="rq" data-open="${x.i}"><q>${esc(x.q)}</q><small>${x.who ? `<b>${esc(x.who)}</b> · ` : ""}${flag(x.c)} ${esc(x.s)} 제목에서</small></button>`).join("")}</div>` : "";
+  // 나라마다 다르게 본다: 나라별 보도 수 막대 + 그 나라 대표 제목
+  const byC = {}; its.filter(i => i.k !== "trend").forEach(i => (byC[ctry(i)] ||= []).push(i));
+  const natRows = Object.entries(byC).sort((a,b) => b[1].length - a[1].length);
+  const natMax = natRows.length ? natRows[0][1].length : 1;
+  const krSrc = new Set((byC.KR || []).map(i => i.s)).size;
+  const krBox = natRows.length >= 2 || krSrc ? `<p class="rkr${krSrc ? "" : " none"}">${krSrc ? `🇰🇷 한국 언론 <b>${krSrc}곳</b>이 다뤘어요` : `🇰🇷 <b>한국 언론엔 아직 없어요</b> — ${natRows.length}개국이 보도한 소식이에요`}</p>` : "";
+  const natBody = natRows.length >= 2 ? `${krBox}<div class="rnat">${natRows.slice(0, 7).map(([c, arr]) => { const h = arr.find(i => i.k === "news" && koOf(i)) || arr.find(i => koOf(i)) || arr[0];
+      return `<div class="rn"><span class="rn-c">${flag(c)} ${esc(cname(c))}<i style="width:${Math.max(8, Math.round(arr.length / natMax * 100))}%"></i><b>${arr.length}</b></span><button type="button" data-open="${h.id}">${esc(koOf(h) || h.t)}<small>${esc(srcOf(h.s).n)}</small></button></div>`; }).join("")}</div>${natRows.length > 7 ? `<p class="note">그 밖에 ${natRows.length - 7}개국</p>` : ""}<p class="note">같은 일을 나라마다 어떻게 제목에 썼는지 나란히 놓았어요.</p>` : krBox;
+  // 흐름: 이틀 넘게 이어진 이슈는 날마다 가장 먼저 나온 소식
+  const days = []; { const seenD = new Set(); timeline.forEach(i => { const d = mdDay(i.p); if(!seenD.has(d)){ seenD.add(d); days.push(i); } }); }
+  const dayBody = days.length >= 2 ? `<ol class="rdays">${days.map(i => `<li><button type="button" data-open="${i.id}"><b>${esc(mdDay(i.p))}</b><span>${flag(ctry(i))} ${esc(koOf(i) || i.t)}</span></button></li>`).join("")}</ol>` : "";
+  const relBody = (s.rel||[]).length ? `<div class="rrel">${s.rel.map(r => r.cur ? `<button type="button" data-issue="${r.id}"><span>${esc(r.t)}</span><small>지금 판 · 열기 ›</small></button>` : `<button type="button" data-pastiss="${esc(r.ed)}|${esc(r.sid || "")}"><span>${esc(r.t)}</span><small>${esc(r.label || r.ed)} · 지난 판에서 보기 ›</small></button>`).join("")}</div><p class="note">같은 인물·장소·기관이 나온 이슈예요.</p>` : "";
+  const isAI = s.method === "ai-v1" && (s.angles||[]).length;
   return `
       <span class="st-top">${cat ? `<span class="cat"><i aria-hidden="true"></i>${CAT[cat]}</span>` : ""}<span class="meta">${s.delta==="new" ? '<b class="new">새 이슈</b>' : newIts.length ? `<button type="button" class="dbtn" data-jump="sec-tl">지난 판보다 글 +${newIts.length} ›</button>` : ""}</span></span>
-      ${seenBefore && newIts.length ? `<div class="ibanner"><span>마지막으로 읽으신 뒤 새 글 ${newIts.length}개가 붙었어요.</span><button type="button" data-jump="sec-tl">바뀐 것부터 보기</button></div>` : ""}
+      ${rb && changed.length ? `<div class="ichg"><b>지난번에 읽은 뒤 달라진 것</b><span class="note">${esc(ago(new Date(rb).toISOString()))} 읽으셨어요 · 그 뒤 새 글 ${changed.length}개${(() => { const c = new Set(changed.map(ctry)); return c.size > 1 ? ` · ${c.size}개국` : ""; })()}</span>
+        <div class="irows">${changed.slice(0, 4).map(rowItem).join("")}</div>${changed.length > 4 ? `<button type="button" class="linkbtn" data-jump="sec-tl">흐름에서 나머지 ${changed.length - 4}개 보기 ›</button>` : ""}</div>`
+        : rb ? `<p class="ichg-none">✓ ${esc(ago(new Date(rb).toISOString()))} 읽으신 뒤로 새 글이 없어요.</p>` : ""}
       <h2 class="ititle">${esc(s.title || storyTitle(s, its))}</h2>
       ${(() => { const ps = its.map(i => i.p).filter(Boolean).sort(); if(!ps.length) return ""; const a = mdDay(ps[0]), b = mdDay(ps[ps.length-1]);
         return `<p class="idates">🗓 기사 날짜 ${a === b ? a : a + " ~ " + b} · 기사 ${its.length}개 · 가장 최근 ${ago(ps[ps.length-1])}</p>`; })()}
@@ -1837,17 +1908,20 @@ function issueInner(s, inDeck){
         <div class="mtabs" role="tablist">${[["loc","사건 위치"],["rel","관련 관계"],["rep","보도 분포"]].filter(([m]) => m !== "loc" || (s.geo && s.geo.box)).map(([m,l]) => `<button type="button" role="tab" data-mapmode="${sid}:${m}" aria-selected="${mode===m}">${l}</button>`).join("")}</div>
         <div class="imap-hit" data-mapfull="${sid}" role="button" tabindex="0" aria-label="지도 크게 보기">${issueMap(s, mode, countries, its)}<span class="imap-big">⤢ 크게 보기</span></div>
       </div>
-      ${sec("무슨 일이 있었나", `<p class="ibody">${entText(s.key || s.sum || "")}</p>${(s.since || []).length ? `<p class="since">이 해설을 쓴 뒤 새 기사 ${s.since.length}개가 붙었어요. 지금 상황과 다를 수 있으니 <button type="button" class="lnk" data-jump="sec-tl">최신 기사부터 확인 ›</button></p>` : ""}`)}
+      ${sec("무슨 일이 있었나", `<p class="ibody">${entText(s.key || s.sum || "")}</p>${linesBody ? `<h4 class="rh">여러 출처는 이렇게 전해요</h4>${linesBody}` : ""}${(s.since || []).length ? `<p class="since">이 해설을 쓴 뒤 새 기사 ${s.since.length}개가 붙었어요. 지금 상황과 다를 수 있으니 <button type="button" class="lnk" data-jump="sec-tl">최신 기사부터 확인 ›</button></p>` : ""}`)}
+      ${sec("숫자로 보기", numsBody)}
+      ${sec("말말말", quoteBody)}
       ${sec("먼저 알아 둘 이름", entCards(entsOf(storyTexts(s))), "sec-ent")}
       ${sec("왜 중요한가", whyBody)}
       ${sec("이해하려면 알아야 할 것", knowBody)}
-      ${sec("어떻게 흘러왔나", tlBody, "sec-tl")}
-      ${sec("나라별 매체가 강조한 점", angBody)}
+      ${sec("어떻게 흘러왔나", (dayBody ? `<h4 class="rh">날마다 첫 소식</h4>${dayBody}<h4 class="rh">최근 기사</h4>` : "") + tlBody, "sec-tl")}
+      ${isAI ? sec("나라별 매체가 강조한 점", krBox + angBody) : sec("나라마다 다르게 본다", natBody)}
+      ${sec("이어진 이야기", relBody)}
       ${sec("수집한 커뮤니티 반응", opinionCompare(s, its), "sec-op")}
       ${sec("먼저 읽을 기사", first.length ? `<div class="irows">${first.map(rowItem).join("")}</div>` : (its.length ? `<div class="irows">${its.slice(0,3).map(rowItem).join("")}</div>` : ""))}
       ${s.watch ? sec("앞으로 지켜볼 것", `<p class="ibody">${entText(s.watch)}</p>`) : ""}
       ${rest.length ? `<details class="origd"><summary>나머지 기사 ${rest.length}개 (${countries.length}개국)</summary><div class="irows">${rest.map(rowItem).join("")}</div></details>` : ""}
-      ${D && !inDeck ? D.bar("sisa", storyKey(s), {kw:(s.terms || []).map(t => t.t), title:s.title || "", url:appUrl("#issue-" + s.id), hash:"#issue-" + s.id, text:(s.title || "") + (s.key ? "\n" + s.key : "")}) : ""}
+      ${D && !inDeck ? D.bar("sisa", storyKey(s), {kw:(s.terms || []).map(t => t.t), title:s.title || "", url:appUrl("#issue-" + (s.sid || s.id)), hash:"#issue-" + (s.sid || s.id), text:(s.title || "") + (s.key ? "\n" + s.key : "")}) : ""}
       <p class="note">AI가 이번 판 기사 제목들과 일반 배경지식으로 정리했어요. 기사에서 확인되지 않은 영향은 쓰지 않았어요. 세부 사실은 원문으로 확인해 주세요.</p>`;
 }
 
@@ -1913,7 +1987,7 @@ function topCard(s, n){
   const countries = issueCountries(s); const done = issueOpened(s);
   const cat = CAT[s.cat] ? s.cat : "";
   return `<button type="button" class="tcard${cat ? " t-"+cat : ""}${done ? " done" : ""}" data-issue="${s.id}">
-    <span class="tc-head"><span class="tc-n">${n}</span>${cat ? `<span class="cat"><i aria-hidden="true"></i>${CAT[cat]}</span>` : ""}<span class="meta">${done ? '<span class="ok">✓ 읽음</span>' : s.delta==="new" ? '<b class="new">새 이슈</b>' : s.delta==="grown" ? '<b class="acc">커지는 중</b>' : ""}</span></span>
+    <span class="tc-head"><span class="tc-n">${n}</span>${cat ? `<span class="cat"><i aria-hidden="true"></i>${CAT[cat]}</span>` : ""}<span class="meta">${RD.at(s) ? rdBadge(s) : s.delta==="new" ? '<b class="new">새 이슈</b>' : s.delta==="grown" ? '<b class="acc">커지는 중</b>' : ""}</span></span>
     <span class="tc-title">${esc(s.title)}</span>
     ${(() => { const ph = storyPhoto(s); return ph
       ? `<span class="tc-map has-ph">${phImg(ph.u, "tc-ph")}<span class="ph-fb">${mapSvg(s.where||[], countries, false)}</span><span class="tc-cap">사진 · ${esc(srcOf(ph.i.s).n)}</span><span class="tc-scale"><b>${countries.length}</b>개국 보도</span></span>`
@@ -1998,16 +2072,23 @@ function pickText(p){ return S.tone==="orig" ? p.orig : S.tone==="raw" ? (p.raw 
 function sinceHero(){
   const crawled = Date.parse(S.ed.crawledAt);
   const stories = (S.ed.stories||[]).filter(okStory);
-  const nNew = stories.filter(s => s.delta==="new").length, nGrow = stories.filter(s => s.delta==="grown").length;
+  const nNew = stories.filter(s => s.delta==="new" && !isBrief(s)).length, nGrow = stories.filter(s => s.delta==="grown").length;
   const newItems = S.items.filter(i => i.first === S.edId && i.k !== "trend").length;
   const seenAll = S.lastSeen && S.lastSeen > crawled;
   const since = S.lastSeen ? ago(new Date(S.lastSeen).toISOString()) : "";
+  // 지난번 이후 내려간 이슈: 그 뒤에 나온 판들의 '끝난 이슈'를 모음 (처음 오신 분은 이번 판 것만)
+  const after = S.lastSeen || Date.parse(S.ed.crawledAt) - 1;
+  const ended = []; const eSeen = new Set();
+  (S.eds||[]).filter(e => Date.parse(e.crawledAt) > after && Date.parse(e.crawledAt) <= crawled).concat(S.eds && S.eds.includes(S.ed) ? [] : [S.ed])
+    .forEach(e => (e.ended || []).forEach(x => { if(x.title && !eSeen.has(x.title) && x.kind !== "brief"){ eSeen.add(x.title); ended.push(x); } }));
+  const nRN = stories.filter(s => readNew(s) > 0).length;
   const changed = stories.filter(s => s.delta==="new" || s.delta==="grown").sort((a,b) => (b.top?1:0)-(a.top?1:0) || issueCountries(b).length - issueCountries(a).length).slice(0,4);
   return `<section class="hero">
     <div class="h-eyebrow"><span class="live"></span>${esc(S.ed.label)} · ${kstTime(S.ed.crawledAt)} 갱신<span class="h-next">다음 ${nextRefresh()}</span></div>
     ${seenAll ? `<h2 class="h-big">새로 들어온 건<br>아직 없어요</h2><p class="h-sub">${since} 이후로 본 그대로예요. 다음 갱신은 ${nextRefresh()}이에요. 그동안 안 본 것부터 보세요.</p>`
       : `<h2 class="h-big"><span class="h-num">${nf(newItems)}</span><span class="h-unit">개의 새 소식</span></h2>
-         <p class="h-sub">${S.lastSeen ? `마지막으로 보신 ${since} 이후` : "지난 판 이후"} 새 이슈 <b>${nNew}</b> · 커진 이슈 <b>${nGrow}</b></p>`}
+         <p class="h-sub">${S.lastSeen ? `지난번(${since}) 이후` : "지난 판 이후"} 새 이슈 <b>${nNew}</b> · 커진 이슈 <b>${nGrow}</b>${ended.length ? ` · 끝난 이슈 <b>${ended.length}</b>` : ""}${nRN ? ` · 읽은 뒤 새 글 붙은 이슈 <b>${nRN}</b>` : ""}</p>`}
+    ${ended.length ? `<details class="h-ended"><summary>끝난 이슈 ${ended.length}개 — 48시간 동안 새 글이 없어 내려갔어요</summary><ul>${ended.slice(0, 12).map(e => `<li>${catDot(e.cat)}${esc(e.title)}</li>`).join("")}</ul></details>` : ""}
     ${changed.length ? `<div class="h-changes">${changed.map(s => `<button type="button" class="hc" data-issue="${s.id}">${thS(s) || catDot(s.cat)}<span class="hc-t">${esc(s.title)}</span><span class="hc-b ${s.delta}">${s.delta==="new" ? "새 이슈" : `+${s.grow||0}`}</span></button>`).join("")}</div>` : ""}
   </section>`;
 }
@@ -2080,7 +2161,7 @@ function homeTopCard(s, n){
   return `<button type="button" class="tc2 t-${s.cat||"pol"}${done ? " done" : ""}${th ? " has-th" : ""}" data-issue="${s.id}">${th}
     <span class="tc2-n">${n}</span>
     <span class="tc2-b">
-      <span class="tc2-m">${catDot(s.cat)}${CAT[s.cat]||""}${place ? ` · ${esc(place)}` : ""} · ${countries.length}개국${done ? ' · <span class="ok">읽음</span>' : s.delta==="new" ? ' · <b class="new">새 이슈</b>' : s.delta==="grown" ? ` · <b class="acc">+${s.grow||0}</b>` : ""}</span>
+      <span class="tc2-m">${catDot(s.cat)}${CAT[s.cat]||""}${place ? ` · ${esc(place)}` : ""} · ${countries.length}개국${RD.at(s) ? " · " + rdBadge(s) : s.delta==="new" ? ' · <b class="new">새 이슈</b>' : s.delta==="grown" ? ` · <b class="acc">+${s.grow||0}</b>` : ""}</span>
       <span class="tc2-t">${esc(s.title)}</span>
       <span class="tc2-k">${esc(s.key || s.sum || "")}</span>
     </span></button>`;
@@ -2090,10 +2171,10 @@ function homeTopCard(s, n){
 // ── 오늘의 이야기: 많은 이슈를 끝없이 넘겨 보는 목록 ──
 function storyRow(s){
   const cs = issueCountries(s); const done = issueOpened(s);
-  const fresh = s.delta==="new" ? `<b class="new">${isBrief(s) ? "새 단신" : "새 이야기"}</b>` : s.delta==="grown" ? `<b class="acc">+${s.grow||0} 새 글</b>` : "";
+  const fresh = RD.at(s) ? "" : s.delta==="new" ? `<b class="new">${isBrief(s) ? "새 단신" : "새 이야기"}</b>` : s.delta==="grown" ? `<b class="acc">+${s.grow||0} 새 글</b>` : "";
   const th = thS(s);
   return `<button type="button" class="sr t-${s.cat||"pol"}${done ? " done" : ""}${isBrief(s) ? " bf" : ""}${th ? " has-th" : ""}" data-issue="${s.id}">${th}
-    <span class="sr-m">${catDot(s.cat)}${CAT[s.cat]||"기타"}<span class="sr-f">${cs.slice(0,5).map(flag).join("")}</span>${fresh}${done ? '<span class="ok">읽음</span>' : ""}</span>
+    <span class="sr-m">${catDot(s.cat)}${CAT[s.cat]||"기타"}<span class="sr-f">${cs.slice(0,5).map(flag).join("")}</span>${fresh}${rdBadge(s)}</span>
     <span class="sr-t">${esc(s.title || storyTitle(s, storyItems(s)))}</span>
     ${s.key || s.sum ? `<span class="sr-k">${esc(s.key || s.sum)}</span>` : ""}
     <span class="sr-b">${isBrief(s) ? `단신 · ${esc(cname(cs[0]))} · ${esc(srcOf(storyItems(s)[0].s).n)}` : s.kind==="local" ? `${esc(cname(cs[0]))} 안 이야기 · 기사 ${storyItems(s).length}` : `${cs.length}개국 · 기사 ${storyItems(s).length}`}${s.why3 || s.bg ? " · 해설 있음" : ""}</span>
@@ -2103,10 +2184,11 @@ function storiesBlock(list){
   const f = S.storyF || "all";
   const isLocal = s => !isBrief(s) && (s.kind==="local" || issueCountries(s).length < 2);
   const grp = s => isBrief(s) ? "brief" : isLocal(s) ? "local" : "global";
-  const flt = list.filter(s => f==="all" || grp(s)===f).filter(s => S.f.cat==="all" || s.cat===S.f.cat);
+  let flt = list.filter(s => f==="all" || grp(s)===f).filter(s => S.f.cat==="all" || s.cat===S.f.cat);
   // 새 이야기 → 커지는 이야기 → 나머지, 같은 묶음 안에서는 묶인 이야기 먼저, 그다음 규모 순
-  const rk = s => (issueOpened(s) ? 6 : 0) + (s.delta==="new" ? 0 : s.delta==="grown" ? 2 : 4) + (isBrief(s) ? 1 : 0);
+  const rk = s => issueOpened(s) ? 9 : readNew(s) ? 0.5 : (s.delta==="new" ? 0 : s.delta==="grown" ? 2 : 4) + (isBrief(s) ? 1 : 0);
   flt.sort((a,b) => rk(a)-rk(b) || issueCountries(b).length - issueCountries(a).length || storyItems(b).length - storyItems(a).length);
+  const readL = flt.filter(issueOpened); flt = flt.filter(s => !issueOpened(s));
   const lim = S.more.stories ? flt.length : 15;
   const nB = list.filter(isBrief).length, nL = list.filter(isLocal).length, nG = list.length - nB - nL;
   const unread = list.filter(s => !issueOpened(s)).length;
@@ -2114,9 +2196,18 @@ function storiesBlock(list){
     <div class="ftabs inl">${[["all",`전체 ${list.length}`],["global",`세계 ${nG}`],["local",`나라 안 ${nL}`],["brief",`단신 ${nB}`]].filter(([k]) => k!=="brief" || nB).map(([k,l]) => `<button type="button" data-storyf="${k}" aria-selected="${f===k}">${l}</button>`).join("")}</div>
     ${f==="brief" ? '<p class="note">단신은 아직 한 곳만 보도한 소식을 한두 문장으로 요약한 거예요. 다른 나라가 다루기 시작하면 이야기로 커져요.</p>' : ""}
     <div class="srl">${flt.slice(0, lim).map(storyRow).join("") || '<div class="empty">이 조건의 이야기가 없어요.</div>'}</div>
-    ${flt.length > lim ? `<button type="button" class="btn" data-more="stories">이야기 ${flt.length - lim}개 더 보기</button>` : ""}</section>`;
+    ${flt.length > lim ? `<button type="button" class="btn" data-more="stories">이야기 ${flt.length - lim}개 더 보기</button>` : ""}
+    ${readL.length ? `<button type="button" class="linkbtn more" data-more="readL">${S.more.readL ? "읽은 이야기 접기" : `읽은 이야기 ${readL.length}개 (새 글 없음) 펼치기`}</button>${S.more.readL ? `<div class="srl">${readL.map(storyRow).join("")}</div>` : ""}` : ""}</section>`;
 }
 
+// 한국 언론엔 없는 세계 뉴스: 3개국 이상이 보도했는데 한국 출처 글이 하나도 없는 이야기
+function krBlind(list){
+  const L = list.filter(s => !isBrief(s) && !issueOpened(s) && issueCountries(s).length >= 3 && !storyItems(s).some(i => ctry(i) === "KR"))
+    .sort((a,b) => issueCountries(b).length - issueCountries(a).length).slice(0, 5);
+  if(!L.length) return "";
+  return `<section class="blk"><div class="blk-h"><h2 class="ttl2">한국 언론엔 없는 세계 뉴스</h2><span class="note">여러 나라가 다루는데 한국 출처엔 아직 없는 이야기</span></div>
+    <div class="srl">${L.map(storyRow).join("")}</div></section>`;
+}
 function viewHome(){
   const allS = (S.ed.stories||[]).filter(okStory);
   if(!allS.some(s => s.key)) return viewTodayOld();
@@ -2135,6 +2226,7 @@ function viewHome(){
     ${recapHtml(tops)}
     <section class="blk"><div class="blk-h"><h2 class="ttl2">꼭 알아야 할 다섯 가지</h2><span class="note">세계적 중요도 순</span></div>
       <div class="tc2-list">${tops.map((s,k) => homeTopCard(s, k+1)).join("")}</div></section>
+    ${krBlind(others)}
     ${opinionStrip()}
     ${themeTiles()}
     ${others.length ? storiesBlock(others) : ""}
@@ -2146,14 +2238,14 @@ function viewHome(){
 // ───────── 넘겨보기 (assets/deck.js): 안 본 이야기만 한 장씩, 옆으로 밀면 다음 ─────────
 const D = window.VfmDeck || null;
 const storyKey = s => isBrief(s) ? "b:" + (s.items[0] || s.id) : "i:" + (s.title || s.id);
-function markStorySeen(s){ if(D && s) D.Seen.add("sisa", storyKey(s)); }
+function markStorySeen(s){ if(!s) return; RD.mark(s); if(D) D.Seen.add("sisa", storyKey(s)); }
 const artLink = i => D ? D.koUrl(i.u, S.langOf[i.id]) : i.u;
 const appUrl = h => location.href.split("#")[0] + h;
 function todayDeckList(){
   const allS = (S.ed.stories||[]).filter(okStory);
   const tops = allS.filter(s => s.top).sort((a,b) => a.top-b.top);
   const rest = allS.filter(s => !tops.includes(s));
-  const rk = s => (s.delta==="new" ? 0 : s.delta==="grown" ? 1 : 2) + (isBrief(s) ? 3 : 0) - (s.why3 || (s.bg||[]).length ? 0.5 : 0);
+  const rk = s => issueOpened(s) ? 9 : readNew(s) ? 0.2 : (s.delta==="new" ? 0 : s.delta==="grown" ? 1 : 2) + (isBrief(s) ? 3 : 0) - (s.why3 || (s.bg||[]).length ? 0.5 : 0);
   rest.sort((a,b) => rk(a)-rk(b) || issueCountries(b).length - issueCountries(a).length || storyItems(b).length - storyItems(a).length);
   return [...tops, ...rest];
 }
@@ -2166,7 +2258,8 @@ function storyDeckCard(s){
 }
 function todayDeck(){
   return D.create({id:"sisa-today", app:"sisa", emptyTitle:"이야기가 아직 없어요",
-    items: () => todayDeckList().map(s => ({key:storyKey(s), title:s.title || "", url:appUrl("#issue-" + s.id), hash:"#issue-" + s.id, shareText:(s.title || "") + (s.key ? "\n" + s.key : ""), html:() => storyDeckCard(s)})),
+    onShow(it){ if(it && it.s) markStorySeen(it.s); },
+    items: () => todayDeckList().map(s => ({s, key:storyKey(s) + (readNew(s) ? "@" + S.edId : ""), title:s.title || "", url:appUrl("#issue-" + (s.sid || s.id)), hash:"#issue-" + (s.sid || s.id), shareText:(s.title || "") + (s.key ? "\n" + s.key : ""), html:() => storyDeckCard(s)})),
     onList(){ try{ localStorage.setItem("vfm:mode:sisa-today", '"list"'); }catch(_){} render(); }});
 }
 // 나라: 나라 하나를 고르면 그 나라 뉴스를 한 장씩 (첫 장 = 그 나라 오늘 요약)
@@ -2829,6 +2922,7 @@ document.addEventListener("click", e => {
   }
   if(d.open){ if(!t.closest(".sheet")) rememberList(t); return openSheet(d.open); }
   if(d.ctx){ return explainContext(d.ctx); }
+  if(d.pastiss){ const [pe, ps] = d.pastiss.split("|"); closeSheet(); loadEdition(pe).then(() => { render(); const st = ps && findStory(ps); if(st) navTo("issue-" + st.id); }).catch(() => toast("그 판을 불러오지 못했어요")); return; }
   if(d.ed){ S.newEd = null; if(d.ed!==S.edId) loadEdition(d.ed).then(render).catch(()=>toast("판을 불러오지 못했어요")); else render(); return; }
   if(d.retread){ const it=S.byId[d.retread]; $("#toastHost").innerHTML=""; if(it){ logEvent("read", it, {via:"return", secs:Number(d.secs)||0}); setState(it.id,{read:true}); toast("읽음으로 기록했어요"); render(); } return; }
   if(d.retno!==undefined){ $("#toastHost").innerHTML=""; return; }

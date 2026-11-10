@@ -94,13 +94,22 @@ def proper_names():
     return _PROPER
 
 
+# 어느 사건에나 나오는 말 — 핵심어로 안 씀 (이것만 겹쳐서 '스페인 폭발'이 '튀르키예 폭발'에 붙던 것 막기)
+WEAK = set("발생 발생한 발생해 수가 증가 감소 이후 관련 위해 대한 통해 지난 오늘 현지 당국 사건 소식 결과 상황 문제 가능성 예정 계획 최근 이번 처음 다시 이상 이하 사람들 사람 지역 국가 정부".split())
+_NUM = re.compile(r"\d")
+
+
+def core_ok(t, GENERIC):
+    return t not in GENERIC and t not in WEAK and not _NUM.search(t)
+
+
 def core_of(s, tokens, GENERIC):
-    """이슈의 핵심어: 제목 + 묶음 이름 낱말에서 흔한 말을 뺀 것. 한 번 정하면 s['core'] 에 적어 두고 그대로 씀"""
-    if s.get("core"): return set(s["core"])
-    c = [t for t in tokens(s.get("title") or "") if t not in GENERIC]
+    """이슈의 핵심어: 제목 + 묶음 이름 낱말에서 흔한 말·숫자 낱말을 뺀 것. 한 번 정하면 s['core'] 에 적어 두고 그대로 씀"""
+    if s.get("core"): return {t for t in s["core"] if core_ok(t, GENERIC)}
+    c = [t for t in tokens(s.get("title") or "") if core_ok(t, GENERIC)]
     for k in (s.get("kw") or []):
         for t in tokens(str(k)):
-            if t not in GENERIC and t not in c: c.append(t)
+            if core_ok(t, GENERIC) and t not in c: c.append(t)
     return set(c[:CORE_MAX])
 
 
@@ -125,7 +134,8 @@ def carry(prev_stories, items, prev_items, ed, tokens, GENERIC, title_of, ctry, 
         if len(ov) == 1 and need <= 2:                       # 낱말 하나만 겹쳐도: 이름 사전의 고유명사이고 아주 드물면(전체 글의 1% 아래) 같은 사건으로 봄 (예: 아이젠코트)
             t = next(iter(ov)); return t in proper and idf(t) >= one
         if len(ov) < need: return False
-        return bool(ov & proper) or sum(idf(t) for t in ov) >= thr
+        if ov & proper: return True
+        return len(ov) >= need + 1 and sum(idf(t) for t in ov) >= thr      # 고유명사 없이 붙으려면 한 낱말 더 (예: 공장·폭발·사고)
 
     used = set(); out = []; carried = {}; ended = []
     order = sorted([x for x in prev_stories if x.get("method") in ("ai-v1", "auto-v1")], key=lambda s: len(s.get("items") or []))   # 작은 이슈부터 (큰 이슈가 다 가져가지 않게)
@@ -188,6 +198,23 @@ def stamp(s, items, ed, added=False):
     s["life"] = "new" if young else "hot" if (len(src12) >= 2 or added) and newest <= NEW_H else "cool" if newest > COOL_H else "on"
     s["delta"] = {"new": "new", "hot": "grown"}.get(s["life"], "same")
     return s
+
+
+def give_sid(stories, ed):
+    """이슈마다 판이 바뀌어도 그대로인 번호(sid)를 붙임. 이미 있으면 그대로 둠 — 폰이 '읽은 이슈'를 판을 넘어 기억하는 열쇠.
+    번호는 태어난 판 + 대표 글(없으면 첫 글)로 한 번만 만들고, 다음 판부터는 이어받은 이슈 그대로 따라감."""
+    import hashlib
+    have = {s["sid"] for s in stories if s.get("sid")}
+    for s in stories:
+        if s.get("sid"): continue
+        base = f'{s.get("born") or ed}|{s.get("rep_id") or (s.get("items") or [""])[0]}|{s.get("kind") or ""}'
+        k = 0
+        while True:
+            sid = "s" + hashlib.md5(f"{base}|{k}".encode()).hexdigest()[:7]
+            if sid not in have: break
+            k += 1
+        s["sid"] = sid; have.add(sid)
+    return stories
 
 
 def breadth(s, items, ed, ctry):

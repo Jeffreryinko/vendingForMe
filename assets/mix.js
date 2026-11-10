@@ -68,12 +68,12 @@
     if (!m || !m.edition) return;
     return j("data/sisa/editions/" + m.edition + ".json").then(function (ed) {
       if (!ed) return;
-      var st = (ed.stories || []).filter(function (s) { return s.title && (s.key || s.sum); });
+      var st = (ed.stories || []).filter(function (s) { return s.title && (s.key || s.sum) && s.life !== "cool"; });   // 식는 이슈(24시간 새 글 없음)는 홈에 안 섞음
       var rank = function (s) { return (s.top ? 0 : 2) + (s.delta === "new" ? 0 : 1) + (s.kind === "brief" ? 2 : 0); };
       st.sort(function (a, b) { return rank(a) - rank(b); });
       add("sisa", st.map(function (s) {
         var brief = s.kind === "brief", key = brief ? "b:" + (s.items[0] || s.id) : "i:" + s.title, cs = s.countries || [];
-        return { key: key, sa: "sisa", kind: "sisa", kw: (s.terms || []).map(function (t) { return t.t; }), title: s.title, url: location.origin + location.pathname + "sisa/#issue-" + s.id, shareText: s.title + (s.key ? "\n" + s.key : ""),
+        return { key: key, sa: "sisa", kind: "sisa", kw: (s.terms || []).map(function (t) { return t.t; }), title: s.title, url: location.origin + location.pathname + "sisa/#issue-" + (s.sid || s.id), shareText: s.title + (s.key ? "\n" + s.key : ""),
           q: s.title + " " + (s.key || ""), s: s, ed: m.edition, html: function () {
             var w3 = s.why3 || {}, li = function (a) { return a.map(function (b) { return "<li>" + b + "</li>"; }).join(""); }, n = 0;
             var sec = function (t, body) { if (!body) return ""; n++; return '<p class="mx-ih"><span>' + n + "</span>" + t + "</p>" + body; };
@@ -93,19 +93,19 @@
               sec("수집한 커뮤니티 반응", ops.length ? ops.map(function (i) { var c = CM[i.id], pk = c.picks.filter(function (x) { return x.type === "top"; })[0] || c.picks[0]; return '<p class="vdk-p">' + flag(i.c) + " <b>" + esc(cname(i.c)) + "</b> " + esc(c.mood || "") + "<br>“" + esc(pk.ko || pk.raw || pk.orig) + "”</p>"; }).join("") : "") +
               sec("기사", its.length ? '<div class="vdk-links">' + its.slice(0, 12).map(art).join("") + "</div>" + (its.length > 12 ? '<p class="vdk-note">기사 ' + its.length + "개 중 12개</p>" : "") : FEEDBY ? "" : '<p class="vdk-note">기사 목록을 불러오는 중…</p>') +
               sec("앞으로 지켜볼 것", s.watch ? '<p class="vdk-p">' + esc(s.watch) + "</p>" : "") +
-              '<button type="button" class="vdk-more"' + go("sisa/#issue-" + s.id) + ">지도와 함께 시사에서 보기 ›</button></div>";
+              '<button type="button" class="vdk-more"' + go("sisa/#issue-" + (s.sid || s.id)) + ">지도와 함께 시사에서 보기 ›</button></div>";
           } };
       }));
       // 본 이슈에 새 기사가 3개 넘게 붙으면 '지난번 이후 바뀐 점' 카드로 한 번 더 (본 것 전체를 다시 보여 주진 않음)
       var again = st.filter(function (s) { var k = "i:" + s.title, n = SI[k]; return s.kind !== "brief" && n && D.Seen.has("sisa", k) && (s.items || []).length - n >= 3; }).map(function (s) {
         var k = "i:" + s.title, n0 = SI[k], add = (s.items || []).length - n0;
-        return { key: k + "@" + s.items.length, base: k, nItems: s.items.length, sa: "sisa", kind: "sisa", kw: (s.terms || []).map(function (t) { return t.t; }), title: "바뀐 점 · " + s.title, url: location.origin + location.pathname + "sisa/#issue-" + s.id, shareText: s.title, q: s.title, s: s, ed: m.edition,
+        return { key: k + "@" + s.items.length, base: k, nItems: s.items.length, sa: "sisa", kind: "sisa", kw: (s.terms || []).map(function (t) { return t.t; }), title: "바뀐 점 · " + s.title, url: location.origin + location.pathname + "sisa/#issue-" + (s.sid || s.id), shareText: s.title, q: s.title, s: s, ed: m.edition,
           html: function () {
             var its = (s.items || []).map(function (x) { return FEEDBY && FEEDBY[x]; }).filter(Boolean).sort(function (a, b) { return String(b.p || "").localeCompare(String(a.p || "")); }).slice(0, Math.min(add, 8));
             return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag sisa">시사</span><b class="new">지난번 이후 새 기사 ' + add + '개</b></div><h2 class="vdk-t">' + esc(s.title) + "</h2>" +
               '<p class="vdk-h">지금 해설</p><p class="vdk-p">' + esc(s.key || s.sum || "") + "</p>" + ((s.since || []).length ? '<p class="vdk-note mx-since">해설을 쓴 뒤 붙은 기사도 ' + s.since.length + "개 있어요 · 해설이 지금 상황과 다를 수 있어요</p>" : "") +
               '<p class="vdk-h">새로 붙은 기사</p>' + (its.length ? '<div class="vdk-links">' + its.map(function (i) { return '<a href="' + esc(D.koUrl(i.u, i.l)) + '" target="_blank" rel="noopener">' + esc(i.ko || i.t) + "<small>" + flag(i.c) + " " + esc(cname(i.c)) + "</small></a>"; }).join("") + "</div>" : FEEDBY ? "" : '<p class="vdk-note">기사 목록을 불러오는 중…</p>') +
-              '<button type="button" class="vdk-more"' + go("sisa/#issue-" + s.id) + ">시사에서 전부 보기 ›</button></div>";
+              '<button type="button" class="vdk-more"' + go("sisa/#issue-" + (s.sid || s.id)) + ">시사에서 전부 보기 ›</button></div>";
           } };
       });
       if (again.length) add("sisa", again);

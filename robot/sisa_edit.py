@@ -30,6 +30,7 @@ sys.path.insert(0, str(ROOT / "robot/crawler")); sys.path.insert(0, str(ROOT / "
 from cluster import tokens, GENERIC  # noqa: E402
 import fresh as F  # noqa: E402
 from nllb_multi import Ko  # noqa: E402
+import readable as R  # noqa: E402
 
 UA = "vendingForMe/1.0 (https://jeffreryinko.github.io/; robot)"
 NO_NET = os.environ.get("SISA_EDIT_NO_NET") == "1"
@@ -278,6 +279,106 @@ class Ed:
         wj(DATA / "brief/_wiki.json", dict(list(cache.items())[-800:]))
         log(f"큰 이슈 곁들임 {n}개")
 
+
+    # ── 3-2. 읽을거리: 여러 출처 요약 · 숫자 · 말말말 · 이어진 이야기 · 대표 제목 · 사진 규칙 (robot/readable.py) ──
+    def readables(self):
+        proper = self.proper(); m = self.ents.get("map") or {}
+        persons = sorted([n for n, e in m.items() if e.get("t") == "person" and len(n) >= 2], key=len, reverse=True)
+        plist = sorted(proper, key=len, reverse=True); nc = {}
+        def names_of(text):                                   # 글에 든 고유명사 (조사가 붙어도 찾게 '들어 있나'로), 나온 순서대로
+            text = text or ""
+            if text not in nc:
+                hit = []
+                for n in plist:
+                    p = text.find(n)
+                    if p >= 0 and not any(n in h for _, h in hit): hit.append((p, n))
+                nc[text] = [n for _, n in sorted(hit)]
+            return nc[text]
+        CN = {"KR": "한국", "US": "미국", "CN": "중국", "JP": "일본", "GB": "영국", "FR": "프랑스", "DE": "독일", "RU": "러시아", "IN": "인도", "BR": "브라질", "TR": "튀르키예", "UA": "우크라이나", "IL": "이스라엘", "IR": "이란"}
+        big = [s for s in self.stories() if len(s.get("items") or []) >= 2][:R.MAX_READ]
+        n_title = n_ph = 0; need = []
+        for s in big:
+            its = [self.items[i] for i in s["items"] if i in self.items]
+            # 대표 제목: 새 이슈이거나 지금 제목이 조각·너무 길면 다시 고름 (사람이 쓴 해설 ai-v1 은 그대로)
+            if s.get("method") != "ai-v1":
+                cur = R.title_score(s.get("title"), proper, False)
+                if s.get("born") == self.ed or cur is None or cur < 0:
+                    cand = []
+                    for it in its:
+                        tt = clean_title(self.kt(it))
+                        sc = R.title_score(tt, proper, it["_lang"] == "ko")
+                        if sc is not None: cand.append((sc + (1 if it["k"] == "news" else 0) + (1 if it.get("id") == s.get("rep_id") else 0), tt))
+                    if cand:
+                        best = max(cand)[1]
+                        if best != s.get("title"): s["title"] = best; n_title += 1
+                    elif cur is None:
+                        c = Counter(self.ctry(i) for i in its).most_common(1)
+                        fb = R.fallback_title(CN.get(c[0][0], c[0][0]) if c else "", [w for w in (s.get("core") or []) if w in proper] + list(s.get("core") or []))
+                        if fb: s["title"] = fb; n_title += 1
+            # 사진: 제목의 첫 고유명사가 사진 기사 제목에 없으면 사진 대신 지도
+            nm = names_of(s.get("title"))
+            ph = s.get("ph"); pit = self.items.get((ph or {}).get("i"))
+            if ph and nm and pit and nm[0] not in (self.kt(pit) + " " + pit.get("t", "")):
+                s.pop("ph", None); n_ph += 1
+            # 지금까지: 출처마다 피드 설명 첫 문장 1개 (한국어 원문 먼저 → 무료 뉴스 → 순위)
+            seen_s, picks = set(), []
+            for it in sorted([i for i in its if i.get("sm") and i["k"] == "news"], key=lambda i: (i["_lang"] != "ko", i["s"] in PAYWALL, i.get("r", 9))):
+                if it["s"] in seen_s: continue
+                ld = R.lead_sentence(it["sm"])
+                if not ld: continue
+                seen_s.add(it["s"]); picks.append((it, ld))
+                if len(picks) >= R.LINES_MAX + 2: break
+            need.append((s, picks))
+        # 번역 한 번에 (이미 번역한 문장은 기억에서)
+        flat = [(ld, it["_lang"]) for _, ps in need for it, ld in ps]
+        tr = self.ko.many(flat, deadline=DEADLINE) if flat else []
+        k = 0; n_lines = n_nums = n_q = 0
+        for s, ps in need:
+            core = set(s.get("core") or []) | set(re.findall(r"[가-힣A-Za-z0-9]{2,}", s.get("title") or ""))
+            lines, toks = [], []
+            for it, ld in ps:
+                ko = tr[k] if k < len(tr) else None; k += 1
+                if not ko: continue
+                tk = set(re.findall(r"[가-힣A-Za-z0-9]{2,}", ko))
+                if not (tk & core) and len(ps) > 2: continue                    # 이 사건과 낱말이 하나도 안 겹치는 문장은 뺌
+                if any(R.jacc(tk, o) > 0.45 for o in toks): continue             # 비슷한 문장은 하나만
+                toks.append(tk)
+                lines.append({"t": short(ko, 200), "s": it["s"], "c": self.ctry(it), "i": it["id"], "mt": it["_lang"] != "ko"})
+                if len(lines) >= R.LINES_MAX: break
+            if len(lines) >= 2: s["lines"] = lines; n_lines += 1
+            else: s.pop("lines", None)
+            its = [self.items[i] for i in s["items"] if i in self.items]
+            rows = [(clean_title(self.kt(i)), self.sname(i), self.ctry(i), i["id"]) for i in its if self.kt(i)]
+            rows += [(x["t"], self.sname(self.items[x["i"]]), x["c"], x["i"]) for x in lines]
+            nums = R.nums_of(rows, s.get("title") or "")
+            if nums: s["nums"] = nums; n_nums += 1
+            else: s.pop("nums", None)
+            qs = R.quotes_of(rows[:len(its)], persons)
+            if qs: s["quotes"] = qs; n_q += 1
+            else: s.pop("quotes", None)
+        # 이어진 이야기: 제목의 고유명사가 겹치는 다른 이슈 (지금 판 먼저, 그다음 지난 7일 판)
+        cur_sids = {s.get("sid") for s in self.E["stories"] if s.get("sid")}
+        cur_titles = {s.get("title") for s in self.E["stories"]}
+        past = []
+        idx = sorted([e for e in rj(DATA / "editions/_index.json", []) if e.get("id") != self.ed], key=lambda e: e.get("crawledAt", ""))[-56:]
+        for e in reversed(idx):
+            d = rj(DATA / f"editions/{e['id']}.json", {})
+            for x in d.get("stories", []):
+                if x.get("kind") == "brief" or not x.get("title"): continue
+                if x.get("sid") in cur_sids or x.get("title") in cur_titles: continue
+                if any((x.get("sid") and x.get("sid") == p["sid"]) or x["title"] == p["t"] for p in past): continue
+                past.append({"sid": x.get("sid") or "", "t": x["title"][:80], "ed": e["id"], "label": e.get("label", e["id"])})
+        n_rel = 0
+        for s in big:
+            nm = set(names_of(s.get("title"))) | (set(s.get("core") or []) & proper)
+            if not nm: continue
+            rel = [{"sid": o.get("sid") or o["id"], "id": o["id"], "t": o["title"][:80], "cur": True} for o in big
+                   if o is not s and set(names_of(o.get("title"))) & nm][:2]
+            rel += [dict(p, cur=False) for p in past if set(names_of(p["t"])) & nm][:3 - len(rel)]
+            if rel: s["rel"] = rel; n_rel += 1
+            else: s.pop("rel", None)
+        log(f"읽을거리: 이슈 {len(big)}개 · 여러 출처 요약 {n_lines} · 숫자 {n_nums} · 말말말 {n_q} · 이어진 이야기 {n_rel} · 제목 다시 고름 {n_title} · 엉뚱한 사진 뺌 {n_ph}")
+
     # ── 4. 단신 ──
     def add_briefs(self):
         used = {i for s in self.E["stories"] for i in s["items"]}
@@ -388,6 +489,7 @@ class Ed:
 
     def save(self):
         for k, s in enumerate(self.E["stories"]): s.pop("rep", None)
+        F.give_sid(self.E["stories"], self.ed)          # 새로 생긴 이슈·단신에도 고정 번호
         self.E["explainMethod"] = "auto-v1 (기사 제목·피드 설명을 모아 기계번역 · AI가 쓴 해설 아님)"
         self.E["editedAt"] = datetime.now(KST).isoformat(timespec="seconds"); self.E["editedBy"] = "robot"
         wj(DATA / f"editions/{self.ed}.json", self.E); wj(DATA / f"brief/{self.ed}.json", self.brief); self.ko.save()
@@ -396,7 +498,7 @@ class Ed:
 def main():
     ed = sys.argv[1] if len(sys.argv) > 1 else max(rj(DATA / "editions/_index.json", []), key=lambda e: e.get("crawledAt", ""))["id"]
     t0 = time.time(); X = Ed(ed); log(f"로봇 편집장: {ed}")
-    for step in (X.name_candidates, X.rank, X.extras, X.add_briefs, X.themes, X.grow_ents):
+    for step in (X.name_candidates, X.rank, X.extras, X.readables, X.add_briefs, X.themes, X.grow_ents):
         try: step()
         except Exception as e: log(f"  {step.__name__} 실패 — 건너뜀: {e!r}")
     X.save()
