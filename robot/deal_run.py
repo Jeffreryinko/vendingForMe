@@ -156,7 +156,7 @@ RX_KO_INV = re.compile(r"([가-힣A-Za-z0-9&.]{2,20})(?:\s?등)?(?:으로부터|
 RX_KO_INV2 = re.compile(r"([가-힣A-Za-z0-9&.]{2,20})\s?(?:등\s?)?(?:으로부터|로부터)|서\s([가-힣A-Za-z][가-힣A-Za-z0-9&.]{1,19})\s투자\s?유치")
 RX_KO_TGT = re.compile(r"[,，]\s*(.{2,30}?)\s?(?:을|를)?\s?(?:인수|합병|경영권 인수|지분 인수)")
 RX_JA_HEAD = re.compile(r"^(?:【[^】]{1,12}】\s*)?([^、,，]{1,30}?)[、,，]")
-RX_ZH_HEAD = re.compile(r"^(?:「[^」]{1,10}」)?(.{2,20}?)(?:完成|获|宣布|官宣|拿下|斩获|获得)")
+RX_ZH_HEAD = re.compile(r"^(?:「[^」]{1,10}」|【[^】]{1,12}】|首发\s*[|｜])?(.{2,20}?)(?:完成|获|宣布|官宣|拿下|斩获|获得|签约|拟收购|收购|入股)")
 NAME_STOP = re.compile(r"^(공동|단독|재편|매각|국내|해외|글로벌|the|a|an|exclusive|breaking|report|reports|sources|update|new|this|how|why|startup|startups|ai|단독|속보|종합|특징주|인사|부고|오늘)$|억원|만원|달러|시리즈|투자|유치|규모|후속|추가|신규|전략적|프리|시드|브릿지|라운드", re.I)
 
 
@@ -398,9 +398,16 @@ def toks(t):
     return out
 
 
+KG = {"ma": "m", "pe": "m", "vc": "v", "fund": "f", "ipo": "i", "etc": "e"}
+
+
 def same(a, b):
-    if abs((a["d0"] - b["d0"]).days) > 4: return False
-    if a.get("co") and b.get("co") and a["co"].lower() == b["co"].lower() and a["kind"] == b["kind"]: return True
+    gap = abs((a["d0"] - b["d0"]).days)
+    if gap > 7: return False
+    if a.get("co") and b.get("co") and KG.get(a["kind"]) == KG.get(b["kind"]):
+        from deal_judge import norm
+        if norm(a["co"]) == norm(b["co"]) and (not a.get("tgt") or not b.get("tgt") or norm(a["tgt"]) == norm(b["tgt"])): return True
+    if gap > 4: return False
     ta, tb = a["tk"], b["tk"]
     if not ta or not tb: return False
     common = ta & tb
@@ -413,7 +420,8 @@ def enrich(r, fx):
     txt = r["title"] + " " + r.get("sum", "")[:200]
     r["kind"] = kind_of(r["title"]) if kind_of(r["title"]) != "etc" else kind_of(txt)
     r["stage"] = stage_of(r["title"]) if r["kind"] == "vc" else ""
-    mo = money(r["title"]) or (money(r.get("sum", "")[:200]) if r["kind"] != "etc" else None)
+    mo = money(r["title"]); r["amtFrom"] = "title"
+    if not (mo and mo[0]) and r["kind"] != "etc": mo = money(r.get("sum", "")[:200]) or mo; r["amtFrom"] = "sum"
     r["amt"] = r["usd"] = r["val"] = None; r["amtS"] = ""
     if mo:
         v, cur, frag, val = mo
@@ -425,6 +433,7 @@ def enrich(r, fx):
     r["cc"] = country_of(txt, r["cc0"], r["lang"])
     CUR_CC = {"CNY": "CN", "JPY": "JP", "INR": "IN", "GBP": "GB", "EUR": "EU", "SGD": "SG", "IDR": "ID", "BRL": "BR", "HKD": "CN"}
     if r["cc"] == "KR" and mo and mo[1] in CUR_CC and not CTRY[0][1].search(txt): r["cc"] = CUR_CC[mo[1]]      # 한국 매체가 쓴 '5억 위안' 거래 → 중국
+    if r["cc"] in ("US", "WW") and mo and mo[1] == "KRW" and not any(k not in ("KR", "US") and rx.search(txt) for k, rx in CTRY): r["cc"] = "KR"   # '40억원' → 한국
     r["co"], r["tgt"], r["inv"] = names(r["title"], r["lang"], r["kind"])
     try: r["d0"] = date.fromisoformat(r["date"])
     except Exception: r["d0"] = date.today()
@@ -446,7 +455,7 @@ def cluster(raw, prev_deals, seen_url):
     deals = []
     for d in prev_deals:
         d = dict(d); d["d0"] = date.fromisoformat(d["date"]); d["tk"] = set(d.get("tk", [])) or toks(d["title"]); d["usd"] = d.get("usd")
-        d["srcs"] = [[d.get("src", ""), d.get("url", ""), d.get("lang", "")]] + [x for x in d.get("srcs", []) if x[1] != d.get("url")]   # 화면 파일엔 대표 기사가 빠져 있음
+        if not any(x[1] == d.get("url") for x in d.get("srcs", [])): d["srcs"] = [[d.get("src", ""), d.get("url", ""), d.get("lang", ""), d.get("title", "")[:90], d.get("amtS", "")]] + d.get("srcs", [])
         d.setdefault("via", "gn"); d.setdefault("inv", []); d.setdefault("co", ""); d.setdefault("tgt", ""); d.setdefault("sum", "")
         deals.append(d)
     seen_url |= {s[1] for d in deals for s in d.get("srcs", [])}
@@ -456,15 +465,17 @@ def cluster(raw, prev_deals, seen_url):
         hit = None
         for d in deals:
             if same(d, r): hit = d; break
-        src = [r["src"], r["url"], r["lang"]]
+        src = [r["src"], r["url"], r["lang"], r["title"][:90], r.get("amtS", "")]
         if hit is None:
-            d = {k: r[k] for k in ("title", "sum", "url", "src", "date", "lang", "via", "kind", "stage", "amt", "usd", "val", "amtS", "sec", "cc", "co", "tgt", "inv", "d0", "tk")}
+            d = {k: r[k] for k in ("title", "sum", "url", "src", "date", "lang", "via", "kind", "stage", "amt", "usd", "val", "amtS", "amtFrom", "sec", "cc", "co", "tgt", "inv", "d0", "tk")}
             d["id"] = "n" + hid((r["co"] or r["title"]).lower() + r["kind"] + r["date"][:7]); d["srcs"] = [src]; d["n"] = 1; d["t"] = "news"; d["at"] = now_iso()
+            d["amts"] = [r["amt"]] if r.get("amt") else []
             deals.append(d)
         else:
             if len(hit["srcs"]) < 8 and r["src"] not in [s[0] for s in hit["srcs"]]: hit["srcs"].append(src)
             hit["n"] = hit.get("n", 1) + 1
-            for k in ("amt", "usd", "amtS", "val", "co", "tgt"):
+            if r.get("amt"): hit["amts"] = (hit.get("amts") or [])[-7:] + [r["amt"]]
+            for k in ("amt", "usd", "amtS", "amtFrom", "val", "co", "tgt"):
                 if not hit.get(k) and r.get(k): hit[k] = r[k]
             if r["stage"] and not hit.get("stage"): hit["stage"] = r["stage"]
             hit["inv"] = (hit.get("inv") or []) + [x for x in r["inv"] if x not in (hit.get("inv") or [])][:5]
@@ -825,11 +836,13 @@ def band(v):
 
 
 def stats(fx):
+    import deal_judge as J
     st = {"at": now_iso(), "news": {}, "formd": {}, "sec": {}, "dart": {}}
     for f in sorted(NEWS.glob("????-??-??.json")):
         m = f.stem[:7]; b = st["news"].setdefault(m, {"n": 0, "kind": {}, "sec": {}, "cc": {}, "amt": 0})
         for d in rj(f, {}).get("items", []):
-            b["n"] += 1; a = d.get("amt") or 0; b["amt"] += a
+            if d.get("st", "done") == "news": continue                                     # 거래 아닌 딜 소식은 안 셈
+            b["n"] += 1; a = (d.get("amt") or 0) if (J.counted(d) or "g" not in d) else 0; b["amt"] += a      # 금액은 확인된 거래만 (등급 생기기 전 자료는 그대로)
             k = b["kind"].setdefault(d["kind"], [0, 0]); k[0] += 1; k[1] += a
             if d["kind"] == "vc":
                 for s in d.get("sec", [])[:1]: x = b["sec"].setdefault(s, [0, 0]); x[0] += 1; x[1] += a
@@ -869,14 +882,14 @@ def people(days=90):
 
 
 # ───────── 실행 ─────────
-KEEP = ("id", "gurl", "t", "kind", "stage", "title", "ko", "sum", "ksum", "url", "src", "date", "lang", "amt", "usd", "amtS", "val", "sec", "cc", "co", "tgt", "inv", "n", "srcs", "ind", "ninv", "loc", "biz", "rep", "cls", "at", "via")
+KEEP = ("id", "amtFrom", "st", "g", "chk", "amtK", "garb", "quiet", "filed", "follow", "hist", "coinfo", "amts", "gurl", "t", "kind", "stage", "title", "ko", "sum", "ksum", "url", "src", "date", "lang", "amt", "usd", "amtS", "val", "sec", "cc", "co", "tgt", "inv", "n", "srcs", "ind", "ninv", "loc", "biz", "rep", "cls", "at", "via")
 
 
 def slim(d, arch=False):
     o = {k: d[k] for k in KEEP if d.get(k) not in (None, "", [])}
     if arch:                                                                         # 쌓는 파일은 가볍게: 요약 빼고 출처 4개까지
-        o.pop("sum", None); o.pop("ksum", None); o.pop("via", None); o.pop("at", None)
-        if o.get("srcs"): o["srcs"] = o["srcs"][:3]
+        for k in ("sum", "ksum", "via", "at", "hist", "amts", "coinfo"): o.pop(k, None)
+        if o.get("srcs"): o["srcs"] = [x[:3] for x in o["srcs"][:3]]
     return o
 
 
@@ -889,7 +902,7 @@ def main():
     # 1) 뉴스 → 거래
     raw = [enrich(r, fx) for r in collect_news(health)]
     raw = [r for r in raw if r["kind"] != "etc" or r.get("amt")]
-    prev = rj(OUT / "now.json", {}).get("deals", []); tkm = rj(ST / "tk.json", {})
+    prev = rj(ST / "recent.json", {}).get("deals") or rj(OUT / "now.json", {}).get("deals", []); tkm = rj(ST / "tk.json", {})
     for d in prev: d["tk"] = tkm.get(d["id"], [])
     cut = (date.today() - timedelta(days=NOW_DAYS)).isoformat()
     prev_news = [d for d in prev if d.get("t") == "news" and d["date"] >= cut and not SKIP.search(d.get("title", ""))]   # 빼는 낱말을 고치면 지난 거래에도 바로 적용
@@ -920,6 +933,7 @@ def main():
     prev_fil = [d for d in prev if d.get("t") in ("formd", "dart") and d["date"] >= cut]
     have = {d["id"] for d in prev_fil}
     fil = prev_fil + [d for d in filing_deals(fd_new, dart_new, fx) if d["id"] not in have and d["date"] >= cut]
+    for d in fil: d["st"] = "done"; d["g"] = "f"
 
     # 3) 번역 (한국어가 아닌 제목 + 금액 큰 순 200건 요약)
     mem_path = OUT / "_tr.json"
@@ -954,11 +968,41 @@ def main():
         if d["lang"] == "ko": d["ko"] = d["title"]
         if d.get("ko") and d["kind"] in ("vc", "etc") and not d.get("stage"): d["stage"] = stage_of(d["ko"])
         if d.get("ko") and d["sec"] == ["etc"]: d["sec"] = sectors_of(d["ko"])
-        if d.get("ko") and not d.get("amt") and d["lang"] not in ("en", "ko"):                     # 번역문에서 금액 다시 찾기
-            mo = money(d["ko"])
-            if mo and mo[0]:
-                krw = mo[0] * fx.get(mo[1], 1)
-                if 1e7 < krw < 5e15: d["amt"] = round(krw); d["usd"] = round(krw / fx["USD"]); d["amtS"] = mo[2]
+
+    # 3-2) 가리고 재기 (deal_judge): 깨진 번역 · 금액 · 회사 사전 · 상태 · 지난 이야기 · 공시 맞추기 · 믿음 등급
+    import deal_judge as J
+    cod = J.CoDict(ST / "codict.json")
+    lk_deadline = min(deadline - 90, time.time() + 240)
+    for d in sorted(deals, key=lambda d: -(d.get("amt") or 0) - (1e15 if d.get("cc") == "KR" else 0)):
+        if d["lang"] != "ko" and d.get("ko"):
+            g = J.garbled(d["ko"], d["title"], d["lang"])
+            if g: d["garb"] = g; d["ko"] = ""
+        if d.get("ksum") and J.garbled(d["ksum"], d.get("sum", ""), sum_lang(d.get("sum", ""))): d.pop("ksum", None)
+        J.amount_check(d)
+        if time.time() < lk_deadline:
+            info = cod.look(d.get("co"), 80)
+        else:
+            info = cod.get(d.get("co"))
+        if info:
+            if info.get("cc"): d["cc"] = info["cc"]
+            if d["sec"] == ["etc"] and info.get("desc"): d["sec"] = sectors_of(info["desc"])
+            if info.get("desc") or info.get("since"): d["coinfo"] = {k: info[k] for k in ("desc", "since", "qid") if info.get(k)}
+        d["st"] = J.status(d)
+    cod.save(); log(f"회사 사전: 새로 {cod.n}곳 찾음 · 모두 {len(cod.d)}곳")
+
+    try:
+        idx = J.build_index(NEWS, DARTD, FD)
+        for d in deals:
+            d["hist"], d["filed"], d["follow"] = J.history(d, idx, fx["USD"])
+            d["g"] = J.grade(d)
+        news_names = {J.norm(x) for d in deals for x in (d.get("co"), d.get("tgt")) if x}
+        for d in fil:
+            d["hist"], _, _ = J.history(d, idx, fx["USD"])
+            if J.norm(d.get("co")) not in news_names and J.norm(d.get("tgt")) not in news_names and (d.get("amt") or 0) >= 5e9: d["quiet"] = 1
+        log(f"등급: " + ", ".join(f"{k} {sum(1 for d in deals if d.get('g') == k)}" for k in "fmsc") + " · 상태: " + ", ".join(f"{k} {sum(1 for d in deals if d.get('st') == k)}" for k in ("done", "rumor", "fail", "news")))
+    except Exception as e:
+        log(f"지난 이야기·등급 실패 — 건너뜀: {e}")
+        for d in deals: d.setdefault("g", "s")
 
     # 4) 저장: 지금 화면 + 날짜별로 쌓기
     alld = [slim(d) for d in deals] + [slim(d) for d in fil]
@@ -967,12 +1011,14 @@ def main():
         d["band"] = band(d.get("amt"))
     alld.sort(key=lambda d: (d["date"], d.get("amt") or 0), reverse=True)
     wj(ST / "tk.json", {d["id"]: sorted(d.get("tk", []))[:40] for d in deals})                # 묶기용 낱말 (화면엔 안 씀)
+    wj(ST / "recent.json", {"at": now_iso(), "deals": [dict(d) for d in alld]})               # 다음 실행에서 이어 묶을 4일치 (출처 전부)
     for d in alld:                                                                    # 화면 파일 가볍게: 대표 기사 빼고 다른 출처 4곳까지
         o = [x for x in d.get("srcs", []) if x[1] != d.get("url")][:4]
         if o: d["srcs"] = o
         else: d.pop("srcs", None)
         if d.get("sum"): d["sum"] = d["sum"][:300]
-        d.pop("via", None)
+        if d.get("ksum"): d.pop("sum", None)                                          # 번역이 있으면 원문 요약은 화면에서 뺌
+        for k in ("via", "amts", "at"): d.pop(k, None)
     week = {}
     wcut = (date.today() - timedelta(days=7)).isoformat()
     by_day = {}
@@ -991,7 +1037,8 @@ def main():
     for f in sorted(NEWS.glob("????-??-??.json")):
         if f.stem < wcut: continue
         for d in rj(f, {}).get("items", []):
-            a = d.get("amt") or 0
+            if d.get("st", "done") != "done": continue
+            a = d.get("amt") if J.counted(d) else 0
             for key, val in (("kind", d["kind"]), ("cc", d.get("cc", "WW"))) + tuple(("sec", s) for s in (d.get("sec") or ["etc"])[:1]):
                 x = week.setdefault(key, {}).setdefault(val, [0, 0]); x[0] += 1; x[1] += a
     sec_today = []
@@ -999,7 +1046,19 @@ def main():
         rows = rj(f, {}).get("rows", [])
         last = max((r[0] for r in rows), default="")
         sec_today = [r for r in rows if r[0] >= (date.fromisoformat(last) - timedelta(days=2)).isoformat()] if last else []
-    now = {"at": now_iso(), "day": day, "deals": alld, "week": week, "secToday": sec_today[-80:]}
+    y = (date.today() - timedelta(days=1)).isoformat()
+    try: bn = J.bench(FD, OUT / "kvca.json", NEWS, fx["USD"], S.FORMD_IND)
+    except Exception as e: log(f"잣대 실패: {e}"); bn = {}
+    try: mm = J.money_map(NEWS)
+    except Exception as e: log(f"지도 실패: {e}"); mm = {}
+    daily = J.daily_pick(alld, state, datetime.now(KST)); wj(ST / "state.json", state)
+    keep_ids = {i for i, _ in daily.get("items", [])}
+    screen = [dict(d) for d in alld if (d["date"] >= day and d.get("st") != "news") or d["id"] in keep_ids or d.get("st") in ("rumor", "fail")]
+    for d in screen:
+        if d.get("hist"): d["hist"] = [[e[0], e[1], e[2][:70], e[3], e[4]] for e in d["hist"][:4]]
+        for k in ("amtFrom", "gurl", "lang"): d.pop(k, None)
+        if d.get("srcs"): d["srcs"] = [[x[0], x[1], (x[3] if len(x) > 3 else "")[:70], (x[4] if len(x) > 4 else "")] for x in d["srcs"][:2]]   # 매체·주소·제목·금액
+    now = {"at": now_iso(), "day": day, "deals": screen, "week": week, "secToday": sec_today[-40:], "bench": bn, "map": mm, "daily": daily}
     wj(OUT / "now.json", now)
 
     st = stats(fx); people()

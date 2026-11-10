@@ -61,7 +61,7 @@ SKIP_WORDS = (r"(?i)\b(podcast|webinar|newsletter|opinion|how to|guide|tips|week
 
 # 종류 — 위에서부터 먼저 맞는 것 (펀드·사모·인수합병·상장이 투자보다 먼저)
 KIND_RX = [
-    ("fund", "펀드 결성", r"\b(closes?|closed|launches|raises?)\b.{0,40}\b(fund|vehicle)\b|\bfund (I|II|III|IV|V|VI|VII|VIII|IX|X)\b|debut fund|\bfinal close\b|venture fund|growth fund|펀드 결성|펀드 조성|모태펀드|출자사업|결성총회|LP 출자|ファンド(を)?組成|基金"),
+    ("fund", "펀드 결성", r"\b(closes?|closed|launches|raises?)\b.{0,40}\b(fund|vehicle)\b|\bfund (I|II|III|IV|V|VI|VII|VIII|IX|X)\b|debut fund|\bfinal close\b|venture fund|growth fund|펀드 결성|펀드 조성|펀드 클로징|클로징|모태펀드|출자사업|결성총회|LP 출자|ファンド(を)?組成|基金"),
     ("pe", "사모·바이아웃", r"private equity|buyout|take-private|take private|LBO|leveraged|PE firm|사모펀드|PEF|바이아웃|경영권 매각|私募|Private-Equity"),
     ("ma", "인수합병", r"\b(acquir(e|es|ed|ing)|acquisition|to buy|buys|bought|merger|merge[sd]?|takeover|deal to buy|snaps up|purchase of)\b|인수|합병|M&A|매각|경영권|買収|経営統合|收购|并购|Übernahme|übernimmt|rachat|rachète|acquisizione|aquisição|adquire|akuisisi"),
     ("ipo", "상장", r"\bIPO\b|initial public offering|goes public|go public|went public|listing on|debut on (the )?(NYSE|Nasdaq)|SPAC|direct listing|상장|공모가|공모주|증권신고서|코스닥 입성|上場|上市|Börsengang|introduction en bourse|abertura de capital"),
