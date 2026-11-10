@@ -14,7 +14,7 @@ CRAWLER = HERE.parent / "crawler"
 sys.path.insert(0, str(CRAWLER))
 from cluster import build_stories, tokens  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from ko_polish import bad as _bad  # noqa: E402
+from ko_polish import bad as _bad, headline as _headline  # noqa: E402
 
 WORK = Path(os.environ.get("WORK", "."))
 LIMIT = {"news": 8, "community": 10, "trend": 10}
@@ -136,7 +136,7 @@ def cmd_build(ed, prev, ko_file, label):
         p = prev_items.get(sid)
         old = (p or {}).get("ko")
         if old and _bad(i["title"], old, i.get("lang", "en")): old = None      # 엉뚱한 옛 번역은 버리고 원문 제목으로
-        i["title_ko"] = ko.get(sid) or old
+        i["title_ko"] = _headline(ko.get(sid) or old or "") or None          # 이어받은 옛 제목도 신문 제목체로
         i["_first"] = (p or {}).get("first", prev) if p else ed
     stories = build_stories(items, ed[:10])
     idmap = {i["id"]: i["guid_hash"][:12] for i in items}

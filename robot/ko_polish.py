@@ -54,7 +54,8 @@ def glossary_for(text: str, n: int = 8):
     for o, ko in _load().items():
         if o.lower() in seen: continue
         if re.match(r"[A-Za-z]", o):
-            if re.search(r"(?<![A-Za-z])" + re.escape(o.lower()) + r"(?![a-z])", tl): out.append((o, ko))
+            tail = r"[a-zà-ÿа-я]{0,3}" if len(o) >= 5 else ""          # 폴란드어 Krakowie·독일어 Nvidias 처럼 끝이 바뀐 꼴도
+            if re.search(r"(?<![A-Za-z])" + re.escape(o.lower()) + tail + r"(?![a-z])", tl): out.append((o, ko))
         elif o in t: out.append((o, ko))
         if out and out[-1][0] == o: seen.add(o.lower())
         if len(out) >= n: break
@@ -105,7 +106,7 @@ def bad(src: str, y: str, lang: str = "en") -> str:
     if not re.search(r"[가-힣]", y) and re.search(r"[A-Za-z]{4,}", s) and not re.fullmatch(r"[\x00-\x7F]+", y): return "한국어가 없음"
     cjk = lang in ("zh", "zh-tw", "zh-cn", "ja")
     r = len(y) / max(1, len(s))
-    if len(s) >= 20 and (r < (0.45 if cjk else 0.22) or r > (4.5 if cjk else 2.6)): return f"길이가 이상함({r:.2f})"
+    if len(s) >= 40 and (r < (0.4 if cjk else 0.16) or r > (4.5 if cjk else 2.6)): return f"길이가 이상함({r:.2f})"   # 한국어는 짧게 줄어드는 편이라 넉넉히
     for o, ko in ANCHOR.items():
         if re.search(r"(?<![A-Za-z])" + o + r"(?![a-z])", s) and ko not in y and o.lower() not in y.lower(): return f"'{o}'가 번역에 없음"
     return ""
