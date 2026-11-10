@@ -258,8 +258,13 @@ class Ed:
         tr = self.translate_sm(list(dict.fromkeys(need.values())))
         for s in self.stories():
             if s.get("rep") in tr and not s.get("key"):
-                s["sum"] = tr[s["rep"]]
-                s["key"] = f"{self.sname(self.items[s['rep']])} 기사 요약(기계번역): {tr[s['rep']]}"
+                sm = tr[s["rep"]].strip()
+                # 피드 설명이 문장 중간에서 잘려 있으면 마지막으로 끝맺은 문장까지만 (예: '…기자가 보도한 내용: 제이크 존슨과의 인터뷰')
+                m = re.match(r"^(.*[.!?。]|.*다\.)\s*[^.!?。]*$", sm, re.S)
+                if not re.search(r"[.!?。…”\"']$", sm) and m and len(m.group(1)) >= 40: sm = m.group(1).strip()
+                sm = re.sub(r"\s*[^.!?。]*(?:기자가 보도한 내용|reports|reported by)\s*:?\s*$", "", sm).strip() or sm
+                s["sum"] = sm
+                s["key"] = f"{self.sname(self.items[s['rep']])} 기사 요약(기계번역): {sm}"
         self.E["stories"] = [s for s in self.E["stories"] if not s.pop("_drop", False)]
         log(f"새 이슈 이름 붙임 {n}개 (요약 번역 {len(tr)}개)")
 

@@ -554,6 +554,11 @@ nav.tabs button[aria-current="page"] svg{stroke:var(--accent);stroke-width:2}
 .tc2.done .tc2-k,.tc2.done .th-x{display:none}
 .tc2.done .tc2-t{font-size:15px}
 b.rnew{color:var(--accent);font-weight:700}
+.shw{position:relative}
+.shw>.shr{position:absolute;bottom:6px;right:6px;width:36px;height:36px;border-radius:50%;border:0;display:grid;place-items:center;background:color-mix(in srgb,var(--surface) 85%,transparent);color:var(--muted);cursor:pointer;z-index:2}
+.shw>.shr:hover,.shw>.shr:focus-visible{color:var(--accent)}
+.shw>.sr .sr-b{padding-right:40px}
+.shr-top{display:inline-flex;align-items:center;gap:4px;margin-left:auto}
 .dcard{all:unset;cursor:pointer;display:grid;gap:8px;margin:12px 0;padding:14px 16px;border-radius:14px;border:1.5px solid var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--surface));box-sizing:border-box;width:100%}
 .dcard.done{border-color:var(--line);background:var(--surface)}
 .dc-h{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
@@ -1858,7 +1863,7 @@ function drawIssue(sid){
   const keepScroll = still ? ($(".sheet")?.scrollTop || 0) : (S.sheetScroll["issue:"+sid] || 0);
   const cat = CAT[s.cat] ? s.cat : "";
   $("#sheetHost").innerHTML = `<div class="scrim" data-close></div><div class="sheet issue${cat ? " t-"+cat : ""}${still ? " still" : ""}" role="dialog" aria-modal="true" aria-label="이슈 해설">
-    <div class="sheet-top"><button type="button" data-close>← 뒤로</button><span class="grab" aria-hidden="true"></span><button type="button" data-close aria-label="닫기">✕</button></div>
+    <div class="sheet-top"><button type="button" data-close>← 뒤로</button><span class="grab" aria-hidden="true"></span><button type="button" class="shr-top" data-share="${s.id}" aria-label="이 이야기 공유">${SHARE_IC}<span>공유</span></button><button type="button" data-close aria-label="닫기">✕</button></div>
     <div class="wrap">${issueInner(s, false)}</div></div>`;
   const sh = $(".sheet"); if(keepScroll) sh.scrollTop = keepScroll;
   // 지금 읽는 단계 번호만 강조
@@ -2046,7 +2051,7 @@ function recapHtml(tops){
 function topCard(s, n){
   const countries = issueCountries(s); const done = issueOpened(s);
   const cat = CAT[s.cat] ? s.cat : "";
-  return `<button type="button" class="tcard${cat ? " t-"+cat : ""}${done ? " done" : ""}" data-issue="${s.id}">
+  return shareWrap(s, `<button type="button" class="tcard${cat ? " t-"+cat : ""}${done ? " done" : ""}" data-issue="${s.id}">
     <span class="tc-head"><span class="tc-n">${n}</span>${cat ? `<span class="cat"><i aria-hidden="true"></i>${CAT[cat]}</span>` : ""}<span class="meta">${RD.at(s) ? rdBadge(s) : s.delta==="new" ? '<b class="new">새 이슈</b>' : s.delta==="grown" ? '<b class="acc">커지는 중</b>' : ""}</span></span>
     <span class="tc-title">${esc(s.title)}</span>
     ${(() => { const ph = storyPhoto(s); return ph
@@ -2055,7 +2060,7 @@ function topCard(s, n){
     <span class="tc-key">${esc(s.key || s.sum || "")}</span>
     ${s.why ? `<span class="tc-why"><b>왜 중요?</b> ${esc(s.why)}</span>` : ""}
     <span class="tc-foot">${(s.bg||[]).length ? `배경 ${s.bg.length}가지` : ""}${(s.terms||[]).length ? ` · 용어 ${s.terms.length}개` : ""}<span class="more-l">해설 보기 ›</span></span>
-  </button>`;
+  </button>`);
 }
 
 // ───────── 나라별 오늘 ─────────
@@ -2218,27 +2223,41 @@ function homeTopCard(s, n){
   const countries = issueCountries(s); const done = issueOpened(s);
   const place = s.geo && s.geo.spots && s.geo.spots[0] ? s.geo.spots[0][2] : (s.where||[]).map(cname).join("·");
   const th = thS(s);
-  return `<button type="button" class="tc2 t-${s.cat||"pol"}${done ? " done" : ""}${th ? " has-th" : ""}" data-issue="${s.id}">${th}
+  return shareWrap(s, `<button type="button" class="tc2 t-${s.cat||"pol"}${done ? " done" : ""}${th ? " has-th" : ""}" data-issue="${s.id}">${th}
     <span class="tc2-n">${n}</span>
     <span class="tc2-b">
       <span class="tc2-m">${catDot(s.cat)}${CAT[s.cat]||""}${place ? ` · ${esc(place)}` : ""} · ${countries.length}개국${RD.at(s) ? " · " + rdBadge(s) : s.delta==="new" ? ' · <b class="new">새 이슈</b>' : s.delta==="grown" ? ` · <b class="acc">+${s.grow||0}</b>` : ""}</span>
       <span class="tc2-t">${esc(s.title)}</span>
       <span class="tc2-k">${esc(s.key || s.sum || "")}</span>
-    </span></button>`;
+    </span></button>`);
 }
 
 
 // ── 오늘의 이야기: 많은 이슈를 끝없이 넘겨 보는 목록 ──
+// ── 카드마다 공유: 판이 바뀌어도 열리는 주소(#issue-고정번호@판) ──
+const SHARE_IC = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/></svg>`;
+const shareBtn = s => `<button type="button" class="shr" data-share="${s.id}" aria-label="이 이야기 공유">${SHARE_IC}</button>`;
+const shareWrap = (s, html) => `<div class="shw">${html}${shareBtn(s)}</div>`;
+function shareStory(s){
+  if(!s) return;
+  const url = appUrl("#issue-" + (s.sid || s.id) + "@" + S.edId);
+  const key = String(s.key || s.sum || "").replace(/^\S+ 기사 요약\(기계번역\):\s*/, "");
+  const text = (s.title || "") + (key ? "\n" + (key.length > 120 ? key.slice(0, 118) + "…" : key) : "");
+  if(navigator.share) return navigator.share({title: s.title || "시사", text, url}).catch(() => {});
+  const all = text + "\n" + url;
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(all).then(() => toast("주소를 복사했어요 — 카톡 등에 붙여넣기"), () => toast("공유하지 못했어요"));
+  else toast("공유하지 못했어요");
+}
 function storyRow(s){
   const cs = issueCountries(s); const done = issueOpened(s);
   const fresh = RD.at(s) ? "" : s.delta==="new" ? `<b class="new">${isBrief(s) ? "새 단신" : "새 이야기"}</b>` : s.delta==="grown" ? `<b class="acc">+${s.grow||0} 새 글</b>` : "";
   const th = thS(s);
-  return `<button type="button" class="sr t-${s.cat||"pol"}${done ? " done" : ""}${isBrief(s) ? " bf" : ""}${th ? " has-th" : ""}" data-issue="${s.id}">${th}
+  return shareWrap(s, `<button type="button" class="sr t-${s.cat||"pol"}${done ? " done" : ""}${isBrief(s) ? " bf" : ""}${th ? " has-th" : ""}" data-issue="${s.id}">${th}
     <span class="sr-m">${catDot(s.cat)}${CAT[s.cat]||"기타"}<span class="sr-f">${cs.slice(0,5).map(flag).join("")}</span>${fresh}${rdBadge(s)}${s.wk ? '<span class="wkb">위키 주요 사건</span>' : ""}</span>
     <span class="sr-t">${esc(s.title || storyTitle(s, storyItems(s)))}</span>
     ${s.key || s.sum ? `<span class="sr-k">${esc(s.key || s.sum)}</span>` : ""}
     <span class="sr-b">${isBrief(s) ? `단신 · ${esc(cname(cs[0]))} · ${esc(srcOf(storyItems(s)[0].s).n)}` : s.kind==="local" ? `${esc(cname(cs[0]))} 안 이야기 · 기사 ${storyItems(s).length}` : `${cs.length}개국 · 기사 ${storyItems(s).length}`}${s.why3 || s.bg ? " · 해설 있음" : ""}</span>
-  </button>`;
+  </button>`);
 }
 function storiesBlock(list){
   const f = S.storyF || "all";
@@ -2940,7 +2959,10 @@ function route(){
   if(h.startsWith("map-")) return showMapFull(h.slice(4));
   closeMapFull(true);
   if(h.startsWith("item-") && S.byId[h.slice(5)]) return showSheet(h.slice(5));
-  if(h.startsWith("issue-")) return showIssue(h.slice(6));
+  if(h.startsWith("issue-")){ const [k, pe] = h.slice(6).split("@");
+    if(findStory(k)) return showIssue(k);
+    if(pe && pe !== S.edId && (S.eds||[]).some(e => e.id === pe)) return loadEdition(pe).then(() => { render(); findStory(k) ? showIssue(k) : toast("그 이야기를 찾지 못했어요"); }).catch(() => toast("그 판을 불러오지 못했어요"));
+    return toast("이 이야기는 지금 판에서 내려갔어요"); }
   if(h.startsWith("theme-")) return showTheme(h.slice(6));
   if(h === "daily") return showDaily();
   if(S.sheetOpen){ S.sheetOpen = null; $("#sheetHost").innerHTML = ""; }
@@ -2966,7 +2988,7 @@ function render(){
 function go(v){ navTo(v==="src" ? "sources" : v); }
 
 document.addEventListener("click", e => {
-  const t = e.target.closest("[data-daily],[data-pastiss],[data-sum],#briefBtn,[data-more],[data-fclear],[data-tsrc],[data-trow],[data-track],[data-untrack],[data-q],[data-memoopen],[data-tap],[data-v],[data-open],[data-story],[data-f],[data-tog],[data-logf],[data-day],[data-read],[data-save],[data-memo],[data-close],[data-out],[data-gt],[data-misgroup],[data-gostory],[data-smtr],[data-ctx],[data-ed],[data-retread],[data-retno],[data-issue],[data-country],[data-mapmode],[data-jump],[data-theme],[data-tone],[data-ftab],[data-storyf],[data-mapfull],[data-opall],[data-opf],[data-snav],[data-natc],[data-likego],[data-ent],[data-entclose],[data-entf],[data-mfclose],[data-mfzoom],[data-mfmode],[data-mfsel],#trBtn,#aiBtn,#srcBtn,#fsBtn,#kbBtn,#chkBtn,#demoBtn");
+  const t = e.target.closest("[data-share],[data-daily],[data-pastiss],[data-sum],#briefBtn,[data-more],[data-fclear],[data-tsrc],[data-trow],[data-track],[data-untrack],[data-q],[data-memoopen],[data-tap],[data-v],[data-open],[data-story],[data-f],[data-tog],[data-logf],[data-day],[data-read],[data-save],[data-memo],[data-close],[data-out],[data-gt],[data-misgroup],[data-gostory],[data-smtr],[data-ctx],[data-ed],[data-retread],[data-retno],[data-issue],[data-country],[data-mapmode],[data-jump],[data-theme],[data-tone],[data-ftab],[data-storyf],[data-mapfull],[data-opall],[data-opf],[data-snav],[data-natc],[data-likego],[data-ent],[data-entclose],[data-entf],[data-mfclose],[data-mfzoom],[data-mfmode],[data-mfsel],#trBtn,#aiBtn,#srcBtn,#fsBtn,#kbBtn,#chkBtn,#demoBtn");
   if(!t) return;
   const d = t.dataset;
   if(t.id==="srcBtn") return go("src");
@@ -2987,6 +3009,7 @@ document.addEventListener("click", e => {
   }
   if(d.open){ if(!t.closest(".sheet")) rememberList(t); return openSheet(d.open); }
   if(d.ctx){ return explainContext(d.ctx); }
+  if(d.share){ e.preventDefault(); e.stopPropagation(); return shareStory(findStory(d.share)); }
   if(d.daily) return navTo("daily");
   if(d.pastiss){ const [pe, ps] = d.pastiss.split("|"); closeSheet(); loadEdition(pe).then(() => { render(); const st = ps && findStory(ps); if(st) navTo("issue-" + st.id); }).catch(() => toast("그 판을 불러오지 못했어요")); return; }
   if(d.ed){ S.newEd = null; if(d.ed!==S.edId) loadEdition(d.ed).then(render).catch(()=>toast("판을 불러오지 못했어요")); else render(); return; }
