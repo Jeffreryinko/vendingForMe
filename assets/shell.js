@@ -21,7 +21,7 @@
   } catch (e) { }
   var APP = (window.vfm && window.vfm.app) || window.VFM_APP || "sisa";
   var HOME = APP === "home";
-  var ROOT = HOME ? "./" : "../";
+  var ROOT = window.VFM_ROOT || (HOME ? "./" : "../");   // 두 단계 아래 화면(deal/learn/)은 VFM_ROOT 로 알려 줌
   var APPS = [["sisa","시사"],["tools","도구"],["ai","AI"],["deal","딜"]];
   var NAME = { home: "홈", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", baedat: "배댓", mental: "맨탈", deal: "딜", box: "보관함" };
   try { if (!HOME) localStorage.setItem("vfm:tab", APP); } catch (e) { }

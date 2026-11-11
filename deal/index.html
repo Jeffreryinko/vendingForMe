@@ -2,6 +2,7 @@
 <script>window.VFM_APP="deal";</script>
 <script src="../assets/claude-shim.js"></script>
 <script src="../assets/deck.js"></script>
+<script src="learn/terms.js?v=1" defer></script>
 <link rel="manifest" href="../manifest.webmanifest"><meta name="theme-color" content="#F2F2F7"><link rel="apple-touch-icon" href="../assets/icon-192.png">
 <title>딜 자판기</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
@@ -103,6 +104,7 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
   <button data-v="map"><b>◫</b>지도</button>
   <button data-v="names"><b>◎</b>이름</button>
   <button data-v="shelf"><b>☆</b>보관함</button>
+  <button data-href="learn/"><b>✎</b>배움</button>
 </nav>
 <script>
 "use strict";
@@ -704,6 +706,25 @@ function renderShelf() {
 
 /* ───── 자세히 (아래에서 올라오는 창) ───── */
 function shareText(d) { return `${d.ko || d.title}${d.amt ? "\n" + won(d.amt) + (d.amtS ? " (" + d.amtS + ")" : "") : ""}\n${d.url}`; }
+/* ───── 이 기사에 나온 말 (배움 사전 learn/terms.js 를 같이 써요) ───── */
+const ST_TM = { "pre-seed": "preseed", seed: "seed", "pre-a": "pre-a", a: "series-a", b: "series-b", c: "series-c", "d+": "series-c", growth: "growth", tips: "tips", grant: "grant", debt: "debt" };
+const KD_TM = { vc: "invest", ma: "acquisition", pe: "pe", ipo: "ipo", fund: "fund-close" };
+function termHits(d) {
+  const T = window.VFM_TERMS; if (!T) return [];
+  const hay = " " + [d.title, d.ko, d.sum, d.ksum].filter(Boolean).join(" ").toLowerCase() + " ", out = [], add = id => { const t = T.find(x => x.id === id); if (t && !out.includes(t)) out.push(t); };
+  add(ST_TM[d.stage]); add(KD_TM[d.kind]); if (d.st === "rumor") add("talks"); if (d.val) add("valuation"); if (d.amtK === "debt") add("debt");
+  for (const t of T) if (out.length < 12 && (t.k || []).some(k => hay.includes(k))) add(t.id);
+  return out.sort((a, b) => a.lv - b.lv).slice(0, 7);
+}
+function termChips(d) { const h = termHits(d); return h.length ? `<p class="sh2">이 기사에 나온 말<small>누르면 뜻</small></p><div>${h.map(t => `<button class="nm" style="background:var(--accent-soft);color:var(--accent);font-weight:600" data-tm="${esc(t.id)}">${esc(t.t)}</button>`).join("")}</div>` : ""; }
+function termPop(id) {
+  const t = (window.VFM_TERMS || []).find(x => x.id === id); if (!t) return;
+  const old = document.querySelector(".tpop"); if (old) old.remove();
+  const b = document.createElement("div"); b.className = "tpop"; b.style.cssText = "position:fixed;inset:0;z-index:9650;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center";
+  b.innerHTML = `<div class="sheet" style="max-height:70vh"><div class="grab"></div><h3>${esc(t.t)} <small style="font:400 13px var(--ap-font);color:var(--muted)">${esc(t.en || "")}</small></h3><div class="body"><p style="margin:0 0 8px">${esc(t.s)}</p>${t.a ? `<p style="margin:0 0 8px"><b style="color:var(--accent)">비유</b> ${esc(t.a)}</p>` : ""}${t.x ? `<p style="margin:0"><b style="color:var(--accent)">기사에서는</b> ${esc(t.x)}</p>` : ""}</div><div class="acts"><a class="btn" href="learn/#term=${esc(t.id)}">사전에서 더 보기 ›</a><button class="btn pri" id="tpx">닫기</button></div></div>`;
+  b.addEventListener("click", e => { if (e.target === b || e.target.id === "tpx") { e.stopPropagation(); b.remove(); } });
+  document.body.appendChild(b);
+}
 function thinkQs(d) {
   const q = [], early = ["pre-seed", "seed", "pre-a", "a", "tips"].includes(d.stage);
   if (d.st === "rumor") q.push("아직 확정이 아니에요. 무엇이 나오면 확정일까요? (회사 발표, 공시, 계약 소식)");
@@ -782,7 +803,7 @@ function openItem(id, dir) {
     <div class="meta" style="margin-bottom:4px">${badges(d)}<span>${esc(d.src || "")}</span></div>
     ${d.amt ? `<p class="big">${won(d.amt)}</p><p class="orig">${esc(d.amtS && !/[원조억만]$/.test(d.amtS) ? d.amtS : d.usd ? usd(d.usd) : "")}${(S.idx.fx || {}).day ? ` · ${esc(S.idx.fx.day)} 환율로 바꾼 대략값` : ""}</p>` : ["vc", "ma", "pe", "fund"].includes(d.kind) ? `<p class="orig">금액은 안 밝혔어요</p>` : ""}
     ${d.co ? `<h3>${hlName(d)}</h3><p class="orig" style="margin:0 0 4px">${esc(hlLine(d))}</p><p style="margin:6px 0 2px;font-weight:600">${esc(ko)}</p>` : `<h3>${esc(ko)}</h3>`}${orig ? `<p class="orig">${esc(orig)}</p>` : ""}${gl}
-    ${rulerHtml(d)}${what}${who}${hist}${srcs}${likeH}${think}
+    ${termChips(d)}${rulerHtml(d)}${what}${who}${hist}${srcs}${likeH}${think}
     <div class="acts">${acts.join("")}</div>
     ${sh2("생각 3줄", "이 폰에만 저장")}<textarea id="memo" placeholder="① 무슨 일인가&#10;② 왜 중요한가 (돈·사람·기술 중 무엇이 움직였나)&#10;③ 우리 일과는 어떤 관계인가">${esc(S.memo[id] || "")}</textarea></div>`;
   document.body.appendChild(back);
@@ -859,7 +880,7 @@ function debounce(f, ms) { let t; return () => { clearTimeout(t); t = setTimeout
 function saveF() { const o = Object.assign({}, F); delete o.q; LS.s("F", o); }
 
 document.addEventListener("click", async e => {
-  const t = e.target.closest("[data-v],[data-go],[data-open],[data-kind],[data-act],[data-f],[data-per],[data-sort],[data-wk],[data-tfol],[data-unfol],[data-fol],[data-fdq],[data-fdt],[data-fdi],[data-secy],[data-secf],[data-darty],[data-dartk],[data-krper],[data-krst],[data-fity],[data-ficc],[data-fisort],[data-tfol2],[data-firm],[data-kvs],[data-sgo],[data-name],[data-quiz],[data-mapx],[data-msec],[data-lsec],[data-lkwx]"); if (!t) return;
+  const t = e.target.closest("[data-href],[data-tm],[data-v],[data-go],[data-open],[data-kind],[data-act],[data-f],[data-per],[data-sort],[data-wk],[data-tfol],[data-unfol],[data-fol],[data-fdq],[data-fdt],[data-fdi],[data-secy],[data-secf],[data-darty],[data-dartk],[data-krper],[data-krst],[data-fity],[data-ficc],[data-fisort],[data-tfol2],[data-firm],[data-kvs],[data-sgo],[data-name],[data-quiz],[data-mapx],[data-msec],[data-lsec],[data-lkwx]"); if (!t) return;
   const d = t.dataset;
   if (d.v) { closeSheet(); return nav("#" + d.v); }
   if (d.go) {                                                                    // '전부 ›' → 탐색 (조건 넣어서)
@@ -871,6 +892,8 @@ document.addEventListener("click", async e => {
   if (d.tfol) { follow(d.tfol); const on = !!S.fol[d.tfol]; document.querySelectorAll(`[data-tfol="${CSS.escape(d.tfol)}"]`).forEach(b => { b.classList.toggle("on", on); b.textContent = b.closest(".sheet") ? (on ? "✓ " : "＋ ") + d.tfol : on ? "✓ 따라가는 중" : "＋ 따라가기"; }); return; }
   if (d.unfol) { e.stopPropagation(); follow(d.unfol, false); return paint(); }
   if (d.fol) { S.fol[d.fol].seen = kst(); save("fol"); return nav("#name=" + encodeURIComponent(d.fol)); }
+  if (d.href) { location.href = d.href; return; }
+  if (d.tm) return termPop(d.tm);
   if (d.name) { closeSheet(); return nav("#name=" + encodeURIComponent(d.name)); }
   if (d.quiz != null) { S.quiz[(S.now.daily || {}).day || kst()] = +d.qv; save("quiz"); return paint(); }
   if (d.mapx != null) { S.mapX = +d.mapx; save("mapX"); return paint(); }

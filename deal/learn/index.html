@@ -1,0 +1,45 @@
+<!doctype html><html lang="ko" class="ap ap-deal"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>window.VFM_APP="deal";window.VFM_ROOT="../../";</script>
+<link rel="manifest" href="../../manifest.webmanifest"><meta name="theme-color" content="#F2F2F7"><link rel="apple-touch-icon" href="../../assets/icon-192.png">
+<title>투자 교실 — 딜 자판기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../../assets/apple.css">
+<style>
+/* 투자 교실 — 딜을 읽기 위한 기초. 글·그림은 이 폴더의 terms.js · course.js · history.js · figs.js, 화면은 assets/learn.js */
+:root{--bg:#F2F2F7;--surface:#fff;--sunk:#E9E9EE;--ink:#000;--muted:#6E6E73;--line:#E5E5EA;--accent:#8F6200;--accent-ink:#fff;--accent-soft:#FBF0D5;
+  --up:#1E7F4F;--up-soft:#DDF2E6;--fs:1;--r:14px;--nav-h:58px;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--surface:#1C1C1E;--sunk:#2C2C2E;--ink:#fff;--muted:#98989F;--line:#38383A;--accent:#FFC94D;--accent-soft:#3A2E12;--up:#5BD18F;--up-soft:#173325;color-scheme:dark}
+  html.ap.ap-deal:not([data-theme="light"]){--accent-ink:#2B1D00}}
+:root[data-theme="dark"]{--bg:#000;--surface:#1C1C1E;--sunk:#2C2C2E;--ink:#fff;--muted:#98989F;--line:#38383A;--accent:#FFC94D;--accent-soft:#3A2E12;--up:#5BD18F;--up-soft:#173325;color-scheme:dark}
+html.ap.ap-deal[data-theme="dark"]{--accent-ink:#2B1D00}
+</style>
+<link rel="stylesheet" href="../../assets/learn.css?v=1">
+</head><body>
+<div class="wrap" id="app"></div>
+<nav class="tabs" id="tabs">
+  <button data-v="home" aria-current="page"><b>☀︎</b>오늘 몫</button>
+  <button data-v="course"><b>▤</b>코스</button>
+  <button data-v="terms"><b>Aa</b>사전</button>
+  <button data-v="hist"><b>⌛︎</b>역사</button>
+</nav>
+<script src="terms.js?v=1"></script><script src="figs.js?v=1"></script><script src="course.js?v=1"></script><script src="history.js?v=1"></script>
+<script>
+/* 오늘 기사로 연습: 딜 로봇이 모아 둔 오늘 거래 제목으로 '확정·소문·무산'과 '종류'를 맞혀 봐요 */
+window.VFM_LEARN.termFig = { dilution: "dilution", "post-money": "prepost", "pre-money": "prepost", fund: "fund", lp: "fund", gp: "fund", "power-law": "powerlaw", "j-curve": "jcurve", runway: "runway", exit: "exits", premium: "premium", lbo: "lbo", "new-old": "ipo", ev: "ev", multiple: "multiple", "liq-pref": "waterfall", debt: "twoWays", round: "stages", spa: "dealpath", mou: "dealpath", talks: "dealpath" };
+window.VFM_LEARN.practice = { sub: "실제 오늘 제목 5개 — 확정일까 소문일까",
+  async load() {
+    const r = await fetch("../../data/deal/now.json", { cache: "no-cache" }), now = await r.json();
+    const KN = { vc: "투자 유치", ma: "인수합병", pe: "사모펀드 거래", ipo: "상장", fund: "펀드 결성" }, STN = { done: "확정된 거래", rumor: "소문·협상 중", fail: "무산·철회" };
+    const ok = d => (d.ko || d.title) && !d.garb && d.t !== "formd" && d.t !== "dart";
+    const pick = (l, n) => l.sort(() => Math.random() - .5).slice(0, n);
+    const ds = now.deals.filter(ok), out = [];
+    for (const d of pick(ds.filter(d => d.st === "rumor" || d.st === "fail"), 2).concat(pick(ds.filter(d => d.st === "done" && (d.g === "f" || d.g === "m")), 1)))
+      out.push({ lab: "이 제목, 지금 어떤 상태일까요?", q: d.ko || d.title, sub: d.ko && d.ko !== d.title ? d.title : "", o: Object.values(STN), a: Object.keys(STN).indexOf(d.st), why: d.st === "done" ? "돈이 오갔거나 계약이 맺어진 거래예요." : d.st === "rumor" ? "'추진·검토·협상·in talks' 같은 말이 있으면 아직 확정이 아니에요." : "'철회·무산·거절·withdraw·scrap' 같은 말이 신호예요.", tm: d.st === "done" ? ["closing"] : d.st === "rumor" ? ["talks", "sources"] : ["dd"] });
+    for (const d of pick(ds.filter(d => d.st === "done" && KN[d.kind] && (d.g === "f" || d.g === "m")), 2))
+      out.push({ lab: "이 거래는 어떤 종류일까요?", q: d.ko || d.title, sub: d.ko && d.ko !== d.title ? d.title : "", o: Object.values(KN), a: Object.keys(KN).indexOf(d.kind), why: "이 앱은 '" + KN[d.kind] + "'(으)로 분류했어요. 제목 낱말 규칙이라 가끔 틀릴 수 있어요.", tm: { vc: ["invest", "round"], ma: ["acquisition", "merger"], pe: ["pe", "buyout"], ipo: ["ipo"], fund: ["fund-close"] }[d.kind] });
+    return out.sort(() => Math.random() - .5);
+  } };
+</script>
+<script src="../../assets/learn.js?v=1"></script>
+<script src="../../assets/shell.js"></script>
+</body></html>
