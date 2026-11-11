@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ko" class="ap ap-quest">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../assets/icon-192.png">
+<title>한 달 퀘스트 · 자판기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../assets/apple.css">
+<style>
+/* 한 달 퀘스트 — 30일 로드맵을 게임으로. 내용은 아래 STAGES 표 한 곳, 기록은 이 폰(localStorage vfm:quest)에만. 토큰 0. */
+html.ap.ap-quest{--ap-tint:var(--ap-green);--ap-tint-t:var(--ap-green-t)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ap-bg);color:var(--ap-label);font:16px/1.5 var(--ap-font);
+  padding:calc(env(safe-area-inset-top,0px) + 14px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 40px) max(16px,env(safe-area-inset-left,0px))}
+.wrap{max-width:560px;margin:0 auto}
+a.home{display:inline-block;padding:6px 2px;color:var(--ap-tint-t);text-decoration:none;font-size:16px}
+h1{margin:2px 4px 2px;font:800 34px/1.15 var(--ap-display);letter-spacing:-.03em}
+.sub{margin:0 4px 14px;color:var(--ap-label2);font-size:15px}
+.card{background:var(--ap-surface);border-radius:22px;padding:18px;margin:0 0 12px}
+.hud{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:end}
+.lv{font:800 26px/1.2 var(--ap-display);letter-spacing:-.02em}
+.lv small{display:block;font:600 13px/1.3 var(--ap-font);color:var(--ap-label2);letter-spacing:0}
+.dday{text-align:right;font:800 26px/1.2 var(--ap-display);font-variant-numeric:tabular-nums}
+.dday small{display:block;font:600 13px/1.3 var(--ap-font);color:var(--ap-label2)}
+.bar{grid-column:1/-1;height:10px;border-radius:99px;background:var(--ap-fill);overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--ap-tint);transition:width .4s ease}
+.xp{grid-column:1/-1;display:flex;justify-content:space-between;font-size:13px;color:var(--ap-label2);font-variant-numeric:tabular-nums;margin-top:4px}
+.step{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;margin-top:14px;padding:14px 16px;border:0;border-radius:14px;
+  background:var(--ap-tint);color:#fff;font:700 17px/1.3 var(--ap-font);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.step[aria-pressed=true]{background:var(--ap-fill);color:var(--ap-label2)}
+.step:active,.q:active{transform:scale(.98)}
+details.stage{background:var(--ap-surface);border-radius:22px;margin:0 0 12px;overflow:hidden}
+summary{list-style:none;display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:16px 18px;cursor:pointer}
+summary::-webkit-details-marker{display:none}
+.sn{font-size:13px;font-weight:700;color:var(--ap-tint-t)}
+.stage.lock .sn{color:var(--ap-label2)}
+.st{grid-column:1;font:700 20px/1.25 var(--ap-display);letter-spacing:-.02em}
+.sg{grid-column:1;font-size:14px;color:var(--ap-label2)}
+.sc{grid-row:1/4;grid-column:2;align-self:center;font:700 15px/1 var(--ap-font);color:var(--ap-label2);font-variant-numeric:tabular-nums}
+.stage.clear .sc{color:var(--ap-tint-t)}
+.q{display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:start;width:100%;padding:13px 18px;border:0;border-top:.5px solid var(--ap-sep);
+  background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.q .ck{width:26px;height:26px;border-radius:50%;border:2px solid var(--ap-label3);display:grid;place-items:center;margin-top:1px;color:#fff;font-size:15px;font-weight:800}
+.q[aria-pressed=true] .ck{background:var(--ap-tint);border-color:var(--ap-tint)}
+.q .t,.q .d{display:block}
+.q .t{font-weight:600;font-size:16.5px;line-height:1.35}
+.q[aria-pressed=true] .t{color:var(--ap-label2);text-decoration:line-through}
+.q .d{font-size:14px;color:var(--ap-label2);line-height:1.45;margin-top:3px}
+.q .p{font-size:13px;font-weight:700;color:var(--ap-label2);font-variant-numeric:tabular-nums;white-space:nowrap;margin-top:3px}
+.q.boss{background:var(--ap-tint-soft)}
+.q.boss .t{font-size:17.5px;font-weight:800}
+.q.boss .p{color:var(--ap-tint-t)}
+.q[disabled]{cursor:default;opacity:.55}
+.cap{margin:22px 16px 6px;font-size:13px;color:var(--ap-label2)}
+ol.rules{margin:0;padding:14px 18px 14px 40px;background:var(--ap-surface);border-radius:14px;font-size:15px;line-height:1.5}
+ol.rules li+li{margin-top:6px}
+ol.rules b{font-weight:700}
+.reset{display:block;margin:18px auto 0;padding:10px 14px;border:0;background:none;color:var(--ap-red-t);font:inherit;font-size:14px;cursor:pointer}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);transform:translate(-50%,20px);padding:11px 18px;border-radius:99px;
+  background:var(--ap-label);color:var(--ap-bg);font-weight:700;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;white-space:nowrap}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home" href="../">‹ 자판기</a>
+  <h1>한 달 퀘스트</h1>
+  <p class="sub">목표: 30일 안에 "혼자서 서비스 여러 개를 굴린다"를 숫자로 증명하기</p>
+  <div class="card hud" id="hud"></div>
+  <div id="stages"></div>
+  <p class="cap">늘 켜져 있는 규칙</p>
+  <ol class="rules">
+    <li><b>2주 마감</b> — 새로 만드는 건 2주 안에 링크로 보여줄 수 있어야 해요. 못 하면 접어요.</li>
+    <li><b>세 칸</b> — 본진 1개, 장난감 1개, 나머지는 대기 목록. 새 아이디어는 3일 묵혀요.</li>
+    <li><b>자동 인수인계</b> — 출시한 건 로봇이 굴려요. 로봇이 못 굴리면 닫아요.</li>
+    <li><b>있는 로봇 먼저</b> — 새 서비스는 이미 있는 수집·번역·묶기 로봇을 다시 써요.</li>
+    <li><b>10분 반박</b> — 만들기 전에 Claude에게 "이 아이디어 까봐"부터.</li>
+    <li><b>기다리는 사람 5명</b> — 서비스마다 써 줄 사람 5명이 있어야 해요.</li>
+    <li><b>재미는 출시에서</b> — 시작한 개수가 아니라 끝낸 개수를 세요.</li>
+  </ol>
+  <button class="reset" id="reset">기록 전부 지우고 처음부터</button>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(function () {
+  "use strict";
+  var START = "2026-11-12", END = "2026-12-11", KEY = "vfm:quest", NEED = 4, STEP_XP = 5;
+  var LEVELS = [[0, "견습생"], [100, "조립공"], [250, "반장"], [450, "공장장"], [700, "설계자"], [950, "1인 공장"]];
+  // [제목, 설명, 점수] — 마지막 줄이 보스
+  var STAGES = [
+    { name: "계기판 달기", from: "2026-11-12", to: "2026-11-18", goal: "지금 공장이 어떻게 도는지 숫자로 보기", q: [
+      ["굴러가는 것 전부 적기", "자판기 세 곳의 앱과 로봇을 한 줄씩. Claude에게 \"저장소 세 곳의 앱·로봇 목록을 표로 뽑아줘\".", 15],
+      ["세 칸 정하기", "본진 1개, 장난감 1개를 고르고 나머지는 대기 목록으로 보내요.", 20],
+      ["방문 수 세는 장치 달기", "지금은 몇 명이 오는지 몰라요. 쿠키 없이 방문 수만 세는 무료 도구(예: GoatCounter)를 세 사이트에 달아요.", 25],
+      ["기다리는 사람 5명 적기", "링크를 보내면 실제로 눌러 볼 사람 이름 5개.", 15],
+      ["로봇 하나 읽기", "robot/sisa_run.py 를 Claude에게 \"위에서부터 한 덩어리씩 설명해 줘\". 듣고 나서 내 말로 세 줄 요약.", 20],
+      ["시간·돈 장부 시작", "매일 쓴 시간(분)과 돈(원)을 한 줄씩. 한 달 뒤 증명 글의 재료예요.", 15],
+      ["보스: 점수판 출시", "모든 앱의 마지막 갱신 · 방문 수 · 이번 달 비용이 한 화면에. 링크를 한 명에게 보내면 클리어.", 100]] },
+    { name: "첫 손님", from: "2026-11-19", to: "2026-11-25", goal: "나 말고 쓰는 사람 만들기", q: [
+      ["5명에게 링크 보내기", "설명 없이 링크만 보내요. 설명이 필요하면 첫 화면이 문제인 거예요.", 20],
+      ["한 가지만 묻기", "\"처음 10초에 뭐 하는 곳인지 알았어?\" 들은 말을 그대로 적어요.", 20],
+      ["가장 많이 나온 불편 1개 고치기", "여러 개 말고 하나만. 고친 뒤 다시 보여줘요.", 25],
+      ["시험지 만들기", "시사의 '사건 묶기' 결과 20개를 직접 채점(맞음/틀림)하고 정답률을 적어요. 이런 채점표를 평가(eval)라고 불러요.", 25],
+      ["10분 반박", "Claude에게 본진의 약점 세 개를 까 달라고 해요. 반박 못 한 것 하나는 대기 목록에.", 15],
+      ["로봇 둘째 읽기", "robot/deal_judge.py 를 같은 방법으로. 이번엔 설명 듣기 전에 무슨 일을 할지 먼저 맞혀 봐요.", 20],
+      ["보스: 다시 오는 3명", "5명 중 3명이 일주일에 두 번 넘게 다시 옴. 방문 집계로 확인.", 100]] },
+    { name: "2주 출시 ① 시제품", from: "2026-11-26", to: "2026-12-02", goal: "새 서비스 하나를 열리는 링크로", q: [
+      ["대기 목록에서 하나 뽑기", "3일 넘게 묵힌 것 중에서만 골라요.", 15],
+      ["10분 반박", "만들기 전에 먼저. 살아남으면 진행, 못 살아남으면 다른 걸 뽑아요.", 15],
+      ["한 문장으로 적기", "\"누가, 어떤 순간에 켜는 것인가\"를 한 문장으로.", 20],
+      ["있는 로봇으로 설계", "새 코드를 가장 적게. 기존 수집·번역·묶기 로봇 중 무엇을 다시 쓸지 Claude와 표로 정해요.", 20],
+      ["시제품 링크", "못생겨도 열리는 링크 하나.", 25],
+      ["2명에게 보여주기", "반응을 그대로 적어요. 칭찬 말고 멈칫한 곳을 봐요.", 20],
+      ["보스: 눌러 본 2명", "5명 중 2명이 시제품을 직접 눌러 보고 한마디씩 남김.", 100]] },
+    { name: "2주 출시 ② 증명", from: "2026-12-03", to: "2026-12-11", goal: "출시하고, 한 달을 글로 공개하기", q: [
+      ["자동 인수인계", "새 서비스가 내 손 없이 돌게 예약(GitHub Actions)을 걸고, 3일 동안 손대지 않고 지켜봐요.", 25],
+      ["정식 출시", "자판기 첫 화면에 올리고 5명에게 알려요.", 25],
+      ["한 달 숫자 모으기", "서비스 수 · 로봇 수 · 쓴 시간 · 쓴 돈 · 방문 수 · 다시 온 사람.", 20],
+      ["사례 글 쓰기", "\"개발 모르는 직장인이 폰으로, 한 달 ○원으로 서비스 ○개를 굴린 기록\". 숫자와 실패를 같이 적어요.", 25],
+      ["영어판 만들기", "같은 글을 영어로. 숫자는 그대로.", 20],
+      ["한 곳에 공개", "긱뉴스 · X · 링크드인 중 한 곳에만 올려요.", 20],
+      ["보스: 모르는 사람의 반응", "공개한 글에 모르는 사람의 댓글 · 공유 · 문의가 하나라도 오면 클리어.", 100]] }
+  ];
+
+  function load() { try { var v = JSON.parse(localStorage.getItem(KEY)); if (v && v.done && v.days) return v; } catch (e) { } return { done: {}, days: {} }; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast("저장 공간이 꽉 찼어요"); } }
+  function ymd(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function md(s) { return +s.slice(5, 7) + "/" + +s.slice(8); }
+  function esc(x) { return String(x).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function toast(t) { var el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(function () { el.classList.remove("on"); }, 1800); }
+  var S = load(), TODAY = ymd(new Date());
+
+  function xp() {
+    var n = Object.keys(S.days).length * STEP_XP;
+    STAGES.forEach(function (st, i) { st.q.forEach(function (q, j) { if (S.done[i + "-" + j]) n += q[2]; }); });
+    return n;
+  }
+  function level(n) { var k = 0; LEVELS.forEach(function (l, i) { if (n >= l[0]) k = i; }); return k; }
+  function streak() { // 오늘 아직 안 눌렀으면 어제까지 이어진 날 수
+    var d = new Date(), n = 0; if (!S.days[ymd(d)]) d.setDate(d.getDate() - 1);
+    while (S.days[ymd(d)]) { n++; d.setDate(d.getDate() - 1); } return n;
+  }
+  function count(i) { var n = 0; for (var j = 0; j < STAGES[i].q.length - 1; j++) if (S.done[i + "-" + j]) n++; return n; }
+
+  function render() {
+    var n = xp(), k = level(n), cur = LEVELS[k][0], next = LEVELS[k + 1] ? LEVELS[k + 1][0] : null;
+    var left = Math.round((Date.parse(END) - Date.parse(TODAY)) / 864e5), pre = TODAY < START;
+    document.getElementById("hud").innerHTML =
+      '<div class="lv"><small>레벨 ' + (k + 1) + '</small>' + LEVELS[k][1] + '</div>' +
+      '<div class="dday"><small>' + (pre ? "시작까지" : left < 0 ? "기간 끝" : "남은 날") + '</small>' + (pre ? Math.round((Date.parse(START) - Date.parse(TODAY)) / 864e5) + "일" : left < 0 ? "–" : left + "일") + '</div>' +
+      '<div class="bar"><i style="width:' + (next ? Math.round((n - cur) / (next - cur) * 100) : 100) + '%"></i></div>' +
+      '<div class="xp"><span>' + n + '점' + (next ? " · 다음 레벨까지 " + (next - n) + "점" : " · 끝까지 왔어요") + '</span><span>연속 ' + streak() + '일</span></div>' +
+      '<button class="step" id="step" aria-pressed="' + !!S.days[TODAY] + '"><span>' + (S.days[TODAY] ? "오늘 한 걸음 옮겼어요" : "오늘 본진을 한 걸음 옮겼다") + '</span><span>+' + STEP_XP + '</span></button>';
+
+    var open = {}; [].forEach.call(document.querySelectorAll("details.stage"), function (d) { open[d.dataset.i] = d.open; });
+    var first = !Object.keys(open).length;
+    document.getElementById("stages").innerHTML = STAGES.map(function (st, i) {
+      var c = count(i), bossI = st.q.length - 1, clear = !!S.done[i + "-" + bossI], lock = c < NEED;
+      var isOpen = first ? (TODAY <= st.to && (i === 0 || TODAY >= st.from)) && !clear : open[i];
+      return '<details class="stage' + (clear ? " clear" : "") + '" data-i="' + i + '"' + (isOpen ? " open" : "") + '><summary>' +
+        '<span class="sn">' + (i + 1) + '단계 · ' + md(st.from) + '–' + md(st.to) + '</span><span class="st">' + esc(st.name) + '</span><span class="sg">' + esc(st.goal) + '</span>' +
+        '<span class="sc">' + (clear ? "클리어" : c + "/" + bossI) + '</span></summary>' +
+        st.q.map(function (q, j) {
+          var id = i + "-" + j, on = !!S.done[id], boss = j === bossI, dis = boss && lock && !on;
+          return '<button class="q' + (boss ? " boss" : "") + '" data-q="' + id + '" aria-pressed="' + on + '"' + (dis ? " disabled" : "") + '><span class="ck">' + (on ? "✓" : "") + '</span>' +
+            '<span><span class="t">' + esc(q[0]) + '</span><span class="d">' + esc(dis ? "퀘스트 " + NEED + "개를 끝내면 열려요 (지금 " + c + "개). " + q[1] : q[1]) + '</span></span><span class="p">+' + q[2] + '</span></button>';
+        }).join("") + '</details>';
+    }).join("");
+  }
+
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b || b.disabled) return;
+    var before = level(xp());
+    if (b.id === "step") { if (S.days[TODAY]) delete S.days[TODAY]; else { S.days[TODAY] = 1; toast("+" + STEP_XP + "점 · 연속 " + (streak()) + "일"); } }
+    else if (b.id === "reset") { if (!confirm("퀘스트 기록을 전부 지울까요? 되돌릴 수 없어요.")) return; S = { done: {}, days: {} }; }
+    else if (b.dataset.q) {
+      var id = b.dataset.q, p = id.split("-"), q = STAGES[p[0]].q[p[1]], boss = +p[1] === STAGES[p[0]].q.length - 1;
+      if (S.done[id]) delete S.done[id]; else { S.done[id] = TODAY; toast(boss ? (+p[0] + 1) + "단계 클리어 · +" + q[2] + "점" : "+" + q[2] + "점"); }
+    } else return;
+    save(); render();
+    var after = level(xp()); if (after > before) setTimeout(function () { toast("레벨 " + (after + 1) + " · " + LEVELS[after][1]); }, 1900);
+  });
+
+  // 자체 점검: 단계마다 퀘스트 6 + 보스 1, 보스가 열리는 개수는 퀘스트 수보다 작아야
+  STAGES.forEach(function (st) { console.assert(st.q.length === 7 && NEED < st.q.length && st.from <= st.to, "단계 표 확인: " + st.name); });
+  console.assert(STAGES[0].from === START && STAGES[STAGES.length - 1].to === END, "기간 확인");
+  render();
+})();
+</script>
+</body>
+</html>
