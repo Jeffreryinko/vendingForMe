@@ -318,7 +318,9 @@ class Ed:
         while i >= 0:
             prev = text[i - 1] if i else ""
             nxt = text[i + len(n):i + len(n) + 1]
-            if not re.match(r"[가-힣A-Za-z]", prev or " ") and not (re.search(r"[A-Za-z]$", n) and re.match(r"[A-Za-z]", nxt or " ")): c += 1
+            # 두 글자 한글 이름은 뒤에 조사·띄어쓰기가 올 때만 ('인터'≠인터뷰·인터넷, '인도'≠인도네시아·인도주의)
+            tail_ok = not (len(n) <= 2 and re.fullmatch(r"[가-힣]+", n) and re.match(r"[가-힣]", nxt or " ") and nxt not in "은는이가을를의에와과도로만")
+            if tail_ok and not re.match(r"[가-힣A-Za-z]", prev or " ") and not (re.search(r"[A-Za-z]$", n) and re.match(r"[A-Za-z]", nxt or " ")): c += 1
             i = text.find(n, i + len(n))
         return c
 
@@ -340,17 +342,18 @@ class Ed:
             if in_t or n >= 2 or len(texts) <= 2: sc[name] = (3 if in_t else 0) + n
         return [n for n, _ in sc.most_common(k)]
 
-    def wiki_first(self, title, cache):
+    def wiki_first(self, title, cache, fetch=True):
         if title in cache: return cache[title]
-        if time.time() > DEADLINE: return ""
+        if not fetch or time.time() > DEADLINE: return ""
         d = get_json("https://ko.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&exsentences=2&redirects=1&format=json&titles=" + urllib.parse.quote(title))
         txt = ""
         for p in ((d or {}).get("query", {}).get("pages", {}) or {}).values(): txt = (p.get("extract") or "").strip()
         cache[title] = short(re.sub(r"\s*\([^)]*\)", "", txt), 220); return cache[title]
 
-    def extras(self):
+    def extras(self, fetch_top=10):
+        """모든 로봇 이슈의 배경 설명을 매 판 새로 만듦 (옛 설명이 남지 않게). 위키백과를 새로 받는 건 큰 이슈 fetch_top 개까지, 나머지는 받아 둔 것만."""
         cache = rj(DATA / "brief/_wiki.json", {}); m = self.ents.get("map") or {}; n = 0
-        for s in self.stories()[:10]:
+        for rank_i, s in enumerate(self.stories()):
             if s.get("method") == "ai-v1" and s.get("why3"): continue      # 사람이(클로드가) 쓴 해설은 그대로
             its = [self.items[i] for i in s["items"] if i in self.items]
             text = " ".join(filter(None, [s.get("title", "")] + [self.kt(i) for i in its]))
@@ -362,7 +365,7 @@ class Ed:
                 e = m[nm]; r = e.get("r", ""); country = e.get("t") == "place" and re.search(r"국가|나라|공화국|왕국$", r)
                 if e.get("d"): b = f"{nm}({r}) — {e['d']}" if r else f"{nm} — {e['d']}"
                 elif e.get("t") in ("person", "org", "party") or (e.get("t") == "place" and not country):
-                    w = self.wiki_first(e.get("w") or nm, cache)
+                    w = self.wiki_first(e.get("w") or nm, cache, fetch=rank_i < fetch_top)
                     w = re.split(r"(?<=다\.)\s+", w)[0] if len(w) > 150 else w
                     b = "" if not w else (w if w.startswith(nm[:2]) else f"{nm}: {w}")
                 else: b = ""

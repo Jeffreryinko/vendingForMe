@@ -1685,7 +1685,8 @@ function entMatches(text){
     while(i >= 0){
       const prev = text[i-1], next = text[i + k.length];
       const latinTail = /[A-Za-z]$/.test(k) && next && /[A-Za-z]/.test(next);   // 'EU'가 'EURO' 안에서 잡히지 않게
-      if(!(prev && /[가-힣A-Za-z]/.test(prev)) && !latinTail && !taken.subarray(i, i + k.length).some(x => x)){ taken.fill(1, i, i + k.length); out.push({i, len:k.length, n}); }
+      const shortTail = k.length <= 2 && /^[가-힣]+$/.test(k) && next && /[가-힣]/.test(next) && !"은는이가을를의에와과도로만".includes(next);   // '인터'≠인터뷰, '인도'≠인도네시아
+      if(!(prev && /[가-힣A-Za-z]/.test(prev)) && !latinTail && !shortTail && !taken.subarray(i, i + k.length).some(x => x)){ taken.fill(1, i, i + k.length); out.push({i, len:k.length, n}); }
       i = text.indexOf(k, i + k.length);
     }
   }
