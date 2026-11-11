@@ -366,37 +366,15 @@ details.set > div > .btn { align-self: flex-start; }
 .v-list .done { color: var(--ink3); text-decoration: line-through; }
 .v-foot { text-align: center; color: var(--ink3); font-size: 12.5px; margin-top: 18px; }
 
-/* ── 폰 ── */
-@media (max-width: 959px) {
-  :root { --hour: 62px; }
-  .bar { height: calc(52px + var(--safe-t)); padding: var(--safe-t) 14px 0; }
-  .quick, .views { display: none; }
-  .sync { margin-left: auto; }
-  main { display: block; height: auto; padding: 0 0 calc(84px + var(--safe-b)); }
-  .pane { border: 0; border-radius: 0; background: none; padding: 6px 16px 20px; overflow: visible; }
-  main[data-tab="tasks"] #day, main[data-tab="day"] #tasks { display: none; }
-  .pane-head { margin-top: 4px; }
+/* ── 칸 안쪽: 칸이 좁을 때 (폰 · 펼친 폴드의 반쪽) ── */
+.pane { container: pane / inline-size; }
+@container pane (max-width: 520px) {
   .d-big { font-size: 27px; }
   .streak { display: none; }
   .top3 { grid-template-columns: 1fr; gap: 6px; }
   .slot { min-height: 46px; align-items: center; }
   .slot .s-title { -webkit-line-clamp: 1; }
   .sec-hint { display: none; }
-  .tl-area, .sec, .top3, .day-head { }
-  .tl { background: var(--surface); border-radius: 14px; }
-  .tl-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 10px 10px 2px 4px; margin-bottom: 14px; }
-  #tasks .sec { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px 8px; margin-bottom: 12px; }
-  .fab { display: grid; place-items: center; position: fixed; right: 16px; bottom: calc(76px + var(--safe-b)); width: 54px; height: 54px; border-radius: 50%; background: var(--ink); color: var(--surface); box-shadow: 0 8px 24px rgba(10, 14, 22, .3); z-index: 20; }
-  .tabs { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 19; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--line); padding: 6px 8px calc(6px + var(--safe-b)); }
-  .tabs button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0 4px; font-size: 11.5px; color: var(--ink3); position: relative; border-radius: 10px; }
-  .tabs button.on { color: var(--ink); font-weight: 650; }
-  .tabs b { position: absolute; top: 2px; left: calc(50% + 8px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 99px; background: var(--seal); color: #fff; font-size: 10.5px; line-height: 16px; font-weight: 700; }
-  .tabs b:empty { display: none; }
-  dialog.sheet, dialog.sheet.wide, dialog.sheet.cmd { width: 100vw; max-width: 100vw; margin: auto 0 0; border-radius: 20px 20px 0 0; max-height: 90dvh; }
-  dialog.sheet.cmd { margin: 0 0 auto; border-radius: 0 0 20px 20px; padding-top: var(--safe-t); }
-  #toasts { bottom: calc(142px + var(--safe-b)); }
-  .review-wrap { gap: 22px; }
-  #review .r-sec, #review .level { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
   .level { grid-template-columns: 1fr; }
   .level .lv-title { font-size: 28px; }
   .level .facts { gap: 26px; text-align: left; margin-top: 10px; }
@@ -410,9 +388,79 @@ details.set > div > .btn { align-self: flex-start; }
   .kpis div:nth-child(2) { border-right: 0; }
   .kpis div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   .bar-row { grid-template-columns: 116px 1fr 54px; gap: 8px; font-size: 13px; }
-  .blk-grip { display: none; }
 }
-@media (min-width: 960px) {
-  .tl-wrap { margin-bottom: 14px; }
+@container pane (max-width: 350px) {
+  .d-big { font-size: 24px; }
+  .date-nav .icon-btn { width: 30px; }
+  .date-pick { padding: 2px 4px; }
+  .day-acts { gap: 6px; }
+  .day-acts .btn { padding: 0 10px; font-size: 14px; }
+  .ring { width: 46px; height: 46px; } .ring svg { width: 46px; height: 46px; }
+  .bar-row { grid-template-columns: 96px 1fr 50px; }
 }
+
+/* ── 펼친 폴드 · 태블릿: 두 칸을 반반으로 (가운데 접히는 선이 칸 사이에 오도록) ── */
+@media (min-width: 620px) and (max-width: 1099px) {
+  :root { --hour: 62px; }
+  .bar { height: calc(56px + var(--safe-t)); padding: var(--safe-t) 12px 0; gap: 8px; }
+  .quick { margin-left: 4px; }
+  main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; padding: 0 10px calc(10px + var(--safe-b)); height: calc(100dvh - 56px - var(--safe-t)); }
+  .pane { padding: 16px 16px 24px; border-radius: 16px; }
+}
+@media (min-width: 620px) and (max-width: 859px) {
+  .brand-name, .sync span { display: none; }
+  .views button { padding: 0 11px; }
+}
+
+/* ── 폰 · 접은 폴드: 한 칸씩, 아래 탭으로 이동 ── */
+@media (max-width: 619px) {
+  :root { --hour: 62px; }
+  .bar { height: calc(52px + var(--safe-t)); padding: var(--safe-t) 14px 0; }
+  .quick, .views { display: none; }
+  .sync { margin-left: auto; }
+  main { display: block; height: auto; padding: 0 0 calc(84px + var(--safe-b)); }
+  .pane { border: 0; border-radius: 0; background: none; padding: 6px 16px 20px; overflow: visible; }
+  main[data-tab="tasks"] #day, main[data-tab="day"] #tasks { display: none; }
+  .pane-head { margin-top: 4px; }
+  .tl-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 10px 10px 2px 4px; margin-bottom: 14px; }
+  #tasks .sec { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px 8px; margin-bottom: 12px; }
+  .fab { display: grid; place-items: center; position: fixed; right: 16px; bottom: calc(76px + var(--safe-b)); width: 54px; height: 54px; border-radius: 50%; background: var(--ink); color: var(--surface); box-shadow: 0 8px 24px rgba(10, 14, 22, .3); z-index: 20; }
+  .tabs { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 19; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--line); padding: 6px 8px calc(6px + var(--safe-b)); }
+  .tabs button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0 4px; font-size: 11.5px; color: var(--ink3); position: relative; border-radius: 10px; }
+  .tabs button.on { color: var(--ink); font-weight: 650; }
+  .tabs b { position: absolute; top: 2px; left: calc(50% + 8px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 99px; background: var(--seal); color: #fff; font-size: 10.5px; line-height: 16px; font-weight: 700; }
+  .tabs b:empty { display: none; }
+  dialog.sheet, dialog.sheet.wide, dialog.sheet.cmd { width: 100vw; max-width: 100vw; margin: auto 0 0; border-radius: 20px 20px 0 0; max-height: 90dvh; }
+  dialog.sheet.cmd { margin: 0 0 auto; border-radius: 0 0 20px 20px; padding-top: var(--safe-t); }
+  #toasts { bottom: calc(142px + var(--safe-b)); }
+  .review-wrap { gap: 22px; }
+  #review .r-sec, #review .level { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+}
+/* 접은 폴드의 바깥 화면처럼 아주 좁을 때 */
+@media (max-width: 380px) {
+  .pane { padding-left: 12px; padding-right: 12px; }
+  .brand-name { font-size: 15px; }
+  .sheet-body { padding-left: 16px; padding-right: 16px; }
+  .sheet-head { padding-left: 16px; }
+  .sheet-foot { padding-left: 16px; padding-right: 16px; }
+  .row3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .row3 > :first-child { grid-column: 1 / -1; }
+  .catpick button { padding: 8px; font-size: 13px; gap: 6px; }
+  .cmd-input { font-size: 17px; padding: 16px 16px 6px; }
+  .cmd-preview, .cmd-log { padding: 0 16px; }
+  .rowline input[type="time"] { width: 118px; }
+}
+
+/* ── 손가락·펜으로 쓸 때 ── */
+@media (pointer: coarse) {
+  .blk-grip, .quick kbd { display: none; }
+  .task, .blk, .slot { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .quick { height: 42px; }
+  .views button { height: 38px; }
+  .icon-btn { width: 40px; height: 40px; }
+  .t-acts .icon-btn { width: 38px; height: 38px; }
+  .sync { height: 40px; }
+}
+.drag-ghost { position: fixed; left: 0; top: 0; z-index: 300; pointer-events: none; max-width: 240px; padding: 9px 12px 9px 15px; border-radius: 10px; background: color-mix(in srgb, var(--c) 16%, var(--surface)); box-shadow: var(--shadow), 0 0 0 1.5px var(--c); font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.task.lifting { opacity: .35; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

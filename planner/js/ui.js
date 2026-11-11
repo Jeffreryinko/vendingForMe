@@ -9,7 +9,7 @@ export const ui = {
   go: () => {},              // 날짜 이동
 };
 export const $ = s => document.querySelector(s);
-export const isPhone = () => matchMedia('(max-width: 959px)').matches;
+export const isPhone = () => matchMedia('(max-width: 619px)').matches;      // 한 칸씩 보는 좁은 화면 (폰 · 접은 폴드)
 
 // ── 알림 띠 ──
 export function toast(msg, opt = {}) {

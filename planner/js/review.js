@@ -18,7 +18,7 @@ export function renderReview(el) {
     h('div', { class: 'xp-cap' }, h('span', {}, `${st.xp}점`), h('span', {}, '할 일 완료 10 · 핵심 달성 +20 · 하루 마감 15')));
 
   // 잔디: 한 칸 = 하루, 진할수록 많이 끝낸 날, 빨간 점 = 마감 도장
-  const weeks = isPhone() ? 20 : 52;
+  const weeks = Math.max(12, Math.min(52, Math.floor((Math.min(el.clientWidth || innerWidth, 928) - 50) / 16)));   // 칸 너비에 맞는 만큼
   const start = addDays(mondayOf(td), -(weeks - 1) * 7);
   const cells = [];
   for (let i = 0; i < weeks * 7; i++) {

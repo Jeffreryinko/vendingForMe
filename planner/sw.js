@@ -1,5 +1,5 @@
 // 서비스 워커: 홈 화면 앱으로 열기(오프라인에서도 화면이 뜸) + 폰 알림 표시
-const VER = 'planner-v1';
+const VER = 'planner-v2';
 const SHELL = ['./', './index.html', './app.css', './config.js', './js/main.js', './js/db.js', './js/util.js', './js/model.js', './js/cloud.js', './js/ui.js', './js/sheets.js', './js/review.js', './manifest.webmanifest', './icons/icon-192.png'];
 
 self.addEventListener('install', e => {

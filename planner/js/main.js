@@ -59,11 +59,10 @@ function taskRow(t, sorter) {
     (t.tags || []).map(n => h('span', { class: 'chip tag', style: `--dot:${M.tagColor(n)}` }, n)),
     t.st === 'wait' && t.waitAt ? h('span', { class: 'chip' }, `${Math.max(0, diffDays(today(), ymd(new Date(t.waitAt))))}일째`) : null);
   const done = t.st === 'done';
-  return h('li', { class: 'task' + (done ? ' done' : '') + (sorter ? ' unsorted' : ''), 'data-c': t.cat, 'data-id': t.id, draggable: !done && !isPhone() ? 'true' : null,
-    ondragstart: e => { e.dataTransfer.setData('text/plain', 'task:' + t.id); e.dataTransfer.effectAllowed = 'copy'; dragTask = t; },
-    ondragend: () => { dragTask = null; } },
+  return h('li', { class: 'task' + (done ? ' done' : '') + (sorter ? ' unsorted' : ''), 'data-c': t.cat, 'data-id': t.id,
+    onpointerdown: done ? null : e => startTaskDrag(e, t) },
     checkBtn(done, t.cat, () => done ? M.setTaskDone(t, false) : completeTask(t)),
-    h('div', { class: 't-body', onclick: () => openTask(t) }, h('div', { class: 't-title' }, t.title), meta),
+    h('div', { class: 't-body', onclick: () => { if (!suppressClick) openTask(t); } }, h('div', { class: 't-title' }, t.title), meta),
     sorter || (done ? null : h('div', { class: 't-acts' },
       h('button', { class: 'icon-btn' + (inTop ? ' on' : ''), type: 'button', title: inTop ? '핵심에서 빼기' : `${relDay(ui.date)}의 핵심으로`, 'aria-label': '핵심 지정', onclick: () => { if (!M.toggleTop(ui.date, t.id)) toast('핵심은 3개까지예요. 하나를 빼고 넣어 주세요.'); } }, icon(inTop ? 'starfill' : 'star', 17)),
       h('button', { class: 'icon-btn', type: 'button', title: `${relDay(ui.date)}에 시간 붙이기`, 'aria-label': '시간 붙이기', onclick: () => openBlock(null, placePreset(t)) }, icon('clock', 17)))));
@@ -125,7 +124,44 @@ function renderTasks() {
 }
 
 // ═══ 하루 ════════════════════════════════════════════════════════════
-let dragTask = null;
+// 할 일을 타임라인으로 끌어다 놓기: 마우스는 그냥 끌고, 손가락·펜은 길게 누른 뒤 끕니다 (두 칸이 함께 보일 때만)
+let tdrag = null;
+const dropMarker = h('div', { class: 'tl-drop' });
+function startTaskDrag(e, t) {
+  if (e.button !== 0 || isPhone() || e.target.closest('button, input, a')) return;
+  const d = tdrag = { t, li: e.currentTarget, x: e.clientX, y: e.clientY, id: e.pointerId, touch: e.pointerType !== 'mouse', active: false, m: null };
+  if (d.touch) d.timer = setTimeout(() => { if (tdrag === d) { liftTask(d); navigator.vibrate?.(12); } }, 380);
+}
+function liftTask(d) {
+  d.active = true;
+  d.ghost = h('div', { class: 'drag-ghost', 'data-c': d.t.cat }, d.t.title);
+  document.body.append(d.ghost);
+  d.li.classList.add('lifting');
+  moveTask(d, d.x, d.y);
+}
+function moveTask(d, x, y) {
+  d.ghost.style.transform = `translate(${Math.max(8, x - 24)}px, ${y - (d.touch ? 64 : 18)}px) rotate(-1.5deg)`;
+  const day = $('#day'), r = day.getBoundingClientRect();
+  if (x > r.left && x < r.right) { if (y > r.bottom - 56) day.scrollTop += 14; else if (y < r.top + 56) day.scrollTop -= 14; }
+  const area = document.elementFromPoint(x, y)?.closest('.tl-area');
+  document.querySelector('.tl-area.drop')?.classList.remove('drop');
+  if (!area) { dropMarker.remove(); d.m = null; return; }
+  const P = ppm(), t0 = Number(area.dataset.t0);
+  d.m = clamp(Math.round((t0 + (y - area.getBoundingClientRect().top) / P) / 15) * 15, 0, 1425);
+  dropMarker.style.top = (d.m - t0) * P + 'px'; dropMarker.dataset.t = toHm(d.m);
+  area.append(dropMarker); area.classList.add('drop');
+}
+function endTaskDrag(commit) {
+  const d = tdrag; tdrag = null;
+  if (!d) return;
+  clearTimeout(d.timer);
+  if (!d.active) return;
+  d.ghost.remove(); dropMarker.remove(); d.li.classList.remove('lifting');
+  document.querySelector('.tl-area.drop')?.classList.remove('drop');
+  suppressClick = true; setTimeout(() => { suppressClick = false; }, 60);
+  if (commit && d.m != null) M.placeTask(d.t, ui.date, toHm(d.m), toHm(Math.min(d.m + M.cat(d.t.cat).dur, 1439)));
+  else render();
+}
 const ppm = () => (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hour')) || 66) / 60;
 
 function ring(p) {
@@ -196,18 +232,7 @@ function renderTimeline(date, gev) {
     const m = clamp(Math.floor((t0 + e.offsetY / P) / 30) * 30, 0, 1410);
     openBlock(null, { start: toHm(m), end: toHm(Math.min(m + 60, 1439)), date });
   });
-  // 할 일을 끌어다 놓기 (PC)
-  const marker = h('div', { class: 'tl-drop' });
-  const at = e => clamp(Math.round((t0 + (e.clientY - area.getBoundingClientRect().top) / P) / 15) * 15, 0, 1425);
-  area.addEventListener('dragover', e => { if (!dragTask) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; const m = at(e); marker.style.top = (m - t0) * P + 'px'; marker.dataset.t = toHm(m); if (!marker.isConnected) area.append(marker); area.classList.add('drop'); });
-  area.addEventListener('dragleave', () => { marker.remove(); area.classList.remove('drop'); });
-  area.addEventListener('drop', e => {
-    e.preventDefault(); marker.remove(); area.classList.remove('drop');
-    const t = dragTask; dragTask = null;
-    if (!t) return;
-    const m = at(e), dur = M.cat(t.cat).dur;
-    M.placeTask(t, date, toHm(m), toHm(Math.min(m + dur, 1439)));
-  });
+  area.dataset.t0 = t0;        // 할 일을 끌어다 놓을 때 시간 계산에 씀
   return h('div', { class: 'tl-wrap' }, tl);
 }
 
@@ -234,6 +259,17 @@ function endDrag(commit) {
   else renderDay();
 }
 addEventListener('pointermove', e => {
+  const td = tdrag;
+  if (td && e.pointerId === td.id) {
+    const far = Math.abs(e.clientX - td.x) + Math.abs(e.clientY - td.y);
+    if (!td.active) {
+      if (td.touch) { if (far > 10) { clearTimeout(td.timer); tdrag = null; } return; }
+      if (far < 6) return;
+      liftTask(td);
+    }
+    moveTask(td, e.clientX, e.clientY);
+    return;
+  }
   const d = drag;
   if (!d || e.pointerId !== d.id) return;
   const dy = e.clientY - d.y;
@@ -249,10 +285,11 @@ addEventListener('pointermove', e => {
   d.el.style.height = Math.max((d.ne - d.ns) * P - 2, 22) + 'px';
   d.timeEl.textContent = `${toHm(d.ns)}–${toHm(d.ne)}`;
 });
-addEventListener('pointerup', () => endDrag(true));
-addEventListener('pointercancel', () => endDrag(false));
-addEventListener('touchmove', e => { if (drag?.active) e.preventDefault(); }, { passive: false });
-addEventListener('contextmenu', e => { if (drag) e.preventDefault(); });
+addEventListener('pointerup', () => { endDrag(true); endTaskDrag(true); });
+addEventListener('pointercancel', () => { endDrag(false); endTaskDrag(false); });
+addEventListener('touchmove', e => { if (drag?.active || tdrag?.active) e.preventDefault(); }, { passive: false });
+addEventListener('contextmenu', e => { if (drag || tdrag) e.preventDefault(); });
+addEventListener('selectstart', e => { if (tdrag) e.preventDefault(); });
 
 function renderDay() {
   const el = $('#day'), date = ui.date, isToday = date === today(), scroll = el.scrollTop;
@@ -312,7 +349,7 @@ function render() {
   queued = true;
   requestAnimationFrame(() => {
     queued = false;
-    if (drag?.active) return;
+    if (drag?.active || tdrag?.active) return;
     renderShell();
     if (ui.tab === 'review') renderReview($('#review'));
     else { renderTasks(); renderDay(); }
