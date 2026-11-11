@@ -74,6 +74,7 @@
   /* ───── 공통 ───── */
   const head = (t, sub, right = "") => `<div class="top"><h1 class="lt">${t}</h1><div class="row">${right}</div></div>${sub ? `<p class="sub">${sub}</p>` : ""}`;
   const backTop = (r = "") => `<div class="top"><button class="ib" data-act="back" aria-label="뒤로">‹</button><div class="row">${r}</div></div>`;
+  const DEEP = window.VFM_DEEP || {}, DH = { esc, fmt, chips: ids => chips(ids) };   // 앱이 덧붙이는 '자세히' (예: sisa/learn/deep.js)
   const chips = ids => (ids || []).filter(i => TB[i]).map(i => `<button class="tchip" data-term="${i}">${esc(TB[i].t)}</button>`).join("");
   const boxes = id => { const b = (S.box[id] || {}).b || 0; return `<span class="bxs" title="익힘 ${b}/5">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= b ? "on" : ""}"></i>`).join("")}</span>`; };
   const ringSvg = (p, txt) => { const r = 30, c = 2 * Math.PI * r; return `<svg width="76" height="76" viewBox="0 0 76 76"><circle cx="38" cy="38" r="${r}" fill="none" stroke="var(--ap-fill)" stroke-width="8"/><circle cx="38" cy="38" r="${r}" fill="none" stroke="${p >= 1 ? "var(--up)" : "var(--accent)"}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - Math.min(1, p))}" transform="rotate(-90 38 38)"/><text x="38" y="43" text-anchor="middle" font-size="15" font-weight="800" fill="var(--ink)">${txt}</text></svg>`; };
@@ -122,7 +123,7 @@
     let h = backTop(`<span class="note" style="margin:0">${esc(c.t)}</span>`) + `<div class="dots">${Array.from({ length: tot }, (_, i) => `<i class="${i <= pos ? "on" : ""}"></i>`).join("")}</div>`;
     if (cv.qi < 0) {
       const k = c.cards[cv.i];
-      h += `<div class="lc" id="swipe"><h3>${esc(k.h)}</h3>${fmt(k.b)}${k.fig && FIG[k.fig] ? FIG[k.fig]() : ""}${ART.comic((window.VFM_CARDCM || {})[c.id + ":" + cv.i])}</div>${k.tm ? `<p class="note" style="margin:8px 2px 2px">이 카드의 말 (누르면 뜻)</p><div>${chips(k.tm)}</div>` : ""}<div class="pg">${cv.i ? '<button class="btn" data-cv="-1">‹ 이전</button>' : ""}<button class="btn pri" data-cv="1">${cv.i === c.cards.length - 1 ? "확인 문제 ›" : "다음 ›"}</button></div>`;
+      h += `<div class="lc" id="swipe"><h3>${esc(k.h)}</h3>${fmt(k.b)}${DEEP.card ? DEEP.card(k, DH) : ""}${k.fig && FIG[k.fig] ? FIG[k.fig]() : ""}${ART.comic((window.VFM_CARDCM || {})[c.id + ":" + cv.i])}</div>${k.tm ? `<p class="note" style="margin:8px 2px 2px">이 카드의 말 (누르면 뜻)</p><div>${chips(k.tm)}</div>` : ""}<div class="pg">${cv.i ? '<button class="btn" data-cv="-1">‹ 이전</button>' : ""}<button class="btn pri" data-cv="1">${cv.i === c.cards.length - 1 ? "확인 문제 ›" : "다음 ›"}</button></div>`;
     } else if (cv.qi < c.quiz.length) {
       const q = c.quiz[cv.qi];
       h += `<p class="note">확인 문제 ${cv.qi + 1}/${c.quiz.length}</p><div class="lc"><h3>${esc(q.q)}</h3></div>${q.o.map((o, i) => `<button class="opt${cv.ans == null ? "" : i === q.a ? " ok" : i === cv.ans ? " no" : " dim"}" data-cq="${i}" ${cv.ans == null ? "" : "disabled"}>${esc(o)}</button>`).join("")}${cv.ans != null ? `<div class="why">${ART.face("me", cv.ans === q.a ? "s" : "t")}<b>${cv.ans === q.a ? "맞았어요." : "아쉬워요."}</b> ${esc(q.why)}</div><button class="btn pri go" data-cv="2">${cv.qi === c.quiz.length - 1 ? "마치기" : "다음 문제 ›"}</button>` : ""}`;
@@ -154,7 +155,7 @@
   }
   function termCard(t) {
     const cn = (CATS.find(c => c[0] === t.c) || [])[1] || "";
-    return `<div class="lc"><p class="note" style="margin:0 0 4px">${esc(cn)}${t.en ? " · " + esc(t.en) : ""} ${boxes(t.id)}</p><h3>${esc(t.t)}</h3>${ART.termComic ? ART.termComic(t) : `<p>${esc(t.s)}</p>${t.a ? `<p><b>비유</b> ${esc(t.a)}</p>` : ""}${t.x ? `<p><b>기사에서는</b> ${esc(t.x)}</p>` : ""}`}${(L.termFig || {})[t.id] && FIG[L.termFig[t.id]] ? FIG[L.termFig[t.id]]() : ""}${ART.relMap(t, TB)}${(t.r || []).length ? `<p class="note" style="margin:10px 0 2px">이어지는 말</p><div>${chips(t.r)}</div>` : ""}</div>`;
+    return `<div class="lc"><p class="note" style="margin:0 0 4px">${esc(cn)}${t.en ? " · " + esc(t.en) : ""} ${boxes(t.id)}</p><h3>${esc(t.t)}</h3>${ART.termComic ? ART.termComic(t) : `<p>${esc(t.s)}</p>${t.a ? `<p><b>비유</b> ${esc(t.a)}</p>` : ""}${t.x ? `<p><b>기사에서는</b> ${esc(t.x)}</p>` : ""}`}${(L.termFig || {})[t.id] && FIG[L.termFig[t.id]] ? FIG[L.termFig[t.id]]() : ""}${DEEP.term ? DEEP.term(t, DH) : ""}${ART.relMap(t, TB)}${(t.r || []).length ? `<p class="note" style="margin:10px 0 2px">이어지는 말</p><div>${chips(t.r)}</div>` : ""}</div>`;
   }
 
   /* ───── 사전 ───── */
@@ -184,7 +185,7 @@
     const toon = e => (e.toon || []).length ? `<div class="toon">${e.toon.map((p, i) => `<div class="tp${i % 2 ? " r" : ""}"><span class="tf">${esc(p[0])}</span><span class="tb">${esc(p[1])}</span></div>`).join("")}</div>` : "";
     return backTop() + head(`${x.flag} ${esc(x.name)}`, esc(x.intro)) + (window.VFM_ART ? ART.strip(x.items, i => !!S.ep[id + ":" + i], +String(openEp).split(":")[1]) : "") + `<div class="tlv">${x.items.map((e, i) => { const k = id + ":" + i, op = openEp === k;
       if (!op) return `<button class="ev${S.ep[k] ? " rd" : ""}" data-ep="${k}" id="ep-${i}"><span class="y">${esc(e.y)}</span><div>${pic(e, "hpt")}<p class="t">${esc(e.t)}</p><p class="hint">${(e.co || []).length ? esc(e.co.slice(0, 4).join(" · ")) : "눌러서 읽기"}</p></div></button>`;
-      return `<div class="ev op${S.ep[k] ? " rd" : ""}" id="ep-${i}"><button class="evh" data-ep="${k}"><span class="y">${esc(e.y)}</span><p class="t">${esc(e.t)}</p></button><div class="evb">${toon(e)}<div class="b">${fmt(e.b)}</div>${(e.co || []).length ? `<p class="colab">나오는 이름</p><div class="cos">${e.co.map(c => `<span>${esc(c)}</span>`).join("")}</div>` : ""}${pk(e) ? `<div data-gal="${esc(pk(e))}"></div>` : ""}${e.w ? `<p class="w">→ ${APP === "sisa" ? "오늘 뉴스와" : "오늘 기사와"}: ${esc(e.w)}</p>` : ""}</div></div>`; }).join("")}</div>` + (() => { const nx = nextHash(); return nx && !nx.startsWith("#hist") ? `<button class="btn pri go" data-go="${nx}">이어서 하기 ›</button>` : ""; })();
+      return `<div class="ev op${S.ep[k] ? " rd" : ""}" id="ep-${i}"><button class="evh" data-ep="${k}"><span class="y">${esc(e.y)}</span><p class="t">${esc(e.t)}</p></button><div class="evb">${toon(e)}<div class="b">${fmt(e.b)}</div>${(e.co || []).length ? `<p class="colab">나오는 이름</p><div class="cos">${e.co.map(c => `<span>${esc(c)}</span>`).join("")}</div>` : ""}${pk(e) ? `<div data-gal="${esc(pk(e))}"></div>` : ""}${DEEP.hist ? DEEP.hist(e, DH) : ""}${e.w ? `<p class="w">→ ${APP === "sisa" ? "오늘 뉴스와" : "오늘 기사와"}: ${esc(e.w)}</p>` : ""}</div></div>`; }).join("")}</div>` + (() => { const nx = nextHash(); return nx && !nx.startsWith("#hist") ? `<button class="btn pri go" data-go="${nx}">이어서 하기 ›</button>` : ""; })();
   }
   function markEp(k) { if (!S.ep[k]) { S.ep[k] = kst(); save("ep"); bump("ep"); } }
 
