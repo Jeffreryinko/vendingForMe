@@ -452,7 +452,8 @@ textarea{width:100%;min-height:76px;border:1px solid var(--line);border-radius:1
 .sheet{overscroll-behavior:contain;will-change:transform}
 .sheet.still{animation:none!important}
 /* 글·해설 화면은 처음부터 전체 화면 */
-.sheet{top:0;max-height:none;border-radius:0;box-shadow:none;padding-top:env(safe-area-inset-top,0px)}
+/* 위 여백은 .sheet 가 아니라 위 띠(.sheet-top)가 가짐 — .sheet 에 여백을 주면 띠가 그 아래에 붙어서, 내용이 띠 위로 비쳐 보이며 띠가 화면 중간에 떠 있게 됨 */
+.sheet{top:0;max-height:none;border-radius:0;box-shadow:none;padding-top:0}
 .sheet .sheet-top{padding-top:max(6px,env(safe-area-inset-top,0px))}
 #fsBtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #fsBtn[aria-pressed="true"]{background:var(--accent);color:#fff}
