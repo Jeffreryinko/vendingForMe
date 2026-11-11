@@ -1,0 +1,29 @@
+<!doctype html><html lang="ko" class="ap ap-sisa"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>window.VFM_APP="sisa";window.VFM_ROOT="../../";</script>
+<link rel="manifest" href="../../manifest.webmanifest"><meta name="theme-color" content="#F2F3F5"><link rel="apple-touch-icon" href="../../assets/icon-192.png">
+<title>세상 읽기 교실 — 시사 자판기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../../assets/apple.css">
+<style>
+/* 세상 읽기 교실 — 시사를 읽기 위한 배경지식. 글·그림은 이 폴더의 terms.js · course.js · history.js · figs.js, 화면은 assets/learn.js */
+:root{--bg:#F2F3F5;--surface:#fff;--sunk:#EBEDF0;--ink:#0D1117;--muted:#5D6573;--line:#E1E4E9;--accent:#2A5BFF;--accent-ink:#fff;--accent-soft:#E7EDFF;
+  --up:#1E8E5A;--up-soft:#E1F3EA;--fs:1;--r:14px;--nav-h:58px;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#07090C;--surface:#10141A;--sunk:#171C24;--ink:#F2F4F7;--muted:#97A0AD;--line:#212732;--accent:#7D9BFF;--accent-ink:#0A0F1F;--accent-soft:#18213D;--up:#5BD08F;--up-soft:#12301F;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#07090C;--surface:#10141A;--sunk:#171C24;--ink:#F2F4F7;--muted:#97A0AD;--line:#212732;--accent:#7D9BFF;--accent-ink:#0A0F1F;--accent-soft:#18213D;--up:#5BD08F;--up-soft:#12301F;color-scheme:dark}
+</style>
+<link rel="stylesheet" href="../../assets/learn.css?v=1">
+</head><body>
+<div class="wrap" id="app"></div>
+<nav class="tabs" id="tabs">
+  <button data-v="home" aria-current="page"><b>☀︎</b>오늘 몫</button>
+  <button data-v="course"><b>▤</b>코스</button>
+  <button data-v="terms"><b>Aa</b>사전</button>
+  <button data-v="hist"><b>⌛︎</b>역사</button>
+</nav>
+<script src="terms.js?v=1"></script><script src="figs.js?v=1"></script><script src="course.js?v=1"></script><script src="history.js?v=1"></script>
+<script>
+window.VFM_LEARN.termFig = { editorial: "newsTypes", wire: "newsPath", poll: "poll", separation: "powers", presidential: "systems", parliamentary: "systems", bill: "bill", veto: "bill", rate: "rate", fx: "fx", tariff: "tariff", unsc: "unsc", ceasefire: "ceasefire", sanction: "sanction", oil: "oil", chip: "chips", gdp: "gdp", nato: "blocs", g7: "blocs", brics: "blocs" };
+</script>
+<script src="../../assets/learn.js?v=1"></script>
+<script src="../../assets/shell.js"></script>
+</body></html>
