@@ -81,5 +81,28 @@
       for (const c in quiz) { const ch = CH.find(x => x.id === c); if (ch) for (const q of quiz[c]) if (!(ch.quiz = ch.quiz || []).some(x => x.q === q.q)) ch.quiz.push(q); }
       for (const ch of chapters) if (!CH.some(x => x.id === ch.id)) CH.push(ch);
     },
+    /* 역사 사건에 주제 꼬리표: { "지역id|사건 제목": "war eco" }  (새 사건은 글 안에 th: "war eco" 로 바로 써도 됨) */
+    tags(map) { const HS = L.history || []; for (const k in map) { const [r, t] = k.split("|"); const reg = HS.find(h => h.id === r), e = reg && reg.items.find(x => x.t === t); if (e) e.th = map[k]; else console.warn("[deep] 꼬리표 붙일 사건 없음:", k); } },
+    /* 맨 끝에 한 번: 분류 머리말, 나라별 지역이 빌려 오는 사건(also), 주제별·시대별 묶음 보기를 만들어요.
+       묶음 보기는 같은 사건을 가리키므로 읽음 표시(✓)가 어디서 읽든 함께 켜져요. */
+    build({ chGroups = {}, chG = {}, histGroups = {}, histG = {}, themes = [], eras = [] }) {
+      const HS = L.history = L.history || [], CH = L.chapters || [];
+      L.chGroups = chGroups; L.histGroups = histGroups;
+      for (const c of CH) c.g = c.g || chG[c.id] || Object.keys(chGroups)[0];
+      const go = Object.keys(chGroups); L.chapters.sort((a, b) => go.indexOf(a.g) - go.indexOf(b.g));
+      for (const h of HS) { h.g = h.g || histG[h.id] || Object.keys(histGroups)[0]; if (!h.also) for (const e of h.items) if (!e._k) { e._k = h.id + "|" + e.t; e._f = h.flag; } }
+      const all = new Map(); for (const h of HS) if (!h.also) for (const e of h.items) all.set(e._k, e);
+      const byYr = a => a.map((e, i) => [e, i]).sort((x, y) => yr(x[0]) - yr(y[0]) || x[1] - y[1]).map(x => x[0]);
+      for (const h of HS) if (h.also) {                                             // 나라별: 제 사건 + 다른 지역에서 빌려 온 사건
+        for (const e of h.items) if (!e._k) { e._k = h.id + "|" + e.t; e._f = h.flag; all.set(e._k, e); }
+        const bor = h.also.map(k => all.get(k) || (console.warn("[deep] 빌려 올 사건 없음:", h.id, k), null)).filter(Boolean);
+        h.items = byYr(h.items.concat(bor.filter(e => !h.items.includes(e)))); delete h.also;
+      }
+      const evs = [...all.values()], has = (e, t) => (" " + (e.th || "") + " ").includes(" " + t + " ");
+      for (const [id, flag, name, intro] of themes) HS.push({ id, flag, name, intro, g: "theme", virt: 1, items: byYr(evs.filter(e => has(e, id.replace(/^th-/, "")))) });
+      for (const [id, flag, name, intro, a, b] of eras) HS.push({ id, flag, name, intro, g: "era", virt: 1, items: byYr(evs.filter(e => yr(e) >= a && yr(e) < b)) });
+      const ho = Object.keys(histGroups); HS.sort((a, b) => ho.indexOf(a.g) - ho.indexOf(b.g));
+      const no = evs.filter(e => !e.th); if (no.length) console.warn("[deep] 주제 꼬리표 없는 사건 " + no.length + "편:", no.map(e => e._k).join(" / "));
+    },
   };
 })();
