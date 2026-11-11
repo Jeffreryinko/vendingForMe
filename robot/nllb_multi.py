@@ -69,16 +69,16 @@ class Ko:
         """pairs: [(글, 언어)] → [한국어 또는 None]. 한국어 글은 그대로.
         headline=True: 제목이라 '~했습니다.' → '~했다' (신문 제목체).
         엉뚱한 번역(다른 글을 옮김·잘림·외국 문자 남음)은 버리고 다음 번역기로 → 그래도 안 되면 None(화면은 원문)."""
-        from ko_polish import bad, headline as hl, nllb_fix
-        fin = (lambda y: hl(y)) if headline else (lambda y: y)
+        from ko_polish import bad, headline as hl, nllb_fix, deaccent
+        fin = (lambda y: deaccent(hl(y))) if headline else (lambda y: deaccent(y))
         out = [None] * len(pairs); need = {}
         for i, (t, lang) in enumerate(pairs):
             t = (t or "").strip()
             if not t: continue
             if lang == "ko": out[i] = t; continue
             k = hid(t, lang)
-            if k in self.mem: out[i] = fin(self.mem[k]); self.used.add(k)
-            else: need.setdefault(lang, []).append(i)
+            if k in self.mem and not bad(t, self.mem[k], lang): out[i] = fin(self.mem[k]); self.used.add(k)     # 기억해 둔 번역도 새 기준으로 다시 봄
+            else: self.mem.pop(k, None); need.setdefault(lang, []).append(i)
         # 1) 구글 TranslateGemma (시간 예산 안에서, 글 통째로 — 문맥이 살아 더 자연스러움)
         if need:
             try:

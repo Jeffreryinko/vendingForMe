@@ -92,6 +92,18 @@ def nllb_fix(y: str) -> str:
     return re.sub(r"(?<=[가-힣]) (" + _PART + r")(?=[\s.,?!]|$)", r"\1", y)
 
 
+# ── 이름의 발음 기호 떼기: 'Đầu Khương Duy' → 'Dau Khuong Duy' (한국어 글 속에서 읽기 쉽게) ──
+def deaccent(y: str) -> str:
+    if not y or not re.search(r"[À-ɏḀ-ỿ]", y): return y
+    import unicodedata
+    def f(m):
+        w = m.group(0).replace("Đ", "D").replace("đ", "d").replace("Ł", "L").replace("ł", "l").replace("Ø", "O").replace("ø", "o")
+        return "".join(c for c in unicodedata.normalize("NFD", w) if unicodedata.category(c) != "Mn")
+    return re.sub(r"[A-Za-zÀ-ɏḀ-ỿ]+", f, y)
+
+
+_LOWER_OK = set("iphone ipados macos youtube tiktok bitcoin ethereum github reddit openai chatgpt nvidia".split())
+
 # ── 엉뚱한 번역 거르기 ──
 _FOREIGN = re.compile(r"[Ѐ-ӿ؀-ۿ฀-๿ऀ-ॿঀ-৿က-႟֐-׿Ͱ-Ͽ぀-ヿ]")
 _HAN = re.compile(r"[一-鿿]")
@@ -103,6 +115,9 @@ def bad(src: str, y: str, lang: str = "en") -> str:
     if not y: return "빈 번역"
     if len(_FOREIGN.findall(y)) > 2: return "외국 문자가 남음"
     if len(_HAN.findall(y)) > 3: return "한자가 남음"
+    if re.search(r"[가-힣]", y):                          # 한국어 문장 속에 번역 안 된 낱말이 남음 ('참가 invitation을 받으며')
+        left = [w for w in re.findall(r"(?<![A-Za-z@./_-])[a-zà-ÿ]{6,}(?![A-Za-z@./_-])", y) if w not in _LOWER_OK]
+        if left: return f"번역 안 된 낱말({left[0]})"
     if not re.search(r"[가-힣]", y) and re.search(r"[A-Za-z]{4,}", s) and not re.fullmatch(r"[\x00-\x7F]+", y): return "한국어가 없음"
     cjk = lang in ("zh", "zh-tw", "zh-cn", "ja")
     r = len(y) / max(1, len(s))
