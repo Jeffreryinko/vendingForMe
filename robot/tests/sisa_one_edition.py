@@ -29,6 +29,7 @@ D = T + "/data/sisa"; os.makedirs(D + "/editions"); os.makedirs(D + "/feed"); os
 shutil.copy(seed / f"editions__{ed}.json", f"{D}/editions/{ed}.json")
 for f in seed.glob(f"feed__{ed}__*.json"): shutil.copy(f, f"{D}/feed/{ed}__{f.stem.split('__')[2]}.json")
 shutil.copy("data/sisa/brief/ents.json", D + "/brief/ents.json")
+if os.path.exists("data/sisa/brief/_wiki.json"): shutil.copy("data/sisa/brief/_wiki.json", D + "/brief/_wiki.json")     # 위키백과 첫 문장 기억 (네트워크 없이 배경 설명 시험)
 shutil.copy("data/sisa/editions/_index.json", D + "/editions/_index.json")
 if os.environ.get("SISA_TEST_WIKI"): shutil.copy(os.environ["SISA_TEST_WIKI"], D + "/brief/_wikinews.json")   # 위키백과 요즘 화제 시험용 (네트워크 없이)          # '이어진 이야기'용 지난 판
 for e in json.load(open("data/sisa/editions/_index.json"))[-20:]:
@@ -67,6 +68,8 @@ for s in ms[:8]:
     for x in s.get("lines", []): print("   지금까지:", x["t"][:90])
     for x in s.get("nums", []): print("   숫자:", x["w"], " / ".join(f"{v['v']}({v['s']})" for v in x["vals"]), "← 출처마다 다름" if x["diff"] else "")
     for x in s.get("quotes", []): print("   말:", x.get("who") or "?", "“" + x["q"][:60] + "”", f"({x['s']})")
+    for x in s.get("bg", []): print("   알아야 할 것:", x[:110])
+    if s.get("terms"): print("   용어:", " / ".join(f"{x['t']}={x['d'][:20]}" for x in s["terms"]))
     if s.get("wk"): print("   위키:", s["wk"]["t"][:80], s["wk"]["hit"])
     for x in s.get("rel", []): print("   이어진:", "지금판" if x["cur"] else x.get("label"), x["t"][:50])
 dl = E.get("daily") or {}

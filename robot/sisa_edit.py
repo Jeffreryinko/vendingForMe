@@ -311,12 +311,34 @@ class Ed:
                 if len(n) >= 2: idx.append((n, name))
         idx.sort(key=lambda x: -len(x[0])); self._eidx = idx; return idx
 
+    @staticmethod
+    def word_hits(text, n):
+        """글에서 이름 n 이 '낱말 첫머리'에 나온 횟수 ('사랑이란'의 '이란', '로 인해' 같은 오인 줄이기 — 화면 entMatches 와 같은 규칙)"""
+        c, i = 0, text.find(n)
+        while i >= 0:
+            prev = text[i - 1] if i else ""
+            nxt = text[i + len(n):i + len(n) + 1]
+            if not re.match(r"[가-힣A-Za-z]", prev or " ") and not (re.search(r"[A-Za-z]$", n) and re.match(r"[A-Za-z]", nxt or " ")): c += 1
+            i = text.find(n, i + len(n))
+        return c
+
     def ents_in(self, text, k=5):
         hit = Counter(); used = []
         for n, name in self.ent_index():
             if n in text and not any(n in u for u in used):
-                hit[name] += text.count(n); used.append(n)
+                c = self.word_hits(text, n)
+                if c: hit[name] += c; used.append(n)
         return [n for n, _ in hit.most_common(k)]
+
+    def ents_ranked(self, title, texts, k=8):
+        """이 이슈에서 중요한 이름 순: 이슈 제목에 있으면 +3, 그리고 그 이름이 나온 기사 수. 제목에 없고 기사 1개에만 나온 이름은 뺌(곁가지)."""
+        sc = Counter()
+        for name in self.ents_in(" ".join([title] + texts), 30):
+            keys = [name] + [a for a in ((self.ents.get("map") or {}).get(name, {}).get("a") or []) if a]
+            in_t = any(self.word_hits(title, x) for x in keys)
+            n = sum(1 for x in texts if any(self.word_hits(x, y) for y in keys))
+            if in_t or n >= 2 or len(texts) <= 2: sc[name] = (3 if in_t else 0) + n
+        return [n for n, _ in sc.most_common(k)]
 
     def wiki_first(self, title, cache):
         if title in cache: return cache[title]
@@ -332,13 +354,23 @@ class Ed:
             if s.get("method") == "ai-v1" and s.get("why3"): continue      # 사람이(클로드가) 쓴 해설은 그대로
             its = [self.items[i] for i in s["items"] if i in self.items]
             text = " ".join(filter(None, [s.get("title", "")] + [self.kt(i) for i in its]))
-            names = self.ents_in(text)
-            s["terms"] = [{"t": nm, "d": m[nm].get("r", "")} for nm in names if m[nm].get("r")][:5]
-            bg = []
-            for nm in names[:3]:
-                e = m[nm]; b = e.get("d") or (self.wiki_first(e.get("w") or nm, cache) if e.get("w") or e.get("t") in ("person", "org", "place", "party") else "")
-                if b and b not in bg: bg.append(b if b.startswith(nm) else f"{nm}: {b}")
-            s["bg"] = bg[:3]
+            # 이해하려면 알아야 할 것: 이 이슈의 중심 이름 3개까지 — 편집장이 쓴 설명 먼저, 없으면 위키백과 첫 문장(사람·기관·정당·도시만).
+            # 누구나 아는 나라 이름이나 '체포' 같은 보통 낱말의 사전 풀이는 넣지 않음.
+            names = self.ents_ranked(s.get("title", ""), [self.kt(i) for i in its if self.kt(i)])
+            bg, used_bg = [], set()
+            for nm in names:
+                e = m[nm]; r = e.get("r", ""); country = e.get("t") == "place" and re.search(r"국가|나라|공화국|왕국$", r)
+                if e.get("d"): b = f"{nm}({r}) — {e['d']}" if r else f"{nm} — {e['d']}"
+                elif e.get("t") in ("person", "org", "party") or (e.get("t") == "place" and not country):
+                    w = self.wiki_first(e.get("w") or nm, cache)
+                    w = re.split(r"(?<=다\.)\s+", w)[0] if len(w) > 150 else w
+                    b = "" if not w else (w if w.startswith(nm[:2]) else f"{nm}: {w}")
+                else: b = ""
+                if b and b not in bg: bg.append(b); used_bg.add(nm)
+                if len(bg) >= 3: break
+            s["bg"] = bg
+            s["terms"] = [{"t": nm, "d": m[nm]["r"]} for nm in names if nm not in used_bg and m[nm].get("r")
+                          and not (m[nm].get("t") == "place" and re.search(r"국가|나라|공화국", m[nm]["r"]))][:4]
             cnt = Counter(self.ctry(i) for i in its)
             ang = []
             for c, _ in cnt.most_common(6):
@@ -521,7 +553,23 @@ class Ed:
     # ── 6. 이름 사전: 위키데이터에서 사람·정당·기관·장소만 ──
     WD_T = {"Q5": "person", "Q7278": "party", "Q43229": "org", "Q4830453": "org", "Q484652": "org", "Q327333": "org", "Q7210356": "org",
             "Q6256": "place", "Q515": "place", "Q1549591": "place", "Q35657": "place", "Q107390": "place", "Q10864048": "place", "Q1637706": "place",
-            "Q3624078": "place", "Q5119": "place", "Q1190554": "event", "Q178561": "event", "Q198": "event"}
+            "Q3624078": "place", "Q5119": "place"}
+    WD_COUNTRY = {"Q6256", "Q3624078"}
+    # 뉴스 문장에서 보통 낱말로 쓰이는데 위키백과엔 사람·도시 문서가 있는 말 — 사전에 넣지 않음
+    AMBIG = set("인해 강조 현장 이런 종식 주간 주재 강한 고위 건설 체포 후에 수단 사나 리마 대해 위해 통해 관련 이상 이하 가운데 지난 최근 오늘 내일 현재 이번 다음 우리 모두 이후 이전 사실 문제 결과 계획 발표 시작 진행 확인 조사 수사 재판 판결 선거 투표 회담 협상 합의 전쟁 공격 사망 부상 사고 화재 폭발 지진 홍수 태풍 대통령 총리 장관 의원 정부 의회 법원 경찰 군대 시장 주가 금리 환율 수출 수입".split())
+
+    @classmethod
+    def ent_ok(cls, name, typ, desc, claims=None, p31=()):
+        """로봇이 사전에 넣어도 되는 이름인가 — 보통 낱말이 옛 인물·먼 도시로 잘못 풀리는 것('인해 = 고려 무신') 막기"""
+        if not desc or name in cls.AMBIG: return False
+        if typ == "person":
+            if len(name) < 3 or re.search(r"고려|조선|신라|백제|고구려|발해|당나라|송나라|명나라|청나라|삼국|후한|오나라|위나라|촉나라|세기|왕조", desc): return False
+            if claims is not None:                                    # 지금 뉴스에 나올 사람: 1920년 뒤에 태어났고, 죽었다면 2000년 뒤
+                yr = lambda p: next((int(m.group(1)) for c in (claims.get(p) or []) for m in [re.match(r"[+-](\d{4})", str(c.get("mainsnak", {}).get("datavalue", {}).get("value", {}).get("time", "")))] if m), None)
+                b, d = yr("P569"), yr("P570")
+                if not b or b < 1920 or (d and d < 2000): return False
+        if len(name) == 2 and typ == "place" and not (set(p31) & cls.WD_COUNTRY or re.search(r"국가|나라|공화국|수도|최대 도시|대도시", desc)): return False   # 두 글자 도시(후에·리마)는 보통 낱말과 겹침
+        return True
 
     def grow_ents(self, cap=120):
         if NO_NET: return
@@ -557,6 +605,7 @@ class Ed:
                 if not typ: continue
                 desc = (e.get("descriptions", {}).get("ko") or {}).get("value", "")
                 name = qids[q]
+                if not self.ent_ok(name, typ, desc, e.get("claims") or {}, p31): continue
                 m[name] = {"t": typ, "r": desc or "", "w": name, "by": "robot"}; chk[name] = 1; added += 1
         self.ents["updatedAt"] = datetime.now(KST).isoformat(timespec="seconds")
         wj(DATA / "brief/ents.json", self.ents); wj(DATA / "brief/_entchk.json", dict(list(chk.items())[-20000:]))

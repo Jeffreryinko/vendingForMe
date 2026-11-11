@@ -1699,6 +1699,14 @@ function entText(text){
   return h + esc(text.slice(p));
 }
 function entsOf(texts){ const seen = new Map(); texts.forEach(t => entMatches(t || "").forEach(m => seen.set(m.n, (seen.get(m.n) || 0) + 1))); return [...seen.keys()]; }
+// 이 이슈의 중심 이름만: 제목·요약에 나오거나 기사 2개 이상에 나온 이름, 많이 나온 순으로 8개 (기사 하나에 스친 이름은 뺌)
+function entsTop(s){
+  const head = new Set(entsOf([s.title, s.key])), cnt = new Map();
+  storyItems(s).forEach(i => new Set(entMatches(koOf(i) || "").map(m => m.n)).forEach(n => cnt.set(n, (cnt.get(n) || 0) + 1)));
+  head.forEach(n => cnt.set(n, (cnt.get(n) || 0) + 3));
+  const few = storyItems(s).length <= 2;
+  return [...cnt.entries()].filter(([n, c]) => head.has(n) || c >= 2 || few).sort((a, b) => b[1] - a[1]).slice(0, 8).map(x => x[0]);
+}
 function entPic(n, e){
   const w = WIKI[n]; if(!w || !w.img || !/^https:\/\/(upload|thumb)\.wikimedia\.org\//.test(w.img)) return "";
   return `<a class="entc-pic ${e.t === "person" ? "ppl" : "obj"}" href="https://${w.lang}.wikipedia.org/wiki/${encodeURIComponent(w.title.replace(/ /g, "_"))}" target="_blank" rel="noopener noreferrer" aria-label="${esc(n)} 위키백과 문서"><img src="${esc(w.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest('.entc').classList.add('nopic');this.closest('a').remove()"></a>`;
@@ -1942,7 +1950,7 @@ function issueInner(s, inDeck){
       ${sec("무슨 일이 있었나", `<p class="ibody">${entText(s.key || s.sum || "")}</p>${linesBody ? `<h4 class="rh">여러 출처는 이렇게 전해요</h4>${linesBody}` : ""}${(s.since || []).length ? `<p class="since">이 해설을 쓴 뒤 새 기사 ${s.since.length}개가 붙었어요. 지금 상황과 다를 수 있으니 <button type="button" class="lnk" data-jump="sec-tl">최신 기사부터 확인 ›</button></p>` : ""}`)}
       ${sec("숫자로 보기", numsBody)}
       ${sec("말말말", quoteBody)}
-      ${sec("먼저 알아 둘 이름", entCards(entsOf(storyTexts(s))), "sec-ent")}
+      ${sec("먼저 알아 둘 이름", entCards(entsTop(s)), "sec-ent")}
       ${sec("왜 중요한가", whyBody)}
       ${sec("이해하려면 알아야 할 것", knowBody)}
       ${sec("어떻게 흘러왔나", (dayBody ? `<h4 class="rh">날마다 첫 소식</h4>${dayBody}<h4 class="rh">최근 기사</h4>` : "") + tlBody, "sec-tl")}
