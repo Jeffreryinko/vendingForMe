@@ -33,6 +33,12 @@
 .tlv{position:relative;margin:6px 0 0;padding-left:0}.ev{display:grid;grid-template-columns:5.6em 1fr;gap:8px;background:var(--surface);border-radius:12px;padding:12px 14px;margin:0 0 8px;width:100%;text-align:left;border:0;color:inherit}
 .ev .y{font:700 12.5px var(--ap-display);color:var(--accent);font-variant-numeric:tabular-nums;padding-top:2px}.ev .t{font-weight:700;margin:0 0 2px;font-size:15px}.ev .b{font-size:14px;margin:6px 0 0;color:var(--ink)}.ev .w{font-size:13px;margin:8px 0 0;color:var(--up);font-weight:500}.ev.rd .t::after{content:" ✓";color:var(--up)}
 .ev .hint{font-size:12px;color:var(--muted);margin:0}
+.ev>div,.ev .evb{min-width:0}.ev.op{display:block;padding:0;overflow:hidden}.ev .evh{display:grid;grid-template-columns:5.6em 1fr;gap:8px;width:100%;text-align:left;border:0;background:none;color:inherit;padding:12px 14px 4px}.ev .evb{padding:0 14px 14px}
+.ev .b p{margin:0 0 9px;font-size:calc(15px*var(--fs));line-height:1.65;overflow-wrap:anywhere}.ev .b b{color:var(--accent)}.ev .hint{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toon{display:grid;gap:8px;margin:6px 0 12px;padding:10px;border-radius:12px;background:var(--sunk)}.toon .tp{display:flex;gap:8px;align-items:flex-start}.toon .tp.r{flex-direction:row-reverse}
+.toon .tf{flex:none;width:38px;height:38px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-size:21px}.toon .tb{background:var(--surface);border-radius:14px;padding:8px 11px;font-size:14px;line-height:1.45;max-width:82%;overflow-wrap:anywhere}.toon .tp.r .tb{background:var(--accent-soft)}
+.colab{font-size:12px;color:var(--muted);margin:10px 0 4px}.cos{display:flex;flex-wrap:wrap;gap:5px}.cos span{font-size:12.5px;font-weight:600;background:var(--ap-fill);border-radius:999px;padding:3px 10px}
+.wgal{max-width:100%;overflow:hidden}
 .pg{display:flex;gap:8px;margin:10px 0}.pg .btn{flex:1}
 .sizeb{display:flex;gap:6px;margin:6px 0 2px}.sizeb button{flex:1;border:0;background:var(--ap-fill);border-radius:10px;padding:8px 4px;font-size:13px}.sizeb button.on{background:var(--accent);color:var(--accent-ink);font-weight:700}
 .hero{background:var(--accent-soft);border-radius:var(--r);padding:14px 16px;margin:8px 0;font-size:14px}.hero b{display:block;font:700 17px var(--ap-display);margin-bottom:3px}
@@ -173,7 +179,12 @@
   function renderReg(id) {
     const x = HS.find(h => h.id === id); if (!x) return renderHist();
     if (openEp == null || !String(openEp).startsWith(id + ":")) { const i = x.items.findIndex((_, i) => !S.ep[id + ":" + i]); openEp = id + ":" + (i < 0 ? 0 : i); markEp(openEp); }
-    return backTop() + head(`${x.flag} ${esc(x.name)}`, esc(x.intro)) + ART.strip(x.items, i => !!S.ep[id + ":" + i], +String(openEp).split(":")[1]) + `<div class="tlv">${x.items.map((e, i) => { const k = id + ":" + i, op = openEp === k; return `<button class="ev${S.ep[k] ? " rd" : ""}" data-ep="${k}" id="ep-${i}"><span class="y">${esc(e.y)}</span><div>${op ? "" : ART.pic(k, "hpt")}<p class="t">${esc(e.t)}</p>${op ? `${ART.pic(k, "hp")}<p class="b">${esc(e.b)}</p>${(window.VFM_PICS || {})[k] ? `<div data-gal="${esc(window.VFM_PICS[k])}"></div>` : ""}${e.w ? `<p class="w">→ 오늘 뉴스와: ${esc(e.w)}</p>` : ""}` : '<p class="hint">눌러서 읽기</p>'}</div></button>`; }).join("")}</div>` + (() => { const nx = nextHash(); return nx && !nx.startsWith("#hist") ? `<button class="btn pri go" data-go="${nx}">이어서 하기 ›</button>` : ""; })();
+    const pk = e => e.wk ? "en:" + String(e.wk).replace(/_/g, " ") : "";
+    const pic = (e, cls) => pk(e) ? `<img class="${cls}" data-wt="${esc(pk(e))}" alt="" loading="lazy">` : "";
+    const toon = e => (e.toon || []).length ? `<div class="toon">${e.toon.map((p, i) => `<div class="tp${i % 2 ? " r" : ""}"><span class="tf">${esc(p[0])}</span><span class="tb">${esc(p[1])}</span></div>`).join("")}</div>` : "";
+    return backTop() + head(`${x.flag} ${esc(x.name)}`, esc(x.intro)) + (window.VFM_ART ? ART.strip(x.items, i => !!S.ep[id + ":" + i], +String(openEp).split(":")[1]) : "") + `<div class="tlv">${x.items.map((e, i) => { const k = id + ":" + i, op = openEp === k;
+      if (!op) return `<button class="ev${S.ep[k] ? " rd" : ""}" data-ep="${k}" id="ep-${i}"><span class="y">${esc(e.y)}</span><div>${pic(e, "hpt")}<p class="t">${esc(e.t)}</p><p class="hint">${(e.co || []).length ? esc(e.co.slice(0, 4).join(" · ")) : "눌러서 읽기"}</p></div></button>`;
+      return `<div class="ev op${S.ep[k] ? " rd" : ""}" id="ep-${i}"><button class="evh" data-ep="${k}"><span class="y">${esc(e.y)}</span><p class="t">${esc(e.t)}</p></button><div class="evb">${toon(e)}<div class="b">${fmt(e.b)}</div>${(e.co || []).length ? `<p class="colab">나오는 이름</p><div class="cos">${e.co.map(c => `<span>${esc(c)}</span>`).join("")}</div>` : ""}${pk(e) ? `<div data-gal="${esc(pk(e))}"></div>` : ""}${e.w ? `<p class="w">→ ${APP === "sisa" ? "오늘 뉴스와" : "오늘 기사와"}: ${esc(e.w)}</p>` : ""}</div></div>`; }).join("")}</div>` + (() => { const nx = nextHash(); return nx && !nx.startsWith("#hist") ? `<button class="btn pri go" data-go="${nx}">이어서 하기 ›</button>` : ""; })();
   }
   function markEp(k) { if (!S.ep[k]) { S.ep[k] = kst(); save("ep"); bump("ep"); } }
 

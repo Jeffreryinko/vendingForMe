@@ -15,7 +15,7 @@
     return MEM[key] = fetch("https://" + lang + ".wikipedia.org/api/rest_v1/page/media-list/" + encodeURIComponent(t.replace(/ /g, "_")))
       .then(function (r) { return r.ok ? r.json() : { items: [] }; })
       .then(function (d) {
-        return (d.items || []).filter(function (x) { return x.type === "image" && x.showInGallery !== false && x.srcset && x.srcset.length && !JUNK.test(x.title || ""); }).slice(0, 12).map(function (x) {
+        return (d.items || []).filter(function (x) { return x.type === "image" && x.showInGallery !== false && x.srcset && x.srcset.length && !JUNK.test(x.title || ""); }).slice(0, 8).map(function (x) {
           var src = x.srcset[0].src; if (src.indexOf("//") === 0) src = "https:" + src;
           return { src: src, cap: x.caption && x.caption.text || "", href: "https://" + lang + ".wikipedia.org/wiki/" + encodeURIComponent(x.title) };
         });
@@ -27,7 +27,7 @@
       if (!el.isConnected) return;
       if (a.length < 2) { el.remove(); return; }
       el.className = "wgal";
-      el.innerHTML = '<div class="wgs">' + a.map(function (x) { return '<a href="' + esc(x.href) + '" target="_blank" rel="noopener"><img src="' + esc(x.src) + '" alt="" loading="lazy" decoding="async">' + (x.cap ? "<span>" + esc(x.cap) + "</span>" : "") + "</a>"; }).join("") +
+      el.innerHTML = '<div class="wgs">' + a.map(function (x) { return '<a href="' + esc(x.href) + '" target="_blank" rel="noopener"><img src="' + esc(x.src) + '" alt="" loading="lazy" decoding="async">' + (x.cap && key.indexOf("ko:") === 0 ? "<span>" + esc(x.cap) + "</span>" : "") + "</a>"; }).join("") +
         '</div><p class="wgn">사진 ' + a.length + "장 · 위키백과 「" + esc(key.slice(key.indexOf(":") + 1)) + "」 문서에 실린 그림 · 누르면 출처와 저작권 표시</p>";
     });
   }
