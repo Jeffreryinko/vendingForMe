@@ -1872,7 +1872,6 @@ document.addEventListener("pointerup", () => {
 function findStory(k){ return (S.ed.stories||[]).find(x => x.id === k) || (S.ed.stories||[]).find(x => x.sid && x.sid === k); }
 function showIssue(sid){
   const s = findStory(sid); if(!s) return; sid = s.id;
-  if(S.sheetOpen === "daily") S.backTo = "daily";               // 오늘의 정리에서 연 이슈 → 뒤로 가면 정리 목록으로
   S.sheetOpen = "issue:" + sid; markStorySeen(s);
   if(!issueOpened(s) || Date.now() - Date.parse(stOf(issueKey(sid)).opened) > 10*60e3) setState(issueKey(sid), {opened:new Date().toISOString(), kind:"issue", title:s.title, key:s.key||s.sum||""});
   drawIssue(sid);
@@ -2818,9 +2817,11 @@ async function translateSummary(id){
   }catch(e){ toast(e.code==="not_granted" ? "번역 권한이 허용되지 않았어요" : "번역 실패: " + (e.code||"오류")); }
   S.busy = false; drawSheet();
 }
-function closeSheet(){
-  if(S.backTo && S.sheetOpen !== S.backTo){ const b = S.backTo; S.backTo = null; S.drawnId = null; return navTo(b); }
-  S.backTo = null;
+// 뒤로: 바로 앞에 보던 화면으로 한 걸음 (이슈에서 기사를 열었으면 그 이슈로, 오늘의 정리에서 이슈를 열었으면 정리로). all=true(✕·바깥 누름)면 다 닫음.
+function closeSheet(all){
+  const prev = !all && S.backStack && S.backStack.pop();
+  if(prev){ S._back = true; S.drawnId = null; return navTo(prev); }
+  S.backStack = []; S.sheetHash = null;
   S.sheetOpen = null; $("#sheetHost").innerHTML = "";
   hashSwap("#" + (S.view==="src" ? "sources" : S.view));
 }
@@ -2989,7 +2990,7 @@ function sisaBack(){
   if(S.view !== "today"){ navTo("today"); return true; }
   return false;
 }
-window.vfmApp = { back: sisaBack, go(h){ hashSwap(h); }, top(){ if(S.sheetOpen) closeSheet(); if(S.view !== "today") navTo("today"); } };
+window.vfmApp = { back: sisaBack, go(h){ hashSwap(h); }, top(){ if(S.sheetOpen) closeSheet(true); if(S.view !== "today") navTo("today"); } };
 function route(){
   const h = (location.hash || "").slice(1);
   { const sh = $(".sheet"); if(sh && S.drawnId) S.sheetScroll[S.drawnId] = sh.scrollTop; }   // 지금 보던 시트의 읽던 자리 기억
@@ -2997,6 +2998,13 @@ function route(){
   if(!S.loaded){ S.view = VIEW_HASH[h] || (h.startsWith("nation-") ? "nation" : "today"); return render(); }
   if(h.startsWith("map-")) return showMapFull(h.slice(4));
   closeMapFull(true);
+  // 겹쳐 연 화면의 발자국: 종류가 다른 화면으로 넘어갈 때만 앞 화면을 기억 (이슈 → 기사, 정리 → 이슈, 묶음 → 이슈). 이슈에서 옆 이슈로 넘기는 것은 기억하지 않음
+  { const kind = x => x ? x.split("-")[0].split("@")[0] : "", isSheet = /^(item-|issue-|theme-)|^daily$/.test(h);
+    if(!isSheet){ S.sheetHash = null; S.backStack = []; }
+    else { const cur = S.sheetHash;
+      if(S._back) S._back = false;
+      else if(cur && cur !== h && kind(cur) !== kind(h)){ (S.backStack ||= []).push(cur); if(S.backStack.length > 6) S.backStack.shift(); }
+      S.sheetHash = h; } }
   if(h.startsWith("item-") && S.byId[h.slice(5)]) return showSheet(h.slice(5));
   if(h.startsWith("issue-")){ const [k, pe] = h.slice(6).split("@");
     if(findStory(k)) return showIssue(k);
@@ -3090,7 +3098,7 @@ document.addEventListener("click", e => {
   if(d.q){ S.f.q = d.q; S.f.lang = "all"; S.f.kind = "all"; return go("feed"); }
   if(d.memoopen){ S.memoOpen = true; drawSheet(); setTimeout(()=>$("#memo-"+d.memoopen)?.focus(), 50); return; }
   if(d.day){ S.reportDay = d.day; return render(); }
-  if(d.close!==undefined && (t.classList.contains("scrim") || t.tagName==="BUTTON")) return closeSheet();
+  if(d.close!==undefined && (t.classList.contains("scrim") || t.tagName==="BUTTON")) return closeSheet(t.classList.contains("scrim") || t.getAttribute("aria-label") === "닫기");   // ← 뒤로 = 한 걸음, ✕·바깥 = 다 닫기
   if(d.out){ const it=S.byId[d.out]; if(it){ logEvent("outbound", it); setState(it.id,{outbound:new Date().toISOString()}); S.ret = {id:it.id, at:Date.now()}; } return; }
   if(d.gt){ const it=S.byId[d.gt]; if(it){ logEvent("translate_view", it); setState(it.id,{outbound:new Date().toISOString()}); } return; }
   if(d.read){ const it=S.byId[d.read]; const on=!stOf(it.id).read; logEvent(on?"read":"unread", it); setState(it.id,{read:on}); toast(on?"읽음으로 기록했어요":"읽음을 취소했어요"); return S.sheetOpen ? drawSheet() : render(); }
