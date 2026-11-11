@@ -94,3 +94,16 @@ window.VFM_LEARN = Object.assign(window.VFM_LEARN || {}, { history: [
     { y: "2016~17", t: "촛불과 첫 대통령 파면", b: "국정농단 사건으로 큰 촛불 집회가 이어졌고, 2017년 3월 헌법재판소가 박근혜 대통령을 파면했어요.", w: "" },
     { y: "2024~25", t: "비상계엄과 두 번째 파면", b: "2024년 12월 3일 윤석열 대통령이 비상계엄을 선포했고, 국회가 몇 시간 만에 해제를 요구해 풀렸어요. 국회는 탄핵소추안을 통과시켰고, 2025년 4월 4일 헌법재판소가 재판관 전원 일치로 파면을 결정했어요. 6월 3일 조기 대선이 치러졌어요.", w: "삼권분립의 장치(국회의 계엄 해제 요구, 탄핵, 헌법재판)가 실제로 움직인 사례예요." } ] },
 ] });
+
+/* 사건마다 붙일 사진: 그 사건의 위키백과 문서 이름 (보는 사람 브라우저가 받아 와요) */
+(function () { var W = {
+  world: ["World_War_I", "Great_Depression", "World_War_II", "Bretton_Woods_Conference", "Cold_War", "1973_oil_crisis", "Fall_of_the_Berlin_Wall", "September_11_attacks", "2008_financial_crisis", "COVID-19_pandemic", "Russian_invasion_of_Ukraine", "Gaza_war"],
+  us: ["Constitution_of_the_United_States", "American_Civil_War", "New_Deal", "Marshall_Plan", "Civil_Rights_Act_of_1964", "Reaganomics", "War_in_Afghanistan_(2001–2021)", "Rust_Belt", "January_6_United_States_Capitol_attack", "Tariffs_in_the_second_Trump_administration"],
+  eu: ["Peace_of_Westphalia", "French_Revolution", "European_Coal_and_Steel_Community", "German_reunification", "Euro", "European_debt_crisis", "2015_European_migrant_crisis", "Brexit", "NATO"],
+  ru: ["Russian_Revolution", "Eastern_Front_(World_War_II)", "Dissolution_of_the_Soviet_Union", "Budapest_Memorandum", "Moscow_Kremlin", "Annexation_of_Crimea_by_the_Russian_Federation", "Russian_invasion_of_Ukraine", "International_sanctions_during_the_Russian_invasion_of_Ukraine"],
+  me: ["Sykes–Picot_Agreement", "1948_Arab–Israeli_War", "Six-Day_War", "Iranian_Revolution", "Oslo_Accords", "Iraq_War", "Arab_Spring", "Joint_Comprehensive_Plan_of_Action", "Abraham_Accords", "Gaza_war"],
+  cn: ["First_Opium_War", "Chinese_Civil_War", "Korean_War", "Cultural_Revolution", "1972_visit_by_Richard_Nixon_to_China", "Chinese_economic_reform", "Tiananmen_Square", "Port_of_Shanghai", "Belt_and_Road_Initiative", "China–United_States_trade_war"],
+  jp: ["Meiji_Restoration", "Surrender_of_Japan", "Constitution_of_Japan", "National_Diet_Building", "Treaty_on_Basic_Relations_Between_Japan_and_the_Republic_of_Korea", "Japanese_asset_price_bubble", "Fukushima_nuclear_accident", "Abenomics", "Japan_Self-Defense_Forces"],
+  kr: ["Division_of_Korea", "Korean_War", "Miracle_on_the_Han_River", "Gwangju_Uprising", "June_Democratic_Struggle", "1997_Asian_financial_crisis", "2000_inter-Korean_summit", "2016–2017_South_Korean_protests", "2024_South_Korean_martial_law_crisis"] };
+  (window.VFM_LEARN.history || []).forEach(function (h) { (W[h.id] || []).forEach(function (t, i) { if (h.items[i] && !h.items[i].wk) h.items[i].wk = t; }); });
+})();
