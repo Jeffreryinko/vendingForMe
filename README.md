@@ -4,6 +4,7 @@
 - 주소: https://jeffreryinko.github.io/vendingForMe/
 - 다른 자판기: [이야기 자판기](https://jeffreryinko.github.io/vfm-story/) (이야기·역사·뇌) · [사람 자판기](https://jeffreryinko.github.io/vfm-mind/) (배댓·맨탈)
 - 같은 주소(jeffreryinko.github.io)라서 폰에 저장된 별표·메모·보관함은 세 사이트가 함께 써요.
+- [매일 업무 플래너](https://jeffreryinko.github.io/vendingForMe/planner/) — `planner/` 폴더. 자판기와는 따로 도는 개인 플래너(설명은 [planner/README.md](planner/README.md)). 로그인만 함께 써요.
 
 | 로봇 | 무엇 | 언제 |
 |---|---|---|

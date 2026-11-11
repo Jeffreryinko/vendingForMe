@@ -1,0 +1,17 @@
+{
+  "name": "매일 업무 플래너",
+  "short_name": "플래너",
+  "description": "업무를 성격별로 나누고, 핵심 3가지를 고르고, 시간을 붙입니다.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F1F2F4",
+  "theme_color": "#F1F2F4",
+  "lang": "ko",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [{ "name": "오늘", "url": "./?today" }]
+}

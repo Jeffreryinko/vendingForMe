@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>매일 업무 플래너</title>
+<meta name="description" content="업무를 성격별로 나누고, 핵심 3가지를 고르고, 시간을 붙이는 개인 플래너">
+<meta name="theme-color" content="#F1F2F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1115" media="(prefers-color-scheme: dark)">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="플래너">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource-variable/hahmlet@5/index.css">
+<link rel="stylesheet" href="app.css">
+<script>try { var t = localStorage.getItem('planner:theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch (e) {}</script>
+</head>
+<body>
+<div id="app" hidden>
+  <header class="bar">
+    <div class="brand"><span class="mark" aria-hidden="true">플</span><span class="brand-name">매일 업무 플래너</span></div>
+    <button id="quickBtn" class="quick" type="button"><span class="quick-plus" aria-hidden="true"></span><span class="quick-text">빠르게 적기 — 내일 3시 견적서 보내기 #영업</span><kbd>N</kbd></button>
+    <nav class="views" aria-label="화면">
+      <button type="button" data-go="plan">플래너</button>
+      <button type="button" data-go="review">돌아보기</button>
+    </nav>
+    <button id="syncBtn" class="sync" type="button"><i></i><span></span></button>
+    <button id="settingsBtn" class="icon-btn" type="button" aria-label="설정"></button>
+  </header>
+  <main id="main" data-tab="day">
+    <section id="tasks" class="pane" aria-label="할 일"></section>
+    <section id="day" class="pane" aria-label="하루"></section>
+    <section id="review" class="pane" aria-label="돌아보기"></section>
+  </main>
+  <button id="fab" class="fab" type="button" aria-label="빠르게 적기"></button>
+  <nav class="tabs" aria-label="화면">
+    <button type="button" data-tab="tasks"><span class="tab-ic"></span><span>할 일</span><b></b></button>
+    <button type="button" data-tab="day"><span class="tab-ic"></span><span>오늘</span><b></b></button>
+    <button type="button" data-tab="review"><span class="tab-ic"></span><span>돌아보기</span></button>
+  </nav>
+</div>
+<div id="viewer" hidden></div>
+<div id="toasts" aria-live="polite"></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+<noscript>이 플래너는 자바스크립트가 켜져 있어야 동작합니다.</noscript>
+<script src="config.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
