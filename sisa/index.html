@@ -555,6 +555,15 @@ nav.tabs button[aria-current="page"] svg{stroke:var(--accent);stroke-width:2}
 .tc2.done .tc2-k,.tc2.done .th-x{display:none}
 .tc2.done .tc2-t{font-size:15px}
 b.rnew{color:var(--accent);font-weight:700}
+.grpc{border:1.5px solid color-mix(in srgb,var(--accent) 45%,var(--line));border-radius:14px;padding:10px 10px 8px;display:grid;gap:6px;background:color-mix(in srgb,var(--accent) 4%,var(--surface))}
+.grp-h{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;padding:0 2px}
+.grp-h b{font-size:16px;color:var(--accent)}
+.grp-h span{font-size:12px;color:var(--muted)}
+.grp-sub{display:grid;gap:2px;border-left:2px solid var(--line);margin-left:6px;padding-left:10px}
+.gsr{all:unset;cursor:pointer;display:grid;gap:2px;padding:7px 40px 7px 0;box-sizing:border-box;width:100%}
+.gsr.done{opacity:.55}
+.gsr-t{font-size:14.5px;font-weight:600;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gsr-m{font-size:12px;color:var(--muted)}
 .shw{position:relative}
 .shw>.shr{position:absolute;bottom:6px;right:6px;width:36px;height:36px;border-radius:50%;border:0;display:grid;place-items:center;background:color-mix(in srgb,var(--surface) 85%,transparent);color:var(--muted);cursor:pointer;z-index:2}
 .shw>.shr:hover,.shw>.shr:focus-visible{color:var(--accent)}
@@ -2269,6 +2278,13 @@ function storyRow(s){
     <span class="sr-b">${isBrief(s) ? `단신 · ${esc(cname(cs[0]))} · ${esc(srcOf(storyItems(s)[0].s).n)}` : s.kind==="local" ? `${esc(cname(cs[0]))} 안 이야기 · 기사 ${storyItems(s).length}` : `${cs.length}개국 · 기사 ${storyItems(s).length}`}${s.why3 || s.bg ? " · 해설 있음" : ""}</span>
   </button>`);
 }
+// 묶음 카드의 딸린 이야기 줄 (대표 이야기 아래에 붙음). 3개까지 보이고 나머지는 펼치기
+function grpRows(g, rest){
+  if(!rest.length) return "";
+  const open = S.more["grp:" + g], show = open ? rest : rest.slice(0, 3);
+  return `<div class="grp-sub">${show.map(x => `<div class="shw"><button type="button" class="gsr${issueOpened(x) ? " done" : ""}" data-issue="${x.id}"><span class="gsr-t">${esc(x.title)}</span><span class="gsr-m">${isBrief(x) ? "단신" : `${issueCountries(x).length}개국 · 기사 ${storyItems(x).length}`}${RD.at(x) ? " · " + rdBadge(x) : x.delta === "new" ? ' · <b class="new">새 이야기</b>' : ""}</span></button>${shareBtn(x)}</div>`).join("")}
+    ${rest.length > 3 ? `<button type="button" class="linkbtn" data-more="grp:${esc(g)}">${open ? "접기" : `나머지 ${rest.length - 3}개 더 보기`}</button>` : ""}</div>`;
+}
 function storiesBlock(list){
   const f = S.storyF || "all";
   const isLocal = s => !isBrief(s) && (s.kind==="local" || issueCountries(s).length < 2);
@@ -2278,14 +2294,22 @@ function storiesBlock(list){
   const rk = s => issueOpened(s) ? 9 : readNew(s) ? 0.5 : (s.delta==="new" ? 0 : s.delta==="grown" ? 2 : 4) + (isBrief(s) ? 1 : 0);
   flt.sort((a,b) => rk(a)-rk(b) || issueCountries(b).length - issueCountries(a).length || storyItems(b).length - storyItems(a).length);
   const readL = flt.filter(issueOpened); flt = flt.filter(s => !issueOpened(s));
-  const lim = S.more.stories ? flt.length : 15;
+  // 묶음 카드: 제목에 같은 이름(엔비디아·이란…)이 든 이야기 여러 건은 한 카드로 — 대표 이야기 + 딸린 이야기 줄 (로봇이 s.grp 로 표시)
+  const gm = {}; flt.forEach(s => { if(s.grp) (gm[s.grp] ||= []).push(s); });
+  const units = [], gSeen = new Set();
+  flt.forEach(s => { const L = s.grp && gm[s.grp]; if(L && L.length >= 2){ if(!gSeen.has(s.grp)){ gSeen.add(s.grp); units.push({g:s.grp, L}); } } else units.push({s}); });
+  const unitHtml = u => { if(u.s) return storyRow(u.s);
+    const rest = u.L.slice(1);
+    return `<div class="grpc"><div class="grp-h"><b>${esc(u.g)}</b><span>관련 이야기 ${u.L.length}개를 한데 모았어요</span></div>${storyRow(u.L[0])}
+      ${grpRows(u.g, rest)}</div>`; };
+  const lim = S.more.stories ? units.length : 15;
   const nB = list.filter(isBrief).length, nL = list.filter(isLocal).length, nG = list.length - nB - nL;
   const unread = list.filter(s => !issueOpened(s)).length;
   return `<section class="blk"><div class="blk-h"><h2 class="ttl2">오늘의 이야기 <span class="cnt">${list.length}</span></h2><span class="note">안 읽은 것 ${unread}개 · 새것부터</span></div>
     <div class="ftabs inl">${[["all",`전체 ${list.length}`],["global",`세계 ${nG}`],["local",`나라 안 ${nL}`],["brief",`단신 ${nB}`]].filter(([k]) => k!=="brief" || nB).map(([k,l]) => `<button type="button" data-storyf="${k}" aria-selected="${f===k}">${l}</button>`).join("")}</div>
     ${f==="brief" ? '<p class="note">단신은 아직 한 곳만 보도한 소식을 한두 문장으로 요약한 거예요. 다른 나라가 다루기 시작하면 이야기로 커져요.</p>' : ""}
-    <div class="srl">${flt.slice(0, lim).map(storyRow).join("") || '<div class="empty">이 조건의 이야기가 없어요.</div>'}</div>
-    ${flt.length > lim ? `<button type="button" class="btn" data-more="stories">이야기 ${flt.length - lim}개 더 보기</button>` : ""}
+    <div class="srl">${units.slice(0, lim).map(unitHtml).join("") || '<div class="empty">이 조건의 이야기가 없어요.</div>'}</div>
+    ${units.length > lim ? `<button type="button" class="btn" data-more="stories">이야기 ${units.slice(lim).reduce((n, u) => n + (u.s ? 1 : u.L.length), 0)}개 더 보기</button>` : ""}
     ${readL.length ? `<button type="button" class="linkbtn more" data-more="readL">${S.more.readL ? "읽은 이야기 접기" : `읽은 이야기 ${readL.length}개 (새 글 없음) 펼치기`}</button>${S.more.readL ? `<div class="srl">${readL.map(storyRow).join("")}</div>` : ""}` : ""}</section>`;
 }
 
@@ -2306,16 +2330,20 @@ function viewHome(){
     return `${S.newEd ? `<button type="button" class="newed" data-ed="${S.newEd.id}">새 판이 도착했어요 · ${esc(S.newEd.label)} 보기</button>` : ""}${msw}${todayDeck().html()}`;
   }
   let tops = allS.filter(s => s.top).sort((a,b) => a.top-b.top); if(!tops.length) tops = allS.slice(0,5);
-  const others = allS.filter(s => !tops.includes(s));
+  // 꼭 알아야 할 이야기와 같은 주제(로봇이 붙인 s.grp)의 다른 이야기는 그 카드 아래에 모아 보여 주고, 아래 목록에서는 뺌
+  const under = new Map(), gTaken = new Set();
+  tops.forEach(s => { if(s.grp && !gTaken.has(s.grp)){ gTaken.add(s.grp); const L = allS.filter(x => x.grp === s.grp && !tops.includes(x)); if(L.length) under.set(s, L); } });
+  const underSet = new Set([...under.values()].flat());
+  const others = allS.filter(s => !tops.includes(s) && !underSet.has(s));
   const {comm} = homePicks();
-  S.issueOrder = [...tops, ...others].map(s => s.id);
+  S.issueOrder = [...tops.flatMap(s => [s, ...(under.get(s) || [])]), ...others].map(s => s.id);
   return `${S.newEd ? `<button type="button" class="newed" data-ed="${S.newEd.id}">새 판이 도착했어요 · ${esc(S.newEd.label)} 보기</button>` : ""}
     ${msw}${sinceHero()}
     ${dailyCard()}
     ${hotspotMap(allS.filter(s => !isBrief(s)))}
     ${recapHtml(tops)}
     <section class="blk"><div class="blk-h"><h2 class="ttl2">꼭 알아야 할 다섯 가지</h2><span class="note">세계적 중요도 순</span></div>
-      <div class="tc2-list">${tops.map((s,k) => homeTopCard(s, k+1)).join("")}</div></section>
+      <div class="tc2-list">${tops.map((s,k) => under.has(s) ? `<div class="grpc"><div class="grp-h"><b>${esc(s.grp)}</b><span>관련 이야기 ${under.get(s).length + 1}개를 한데 모았어요</span></div>${homeTopCard(s, k+1)}${grpRows(s.grp, under.get(s))}</div>` : homeTopCard(s, k+1)).join("")}</div></section>
     ${krBlind(others)}
     ${opinionStrip()}
     ${themeTiles()}

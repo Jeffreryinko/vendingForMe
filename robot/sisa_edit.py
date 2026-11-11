@@ -31,6 +31,7 @@ from cluster import tokens, GENERIC  # noqa: E402
 import fresh as F  # noqa: E402
 from nllb_multi import Ko  # noqa: E402
 import readable as R  # noqa: E402
+import tidy as T  # noqa: E402
 
 UA = "vendingForMe/1.0 (https://jeffreryinko.github.io/; robot)"
 NO_NET = os.environ.get("SISA_EDIT_NO_NET") == "1"
@@ -83,12 +84,8 @@ def load(ed):
 
 
 def clean_title(t):
-    t = re.sub(r"^\s*[\[【(（][^\]】)）]{1,8}[\]】)）]\s*", "", t or "")          # [속보] (종합) 같은 머리표
-    t = re.sub(r"\s+[-–|ㅣ·]\s+[^-–|ㅣ·]{2,25}$", "", t)                        # ' - 연합뉴스' 같은 꼬리
-    t = t.strip()
-    for a, b in (("“", "”"), ('"', '"'), ("‘", "’"), ("'", "'")):
-        if len(t) > 2 and t[0] == a and t[-1] == b and t.count(a) == (1 if a != b else 2): t = t[1:-1]
-    return t
+    """이슈·단신의 대표 제목 다듬기: [속보]·영상 | 같은 머리말, ' - 연합뉴스'·'| crime | News' 같은 꼬리 떼기 (robot/tidy.py)"""
+    return T.tidy_title(t, src_tail=True)
 
 
 def short(t, n=170):
@@ -154,6 +151,65 @@ class Ed:
     def cat_for(self, ids):
         its = [self.items[i] for i in ids if i in self.items]
         return R.cat_from_tags([self.tags(i) for i in its]) or cat_of([self.kt(i) for i in its])
+
+    # ── 0. 정리: 한 이슈 안의 같은 글(같은 주소·같은 출처의 같은 제목)과 뉴스가 아닌 글(운세·지면 안내·토론 스레드…) 빼기 ──
+    @property
+    def sig(self):
+        if not hasattr(self, "_sig"): self._sig = T.Sig(self.items, self.ents.get("map") or {}, tokens, GENERIC, self.kt, weak=F.WEAK)
+        return self._sig
+
+    def tidy(self):
+        dup = junk = gone = 0; keep = []
+        for s in self.E.get("stories", []):
+            if s.get("method") == "ai-v1" and s.get("why3"): keep.append(s); continue
+            ids = T.dedupe(s.get("items", []), self.items, self.kt); dup += len(s.get("items", [])) - len(ids)
+            ok = [i for i in ids if i not in self.items or not T.is_junk(self.kt(self.items[i]), self.items[i].get("t", ""), self.items[i].get("k", "news"))]
+            junk += len(ids) - len(ok); s["items"] = ok
+            live = [i for i in ok if i in self.items]
+            if len(live) < (1 if s.get("kind") == "brief" else 2): gone += 1; continue
+            if s.get("title"): s["title"] = clean_title(s["title"])
+            keep.append(s)
+        self.E["stories"] = keep
+        log(f"정리: 같은 글 {dup}개 · 뉴스 아닌 글 {junk}개 뺌 · 그래서 사라진 이슈·단신 {gone}개")
+
+    # ── 4-2. 같은 사건 합치기: 단신이 이미 있는 이슈와 같은 사건이면 그 이슈에 넣고, 같은 사건 단신끼리도 하나로 ──
+    def absorb(self):
+        S = self.sig; st = self.stories(); br = self.briefs(); into = merged = 0; dead = set()
+        for b in br:
+            if b.get("method") == "ai-v1": continue
+            h = next((s for s in st if S.same_event(b, s)), None)
+            if h:
+                h["items"] = h["items"] + [i for i in b["items"] if i not in h["items"]]; S.drop(h)
+                if h.get("delta") == "same": h["delta"] = "grown"
+                dead.add(id(b)); into += 1
+        live = [b for b in br if id(b) not in dead]
+        for k, b in enumerate(live):
+            if id(b) in dead or b.get("method") == "ai-v1": continue
+            for o in live[k + 1:]:
+                if id(o) in dead or o.get("method") == "ai-v1" or not S.same_event(b, o): continue
+                b["items"] = b["items"] + [i for i in o["items"] if i not in b["items"]]
+                b["countries"] = sorted(set(b.get("countries") or []) | set(o.get("countries") or []))
+                dead.add(id(o)); merged += 1
+        self.E["stories"] = [s for s in self.E["stories"] if id(s) not in dead]
+        log(f"같은 사건 합침: 단신 → 이슈 {into}개 · 단신끼리 {merged}개")
+
+    # ── 4-3. 묶음 카드: 제목에 같은 이름(엔비디아·이란…)이 나오는 이야기 2~6개는 화면에서 한 카드로 ──
+    def groups(self):
+        S = self.sig; by = {}
+        for s in self.E["stories"]:
+            s.pop("grp", None)
+            for n in S.topic_names(s): by.setdefault(n, []).append(s)
+        BROAD = {"유엔", "EU", "유럽연합", "나토", "G7", "G20", "국민당", "공화당", "민주당", "하원", "상원", "백악관", "국방부", "미국 국방부"}   # 너무 넓어 '같은 주제'라 하기 어려운 이름
+        by = {n: L for n, L in by.items() if n not in BROAD and (3 if S.typ.get(n) in ("place", "event") else 2) <= len(L) <= 6}   # 나라·도시 이름은 3건 이상일 때만
+        # 이야기 하나는 묶음 하나에만: 사람·기관 이름 먼저, 그 안에서는 더 작은(구체적인) 묶음
+        order = sorted(by, key=lambda n: (S.typ.get(n) in ("place", "event"), len(by[n])))
+        used = set(); out = {}
+        for n in order:
+            L = [s for s in by[n] if id(s) not in used]
+            if len(L) < 2: continue
+            for s in L: s["grp"] = n; used.add(id(s))
+            out[n] = len(L)
+        log("묶음 카드 " + (" · ".join(f"{n} {c}" for n, c in sorted(out.items(), key=lambda x: -x[1])) or "없음"))
 
     # ── 1-2. 분야 다시 보기: '사회'로 떨어진 로봇 이슈를 꼬리표로 다시 가름 ──
     def recat(self):
@@ -272,18 +328,20 @@ class Ed:
     def rank(self):
         for s in self.stories(): F.stamp(s, self.items, self.ed, added=bool(s.get("grow")))     # 수명 표시(new·hot·on·cool)
         st = sorted(self.stories(), key=self.score, reverse=True)
-        # 같은 사건이 두 이슈로 갈라진 것 합치기: 제목 핵심 낱말이 2개 이상 겹치면 큰 쪽으로
-        kept = []
+        # 같은 사건이 두 이슈로 갈라진 것 합치기 (robot/tidy.py same_event): 이름 + 다른 낱말이 함께 겹치거나, 원문 제목의 드문 이름이 여럿 겹칠 때만.
+        # 이름 하나만 같은 것(엔비디아 수사 / 엔비디아 새 칩)은 합치지 않고 화면에서 묶음 카드로 보여 줌.
+        kept = []; joined = []
         for s in st:
-            tk = {t for t in tokens(s.get("title", "")) if t not in GENERIC}
-            # 2개 이상 겹치거나, 이름 사전에 있는 고유명사(사람·장소·기관·사건)가 1개라도 겹치면 같은 사건
-            host = next((k for k in kept if len(tk & k[1]) >= 2 or (tk & k[1] & self.proper())), None)
+            tk = None
+            host = next((k for k in kept if self.sig.same_event(s, k[0])), None)
             if host and s.get("method") != "ai-v1":
-                h = host[0]; h["items"] = h["items"] + [i for i in s["items"] if i not in h["items"]]
+                h = host[0]; h["items"] = h["items"] + [i for i in s["items"] if i not in h["items"]]; self.sig.drop(h)
+                joined.append(f"'{s.get('title', '')[:24]}' → '{h.get('title', '')[:24]}'")
                 if s.get("wk") and not h.get("wk"): h["wk"] = s["wk"]          # 합쳐진 쪽의 위키백과 표시도 넘겨받음
                 h["delta"] = "grown" if h.get("delta") == "same" else h.get("delta"); continue
             kept.append((s, tk))
         st = [k[0] for k in kept]
+        if joined: log(f"같은 사건 이슈 합침 {len(joined)}개: " + " / ".join(joined[:6]))
         for s in st: F.stamp(s, self.items, self.ed, added=bool(s.get("grow")))
         st.sort(key=self.score, reverse=True)
         keep = st[:MAX_STORIES]
@@ -625,7 +683,7 @@ class Ed:
 def main():
     ed = sys.argv[1] if len(sys.argv) > 1 else max(rj(DATA / "editions/_index.json", []), key=lambda e: e.get("crawledAt", ""))["id"]
     t0 = time.time(); X = Ed(ed); log(f"로봇 편집장: {ed}")
-    for step in (X.name_candidates, X.recat, X.wiki_news, X.rank, X.extras, X.readables, X.add_briefs, X.daily, X.themes, X.grow_ents):
+    for step in (X.tidy, X.name_candidates, X.recat, X.wiki_news, X.rank, X.extras, X.readables, X.add_briefs, X.absorb, X.groups, X.daily, X.themes, X.grow_ents):
         try: step()
         except Exception as e: log(f"  {step.__name__} 실패 — 건너뜀: {e!r}")
     X.save()
