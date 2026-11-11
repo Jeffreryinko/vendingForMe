@@ -1,0 +1,45 @@
+<!doctype html><html lang="ko" class="ap ap-gicho"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>window.VFM_APP="gicho";window.VFM_ROOT="../";</script>
+<link rel="manifest" href="../manifest.webmanifest"><meta name="theme-color" content="#F3F2EF"><link rel="apple-touch-icon" href="../assets/icon-192.png">
+<title>기초 교실 — 과학·심리학·철학</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../assets/apple.css">
+<style>
+/* 기초 교실 — 기초과학(양자역학 포함)·심리학·철학을 역사 순서의 카드 코스로. 글·그림은 이 폴더의 terms*.js · course*.js · history*.js · figs.js, 화면은 assets/learn.js */
+:root{--bg:#F3F2EF;--surface:#fff;--sunk:#EAE8E3;--ink:#14110F;--muted:#6B655E;--line:#E2DFD9;--accent:#2F6B5E;--accent-ink:#fff;--accent-soft:#E2EFEB;
+  --up:#1E7F4F;--up-soft:#DDF2E6;--fs:1;--r:14px;--nav-h:58px;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0B0C0B;--surface:#161816;--sunk:#202320;--ink:#F1F2EF;--muted:#9EA39C;--line:#2A2E2A;--accent:#7FCBB7;--accent-ink:#06211B;--accent-soft:#16302A;--up:#5BD18F;--up-soft:#173325;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0B0C0B;--surface:#161816;--sunk:#202320;--ink:#F1F2EF;--muted:#9EA39C;--line:#2A2E2A;--accent:#7FCBB7;--accent-ink:#06211B;--accent-soft:#16302A;--up:#5BD18F;--up-soft:#173325;color-scheme:dark}
+</style>
+<link rel="stylesheet" href="../assets/learn.css?v=1">
+</head><body>
+<div class="wrap" id="app"></div>
+<nav class="tabs" id="tabs">
+  <button data-v="home" aria-current="page"><b>☀︎</b>오늘 몫</button>
+  <button data-v="course"><b>▤</b>코스</button>
+  <button data-v="terms"><b>Aa</b>사전</button>
+  <button data-v="hist"><b>⌛︎</b>역사</button>
+</nav>
+<script src="../assets/wikithumb.js"></script><script src="../assets/learnart.js?v=3"></script>
+<script src="terms.js?v=1"></script><script src="terms2.js?v=1"></script><script src="figs.js?v=1"></script>
+<script src="course.js?v=1"></script><script src="course2.js?v=1"></script><script src="course3.js?v=1"></script>
+<script src="history.js?v=1"></script><script src="history2.js?v=1"></script>
+<!-- '자세히' 칸(왜·흐름·사람·숫자·그 뒤·헷갈리는 점)을 그리는 도구는 시사 배움 것을 같이 써요 -->
+<script src="../sisa/learn/deep.js?v=2"></script>
+<script>
+VFM_DEEP_ADD.build({
+  chGroups: { sci: ["기초과학", "방법 → 뉴턴 → 열 → 빛 → 상대성 → 양자 3장 → 원자 → 우주 → 생명"], psy: ["심리학", "재는 법 → 뇌 → 학습 → 기억 → 편향 → 사회 → 발달·성격 → 치료"], phi: ["철학", "논증 → 그리스 → 앎 → 윤리 → 정치 → 실존 → 마음 → 동양 → 과학철학"] },
+  histGroups: { field: ["분야로 보기", "한 분야의 줄기를 처음부터 끝까지"], theme: ["주제로 보기", "같은 종류의 순간을 분야를 넘어 한 줄로"] },
+  themes: [
+    ["th-rev", "💥", "생각이 뒤집힌 순간", "상식이 무너지고 새 틀이 선 때. 과학·심리학·철학을 나란히 놓으면 서로 이어져요."],
+    ["th-exp", "🔬", "결정적 실험과 관측", "'직접 재 보자'가 논쟁을 끝낸 순간들. 실패한 실험이 문을 연 때도 많아요."],
+    ["th-fight", "⚔️", "큰 논쟁", "아인슈타인과 보어, 이황과 기대승, 그리고 다시 검증받은 유명 실험들."],
+    ["th-self", "🪞", "사람을 다시 보게 된 때", "우리가 특별하지 않다는 것, 생각보다 상황에 휘둘린다는 것, 그래도 선택한다는 것."],
+    ["th-tool", "🛠️", "생각이 기술이 될 때", "발전기, 트랜지스터, 원자력, 유전자 가위, 인지행동치료."],
+  ],
+});
+window.VFM_LEARN.termFig = { entropy: "entropy", spectrum: "spectrum", emwave: "spectrum", duality: "slit", superpos: "superpos", uncert: "uncert", entangle: "entangle", stdmodel: "forces", bigbang: "cosmos", dogma: "dogma", neuron: "neuron", classcond: "cond", wmem: "memory", sys12: "sys12", bigfive: "bigfive", argument: "argument", util: "ethics3", paradigm: "paradigm", atom: "atomModels", hypothesis: "method" };
+</script>
+<script src="../assets/learn.js?v=8"></script>
+<script src="../assets/shell.js"></script>
+</body></html>

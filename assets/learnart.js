@@ -26,12 +26,12 @@
     return `<div class="cmx" role="img" aria-label="만화">${cm.map(([cap, who], i) => `<div class="pn"><div class="cap"><b>${i + 1}</b>${esc(cap)}</div>${who.map(([w, mood, tx]) => `<div class="ln ${w}">${face(w, mood)}${tx ? `<span class="bb${/^\(.*\)$/.test(tx) ? " th" : ""}">${esc(tx)}</span>` : ""}</div>`).join("")}</div>`).join("")}</div>`;
   }
   const hash = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
-  const ASK = [t => `'${t}'가 뭐예요?`, t => `기사에 '${t}'라는 말이 나왔어요.`, t => `'${t}', 들어는 봤는데…`, t => `'${t}'를 한 줄로 말하면요?`];
+  const ASK = [t => `'${t}'가 뭐예요?`, t => `${((window.VFM_LEARN || {}).txt || {}).seen || "기사에"} '${t}'라는 말이 나왔어요.`, t => `'${t}', 들어는 봤는데…`, t => `'${t}'를 한 줄로 말하면요?`];
   const AHA = [["s", "아하!"], ["o", "그런 거였군요!"], ["s", "이제 알겠어요."], ["w", "기억하기 쉽네요."], ["s", "그림이 그려져요."]];
   function termComic(t) {
     const h = hash(t.id), cm = [["뜻", [["you", "t", ASK[h % ASK.length](t.t)], ["me", "s", t.s]]]];
     if (t.a) { const r = AHA[h % AHA.length]; cm.push(["비유", [["me", "w", t.a], ["you", r[0], r[1]]]]); }
-    if (t.x) cm.push(["기사에서는", [["me", "n", t.x]]]);
+    if (t.x) cm.push([((window.VFM_LEARN || {}).txt || {}).x || "기사에서는", [["me", "n", t.x]]]);
     return comic(cm);
   }
   /* 낱말 지도: 가운데 낱말 + 이어지는 말(많아야 6개) */

@@ -31,6 +31,7 @@
   .ic.tools{background:linear-gradient(160deg,#6FDCEB 0%,#30B0C7 55%,#0A7A8C 100%)}
   .ic.deal{background:linear-gradient(160deg,#FFD66B 0%,#E0A100 55%,#8F6200 100%)}
   .ic.brain{background:linear-gradient(160deg,#FF9DBD 0%,#E0457B 55%,#A3124A 100%)}
+  .ic.gicho{background:linear-gradient(160deg,#7FD6C0 0%,#3B9C86 55%,#1F5E50 100%)}
   .ic.quest{background:linear-gradient(160deg,#6EE08A 0%,#34C759 55%,#1E9E45 100%)}
   .ic.box{background:linear-gradient(160deg,#9DA3AF 0%,#6B7280 55%,#4B5160 100%)}
   .nm{font:700 20px/1.2 var(--ap-display);letter-spacing:-.02em;margin:0}
@@ -84,6 +85,11 @@
     <button class="app" data-app="deal">
       <span class="ic deal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 4 8-8"/><path d="M14 8h6v6"/></svg></span>
       <span><p class="nm">딜</p><p class="ds">세계 투자 유치·인수합병·상장·펀드</p><p class="st" id="st-deal"><i></i><span>불러오는 중</span></p></span>
+      <span class="chev">›</span>
+    </button>
+    <button class="app" data-app="gicho">
+      <span class="ic gicho"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.6" fill="currentColor"/><ellipse cx="12" cy="12" rx="9" ry="3.6"/><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(120 12 12)"/></svg></span>
+      <span><p class="nm">기초 교실</p><p class="ds">과학·양자역학·심리학·철학을 역사 순서 카드로</p><p class="st"><i class="ok"></i><span>코스 28장 · 역사 70편 · 용어 174개</span></p></span>
       <span class="chev">›</span>
     </button>
     <button class="app" data-app="quest">
@@ -149,7 +155,7 @@
   j("data/tools/_index.json").then(function (x) { paint("tools", x && x.at, x ? "<b>새 것 " + n(x.new) + "개</b>" : "", 12); });
   j("data/deal/_index.json").then(function (x) { paint("deal", x && x.at, x ? "<b>새 거래 " + n(x.new) + "건</b>" : "", 12); });
   try { var nq = JSON.parse(localStorage.getItem("vfm:box:qs") || "[]").length, nt = JSON.parse(localStorage.getItem("vfm:box:think") || "[]").length; if (nq || nt) document.getElementById("boxN").textContent = "질문 " + nq + " · 생각 " + nt; } catch (e) { }
-  var NAME = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", baedat: "배댓", mental: "맨탈", deal: "딜" }, lastApp = null;
+  var NAME = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", baedat: "배댓", mental: "맨탈", deal: "딜", gicho: "기초 교실" }, lastApp = null;
   try { lastApp = localStorage.getItem("vfm:tab"); } catch (e) { }
   if (NAME[lastApp]) document.getElementById("last").innerHTML = "&nbsp;지난번에 본 곳: " + NAME[lastApp];
 
