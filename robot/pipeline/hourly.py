@@ -124,6 +124,12 @@ def cmd_build(ed, prev, ko, label):
     if len(og) > 4000: og = dict(list(og.items())[-3000:])
     OG_CACHE.write_text(json.dumps(og, ensure_ascii=False))
     print(f"대표 사진: 이슈 {sum(1 for s in E['stories'] if s.get('ph'))}/{len(E['stories'])}개 (og:image 새로 확인 {tried}건)")
+    try:                                                   # 흐린 미리보기(16px) — 화면에 먼저 깔 그림
+        import blur
+        got, need = blur.add_blur(E["stories"], P.get("stories") or [])
+        print(f"흐린 미리보기: 새 사진 {got}/{need}장 받음, 모두 {sum(1 for s in E['stories'] if (s.get('ph') or {}).get('b'))}장")
+    except Exception as e:
+        print("흐린 미리보기 건너뜀:", e)
     (SEED / f"editions__{ed}.json").write_text(json.dumps(E, ensure_ascii=False))
     for lang, arr in carried.items():
         f = SEED / f"feed__{ed}__{lang}.json"

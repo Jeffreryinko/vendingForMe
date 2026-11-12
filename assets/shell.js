@@ -14,7 +14,7 @@
   "use strict";
   // 사진 서버들과 미리 연결 (첫 사진이 0.1~0.3초 빨리 뜸): 사진 줄이기·위키 사진은 그냥, 위키 API 는 CORS 로
   try {
-    [["https://wsrv.nl", 0], ["https://upload.wikimedia.org", 0], ["https://i.ytimg.com", 0], ["https://ko.wikipedia.org", 1]].forEach(function (x) {
+    [["https://wsrv.nl", 0], ["https://upload.wikimedia.org", 0], ["https://i.ytimg.com", 0], ["https://ko.wikipedia.org", 1], ["https://en.wikipedia.org", 1]].forEach(function (x) {
       if (document.querySelector('link[rel="preconnect"][href="' + x[0] + '"]')) return;
       var l = document.createElement("link"); l.rel = "preconnect"; l.href = x[0]; if (x[1]) l.crossOrigin = "anonymous"; document.head.appendChild(l);
     });
