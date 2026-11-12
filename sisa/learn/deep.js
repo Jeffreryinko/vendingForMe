@@ -55,7 +55,7 @@
   };
 
   /* ── 덧붙이기 도구: deep-*.js 가 불러 씀 ── */
-  const yr = e => { const m = String(e.y || "").match(/\d{3,4}/); return m ? +m[0] : 9999; };
+  const yr = e => { const m = String(e.y || "").match(/\d{3,4}/); return m ? (/기원전/.test(e.y) ? -m[0] : +m[0]) : 9999; };   // 기원전은 음수로
   window.VFM_DEEP_ADD = {
     /* 역사: patch = { "지역id|사건 제목": {why, flow, …} },  add = { 지역id: [새 사건…] },  regions = [새 지역…] */
     hist({ patch = {}, add = {}, regions = [] }) {
