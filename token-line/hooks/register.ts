@@ -20,7 +20,10 @@ export const register: Register = on => {
     const s = await $.session.usage()
     const ctx = s.context.percent != null ? ` · 문맥 ${s.context.percent}% (${k(s.context.tokens ?? 0)}/${k(s.context.window)})` : ''
     const usd = s.cost ? ` · $${s.cost.usd.toFixed(2)}` : ''
-    $.ui.status(`토큰 입력 ${k(input)} · 출력 ${k(output)} · ${turns}턴${ctx}${usd}`)
+    // 요금제 한도: 5시간 창·주간 창을 얼마나 썼는지 (마지막 응답이 알려 준 값)
+    const NAME: Record<string, string> = { five_hour: '5시간', seven_day: '주간', spend_limit: '지출 한도' }
+    const lim = s.rateLimits.map(r => `${NAME[r.kind] ?? r.kind} ${r.percentUsed}%`).join(' · ')
+    $.ui.status(`토큰 입력 ${k(input)} · 출력 ${k(output)} · ${turns}턴${ctx}${usd}${lim ? ' · 한도 ' + lim : ''}`)
     return done
   })
 }
