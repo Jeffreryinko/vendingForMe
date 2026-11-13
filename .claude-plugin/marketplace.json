@@ -1,0 +1,5 @@
+{
+  "name": "vendingforme",
+  "owner": { "name": "Jeffreryinko" },
+  "plugins": [{ "name": "token-line", "source": "./token-line" }]
+}
