@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko" class="ap ap-board">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../assets/icon-192.png">
+<title>점수판 · 자판기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../assets/apple.css">
+<style>
+/* 점수판 — 로봇마다 마지막 갱신 · 고장 난 출처 · 이번 달 번역 사용량 · 비용. 로봇이 이미 쓰는 data/ 파일만 읽음. 토큰 0. */
+html.ap.ap-board{--ap-tint:var(--ap-indigo);--ap-tint-t:var(--ap-indigo)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ap-bg);color:var(--ap-label);font:16px/1.5 var(--ap-font);
+  padding:calc(env(safe-area-inset-top,0px) + 14px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 40px) max(16px,env(safe-area-inset-left,0px))}
+.wrap{max-width:720px;margin:0 auto}
+a.home{display:inline-block;padding:6px 2px;color:var(--ap-tint-t);text-decoration:none;font-size:16px}
+h1{margin:2px 4px 2px;font:800 34px/1.15 var(--ap-display);letter-spacing:-.03em}
+.sub{margin:0 4px 14px;color:var(--ap-label2);font-size:15px}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 12px}
+.kpi div{background:var(--ap-surface);border-radius:18px;padding:14px}
+.kpi b{display:block;font:800 26px/1.2 var(--ap-display);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.kpi small{font-size:13px;color:var(--ap-label2)}
+@media (max-width:520px){.kpi{grid-template-columns:repeat(2,1fr)}}
+.cap{margin:22px 16px 6px;font-size:13px;color:var(--ap-label2)}
+.card{background:var(--ap-surface);border-radius:22px;padding:6px 0;margin:0 0 12px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+th,td{padding:11px 14px;text-align:left;white-space:nowrap}
+th{font-size:13px;font-weight:600;color:var(--ap-label2)}
+tr+tr td{border-top:.5px solid var(--ap-sep)}
+td.r,th.r{text-align:right}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;background:var(--ap-label3);vertical-align:1px}
+.dot.ok{background:var(--ap-green)}.dot.old{background:var(--ap-orange)}
+.dim{color:var(--ap-label2)}
+@media (max-width:520px){th:nth-child(3),td:nth-child(3){display:none}th,td{padding:11px 12px}}
+.meter{height:8px;border-radius:99px;background:var(--ap-fill);overflow:hidden;margin:6px 14px 4px}
+.meter i{display:block;height:100%;border-radius:99px;background:var(--ap-tint)}
+.meter.warn i{background:var(--ap-orange)}
+.note{margin:4px 14px 12px;font-size:13px;color:var(--ap-label2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home" href="../">‹ 자판기</a>
+  <h1>점수판</h1>
+  <p class="sub" id="sub">로봇들이 잘 돌고 있는지 한 화면에</p>
+  <div class="kpi" id="kpi"></div>
+  <p class="cap">로봇별 상태</p>
+  <div class="card"><table><thead><tr><th>로봇</th><th>마지막 갱신</th><th>판</th><th class="r">고장 난 출처</th></tr></thead><tbody id="rows"></tbody></table></div>
+  <p class="cap">이번 달 번역 사용량 (DeepL)</p>
+  <div class="card" id="usage"></div>
+  <p class="cap">방문 수</p>
+  <div class="card"><p class="note" style="margin-top:12px">아직 집계 장치가 없어요. 퀘스트 1단계 "방문 수 세는 장치 달기"를 끝내면 여기에 나와요.</p></div>
+</div>
+<script>
+(function () {
+  "use strict";
+  // [이름, 갱신 시각 파일, 시각 칸, 판 이름 칸, 고장 기록 파일, 이 시간 넘으면 늦음(시간)]
+  var BOTS = [
+    ["시사", "sisa/_meta.json", "updatedAt", "label", null, 6],
+    ["트렌드", "trends/_meta.json", "updatedAt", null, "trends/_health.json", 6],
+    ["AI", "ai/_meta.json", "updatedAt", "label", "ai/_health.json", 30],
+    ["도구", "tools/_meta.json", "updatedAt", "label", "tools/_health.json", 12],
+    ["딜", "deal/_meta.json", "updatedAt", "label", "deal/_health.json", 12],
+    ["라디오", "radio/_index.json", "at", "label", null, 18],
+    ["배댓", "baedat/_meta.json", "updatedAt", "latest", null, 24 * 35]];
+  var USAGE = [["시사", "sisa/_usage.json"], ["트렌드", "trends/_usage.json"]];
+  var FREE = 500000; // DeepL 무료 요금제 한 달 한도(자)
+  var DAY = 864e5;
+
+  function j(p) { return fetch("../data/" + p, { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+  function esc(x) { return String(x == null ? "" : x).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function ago(iso) {
+    var m = Math.round((Date.now() - Date.parse(iso)) / 60000);
+    if (m < 1) return "방금"; if (m < 60) return m + "분 전"; var h = Math.floor(m / 60); if (h < 48) return h + "시간 전"; return Math.floor(h / 24) + "일 전";
+  }
+  // 고장 기록 중 지난 하루 안에 또 실패한 출처만 셈 (오래된 기록은 이미 나은 것)
+  function broken(h, now) { return Object.keys(h || {}).filter(function (k) { return now - Date.parse(h[k].last) < DAY; }).length; }
+  function fresh(iso, hours, now) { return !!iso && now - Date.parse(iso) <= hours * 36e5; }
+
+  // 자체 점검
+  var T = Date.parse("2026-11-13T12:00:00+09:00");
+  console.assert(broken({ a: { last: "2026-11-13T11:00:00+09:00" }, b: { last: "2026-11-01T00:00:00+09:00" } }, T) === 1, "고장 세기");
+  console.assert(fresh("2026-11-13T07:00:00+09:00", 6, T) && !fresh("2026-11-13T05:00:00+09:00", 6, T) && !fresh(null, 6, T), "늦음 판정");
+
+  var mk = new Date().toLocaleDateString("sv", { timeZone: "Asia/Seoul" }).slice(0, 7);
+  Promise.all(BOTS.map(function (b) { return Promise.all([j(b[1]), b[4] ? j(b[4]) : null]); }).concat(USAGE.map(function (u) { return j(u[1]); }))).then(function (res) {
+    var now = Date.now(), okN = 0, brokeN = 0;
+    document.getElementById("rows").innerHTML = BOTS.map(function (b, i) {
+      var m = res[i][0], h = res[i][1], iso = m && m[b[2]], ok = fresh(iso, b[5], now), nb = b[4] ? broken(h, now) : null;
+      okN += ok ? 1 : 0; brokeN += nb || 0;
+      return "<tr><td><span class='dot " + (iso ? (ok ? "ok" : "old") : "") + "'></span>" + esc(b[0]) + "</td><td>" + (iso ? esc(ago(iso)) : "<span class='dim'>자료 없음</span>") +
+        "</td><td class='dim'>" + esc(m && b[3] ? m[b[3]] : "") + "</td><td class='r'>" + (nb == null ? "<span class='dim'>–</span>" : nb) + "</td></tr>";
+    }).join("");
+
+    var used = USAGE.map(function (u, k) { var x = res[BOTS.length + k]; return (x && x[mk] && x[mk].deepl) || 0; }), sum = used[0] + used[1], pct = Math.min(100, sum / FREE * 100);
+    document.getElementById("usage").innerHTML =
+      "<table><tbody>" + USAGE.map(function (u, k) { return "<tr><td>" + u[0] + "</td><td class='r'>" + used[k].toLocaleString() + "자</td></tr>"; }).join("") +
+      "<tr><td><b>합계</b></td><td class='r'><b>" + sum.toLocaleString() + "자</b> <span class='dim'>/ " + FREE.toLocaleString() + "</span></td></tr></tbody></table>" +
+      "<div class='meter" + (pct > 85 ? " warn" : "") + "'><i style='width:" + pct.toFixed(1) + "%'></i></div>" +
+      "<p class='note'>무료 한도의 " + pct.toFixed(0) + "%. 한도를 넘으면 로봇이 무료 기계번역(NLLB)으로 바꿔서 돈은 나가지 않아요.</p>";
+
+    document.getElementById("kpi").innerHTML =
+      "<div><b>" + okN + "/" + BOTS.length + "</b><small>제때 도는 로봇</small></div>" +
+      "<div><b>" + brokeN + "</b><small>오늘 고장 난 출처</small></div>" +
+      "<div><b>" + pct.toFixed(0) + "%</b><small>이번 달 번역 한도</small></div>" +
+      "<div><b>0원</b><small>이번 달 비용</small></div>";
+    document.getElementById("sub").textContent = mk.replace("-", "년 ") + "월 · " + new Date().toLocaleTimeString("ko", { hour: "2-digit", minute: "2-digit" }) + " 기준";
+  });
+})();
+</script>
+</body>
+</html>

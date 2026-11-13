@@ -33,6 +33,7 @@
   .ic.brain{background:linear-gradient(160deg,#FF9DBD 0%,#E0457B 55%,#A3124A 100%)}
   .ic.gicho{background:linear-gradient(160deg,#7FD6C0 0%,#3B9C86 55%,#1F5E50 100%)}
   .ic.quest{background:linear-gradient(160deg,#6EE08A 0%,#34C759 55%,#1E9E45 100%)}
+  .ic.board{background:linear-gradient(160deg,#8E8CF0 0%,#5856D6 55%,#3A38A8 100%)}
   .ic.box{background:linear-gradient(160deg,#9DA3AF 0%,#6B7280 55%,#4B5160 100%)}
   .nm{font:700 20px/1.2 var(--ap-display);letter-spacing:-.02em;margin:0}
   .ds{font-size:14px;color:var(--ap-label2);margin:3px 0 0;line-height:1.35}
@@ -95,6 +96,11 @@
     <button class="app" data-app="quest">
       <span class="ic quest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg></span>
       <span><p class="nm">한 달 퀘스트</p><p class="ds">30일 로드맵을 게임으로</p><p class="st"><i class="ok"></i><span id="questN">11/12 – 12/11</span></p></span>
+      <span class="chev">›</span>
+    </button>
+    <button class="app" data-app="board">
+      <span class="ic board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
+      <span><p class="nm">점수판</p><p class="ds">로봇 갱신 · 고장 · 번역 사용량 · 비용</p><p class="st"><i class="ok"></i><span>한 화면에 모아 보기</span></p></span>
       <span class="chev">›</span>
     </button>
     <button class="app" data-app="box">
