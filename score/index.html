@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="ko" class="ap ap-score">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../assets/icon-192.png">
+<title>점수판 · 자판기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../assets/apple.css">
+<style>
+/* 점수판 — 자판기 세 곳의 앱 갱신 · 방문 수 · 이번 달 비용 · 토큰을 한 화면에. 토큰 0.
+   읽는 곳: 각 앱 data/<앱>/_meta.json (같은 주소라 바로 읽힘) · GitHub 공개 API(로봇 실행 기록, 30분 저장)
+   · GoatCounter 공개 숫자(GC 코드를 넣었을 때만) · 장부는 이 폰(localStorage vfm:score:log)에만. */
+html.ap.ap-score{--ap-tint:var(--ap-blue);--ap-tint-t:var(--ap-blue-t)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ap-bg);color:var(--ap-label);font:16px/1.5 var(--ap-font);
+  padding:calc(env(safe-area-inset-top,0px) + 14px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 40px) max(16px,env(safe-area-inset-left,0px))}
+.wrap{max-width:560px;margin:0 auto}
+a.home{display:inline-block;padding:6px 2px;color:var(--ap-tint-t);text-decoration:none;font-size:16px}
+h1{margin:2px 4px 2px;font:800 34px/1.15 var(--ap-display);letter-spacing:-.03em}
+.sub{margin:0 4px 14px;color:var(--ap-label2);font-size:15px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--ap-surface);border-radius:18px;padding:14px 16px;min-width:0}
+.tile .k{font-size:13px;font-weight:600;color:var(--ap-label2)}
+.tile .v{font:800 28px/1.15 var(--ap-display);letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:2px;overflow-wrap:anywhere}
+.tile .v small{font:700 15px var(--ap-font);color:var(--ap-label2);margin-left:2px}
+.tile .h{font-size:12.5px;color:var(--ap-label2);margin-top:3px;line-height:1.35}
+.cap{margin:24px 16px 6px;font-size:13px;color:var(--ap-label2);display:flex;justify-content:space-between;gap:8px}
+.grp{background:var(--ap-surface);border-radius:14px;overflow:hidden}
+.row{display:grid;grid-template-columns:10px 1fr auto;gap:4px 12px;align-items:center;padding:11px 16px;position:relative}
+.row+.row::before{content:"";position:absolute;left:16px;right:0;top:0;height:.5px;background:var(--ap-sep)}
+.row i{width:9px;height:9px;border-radius:50%;background:var(--ap-label3)}
+.row i.ok{background:var(--ap-green)}.row i.old{background:var(--ap-orange)}.row i.bad{background:var(--ap-red)}
+.row .n{font-weight:600;min-width:0}
+.row .n small{display:block;font-weight:400;font-size:13px;color:var(--ap-label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .r{text-align:right;font-size:14px;color:var(--ap-label2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.row .r b{color:var(--ap-label);font-weight:600}
+.row.sum{background:var(--ap-fill)}
+.note{margin:8px 16px 0;font-size:12.5px;color:var(--ap-label2);line-height:1.5}
+.note code{font:12px var(--ap-mono);background:var(--ap-fill);padding:1px 5px;border-radius:5px}
+form.add{display:grid;grid-template-columns:1fr 84px 70px auto;gap:8px;padding:12px 16px;border-top:.5px solid var(--ap-sep)}
+form.add input{min-width:0;padding:9px 10px;border:0;border-radius:10px;background:var(--ap-fill);color:var(--ap-label);font:inherit;font-size:15px}
+form.add button,.del{border:0;border-radius:10px;background:var(--ap-tint);color:#fff;font:700 15px var(--ap-font);padding:0 14px;cursor:pointer}
+.del{background:none;color:var(--ap-red-t);font-weight:600;padding:4px 0 4px 10px}
+.share{display:block;width:100%;margin:22px 0 0;padding:14px;border:0;border-radius:14px;background:var(--ap-tint);color:#fff;font:700 17px var(--ap-font);cursor:pointer}
+@media (max-width:380px){form.add{grid-template-columns:1fr 1fr}form.add input:first-child{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home" href="../">‹ 자판기</a>
+  <h1>점수판</h1>
+  <p class="sub" id="sub">자판기 세 곳이 어떻게 도는지 한 화면에</p>
+
+  <div class="tiles" id="tiles"></div>
+
+  <p class="cap"><span>앱별 마지막 갱신</span><span id="fresh"></span></p>
+  <div class="grp" id="apps"><div class="row"><i></i><span class="n">불러오는 중</span></div></div>
+
+  <p class="cap"><span>로봇 일한 양 · 이번 달</span><span id="runsAt"></span></p>
+  <div class="grp" id="runs"><div class="row"><i></i><span class="n">불러오는 중</span></div></div>
+  <p class="note">GitHub 공개 기록에서 셉니다. 공개 저장소라 GitHub Actions·Pages는 무료예요. 로봇은 AI를 부르지 않아요(낱말 규칙·무료 기계번역) — 그래서 로봇 토큰은 0.</p>
+
+  <p class="cap"><span>방문 수</span></p>
+  <div class="grp" id="visits"></div>
+
+  <p class="cap"><span>내 장부 · 이번 달 (돈·시간·토큰)</span></p>
+  <div class="grp" id="log"></div>
+  <p class="note">Claude 구독료나 대화에서 쓴 토큰은 밖에서 읽어 올 길이 없어서 여기 직접 적어요. 이 폰에만 저장돼요.</p>
+
+  <button class="share" id="share">점수판 링크 보내기</button>
+</div>
+<script>
+(function () {
+  "use strict";
+  // ── 고칠 곳 ① 방문 수: goatcounter.com 무료 가입 후 코드(예: "vfm")를 넣고, 설정에서 "Allow adding visitor counts on your website"를 켜요.
+  var GC = "";
+  // ── 고칠 곳 ② 앱 목록 [이름, 사이트, _meta.json 주소, 늦음 기준(시간, 0 = 사람이 손으로)]
+  var APPS = [
+    ["시사", "시사", "../data/sisa/_meta.json", 6],
+    ["트렌드", "시사", "../data/trends/_meta.json", 6],
+    ["도구", "시사", "../data/tools/_meta.json", 12],
+    ["딜", "시사", "../data/deal/_meta.json", 12],
+    ["AI", "시사", "../data/ai/_meta.json", 30],
+    ["라디오", "시사", "../data/radio/_index.json", 16],
+    ["배댓", "사람", "../data/baedat/_meta.json", 24 * 35],
+    ["맨탈", "사람", "/vfm-mind/data/mental/_meta.json", 0],
+    ["책", "이야기", "/vfm-story/data/book/_meta.json", 30],
+    ["뇌", "이야기", "/vfm-story/data/brain/_meta.json", 16],
+    ["역사", "이야기", "/vfm-story/data/history/_meta.json", 30],
+    ["이야기", "이야기", "/vfm-story/data/iyagi/_meta.json", 96]];
+  var REPOS = [["vendingForMe", "시사 자판기"], ["vfm-story", "이야기 자판기"], ["vfm-mind", "사람 자판기"]];
+  var OWNER = "Jeffreryinko", LOGKEY = "vfm:score:log", RUNKEY = "vfm:score:runs";
+
+  var now = new Date(), MONTH = now.getFullYear() + "-" + ("0" + (now.getMonth() + 1)).slice(-2);
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(x) { return String(x == null ? "" : x).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function n(x) { return Math.round(x || 0).toLocaleString(); }
+  function ago(t) {
+    var m = Math.round((Date.now() - t) / 60000);
+    if (m < 1) return "방금"; if (m < 60) return m + "분 전"; var h = Math.floor(m / 60); if (h < 48) return h + "시간 전"; return Math.floor(h / 24) + "일 전";
+  }
+  function j(u) { return fetch(u, { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+  function get(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
+  function put(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
+  $("sub").textContent = (now.getMonth() + 1) + "월 " + now.getDate() + "일 기준 · 자판기 세 곳 앱 " + APPS.length + "개";
+
+  var T = { fresh: null, runs: null, mins: null, fail: null, visits: null, won: null, tok: null };
+  function tiles() {
+    function t(k, v, unit, h) { return '<div class="tile"><div class="k">' + k + '</div><div class="v">' + (v == null ? "…" : v + (unit ? "<small>" + unit + "</small>" : "")) + '</div><div class="h">' + h + "</div></div>"; }
+    $("tiles").innerHTML =
+      t("제때 도는 앱", T.fresh, "", "늦은 앱은 주황 점") +
+      t("이번 달 방문", T.visits, T.visits == null || T.visits === "—" ? "" : "회", GC ? "GoatCounter" : "아직 장치 없음") +
+      t("이번 달 쓴 돈", T.won == null ? null : n(T.won), "원", "로봇·서버 0원 + 장부") +
+      t("로봇 AI 토큰", "0", "", "장부의 내 토큰 " + n(T.tok)) +
+      t("로봇 실행", T.runs == null ? null : n(T.runs), "번", T.fail ? "실패 " + T.fail + "번" : "이번 달") +
+      t("로봇 일한 시간", T.mins == null ? null : n(T.mins), "분", "무료 (공개 저장소)");
+  }
+
+  // ① 앱별 마지막 갱신
+  Promise.all(APPS.map(function (a) { return j(a[2]); })).then(function (ms) {
+    var ok = 0, live = 0;
+    $("apps").innerHTML = APPS.map(function (a, i) {
+      var m = ms[i], iso = m && (m.updatedAt || m.at), t = iso ? Date.parse(iso) : NaN, cls = "", r;
+      if (isNaN(t)) r = "자료를 못 읽음";
+      else {
+        r = "<b>" + ago(t) + "</b>";
+        if (a[3]) { live++; cls = Date.now() - t > a[3] * 3600e3 ? "old" : "ok"; if (cls === "ok") ok++; }
+        else cls = "ok";
+      }
+      var lab = m && (m.label || (m.counts ? "새 소식 " + n(m.counts.new_news) : "")) || (a[3] ? "" : "사람이 손으로 채움");
+      return '<div class="row"><i class="' + cls + '"></i><span class="n">' + esc(a[0]) + '<small>' + esc(a[1]) + " 자판기" + (lab ? " · " + esc(lab) : "") + '</small></span><span class="r">' + r + "</span></div>";
+    }).join("");
+    T.fresh = ok + "/" + live; $("fresh").textContent = "로봇 앱 " + live + "개 중 " + ok + "개 제때"; tiles();
+  });
+
+  // ② 로봇 실행 기록 (GitHub 공개 API, 로그인 없이 시간당 60번 → 30분 저장)
+  function runsOf(repo) {
+    var all = [], since = MONTH + "-01";
+    function page(p) {
+      return fetch("https://api.github.com/repos/" + OWNER + "/" + repo + "/actions/runs?per_page=100&page=" + p + "&created=%3E%3D" + since)
+        .then(function (r) { if (!r.ok) throw r.status; return r.json(); })
+        .then(function (x) {
+          (x.workflow_runs || []).forEach(function (w) {
+            all.push([String(w.name).split(" (")[0], w.conclusion || w.status, Math.max(0, (Date.parse(w.updated_at) - Date.parse(w.run_started_at || w.created_at)) / 60000)]);
+          });
+          return all.length < x.total_count && p < 10 ? page(p + 1) : all;
+        });
+    }
+    return page(1);
+  }
+  var cache = get(RUNKEY, null), fresh = cache && cache.month === MONTH && Date.now() - cache.at < 30 * 60e3;
+  (fresh ? Promise.resolve(cache) : Promise.all(REPOS.map(function (r) { return runsOf(r[0]).catch(function () { return null; }); })).then(function (rs) {
+    var c = { at: Date.now(), month: MONTH, repos: rs };
+    if (rs.some(function (x) { return x; })) put(RUNKEY, c);
+    else if (cache && cache.month === MONTH) return cache;   // 한도에 걸리면 지난 저장본
+    return c;
+  })).then(function (c) {
+    var tot = 0, mins = 0, fail = 0, rows = [];
+    REPOS.forEach(function (repo, i) {
+      var rs = c.repos[i];
+      if (!rs) { rows.push('<div class="row"><i class="bad"></i><span class="n">' + repo[1] + '<small>GitHub 기록을 못 읽음 (잠시 뒤 다시)</small></span><span class="r"></span></div>'); return; }
+      var by = {};
+      rs.forEach(function (w) { var b = by[w[0]] = by[w[0]] || [0, 0, 0]; b[0]++; b[2] += w[2]; if (w[1] === "failure") b[1]++; });
+      var names = Object.keys(by).sort(function (a, b) { return by[b][0] - by[a][0]; });
+      if (!names.length) rows.push('<div class="row"><i></i><span class="n">' + repo[1] + '<small>이번 달 로봇 실행 없음</small></span><span class="r"></span></div>');
+      names.forEach(function (k) {
+        var b = by[k]; tot += b[0]; fail += b[1]; mins += b[2];
+        rows.push('<div class="row"><i class="' + (b[1] ? "bad" : "ok") + '"></i><span class="n">' + esc(k) + '<small>' + repo[1] + (b[1] ? " · 실패 " + b[1] + "번" : "") + '</small></span><span class="r"><b>' + n(b[0]) + "번</b> · " + n(b[2]) + "분</span></div>");
+      });
+    });
+    rows.push('<div class="row sum"><i></i><span class="n">합계</span><span class="r"><b>' + n(tot) + "번</b> · " + n(mins) + "분 · <b>0원</b></span></div>");
+    $("runs").innerHTML = rows.join("");
+    $("runsAt").textContent = ago(c.at) + " 확인";
+    T.runs = tot; T.mins = mins; T.fail = fail; tiles();
+  });
+
+  // ③ 방문 수 (GoatCounter 공개 숫자)
+  if (!GC) {
+    $("visits").innerHTML = '<div class="row"><i class="old"></i><span class="n">아직 방문 수 세는 장치가 없어요<small>퀘스트 "방문 수 세는 장치 달기"를 하면 여기에 숫자가 떠요</small></span><span class="r"></span></div>';
+    T.visits = "—"; tiles();
+  } else {
+    var base = "https://" + GC + ".goatcounter.com/counter/", start = MONTH + "-01";
+    var paths = [["전체", "TOTAL"], ["시사 자판기", "/vendingForMe/"], ["이야기 자판기", "/vfm-story/"], ["사람 자판기", "/vfm-mind/"]];
+    Promise.all(paths.map(function (p) { return j(base + encodeURIComponent(p[1]) + ".json?start=" + start); })).then(function (vs) {
+      $("visits").innerHTML = paths.map(function (p, i) {
+        var v = vs[i] && vs[i].count;
+        return '<div class="row' + (i ? "" : " sum") + '"><i class="' + (v != null ? "ok" : "") + '"></i><span class="n">' + p[0] + '<small>' + (i ? "첫 화면 기준" : "이번 달 모든 화면") + '</small></span><span class="r"><b>' + (v != null ? esc(v) + "회" : "—") + "</b></span></div>";
+      }).join("");
+      T.visits = vs[0] && vs[0].count != null ? String(vs[0].count) : "—"; tiles();
+    });
+  }
+
+  // ④ 내 장부 [날짜, 항목, 원, 토큰]
+  function drawLog() {
+    var L = get(LOGKEY, []).filter(function (x) { return x[0].slice(0, 7) === MONTH; }), won = 0, tok = 0;
+    var rows = L.map(function (x) {
+      won += +x[2] || 0; tok += +x[3] || 0;
+      return '<div class="row"><i class="ok"></i><span class="n">' + esc(x[1]) + "<small>" + esc(x[0].slice(5).replace("-", "/")) + '</small></span><span class="r">' +
+        (x[2] ? "<b>" + n(x[2]) + "원</b>" : "") + (x[2] && x[3] ? " · " : "") + (x[3] ? n(x[3]) + " 토큰" : "") + '<button class="del" data-del="' + esc(x[4]) + '">지움</button></span></div>';
+    });
+    rows.unshift('<div class="row sum"><i></i><span class="n">로봇·서버</span><span class="r"><b>0원</b> · 0 토큰</span></div>');
+    rows.push('<form class="add" id="add"><input name="w" placeholder="항목 (예: Claude 구독)" required><input name="won" inputmode="numeric" placeholder="원"><input name="tok" inputmode="numeric" placeholder="토큰"><button>적기</button></form>');
+    $("log").innerHTML = rows.join("");
+    T.won = won; T.tok = tok; tiles();
+  }
+  document.addEventListener("submit", function (e) {
+    if (e.target.id !== "add") return; e.preventDefault();
+    var f = e.target, num = function (s) { return +String(s || "").replace(/[^\d]/g, "") || 0; };
+    var L = get(LOGKEY, []), d = new Date(), day = MONTH + "-" + ("0" + d.getDate()).slice(-2);
+    L.push([day, f.w.value.trim(), num(f.won.value), num(f.tok.value), String(Date.now())]); put(LOGKEY, L); drawLog();
+  });
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-del]");
+    if (b) { put(LOGKEY, get(LOGKEY, []).filter(function (x) { return x[4] !== b.dataset.del; })); drawLog(); return; }
+    if (e.target.id === "share") {
+      var url = location.href.split("#")[0];
+      if (navigator.share) navigator.share({ title: "자판기 점수판", url: url }).catch(function () { });
+      else if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { e.target.textContent = "링크를 복사했어요"; });
+    }
+  });
+  drawLog(); tiles();
+})();
+</script>
+</body>
+</html>
