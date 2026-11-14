@@ -91,8 +91,11 @@ h2.sec .n{font-family:var(--f-mono);font-weight:500}
 
 /* 대표 기사 사진 (사진이 있으면 지도 대신, 못 불러오면 지도로 돌아감) */
 .th-x{background:var(--sunk);object-fit:cover;flex:none}
-.sr.has-th,.tc2.has-th{position:relative;padding-right:104px}
-.sr.has-th>.th-x,.tc2.has-th>.th-x{position:absolute;right:12px;top:12px;width:80px;height:80px;border-radius:12px}
+.tc2.has-th{position:relative;padding-right:104px}
+/* 목록 줄: 사진 옆에는 분류·제목만 좁게, 요약 글은 사진 아래에서 가로 전체로 (사진이 글을 덮지 않게) */
+.sr.has-th{position:relative}.sr.has-th>.sr-m,.sr.has-th>.sr-t{padding-right:92px}.sr.has-th>.sr-t{min-height:58px}
+.sr.has-th>.th-x{position:absolute;right:2px;top:14px;width:80px;height:80px;border-radius:12px}
+.tc2.has-th>.th-x{position:absolute;right:12px;top:12px;width:80px;height:80px;border-radius:12px}
 .hc>.th-x{width:40px;height:40px;border-radius:8px;margin-right:2px}
 .irow{position:relative}.irow:has(.th-x){padding-right:84px;min-height:76px}
 .irow>.th-x{position:absolute;right:8px;top:8px;width:66px;height:66px;border-radius:8px}
@@ -567,7 +570,7 @@ b.rnew{color:var(--accent);font-weight:700}
 .gsr-t{font-size:14.5px;font-weight:600;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .gsr-m{font-size:12px;color:var(--muted)}
 .shw{position:relative}
-.shw>.shr{position:absolute;bottom:6px;right:6px;width:36px;height:36px;border-radius:50%;border:0;display:grid;place-items:center;background:color-mix(in srgb,var(--surface) 85%,transparent);color:var(--muted);cursor:pointer;z-index:2}
+.shw>.shr{position:absolute;bottom:7px;right:2px;width:30px;height:30px;border-radius:50%;border:0;display:grid;place-items:center;background:color-mix(in srgb,var(--surface) 85%,transparent);color:var(--muted);cursor:pointer;z-index:2}
 .shw>.shr:hover,.shw>.shr:focus-visible{color:var(--accent)}
 .shw>.sr .sr-b{padding-right:40px}
 .shr-top{display:inline-flex;align-items:center;gap:4px;margin-left:auto}
@@ -760,7 +763,7 @@ html.mf-on,html.mf-on body{overflow:hidden}
 .mf-s b{font-size:15px;line-height:1.4;word-break:keep-all}
 .mf-s .sr-k{font-size:13px;color:var(--muted);line-height:1.5;word-break:keep-all}
 .sr.bf .sr-t{font-size:17px}
-.sr.bf{padding:12px 2px}.sr.bf .sr-k{-webkit-line-clamp:3}
+.sr.bf{padding-top:12px;padding-bottom:12px}.sr.bf .sr-k{-webkit-line-clamp:3}
 @media (min-width:760px){.mf-panel{max-height:36vh}}
 .ocard.more{justify-content:center;background:color-mix(in srgb,var(--accent) 7%,var(--surface))}
 .ocard.more .oc-q{font-size:20px;font-weight:800}
@@ -2393,8 +2396,18 @@ function viewHome(){
 
 // ───────── 넘겨보기 (assets/deck.js): 안 본 이야기만 한 장씩, 옆으로 밀면 다음 ─────────
 const D = window.VfmDeck || null;
-const storyKey = s => isBrief(s) ? "b:" + (s.items[0] || s.id) : "i:" + (s.title || s.id);
-function markStorySeen(s){ if(!s) return; RD.mark(s); if(D) D.Seen.add("sisa", storyKey(s)); }
+const storyKeyOld = s => isBrief(s) ? "b:" + (s.items[0] || s.id) : "i:" + (s.title || s.id);   // 예전 열쇠(제목) — 제목이 판마다 바뀌어 같은 이야기가 또 나왔음
+const storyKey = s => s.sid ? "s:" + s.sid : storyKeyOld(s);                                         // 이야기 번호로 고정
+function markStorySeen(s){ if(!s) return; RD.mark(s); if(D){ D.Seen.add("sisa", storyKey(s)); (s.items||[]).slice(0, 40).forEach(id => D.Seen.add("sisa", "a:" + id));
+  const bi = window.BRF && BRF.of(s); if(bi) (bi.sids||[]).forEach(x => D.Seen.add("sisa", "s:" + x)); } }   // 브리핑이 한 사건으로 묶은 이야기들은 한 장만 보면 다 본 것
+// 넘겨보기에 다시 내보낼지: 본 이야기는 '크게 달라졌을 때만'(새 글 6개 이상이면서 전체의 40% 이상) 하루 한 번. 번호만 바뀐 같은 이야기(글 60% 이상을 이미 봄)는 뺌
+const DK_SHOWN = {};
+function deckKeyOf(s){
+  const k = storyKey(s), has = x => D.Seen.has("sisa", x), n = (s.items||[]).length;
+  if(has(k) || has(storyKeyOld(s)) || RD.at(s) > 0){ const nw = readNew(s); return nw >= 6 && nw >= n * 0.4 ? k + "@" + todayKst() : null; }
+  if(n >= 2 && s.items.filter(id => has("a:" + id)).length >= n * 0.6) return null;
+  return k;
+}
 const artLink = i => D ? D.koUrl(i.u, S.langOf[i.id]) : i.u;
 const appUrl = h => location.href.split("#")[0] + h;
 function todayDeckList(){
@@ -2414,8 +2427,11 @@ function storyDeckCard(s){
 }
 function todayDeck(){
   return D.create({id:"sisa-today", app:"sisa", emptyTitle:"이야기가 아직 없어요",
-    onShow(it){ if(it && it.s) markStorySeen(it.s); },
-    items: () => todayDeckList().map(s => ({s, key:storyKey(s) + (readNew(s) ? "@" + S.edId : ""), title:s.title || "", url:appUrl("#issue-" + (s.sid || s.id)), hash:"#issue-" + (s.sid || s.id), shareText:(s.title || "") + (s.key ? "\n" + s.key : ""), html:() => storyDeckCard(s)})),
+    onShow(it){ if(it && it.s){ DK_SHOWN[storyKey(it.s)] = it.key; markStorySeen(it.s); } },
+    items: () => { let cur = ""; try{ cur = (JSON.parse(localStorage.getItem("vfm:deck:sisa-today") || "{}") || {}).cur || ""; }catch(_){}
+      const keep = s => DK_SHOWN[storyKey(s)] || ([storyKey(s), storyKeyOld(s)].some(x => cur === x || cur.startsWith(x + "@")) ? cur : null);   // 이번에 넘겨 본 카드·보던 카드는 자리 유지
+      const ev = new Set(), one = s => { const bi = window.BRF && BRF.of(s); if(!bi) return true; if(ev.has(bi)) return !!DK_SHOWN[storyKey(s)]; ev.add(bi); return true; };   // 같은 사건은 한 장만
+      return todayDeckList().filter(one).map(s => [s, keep(s) || deckKeyOf(s)]).filter(x => x[1]).map(([s, k]) => ({s, key:k, title:s.title || "", url:appUrl("#issue-" + (s.sid || s.id)), hash:"#issue-" + (s.sid || s.id), shareText:(s.title || "") + (s.key ? "\n" + s.key : ""), html:() => storyDeckCard(s)})); },
     onList(){ try{ localStorage.setItem("vfm:mode:sisa-today", '"list"'); }catch(_){} render(); }});
 }
 // 나라: 나라 하나를 고르면 그 나라 뉴스를 한 장씩 (첫 장 = 그 나라 오늘 요약)
