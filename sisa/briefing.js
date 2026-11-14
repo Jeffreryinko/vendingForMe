@@ -57,6 +57,17 @@
 .brf-ib{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:12px 0}
 .brf-ib p{font-size:16px;line-height:1.74;margin:0 0 8px;word-break:keep-all}
 .brf-ib .brf-by{font-size:12px;color:var(--muted);margin:10px 0 0}
+.brf-tm{border:0;background:none;padding:0;font:inherit;color:inherit;border-bottom:1.5px dotted var(--accent);cursor:pointer}
+.brf-vw.op li{background:none;border:1px dashed var(--line)}
+.brf-full h4 small,.brf-ib h4 small{font-weight:500;color:var(--muted)}
+.brf-lk{border:0;background:none;padding:0;font:inherit;color:var(--accent);font-weight:600}
+.brf-pop{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.28);display:flex;align-items:flex-end;justify-content:center}
+.brf-pop-in{width:min(560px,100%);background:var(--surface);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px rgba(0,0,0,.18)}
+.brf-pop-in b{font-size:18px}
+.brf-pop-in p{font-size:16px;line-height:1.7;margin:8px 0 14px}
+.brf-pop-in div{display:flex;justify-content:space-between;align-items:center}
+.brf-pop-in a{font-size:14.5px;font-weight:600}
+.brf-pop-in button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 16px;font-size:14px}
 @media (min-width:700px){ .brf-list{display:grid;grid-template-columns:1fr 1fr;align-items:start} .brf-h{font-size:28px} }
 `;
   const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
@@ -74,7 +85,32 @@
     data: null,
     load() {
       const base = window.VFM_DATA_BASE || "../data/sisa/";
-      return fetch(base + "briefing/latest.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(d => { B.data = d && Array.isArray(d.items) && d.items.length ? d : null; return B.data; }).catch(() => null);
+      const get = (f, o) => fetch(base + f, o).then(r => r.ok ? r.json() : null).catch(() => null);
+      get("lean.json").then(d => { B.leans = d || {}; });                       // 매체 성향표
+      get("learn_index.json").then(d => { if (d && d.term) { B.terms = Object.keys(d.def || {}).map(id => [d.term[id], id, d.def[id]]).filter(x => x[0] && x[0].length >= 2 && !/[·\/(]/.test(x[0])).sort((a, b) => b[0].length - a[0].length); if (B.data && B.mode() === "brief" && !S.sheetOpen) render(); } });
+      return get("briefing/latest.json", { cache: "no-cache" }).then(d => { B.data = d && Array.isArray(d.items) && d.items.length ? d : null; return B.data; });
+    },
+    leans: {}, terms: [],
+    lean(id) { return B.leans[id] || ""; },
+    /* 글 안의 어려운 낱말(배움 사전에 있는 것)을 누를 수 있게 — 한 문단에 낱말마다 한 번만 */
+    tx(t) {
+      let h = esc(t || ""); if (!B.terms.length) return h;
+      const used = [];
+      for (const [name, id] of B.terms) {
+        if (used.length >= 4) break;
+        const i = h.indexOf(esc(name)); if (i < 0) continue;
+        if (/<[^>]*$/.test(h.slice(0, i)) || used.some(([a, b]) => i < b && i + name.length > a)) continue;      // 이미 단추 안이면 건너뜀
+        const btn = `<button type="button" class="brf-tm" data-brfterm="${esc(id)}">${esc(name)}</button>`;
+        h = h.slice(0, i) + btn + h.slice(i + esc(name).length); used.push([i, i + btn.length]);
+      }
+      return h;
+    },
+    termPop(id) {
+      const t = B.terms.find(x => x[1] === id); if (!t) return;
+      let el = document.getElementById("brfPop"); if (el) el.remove();
+      el = document.createElement("div"); el.id = "brfPop"; el.className = "brf-pop";
+      el.innerHTML = `<div class="brf-pop-in" role="dialog" aria-label="낱말 풀이"><b>${esc(t[0])}</b><p>${esc(t[2])}</p><div><a href="learn/#term=${encodeURIComponent(id)}">배움에서 더 보기 ›</a><button type="button" data-brfpopx>닫기</button></div></div>`;
+      document.body.appendChild(el);
     },
     mode() { return LS.g("vfm:sisa:home", "brief"); },
     setMode(m) { LS.s("vfm:sisa:home", m); if (m !== "brief") LS.s("vfm:mode:sisa-today", m); },
@@ -95,9 +131,11 @@
     },
     body(it) {
       return `${it.chg ? `<div class="brf-chg"><b>어제와 달라진 점</b>${esc(it.chg)}</div>` : ""}
-        ${it.sum ? `<p>${esc(it.sum)}</p>` : ""}
-        ${it.why ? `<h4>왜 중요한가요</h4><p>${esc(it.why)}</p>` : ""}
-        ${B.viewsHtml(it.views)}${B.bgHtml(it.bg)}`;
+        ${it.sum ? `<p>${B.tx(it.sum)}</p>` : ""}
+        ${it.why ? `<h4>왜 중요한가요</h4><p>${B.tx(it.why)}</p>` : ""}
+        ${B.viewsHtml(it.views)}
+        ${it.op && it.op.length ? `<h4>이렇게 보는 사람도 있어요 <small>사설·칼럼</small></h4><ul class="brf-vw op">${it.op.map(x => `<li><b>${flag(x.cc)} ${esc(x.src || "")}</b>${esc(x.t)}</li>`).join("")}</ul>` : ""}
+        ${B.bgHtml(it.bg)}`;
     },
     /* 이슈 화면 맨 위에 넣는 칸: 요약 → 왜 중요 → 나라별 시각 → 배경 */
     issueBlock(s) {
@@ -130,7 +168,7 @@
         <button type="button" class="brf-more" data-brffull>${full ? "짧은 판으로 접기" : "자세한 판 보기 — 요약 · 왜 중요한지 · 나라별 시각"}</button>
         ${kr ? `<section class="brf-box"><h3>한국 언론엔 잘 안 나온 일</h3><p class="note">해외에서는 여러 나라가 다뤘어요</p>${kr}</section>` : ""}
         ${buzz ? `<section class="brf-box"><h3>요즘 화제</h3><p class="note">나라별 검색어·게시판에서 뜨는 것</p>${buzz}</section>` : ""}
-        <p class="brf-foot">${esc(BY[d.by] || "")}${d.note ? " · " + esc(d.note) : ""}<br>이 판의 모든 이슈는 위의 '목록'에서 볼 수 있어요.</p>
+        <p class="brf-foot">${esc(BY[d.by] || "")}${d.note ? " · " + esc(d.note) : ""}<br>이 판의 모든 이슈는 위의 '목록'에서 볼 수 있어요. <button type="button" class="brf-lk" data-v="hot">나라별 검색어 보기 ›</button></p>
       </div>`;
     },
     speakText() {
@@ -152,6 +190,9 @@
   };
 
   document.addEventListener("click", e => {
+    const pop = document.getElementById("brfPop");
+    if (pop && (e.target.closest("[data-brfpopx]") || !e.target.closest(".brf-pop-in"))) { pop.remove(); if (!e.target.closest("[data-brfterm]")) return; }
+    const tm = e.target.closest("[data-brfterm]"); if (tm) { e.preventDefault(); e.stopPropagation(); return B.termPop(tm.dataset.brfterm); }
     const t = e.target.closest("[data-hm],[data-brffull],[data-brftts]"); if (!t) return;
     if (t.dataset.hm) { B.setMode(t.dataset.hm); if (speaking) B.stop(); render(); scrollTo(0, 0); }
     else if (t.hasAttribute("data-brffull")) { const y = scrollY; full = !full; render(); if (!full) scrollTo(0, 0); else scrollTo(0, y); }

@@ -66,7 +66,7 @@ def feed_items(ed_id):
 
 def source_names():
     """매체 번호 → 한국어 이름·나라·성향. robot/crawler/sources.yaml 과 sisa/lean.json(성향표)에서."""
-    names, lean = {}, rj(ROOT / "sisa" / "lean.json", {}) or {}
+    names, lean = {}, {}
     try:
         import yaml  # type: ignore
         for f in (ROOT / "robot" / "crawler").glob("sources*.y*ml"):
@@ -74,6 +74,7 @@ def source_names():
             for s in (y.get("sources") if isinstance(y, dict) else y) or []:
                 if isinstance(s, dict) and s.get("id"):
                     names[s["id"]] = (s.get("name_ko") or s.get("name") or s["id"]) + (f"〔{s['lean']}〕" if s.get("lean") else "")
+                    if s.get("lean"): lean[s["id"]] = s["lean"]
     except Exception as e:
         log("매체 이름표를 못 읽음:", e)
     return names, lean
@@ -93,6 +94,12 @@ def pick_stories(ed):
     return ss[:MAX_STORIES]
 
 
+OP = re.compile(r"opinion|editorial|column|comment|kommentar|meinung|tribune|opini[oó]n|opinie|analys|사설|칼럼|社説|社论|评论|editoriale|leitartikel", re.I)
+def is_opinion(it):
+    """사설·칼럼 같은 의견 글인지 — 주소와 RSS 꼬리표로 어림."""
+    return bool(OP.search(it.get("u", "")) or any(OP.search(str(t)) for t in ((it.get("m") or {}).get("tg") or [])))
+
+
 def story_block(s, by, names):
     heads, seen, cs = [], set(), set()
     its = [by[i] for i in s.get("items", []) if i in by]
@@ -107,7 +114,7 @@ def story_block(s, by, names):
         seen.add(k)
         (first if it["c"] not in cs else rest).append((it, ko)); cs.add(it["c"])
     for it, ko in (first + rest)[:MAX_HEADS]:
-        heads.append(f"  - {it['c']}|{names.get(it['s'], it['s'])}: {ko[:120]}")
+        heads.append(f"  - {it['c']}|{names.get(it['s'], it['s'])}{'|의견' if is_opinion(it) else ''}: {ko[:120]}")
     kr = any(it.get("c") == "KR" for it in its)
     key = re.sub(r"^.*?기사 요약\(기계번역\):\s*", "", s.get("key") or "")[:220]
     return (f"[{s.get('sid') or s['id']}] {CAT.get(s.get('cat'), '기타')} · 기사 {len(s.get('items', []))}개 · {len(s.get('countries') or cs)}개 나라"
@@ -148,6 +155,7 @@ PROMPT = """너는 한국어 뉴스 브리핑 편집자야. 아래 [이슈 목�
 - why: 2~3문장. 이 일이 왜 중요한지 — 제목들에서 읽히는 영향·파장만. 없으면 빈 글자.
 - chg: [지난 브리핑]에 같은 일이 있었고 달라진 점이 있을 때만 1~2문장. 아니면 빈 글자.
 - views: 나라마다 초점이 다를 때 2~5개. [{{"cc":"나라 두 글자","src":"매체 이름","t":"그 나라 매체가 무엇을 앞세웠는지 한 문장"}}]. 초점 차이가 안 보이면 빈 목록.
+- op: 제목에 "|의견" 표시가 붙은 글(사설·칼럼)이 있을 때만 1~3개. [{{"cc":"나라","src":"매체 이름","t":"그 글의 주장을 한 문장으로"}}]. 서로 다른 주장을 고루. 없으면 빈 목록.
 - bg: 이 일을 이해하는 데 도움이 될 배움 글을 [배움 글 목록]에서 0~4개. [{{"k":"term|hist|ch","id":"목록에 있는 번호"}}]. 목록에 없는 번호는 쓰지 마.
 
 그리고
@@ -264,12 +272,13 @@ def clean(o, ed, li):
         if not ss or not t or not one: continue
         used.update(ss)
         views = [{"cc": S(v.get("cc"), 2).upper(), "src": S(v.get("src"), 40), "t": S(v.get("t"), 200)} for v in (it.get("views") or [])[:5] if isinstance(v, dict) and re.fullmatch(r"[A-Za-z]{2}", str(v.get("cc") or "")) and v.get("t")]
+        op = [{"cc": S(v.get("cc"), 2).upper(), "src": S(v.get("src"), 40), "t": S(v.get("t"), 200)} for v in (it.get("op") or [])[:3] if isinstance(v, dict) and re.fullmatch(r"[A-Za-z]{2}", str(v.get("cc") or "")) and v.get("t")]
         bg = []
         for b in (it.get("bg") or [])[:4]:
             k, i = (b or {}).get("k"), str((b or {}).get("id") or "")
             if k in li and i in li[k]: bg.append({"k": k, "id": i, "t": li[k][i]})
         items.append({"sids": ss, "cat": it.get("cat") if it.get("cat") in CAT else "etc", "t": t, "one": one, "sum": S(it.get("sum"), 520),
-                      "why": S(it.get("why"), 380), **({"chg": S(it.get("chg"), 240)} if S(it.get("chg"), 240) else {}), "views": views, "bg": bg})
+                      "why": S(it.get("why"), 380), **({"chg": S(it.get("chg"), 240)} if S(it.get("chg"), 240) else {}), "views": views, **({"op": op} if op else {}), "bg": bg})
     kr = [{"sid": x["sid"], "t": S(x.get("t"), 50), "one": S(x.get("one"), 120)} for x in (o.get("kr") or [])[:3] if isinstance(x, dict) and x.get("sid") in sids and x.get("t")]
     buzz = [{"cc": S(x.get("cc"), 2).upper(), "t": S(x.get("t"), 40), "one": S(x.get("one"), 120)} for x in (o.get("buzz") or [])[:4] if isinstance(x, dict) and x.get("t")]
     return {"lead": S(o.get("lead"), 420), "items": items[:MAX_ITEMS], "kr": kr, "buzz": buzz}
@@ -310,6 +319,7 @@ def main():
     doc = {"id": bid, "slot": slot, "label": label, "at": now.isoformat(timespec="minutes"), "ed": ed["id"], "by": who.split(":")[0], "model": who,
            "note": "기사 제목과 요약에 있는 내용만으로 썼어요. 틀린 곳이 있을 수 있으니 중요한 일은 원문을 확인하세요.", **o}
     wj(OUT / "latest.json", doc); wj(OUT / f"{bid}.json", doc)
+    wj(D / "lean.json", _lean)                                  # 매체 성향표 (화면이 매체 이름 옆에 보여 줌)
     olds = sorted(p for p in OUT.glob("20*.json"))
     for p in olds[:-30]: p.unlink()
     ix = [{"id": p.stem, "label": (rj(p, {}) or {}).get("label", p.stem)} for p in sorted(OUT.glob("20*.json"))]

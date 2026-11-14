@@ -7,8 +7,8 @@ const window = {}, ctx = { window, console: { log() {}, warn() {}, error() {} },
 ctx.globalThis = ctx; vm.createContext(ctx);
 for (const f of files) { try { vm.runInContext("with(window){" + fs.readFileSync(path.join(dir, f), "utf8") + "\n}", ctx, { filename: f }); } catch (e) { console.error("건너뜀", f, e.message); } }
 const L = window.VFM_LEARN || {}, T = window.VFM_TERMS || [];
-const out = { term: {}, hist: {}, ch: {} };
-for (const t of T) out.term[t.id] = t.t || t.ko || t.n || t.id;
+const out = { term: {}, hist: {}, ch: {}, def: {} };
+for (const t of T) { out.term[t.id] = t.t || t.id; if (t.s) out.def[t.id] = t.s; }
 for (const h of L.history || []) if (!h.virt) out.hist[h.id] = h.name;
 for (const c of L.chapters || []) out.ch[c.id] = c.t;
 fs.writeFileSync("data/sisa/learn_index.json", JSON.stringify(out));

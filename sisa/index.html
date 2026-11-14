@@ -3,7 +3,7 @@
 <script>window.VFM_APP="sisa";</script>
 <script src="../assets/claude-shim.js"></script>
 <script src="../assets/deck.js"></script>
-<script src="briefing.js?v=1"></script>
+<script src="briefing.js?v=2"></script>
 <link rel="manifest" href="../manifest.webmanifest"><meta name="theme-color" content="#0C6E77"><link rel="apple-touch-icon" href="../assets/icon-192.png">
 
 <title>시사 자판기</title>
@@ -61,6 +61,7 @@ h2.sec{font-size:13px;letter-spacing:.06em;color:var(--muted);font-weight:600;ma
 h2.sec .n{font-family:var(--f-mono);font-weight:500}
 .lead{font-family:var(--f-display);font-size:22px;line-height:1.25;margin:0;text-wrap:balance}
 .note{font-size:12.5px;color:var(--muted);margin:0}
+.lean{font-style:normal;font-size:11px;border:1px solid var(--line);border-radius:6px;padding:0 5px;color:var(--muted);white-space:nowrap}
 .stack{display:flex;flex-direction:column;gap:10px}
 
 /* chips & pills */
@@ -869,10 +870,9 @@ kbd{font-family:var(--f-mono,monospace);font-size:12px;background:var(--sunk);bo
 
 <nav class="tabs" aria-label="화면">
   <div class="in">
-    <button type="button" data-v="today" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>오늘</span></button>
+    <button type="button" data-v="today" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>브리핑</span></button>
     <button type="button" data-v="flow"><svg viewBox="0 0 24 24"><path d="M4 7h11M4 12h16M4 17h8"/></svg><span>탐색</span></button>
     <button type="button" data-v="nation"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.8 2.6 14.2 0 17M12 3.5c-2.6 2.8-2.6 14.2 0 17"/></svg><span>나라</span></button>
-    <button type="button" data-v="hot"><svg viewBox="0 0 24 24"><path d="M4 17l5-6 4 4 7-9"/><path d="M15 6h5v5"/></svg><span>트렌드</span></button>
     <button type="button" data-v="library"><svg viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4-6 4z"/></svg><span>보관함</span></button>
     <button type="button" onclick="location.href='learn/'"><svg viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5z"/><path d="M7 11.5V16c1.5 1.5 3.2 2 5 2s3.5-.5 5-2v-4.5"/></svg><span>배움</span></button>
   </div>
@@ -1546,7 +1546,7 @@ function mfPaint(){
 // 선택한 것에 대한 설명과 기사
 function mfPanel(){
   const P = $("#mfPanel"); if(!P || !MF.m) return; const M = MF.m, s = M.s, sel = MF.sel || "";
-  const row = i => `<button type="button" class="irow" data-open="${i.id}"><span class="meta"><span>${flag(ctry(i))} ${esc(cname(ctry(i)))}</span><span class="src">${esc(srcOf(i.s).n)}</span>${whenHtml(i)}</span><span class="irow-t">${esc(koOf(i)||i.t)}</span></button>`;
+  const row = i => `<button type="button" class="irow" data-open="${i.id}"><span class="meta"><span>${flag(ctry(i))} ${esc(cname(ctry(i)))}</span><span class="src">${esc(srcOf(i.s).n)}${window.BRF && BRF.lean(i.s) ? ` <i class="lean">${esc(BRF.lean(i.s))}</i>` : ""}</span>${whenHtml(i)}</span><span class="irow-t">${esc(koOf(i)||i.t)}</span></button>`;
   const srow = st => `<button type="button" class="mf-s t-${st.cat||"pol"}" data-issue="${st.id}"><span class="sr-m">${catDot(st.cat)}${CAT[st.cat]||"기타"}${isBrief(st) ? " · 단신" : ` · ${issueCountries(st).length}개국`}</span><b>${esc(st.title || storyTitle(st, storyItems(st)))}</b>${st.key ? `<span class="sr-k">${esc(st.key)}</span>` : ""}</button>`;
   let html = "";
   if(!s){
@@ -1944,7 +1944,7 @@ function issueInner(s, inDeck){
   const rest = its.filter(i => !(s.first||[]).includes(i.id) && i.k !== "community");
   let n = 0;
   const sec = (title, body, id) => { if(!body) return ""; n++; return `<section class="isec" data-sec="${n}"${id ? ` id="${id}"` : ""}><h3 class="ih"><span class="inum">${n}</span>${title}</h3>${body}</section>`; };
-  const rowItem = i => `<button type="button" class="irow" data-open="${i.id}"><span class="meta"><span>${flag(ctry(i))} ${esc(cname(ctry(i)))}</span><span class="src">${esc(srcOf(i.s).n)}</span>${whenHtml(i)}${isNewIt(i) ? '<b class="new">새 글</b>' : ""}${i.k==="community" ? "" : PAYWALL.has(i.s) ? '<span>구독 기사일 수 있음</span>' : '<span class="ok">무료</span>'}${stOf(i.id).opened?'<span>봄</span>':""}</span><span class="irow-t">${esc(koOf(i)||i.t)}</span>${thI(i)}</button>`;
+  const rowItem = i => `<button type="button" class="irow" data-open="${i.id}"><span class="meta"><span>${flag(ctry(i))} ${esc(cname(ctry(i)))}</span><span class="src">${esc(srcOf(i.s).n)}${window.BRF && BRF.lean(i.s) ? ` <i class="lean">${esc(BRF.lean(i.s))}</i>` : ""}</span>${whenHtml(i)}${isNewIt(i) ? '<b class="new">새 글</b>' : ""}${i.k==="community" ? "" : PAYWALL.has(i.s) ? '<span>구독 기사일 수 있음</span>' : '<span class="ok">무료</span>'}${stOf(i.id).opened?'<span>봄</span>':""}</span><span class="irow-t">${esc(koOf(i)||i.t)}</span>${thI(i)}</button>`;
   const w3 = s.why3;
   const whyBody = w3 ? `<div class="why3">
       <div class="w3"><b>어떤 연결이 있나요?</b><p>${entText(w3.link)}</p></div>
