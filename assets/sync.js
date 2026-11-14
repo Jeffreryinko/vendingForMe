@@ -8,7 +8,7 @@
   "use strict";
   var CFG = window.VFM_SYNC || {};
   var META = "vfm-sync-meta";                                     // vfm: 로 시작하지 않게 (자기 자신은 올리지 않음)
-  var SKIP = /^vfm:(mode:|deck:|tab$|trc|mix:si$)/;               // 화면 상태·임시 값은 올리지 않음
+  var SKIP = /^vfm:(mode:|deck:|tab$|trc|mix:si$|push:)/;   // + 알림 설정은 기기마다 따로               // 화면 상태·임시 값은 올리지 않음
   var EXTRA = ["iyagi-library-v1", "iyagi-extra-v1"];
   var client = null, user = null, busy = false, timer = null;
   var api = window.vfmSync = { ready: !!(CFG.url && CFG.key && CFG.google), user: function () { return user; }, client: function () { return client; }, login: login, logout: logout, now: function () { return run(true); }, status: "" };

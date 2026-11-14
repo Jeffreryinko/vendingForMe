@@ -561,7 +561,7 @@
       '<button type="button" data-act="syncnow"><span class="tint">지금 맞추기</span><span class="v">›</span></button><button type="button" data-act="logout"><span>로그아웃</span><span class="v">›</span></button>';
   }
   // 설정 파일은 늘 새로 받음 (브라우저가 10분 묵혀 두지 않게)
-  [ROOT + "assets/sync-config.js?t=" + Math.floor(Date.now() / 60000), ROOT + "assets/sync.js?v=4"].reduce(function (p, src) {
+  [ROOT + "assets/sync-config.js?t=" + Math.floor(Date.now() / 60000), ROOT + "assets/sync.js?v=5"].reduce(function (p, src) {
     return p.then(function () { return new Promise(function (ok) { var sc = document.createElement("script"); sc.src = src; sc.onload = sc.onerror = ok; document.head.appendChild(sc); }); });
   }, Promise.resolve()).then(function () { if (window.vfmSync) { window.vfmSync.render = syncHtml; gate(); } });
 
