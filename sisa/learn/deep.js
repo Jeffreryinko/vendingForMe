@@ -3,6 +3,7 @@
      ① 이미 있는 역사 사건·낱말·코스 카드에 '자세히'를 덧붙이고  ② 새 사건·새 지역·새 낱말·새 장을 더해요.
    화면(assets/learn.js)은 window.VFM_DEEP.hist / term / card 가 돌려주는 HTML 을 원래 글 아래에 붙여요.
 
+   깊이 읽기(긴 글):       long [[소제목, 글]…]  — deep-long-*.js 에 따로 둠. 숫자·날짜·이름은 위키백과와 대조해 씀
    역사 사건에 덧붙는 칸:  why 왜 일어났나 · flow [[때, 일]] 어떻게 흘러갔나 · who [[이름, 누구]] · num [[숫자, 뜻]] · aft 그 뒤 · mis 헷갈리기 쉬운 점 · tm [낱말 id]
    낱말에 덧붙는 칸:      d 조금 더 자세히 · ex 실제 예 · mis 헷갈리기 쉬운 점 · hs 어디서 온 말
    코스 카드에 덧붙는 칸:  ex 예를 들면 · pt [기억할 것]                                                                                         */
@@ -24,7 +25,11 @@
 .dp .nums b{display:block;font:800 17px var(--ap-display,inherit);font-variant-numeric:tabular-nums;line-height:1.2}
 .dp .nums span{font-size:12px;color:var(--muted);line-height:1.4;display:block}
 .dp .mis{border-left:3px solid #E0A12A;padding:2px 0 2px 10px}
-.dp ul.pt{margin:0;padding-left:18px;display:grid;gap:3px;font-size:14px;line-height:1.55}`;
+.dp ul.pt{margin:0;padding-left:18px;display:grid;gap:3px;font-size:14px;line-height:1.55}
+.dp .lg{border-top:1px solid var(--line);padding-top:12px;margin-top:2px}
+.dp .lg h5{font-size:14px}.dp .lg h5 small{font-weight:500;color:var(--muted);margin-left:4px}
+.dp .lg h6{margin:14px 0 4px;font:700 15px var(--ap-display,inherit);letter-spacing:-.01em}
+.dp .lg p{font-size:15.5px;line-height:1.78;margin:0 0 9px}`;
   const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
 
   const para = (s, H) => String(s).split("\n").map(x => "<p>" + H.esc(x).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>") + "</p>").join("");
@@ -32,7 +37,7 @@
 
   window.VFM_DEEP = {
     hist(e, H) {
-      if (!e || !(e.why || e.flow || e.who || e.num || e.aft || e.mis)) return "";
+      if (!e || !(e.why || e.flow || e.who || e.num || e.aft || e.mis || e.long)) return "";
       return `<div class="dp">` +
         sec("왜 일어났나", e.why ? para(e.why, H) : "") +
         sec("어떻게 흘러갔나", (e.flow || []).length ? `<ol class="fl">${e.flow.map(f => `<li><b>${H.esc(f[0])}</b>${H.esc(f[1])}</li>`).join("")}</ol>` : "") +
@@ -40,6 +45,7 @@
         sec("숫자로 보면", (e.num || []).length ? `<div class="nums">${e.num.map(n => `<div><b>${H.esc(n[0])}</b><span>${H.esc(n[1])}</span></div>`).join("")}</div>` : "") +
         sec("그 뒤", e.aft ? para(e.aft, H) : "") +
         sec("헷갈리기 쉬운 점", e.mis ? para(e.mis, H) : "", "mis") +
+        ((e.long || []).length ? `<div class="lg"><h5>깊이 읽기 <small>${Math.max(1, Math.round(e.long.reduce((n, x) => n + x[1].length, 0) / 500))}분</small></h5>${e.long.map(x => `<h6>${H.esc(x[0])}</h6>${para(x[1], H)}`).join("")}</div>` : "") +
         ((e.tm || []).length && H.chips(e.tm) ? `<div><h5>함께 볼 낱말</h5><div>${H.chips(e.tm)}</div></div>` : "") + `</div>`;
     },
     term(t, H) {
