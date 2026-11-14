@@ -92,6 +92,11 @@ export function parseQuick(raw, base = today()) {
   if (!s.trim()) return out;
   s = s.replace(/(\d{1,2}:\d{2})\s?[-~]\s?(\d{1,2}:\d{2})/, '$1 ~ $2').replace(/\s?~\s?/g, ' ~ ');
 
+  // 반복: '매일' · '평일마다' · '매주 월요일' · '매달 25일'
+  s = s.replace(/ 매일(?= )/, () => { out.rep = { k: 'd' }; return ' '; });
+  s = s.replace(/ (?:평일마다|매 ?평일)(?= )/, () => { out.rep = { k: 'wd' }; return ' '; });
+  s = s.replace(/ 매주 ?(?:([월화수목금토일])요일)?(?= )/, (m, d) => { out.rep = { k: 'w', v: d ? WD.indexOf(d) : dow(base) }; return ' '; });
+  s = s.replace(/ 매(?:달|월) ?(?:(\d{1,2})일)?(?= )/, (m, d) => { out.rep = { k: 'm', v: d ? Math.min(31, Number(d)) : Number(base.slice(8, 10)) }; return ' '; });
   s = s.replace(/ #([^\s#@!]+)/g, (m, t) => { if (!out.tags.includes(t)) out.tags.push(t); return ' '; });
   s = s.replace(/ @([^\s#@!]+)/, (m, w) => { out.who = w; return ' '; });
   s = s.replace(/ !([0-6])(?= )/, (m, c) => { out.cat = Number(c); return ' '; });
@@ -145,6 +150,19 @@ export function parseQuick(raw, base = today()) {
   return out;
 }
 
+// 반복 규칙 → 다음 날짜 (from 다음 날부터 찾음)
+export function nextRep(r, from) {
+  if (!r) return null;
+  for (let i = 1; i <= 400; i++) {
+    const d = addDays(from, i), w = dow(d), day = Number(d.slice(8, 10));
+    if (r.k === 'd') return d;
+    if (r.k === 'wd' && w >= 1 && w <= 5) return d;
+    if (r.k === 'w' && w === r.v) return d;
+    if (r.k === 'm') { const last = new Date(Number(d.slice(0, 4)), Number(d.slice(5, 7)), 0).getDate(); if (day === Math.min(r.v, last)) return d; }
+  }
+  return null;
+}
+export const repText = r => !r ? '' : r.k === 'd' ? '매일' : r.k === 'wd' ? '평일마다' : r.k === 'w' ? `매주 ${WD[r.v]}` : `매달 ${r.v}일`;
 export function download(name, text, type = 'text/plain') {
   const a = h('a', { href: URL.createObjectURL(new Blob([text], { type: type + ';charset=utf-8' })), download: name });
   document.body.append(a); a.click(); a.remove();

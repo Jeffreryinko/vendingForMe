@@ -2,7 +2,7 @@
 import * as db from './db.js';
 import * as M from './model.js';
 import * as C from './cloud.js';
-import { h, icon, svg, today, ymd, addDays, toMin, toHm, nowMin, fmtMD, fmtShort, fmtFull, relDay, WD, dow, dueInfo, durText, clamp, debounce, diffDays } from './util.js';
+import { h, icon, svg, today, ymd, addDays, toMin, toHm, nowMin, fmtMD, fmtShort, fmtFull, relDay, WD, dow, dueInfo, durText, clamp, debounce, diffDays, repText } from './util.js';
 import { ui, $, toast, isPhone, confetti } from './ui.js';
 import { openQuick, openTask, openBlock, openTopPicker, openCloseDay, openShare, openSettings, placePreset, shareName } from './sheets.js';
 import { renderReview } from './review.js';
@@ -55,6 +55,7 @@ function taskRow(t, sorter) {
   const meta = h('div', { class: 't-meta' },
     t.due && t.st !== 'done' ? h('span', { class: 'chip ' + dueInfo(t.due).cls }, dueInfo(t.due).text) : null,
     blk ? h('span', { class: 'chip when' }, `${relDay(blk.date)} ${blk.start}`) : null,
+    t.rep ? h('span', { class: 'chip' }, '🔁 ' + repText(t.rep)) : null,
     t.who ? h('span', { class: 'chip' }, '@' + t.who) : null,
     (t.tags || []).map(n => h('span', { class: 'chip tag', style: `--dot:${M.tagColor(n)}` }, n)),
     t.st === 'wait' && t.waitAt ? h('span', { class: 'chip' }, `${Math.max(0, diffDays(today(), ymd(new Date(t.waitAt))))}일째`) : null);

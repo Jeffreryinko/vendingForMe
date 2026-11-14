@@ -1,6 +1,6 @@
 // 플래너의 규칙: 할 일·시간 블록·하루 기록을 다루는 동작과 통계, 내보내기
 import * as db from './db.js';
-import { today, ymd, addDays, toMin, toHm, nowMin, newId, isWeekend, dow, WD, parseQuick, fmtMD, fmtFull, csvCell, mondayOf, diffDays } from './util.js';
+import { nextRep, today, ymd, addDays, toMin, toHm, nowMin, newId, isWeekend, dow, WD, parseQuick, fmtMD, fmtFull, csvCell, mondayOf, diffDays } from './util.js';
 
 // ── 분류 (업무의 성격) ────────────────────────────────────────────────
 const BASE_CATS = [
@@ -49,7 +49,7 @@ export const isOpen = t => (t.st || 'open') === 'open';
 
 export function addTask(f) {
   ensureTags(f.tags || []);
-  return db.put({ id: newId(), kind: 'task', title: f.title.trim().slice(0, 300), cat: f.cat ?? 0, tags: f.tags || [], who: f.who || '', due: f.due || '', note: f.note || '', st: 'open', at: Date.now(), doneAt: null });
+  return db.put({ id: newId(), kind: 'task', title: f.title.trim().slice(0, 300), cat: f.cat ?? 0, tags: f.tags || [], who: f.who || '', due: f.due || '', note: f.note || '', ...(f.rep ? { rep: f.rep } : {}), st: 'open', at: Date.now(), doneAt: null });
 }
 export function updateTask(id, f) {
   if (f.tags) ensureTags(f.tags);
@@ -61,6 +61,16 @@ export function updateTask(id, f) {
 }
 export function setTaskDone(t, done) {
   db.patch(t.id, { st: done ? 'done' : 'open', doneAt: done ? Date.now() : null });
+  // 반복하는 일: 끝내면 다음 차례를 새로 만들고, 되돌리면 (손대지 않은) 다음 차례를 지움
+  if (t.rep && done && !t.repNext) {
+    const base = t.due && t.due > today() ? t.due : today();
+    const nx = addTask({ title: t.title, cat: t.cat, tags: t.tags || [], who: t.who || '', due: nextRep(t.rep, base) || '', note: t.note || '', rep: t.rep });
+    db.patch(t.id, { repNext: nx.id });
+  } else if (t.rep && !done && t.repNext) {
+    const nx = db.get(t.repNext);
+    if (nx && (nx.st || 'open') === 'open') db.del(nx.id);
+    db.patch(t.id, { repNext: null });
+  }
   const td = today();
   for (const b of [...db.list('block')]) {
     if (b.taskId !== t.id) continue;
@@ -155,7 +165,7 @@ export function quickAdd(text, opt = {}) {
   const p = parseQuick(text, opt.date || today());
   if (!p.title) return null;
   const c = p.cat ?? opt.cat ?? 0;
-  const task = addTask({ title: p.title, cat: c, tags: [...new Set([...(opt.tags || []), ...p.tags])], who: p.who, due: p.due || '' });
+  const task = addTask({ title: p.title, cat: c, tags: [...new Set([...(opt.tags || []), ...p.tags])], who: p.who, due: p.due || (p.rep ? (nextRep(p.rep, addDays(today(), -1)) || today()) : ''), rep: p.rep || null });
   let block = null;
   if (p.start) block = addBlock({ date: p.date, start: p.start, end: p.end, dur: p.dur || cat(c).dur, title: task.title, cat: c, tags: task.tags, taskId: task.id });
   return { task, block, parsed: p };

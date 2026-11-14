@@ -42,7 +42,7 @@ export function openQuick(preset = {}) {
     h('div', { style: 'padding:0 20px' }, catPick(catSel, v => { catSel = v; draw(); input.focus(); })),
     M.tags().length ? h('div', { style: 'padding:0 20px' }, tagPick(tagSel, v => { tagSel = v; draw(); })) : null,
     log,
-    h('div', { class: 'cmd-help' }, h('span', {}, '#태그  @담당  내일 3시  30분  금요일까지'), grow(), btn('추가', submit, 'primary sm')));
+    h('div', { class: 'cmd-help' }, h('span', {}, '#태그  @담당  내일 3시  30분  금요일까지  매주 월요일·매일·매달 25일'), grow(), btn('추가', submit, 'primary sm')));
   const dlg = sheet({ body, cls: 'cmd' });
   draw(); input.focus();
   return dlg;
