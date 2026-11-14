@@ -286,7 +286,7 @@ def claude(prompt, model=None, max_tokens=16000):
     m = model or os.environ.get("CLAUDE_MODEL", "").strip() or "claude-opus-5-5"
     try:
         r = http_json("https://api.anthropic.com/v1/messages",
-                      {"model": m, "max_tokens": max_tokens, "temperature": 0.3,
+                      {"model": m, "max_tokens": max_tokens,
                        "system": "답은 설명 없이 JSON 객체 하나만 써요. 한국어는 해요체로, 사실은 주어진 글에 있는 것만 써요.",
                        "messages": [{"role": "user", "content": prompt}]},
                       headers={"x-api-key": key, "anthropic-version": "2023-06-01"}, timeout=300)
