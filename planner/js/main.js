@@ -79,6 +79,23 @@ function addRow(catId, placeholder) {
   });
   return h('div', { class: 'add' }, input);
 }
+// 프로젝트별 묶기 (결정: 플래너 프로젝트별 묶기) — 태그 하나 = 프로젝트. 진행 막대 + 마감 순
+function projSections(open, all, byDue) {
+  const names = [...new Set(open.flatMap(t => (t.tags || []).slice(0, 1)))].sort((a, b) => open.filter(t => t.tags?.[0] === b).length - open.filter(t => t.tags?.[0] === a).length);
+  const sec = (name, list, color) => {
+    const tot = all.filter(t => name ? t.tags?.[0] === name : !(t.tags || []).length), dn = tot.filter(t => t.st === 'done').length;
+    return h('div', { class: 'sec proj', style: color ? `--dot:${color}` : '' },
+      h('div', { class: 'sec-head' }, h('span', { class: 'sec-no' }, name ? '#' : '·'), h('span', { class: 'sec-name' }, name || '프로젝트 없음'), h('span', { class: 'sec-count' }, list.length || ''),
+        tot.length ? h('span', { class: 'sec-hint' }, `${dn}/${tot.length} 끝`) : null),
+      tot.length ? h('div', { class: 'pbar' }, h('i', { style: `width:${Math.round(dn / tot.length * 100)}%` })) : null,
+      list.length ? h('ul', {}, list.sort(byDue).map(t => taskRow(t))) : null);
+  };
+  const out = names.map(n => sec(n, open.filter(t => t.tags?.[0] === n), M.tagColor(n)));
+  const none = open.filter(t => !(t.tags || []).length);
+  if (none.length) out.push(sec('', none));
+  out.push(h('p', { class: 'sub', style: 'margin:8px 4px' }, '할 일에 #프로젝트이름 을 붙여 적으면 여기 모여요. 예: 견적서 보내기 #다지점영업 금요일까지'));
+  return out;
+}
 function renderTasks() {
   const el = $('#tasks');
   const drafts = {}; el.querySelectorAll('input[data-add]').forEach(i => { drafts[i.dataset.add] = i.value; });
@@ -93,7 +110,8 @@ function renderTasks() {
   const tagList = M.tags();
 
   const kids = [
-    h('div', { class: 'pane-head' }, h('h2', {}, '할 일'), h('span', { class: 'count' }, `${open.length}개 남음`)),
+    h('div', { class: 'pane-head' }, h('h2', {}, '할 일'), h('span', { class: 'count' }, `${open.length}개 남음`),
+      h('div', { class: 'seg mini right' }, [['cat', '성격별'], ['proj', '프로젝트별']].map(([k, l]) => h('button', { type: 'button', class: (lsGet('planner:group') || 'cat') === k ? 'on' : '', onclick: () => { lsSet('planner:group', k); render(); } }, l)))),
     tagList.length ? h('div', { class: 'chips tagbar' },
       h('button', { type: 'button', class: 'chip' + (!ui.tag ? ' on' : ''), onclick: () => { ui.tag = null; render(); } }, '전체'),
       tagList.map(t => h('button', { type: 'button', class: 'chip tag' + (ui.tag === t.name ? ' on' : ''), style: `--dot:${t.color}`, onclick: () => { ui.tag = ui.tag === t.name ? null : t.name; render(); } }, t.name))) : null,
@@ -101,16 +119,16 @@ function renderTasks() {
       h('b', {}, '하루에 세 번만 열면 됩니다'),
       h('ol', {}, h('li', {}, h('b', {}, '적기'), ' — 떠오르는 일을 전부 적고, 성격에 맞는 칸에 넣습니다.'), h('li', {}, h('b', {}, '고르기'), ' — 오늘의 핵심 3가지를 고르고 시간을 붙입니다.'), h('li', {}, h('b', {}, '닫기'), ' — 저녁에 도장을 찍어 하루를 마감합니다.')),
       h('button', { class: 'icon-btn', type: 'button', 'aria-label': '안내 닫기', onclick: () => { lsSet('planner:guide', '1'); render(); } }, icon('x', 16))) : null,
-    inbox.length ? h('div', { class: 'sec', 'data-c': 0 },
+    inbox.length && (lsGet('planner:group') || 'cat') !== 'proj' ? h('div', { class: 'sec', 'data-c': 0 },
       h('div', { class: 'sec-head' }, h('span', { class: 'sec-no' }, '·'), h('span', { class: 'sec-name' }, '분류 전'), h('span', { class: 'sec-count' }, inbox.length), h('span', { class: 'sec-hint' }, '번호를 눌러 성격 정하기')),
       h('ul', {}, inbox.map(t => taskRow(t, h('div', { class: 'sorter' }, M.cats().map(c => h('button', { type: 'button', 'data-c': c.id, title: c.name, 'aria-label': c.name, onclick: () => M.updateTask(t.id, { cat: c.id }) }, String(c.id)))))))) : null,
-    ...M.cats().map(c => {
+    ...((lsGet('planner:group') || 'cat') === 'proj' ? projSections(open, all, byDue) : M.cats().map(c => {
       const list = open.filter(t => t.cat === c.id).sort(byDue);
       return h('div', { class: 'sec', 'data-c': c.id },
         h('div', { class: 'sec-head' }, h('span', { class: 'sec-no' }, String(c.id)), h('span', { class: 'sec-name' }, c.name), h('span', { class: 'sec-count' }, list.length || ''), h('span', { class: 'sec-hint' }, c.hint)),
         list.length ? h('ul', {}, list.map(t => taskRow(t))) : null,
         addRow(c.id, '할 일 추가'));
-    }),
+    })),
     waiting.length ? h('div', { class: 'sec', 'data-c': 5 },
       h('button', { class: 'sec-toggle', type: 'button', 'aria-expanded': String(ui.showWait), onclick: () => { ui.showWait = !ui.showWait; render(); } }, icon('wait', 16), `기다리는 중 ${waiting.length}`, h('span', { class: 'caret' }, '›')),
       ui.showWait ? h('ul', {}, waiting.map(t => taskRow(t))) : null) : null,
