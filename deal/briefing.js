@@ -66,6 +66,7 @@
         ${it.why ? `<h4>왜 했나</h4><p>${esc(it.why)}</p>` : ""}
         ${it.co && it.co.length ? `<h4>어떤 회사인가요</h4><ul class="dbf-co">${it.co.map(c => `<li><b>${esc(c[0])}</b> — ${esc(c[1])}</li>`).join("")}</ul>` : ""}
         ${it.mean ? `<h4>이 딜의 뜻</h4><p>${esc(it.mean)}</p>` : ""}
+        ${(it.bg || []).length ? `<h4>배경 더 알기</h4><p style="display:flex;flex-wrap:wrap;gap:6px">${it.bg.map(b => { const k = { term: "낱말", hist: "역사", ch: "코스" }[b.k]; return k ? `<a href="learn/#${b.k}=${encodeURIComponent(b.id)}" style="border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:13px;color:var(--ink);text-decoration:none"><b style="font-size:11px;color:var(--accent)">${k}</b> ${esc(b.t)}</a>` : ""; }).join("")}</p>` : ""}
         <div class="dbf-src">${d ? `<button type="button" data-open="${esc(d.id)}">기사·관련 딜 보기 ›</button>` : ""}${it.src ? `<span class="note" style="margin:0;align-self:center">출처: ${esc(it.src)}</span>` : ""}</div>`;
     },
     view() {

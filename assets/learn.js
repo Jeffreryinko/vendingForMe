@@ -70,7 +70,7 @@
   let NEWS = null;
   if (L.news) fetch(L.news.url, { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(d => {
     if (!d || !Array.isArray(d.items)) return; const m = {};
-    const add = (k, it) => { const sid = (it.sids || [])[0]; if (!sid) return; const a = (m[k] = m[k] || []); if (!a.some(x => x.sid === sid)) a.push({ t: it.t, one: it.one || "", sid }); };
+    const add = (k, it) => { const sid = (it.sids || [])[0] || (it.ids || [])[0]; if (!sid) return; const a = (m[k] = m[k] || []); if (!a.some(x => x.sid === sid)) a.push({ t: it.t, one: it.one || "", sid }); };
     d.items.forEach(it => { (it.bg || []).forEach(b => add(b.k + ":" + b.id, it)); const txt = [it.t, it.one, it.sum].join(" "); TERMS.forEach(t => { if (t.t && t.t.length >= 2 && txt.includes(t.t)) add("term:" + t.id, it); }); });
     NEWS = { m, label: d.label || "" }; if (/^#(term=|hist=|ch=)/.test(location.hash)) paint(true);
   }).catch(() => { });

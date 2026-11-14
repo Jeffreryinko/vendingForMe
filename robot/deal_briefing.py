@@ -43,12 +43,16 @@ PROMPT = """너는 한국어 '딜 브리핑' 편집자야. 아래 [딜 목록]�
 - co: [["회사 이름","한 줄 소개"], …] 1~2개
 - mean: 1~2문장. 이 딜에서 배울 점이나 업계에 주는 뜻.
 - src: 매체 이름
+- bg: 이 딜을 이해하는 데 도움이 될 배움 글을 [배움 글 목록]에서 0~3개. [{{"k":"term|hist|ch","id":"목록에 있는 번호"}}]. 목록에 없는 번호는 쓰지 마.
 
 그리고 lead: 오늘 딜의 줄기를 3문장으로.
 답은 JSON 하나만: {{"lead":"…","items":[…]}}
 
 [딜 목록]  (번호 | 종류 | 나라 | 금액 칸 | 제목 | 매체)
 {deals}
+
+[배움 글 목록]  (k:id=이름)
+{learn}
 """
 
 
@@ -64,7 +68,10 @@ def main():
     rows = [f"{d['id']} | {d.get('kind', '')} | {d.get('cc', '')} | {d.get('amtS') or ''} | {(d.get('ko') or d.get('title') or '')[:130]} | {d.get('src', '')}" for d in fresh[:90]]
     t = datetime.now(BR.KST)
     label = f"{t.month}월 {t.day}일 딜 브리핑"
-    prompt = PROMPT.format(label=label, lo=8, hi=14, deals="\n".join(rows))
+    li = BR.rj(D / "learn_index.json", {}) or {}
+    li = {k: li.get(k, {}) for k in ("term", "hist", "ch")}
+    learn = "\n".join(f"{k}: " + ", ".join(f"{i}={n}" for i, n in v.items()) for k, v in li.items() if v)
+    prompt = PROMPT.format(label=label, lo=8, hi=14, deals="\n".join(rows), learn=learn or "(없음)")
     BR.log(f"딜 {len(rows)}건 · AI 에게 보낼 글 {len(prompt):,}자")
     if dry: BR.log(prompt[:2500]); return 0
     if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GROQ_API_KEY")):
@@ -87,7 +94,9 @@ def main():
                               "cc": S(it.get("cc"), 2).upper(), "t": S(it.get("t"), 60), "one": S(it.get("one"), 240), "buyer": S(it.get("buyer"), 60), "target": S(it.get("target"), 60),
                               "amt": round(usd * fx) if 1e5 < usd < 5e12 else 0, **({"amtNote": S(it.get("amtNote"), 60)} if it.get("amtNote") else {}),
                               "why": S(it.get("why"), 320), "co": [[S(c[0], 40), S(c[1], 140)] for c in (it.get("co") or [])[:2] if isinstance(c, list) and len(c) >= 2],
-                              "mean": S(it.get("mean"), 260), "src": S(it.get("src"), 60)})
+                              "mean": S(it.get("mean"), 260), "src": S(it.get("src"), 60),
+                              "bg": [{"k": b["k"], "id": b["id"], "t": li[b["k"]][b["id"]]} for b in (it.get("bg") or [])[:3]
+                                     if isinstance(b, dict) and b.get("k") in li and b.get("id") in li[b["k"]]]})
             if len(items) >= 5 and o.get("lead"):
                 out = ({"lead": S(o["lead"], 420), "items": items[:14]}, res[1]); break
             BR.log(f"{name}: 쓸 만한 딜이 {len(items)}건뿐")
