@@ -37,6 +37,10 @@
     ".tp-todo i{flex:none;width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--ap-label3,rgba(60,60,67,.3));display:grid;place-items:center;font-style:normal;font-size:12px;color:var(--ap-surface);transition:background .25s,box-shadow .25s,transform .35s cubic-bezier(.2,1.6,.4,1)}" +
     ".tp-todo a.ok i{background:var(--ap-label);box-shadow:none;transform:scale(1.06)}.tp-todo a.ok span{color:var(--ap-label2)}" +
     ".tp-todo small{margin-left:auto;color:var(--ap-label2);font-size:12.5px}" +
+    ".tp-pl{margin:0 0 14px;padding:14px 14px 10px;border-radius:18px;background:var(--ap-surface,#fff);box-shadow:inset 0 0 0 .5px var(--ap-sep,rgba(0,0,0,.1))}.tp-pl .tp-k{margin-bottom:6px}" +
+    ".tp-pl-i{display:flex;align-items:center;gap:10px;padding:9px 2px;color:var(--ap-label);text-decoration:none;font-size:15px;border-top:.5px solid var(--ap-sep,rgba(0,0,0,.08))}.tp-pl-i:first-of-type{border-top:0}" +
+    ".tp-pl-i i{flex:none;width:20px;height:20px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--ap-label3,#c7c7cc);display:grid;place-items:center;font-style:normal;font-size:12px}.tp-pl-i.ok i{background:#34C759;box-shadow:none;color:#fff}.tp-pl-i.ok span{text-decoration:line-through;color:var(--ap-label2)}.tp-pl-i.em i{box-shadow:none}" +
+    ".tp-pl-i span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-pl-i small{flex:none;font-size:11.5px;color:var(--ap-label2)}.tp-pl-n{margin:6px 2px 0;font-size:12.5px;color:var(--ap-label2)}.tp-pl-n b{color:var(--ap-label)}" +
     ".tp-sec{padding:20px 4px 6px}.tp-k{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 0 10px;font-size:11.5px;font-weight:600;letter-spacing:.08em;color:var(--ap-label2);text-transform:uppercase}" +
     ".tp-k a{color:var(--ap-label2);text-decoration:none;letter-spacing:0;text-transform:none;font-weight:500;font-size:13px}" +
     ".tp-lead{margin:0 0 12px;font:500 17.5px/1.6 var(--ap-display,inherit);letter-spacing:-.015em}" +
@@ -55,6 +59,38 @@
   var learnDay = g("vfm:learn:sisa:day", {})[today], learnRd = g("vfm:learn:sisa:rd", {})[today];
 
   var first = true;
+  /* 플래너의 오늘 할 일 (같은 주소라 플래너 기기 저장소 IndexedDB 'daily-planner' 를 읽기만 함 — 고치기는 플래너에서) */
+  var PL = null;
+  function loadPlan() {
+    try {
+      var r = indexedDB.open("daily-planner"); r.onupgradeneeded = function () { try { r.transaction.abort(); } catch (x) { } };
+      r.onsuccess = function () {
+        var dbx = r.result; if (!dbx.objectStoreNames.contains("items")) return;
+        var q = dbx.transaction("items").objectStore("items").getAll();
+        q.onsuccess = function () {
+          var all = (q.result || []).filter(function (x) { return !x.d; }), by = {}; all.forEach(function (x) { by[x.id] = x; });
+          var dd = new Date(), td = dd.getFullYear() + "-" + ("0" + (dd.getMonth() + 1)).slice(-2) + "-" + ("0" + dd.getDate()).slice(-2);
+          var day = by["day:" + td] || {}, top = (day.top || []).map(function (id) { return by[id]; }).filter(Boolean);
+          var open = all.filter(function (x) { return x.kind === "task" && (x.st || "open") === "open"; });
+          var due = open.filter(function (x) { return x.due && x.due <= td && (day.top || []).indexOf(x.id) < 0; });
+          var blocks = all.filter(function (x) { return x.kind === "block" && x.date === td; }).sort(function (a, b) { return (a.start || "").localeCompare(b.start || ""); });
+          PL = { top: top, due: due, open: open.length, blocks: blocks, closed: !!day.closedAt };
+          if (!open.length && !blocks.length && !top.length) PL = null;
+          paint();
+        };
+      };
+    } catch (x) { }
+  }
+  function planHtml() {
+    var nowHm = new Date().toTimeString().slice(0, 5), nb = PL.blocks.filter(function (b) { return !b.done && (b.end || b.start) >= nowHm; })[0];
+    var row = function (t, sub) { return '<a class="tp-pl-i' + (t.st === "done" ? " ok" : "") + '" href="planner/"><i>' + (t.st === "done" ? "✓" : "") + "</i><span>" + e(t.title) + "</span>" + (sub ? "<small>" + e(sub) + "</small>" : "") + "</a>"; };
+    return '<div class="tp-pl"><p class="tp-k"><span>오늘 할 일 · 플래너</span><a href="planner/">열기 ›</a></p>' +
+      (PL.top.length ? PL.top.map(function (t) { return row(t, "핵심"); }).join("") : '<a class="tp-pl-i em" href="planner/"><i>☀️</i><span>오늘의 핵심 3을 아직 안 정했어요</span><small>3분</small></a>') +
+      PL.due.slice(0, 3).map(function (t) { return row(t, t.due < (new Date().toISOString().slice(0, 10)) ? "마감 지남" : "오늘 마감"); }).join("") +
+      (nb ? '<p class="tp-pl-n">다음 시간 블록 <b>' + e(nb.start) + "</b> " + e(nb.title || "") + "</p>" : "") +
+      '<p class="tp-pl-n">남은 일 ' + PL.open + "개" + (PL.closed ? " · 오늘 마감 ✓" : "") + "</p></div>";
+  }
+  loadPlan(); window.addEventListener("pageshow", loadPlan);
   function paint() {
     var h = "";
     var todo = [
@@ -92,6 +128,7 @@
       }
     }
     if (D.st) h += '<div class="tp-rule"></div><div class="tp-sec"><p class="tp-k"><span>오늘의 이야기</span><span>' + e([D.st.kind, D.st.region].filter(Boolean).join(" · ")) + '</span></p><a class="tp-one" href="' + STORY + "iyagi/#read-" + encodeURIComponent(D.st.id) + '"><b>' + e(D.st.title) + "</b><span>" + e(String(D.st.hook || "").slice(0, 120)) + "…</span></a></div>";
+    if (PL) h = planHtml() + h;                                   // 맨 위: 플래너의 오늘 할 일 (결정: 홈 맨 위 오늘 할 일)
     document.getElementById("tpb").innerHTML = '<div class="tp" style="margin:0">' + h + "</div>";
     var ring = box.querySelector(".tp-ring .p"); if (ring && first) requestAnimationFrame(function () { requestAnimationFrame(function () { ring.style.strokeDashoffset = ring.getAttribute("data-off"); }); });
     first = false;
