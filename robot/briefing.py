@@ -255,6 +255,58 @@ def groq(prompt):
     return None, err
 
 
+# ───────── Claude (유료 API, 주현 100달러 크레딧) ─────────
+# 열쇠: GitHub 비밀 ANTHROPIC_API_KEY. 달마다 CLAUDE_MONTHLY_USD(기본 15달러)를 넘으면 스스로 멈추고 무료 AI 로 넘어가요.
+# 쓴 돈은 data/claude_usage.json 에 달별로 적어요 (토큰 수 × 공식 가격표로 셈).
+PRICE = {"claude-haiku-5-5": (0.10, 0.50), "claude-sonnet-5-5": (2.0, 10.0), "claude-opus-5-5": (4.0, 20.0)}   # 100만 토큰당 달러 (입력, 출력)
+USAGE = Path(__file__).resolve().parent.parent / "data" / "claude_usage.json"
+
+
+def claude_spent():
+    u = rj(USAGE, {}) or {}
+    return float((u.get(datetime.now(KST).strftime("%Y-%m")) or {}).get("usd", 0)), u
+
+
+def claude(prompt, model=None, max_tokens=16000):
+    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not key: return None, "열쇠 없음"
+    cap = float(os.environ.get("CLAUDE_MONTHLY_USD") or 15)
+    spent, u = claude_spent()
+    if spent >= cap: return None, f"이번 달 한도 {cap}달러 다 씀 ({spent:.2f})"
+    m = model or os.environ.get("CLAUDE_MODEL", "").strip() or "claude-sonnet-5-5"
+    try:
+        r = http_json("https://api.anthropic.com/v1/messages",
+                      {"model": m, "max_tokens": max_tokens, "temperature": 0.3,
+                       "system": "답은 설명 없이 JSON 객체 하나만 써요. 한국어는 해요체로, 사실은 주어진 글에 있는 것만 써요.",
+                       "messages": [{"role": "user", "content": prompt}]},
+                      headers={"x-api-key": key, "anthropic-version": "2023-06-01"}, timeout=300)
+    except urllib.error.HTTPError as e:
+        return None, f"{m}: HTTP {e.code} {e.read()[:200].decode('utf-8', 'ignore')}"
+    except Exception as e:
+        return None, f"{m}: {e}"
+    us = r.get("usage") or {}
+    pi, po = PRICE.get(m, (4.0, 20.0))
+    cost = (us.get("input_tokens", 0) * pi + us.get("output_tokens", 0) * po) / 1e6
+    mo = datetime.now(KST).strftime("%Y-%m")
+    rec = u.setdefault(mo, {"usd": 0, "calls": 0, "in": 0, "out": 0})
+    rec["usd"] = round(rec["usd"] + cost, 4); rec["calls"] += 1
+    rec["in"] += us.get("input_tokens", 0); rec["out"] += us.get("output_tokens", 0)
+    wj(USAGE, u)
+    log(f"  Claude {m}: 입력 {us.get('input_tokens', 0):,} · 출력 {us.get('output_tokens', 0):,} 토큰 · {cost:.3f}달러 (이번 달 {rec['usd']:.2f}/{cap})")
+    txt = "".join(b.get("text", "") for b in r.get("content") or [] if b.get("type") == "text")
+    return (txt, "claude:" + m), None
+
+
+def ai_chain(cheap=False):
+    """먼저 Claude, 안 되면 무료 Gemini → Groq. cheap=True 면 Claude 는 Haiku."""
+    c = (lambda p: claude(p, "claude-haiku-5-5", 8000)) if cheap else claude
+    return (("Claude", c), ("Gemini", gemini), ("Groq", groq))
+
+
+def any_key():
+    return any(os.environ.get(k) for k in ("ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GROQ_API_KEY"))
+
+
 # ───────── 답 검사 ─────────
 def parse_json(txt):
     txt = txt.strip()
@@ -298,10 +350,10 @@ def main():
     log(f"판 {ed['id']} · 이슈 {len(pick_stories(ed))}개 · AI 에게 보낼 글 {len(prompt):,}자")
     if dry:
         log(prompt[:3000]); return 0
-    if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GROQ_API_KEY")):
-        log("무료 AI 열쇠(GEMINI_API_KEY · GROQ_API_KEY)가 없어요 → 브리핑을 바꾸지 않고 끝내요"); return 0
+    if not any_key():
+        log("AI 열쇠(ANTHROPIC_API_KEY · GEMINI_API_KEY · GROQ_API_KEY)가 없어요 → 브리핑을 바꾸지 않고 끝내요"); return 0
     out = None
-    for name, fn in (("Gemini", gemini), ("Groq", groq)):
+    for name, fn in ai_chain():
         for attempt in (1, 2):
             res, err = fn(prompt)
             if not res: log(f"{name}: {err}"); break

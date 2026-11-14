@@ -85,6 +85,8 @@ jobs:
         run: python robot/tools_run.py ${{ inputs.no_translate == 'yes' && '--no-translate' || '' }}
       - name: 도구 자세한 설명 (무료 AI)
         env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MONTHLY_USD: ${{ vars.CLAUDE_MONTHLY_USD }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
@@ -94,7 +96,7 @@ jobs:
         run: |
           git config user.name "tools-robot"
           git config user.email "robot@users.noreply.github.com"
-          git add data/tools
+          git add data/tools data/claude_usage.json
           git diff --cached --quiet && echo "변경 없음" && exit 0
           git commit -m "도구: $(TZ=Asia/Seoul date '+%m월 %d일 %H시') 자동 수집"
           for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 10; done

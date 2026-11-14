@@ -77,12 +77,12 @@ def main():
     prompt = make(pool, 1500)
     BR.log(f"설명할 항목 {len(pool)}개 · AI 에게 보낼 글 {len(prompt):,}자")
     if dry: BR.log(prompt[:3000]); return 0
-    if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GROQ_API_KEY")):
+    if not BR.any_key():
         BR.log("무료 AI 열쇠가 없어요 → 그대로 둬요"); return 0
     ids = {x["id"] for x in pool}
     S = lambda v, n: re.sub(r"\s+", " ", str(v or "")).strip()[:n]
     now = datetime.now(BR.KST).isoformat(timespec="minutes")
-    for name, fn, pr in (("Gemini", BR.gemini, prompt), ("Groq", BR.groq, make(pool[:4], 500))):
+    for name, fn, pr in (("Claude", BR.ai_chain(True)[0][1], prompt), ("Gemini", BR.gemini, prompt), ("Groq", BR.groq, make(pool[:4], 500))):
         res, err = fn(pr)
         if not res: BR.log(f"{name}: {err}"); continue
         try:

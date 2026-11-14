@@ -29,6 +29,8 @@ jobs:
       - run: pip install -q pyyaml
       - name: 브리핑 쓰기
         env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MONTHLY_USD: ${{ vars.CLAUDE_MONTHLY_USD }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
@@ -36,6 +38,8 @@ jobs:
         run: python robot/briefing.py
       - name: 딜 브리핑 쓰기
         env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MONTHLY_USD: ${{ vars.CLAUDE_MONTHLY_USD }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
@@ -45,6 +49,8 @@ jobs:
           python robot/push_feed.py || echo "알림 쪽지 실패 — 넘어감"
       - name: AI 브리핑 쓰기
         env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MONTHLY_USD: ${{ vars.CLAUDE_MONTHLY_USD }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
@@ -54,7 +60,7 @@ jobs:
         run: |
           git config user.name "sisa-robot"
           git config user.email "robot@users.noreply.github.com"
-          git add data/sisa/briefing data/sisa/lean.json data/sisa/push.json data/deal/briefing data/ai/briefing
+          git add data/claude_usage.json data/sisa/briefing data/sisa/lean.json data/sisa/push.json data/deal/briefing data/ai/briefing
           git diff --cached --quiet && echo "변경 없음" && exit 0
           git commit -m "시사 브리핑: $(TZ=Asia/Seoul date '+%m월 %d일 %H시')"
           for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 10; done

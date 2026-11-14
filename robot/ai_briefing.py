@@ -68,11 +68,11 @@ def main():
     prompt = PROMPT.format(label=label, lo=6, hi=10, rows="\n".join(rows), learn=learn or "(없음)")
     BR.log(f"AI 소식 {len(rows)}건 · AI 에게 보낼 글 {len(prompt):,}자")
     if dry: BR.log(prompt[:2500]); return 0
-    if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GROQ_API_KEY")):
+    if not BR.any_key():
         BR.log("무료 AI 열쇠가 없어요 → AI 브리핑을 바꾸지 않아요"); return 0
     by = {x["id"]: x for x in pool}
     out = None
-    for name, fn in (("Gemini", BR.gemini), ("Groq", BR.groq)):
+    for name, fn in BR.ai_chain():
         res, err = fn(prompt)
         if not res: BR.log(f"{name}: {err}"); continue
         try:
