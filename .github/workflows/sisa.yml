@@ -73,11 +73,20 @@ jobs:
         run: |
           python robot/sisa_run.py
           python robot/push_feed.py || echo "알림 쪽지 실패 — 넘어감"
+      - name: 이슈 제목 다듬기 (Claude Haiku → 무료 AI)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MONTHLY_USD: ${{ vars.CLAUDE_MONTHLY_USD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          pip install -q json-repair || true
+          python robot/sisa_titles.py || echo "제목 다듬기 실패 — 넘어감"
       - name: 저장소에 올리기
         run: |
           git config user.name "sisa-robot"
           git config user.email "robot@users.noreply.github.com"
-          git add data/sisa
+          git add data/sisa data/claude_usage
           git diff --cached --quiet && echo "변경 없음" && exit 0
           git commit -m "시사: $(TZ=Asia/Seoul date '+%m월 %d일 %H시판') 자동 수집"
           for i in 1 2 3; do (git pull --rebase -X theirs --autostash || (git rebase --abort; false)) && git push && break || sleep 10; done

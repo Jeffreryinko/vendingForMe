@@ -943,6 +943,10 @@ function setState(id, patch){
   return serial("st:"+id, () => S.db.collection("state").doc(id).set(next)).catch(e => toast("저장 실패: " + (e.code||"오류")));
 }
 
+// ───────── AI가 다듬은 이슈 제목 (robot/sisa_titles.py → data/sisa/titles.json) ─────────
+const TTL = fetch((window.VFM_DATA_BASE || "../data/sisa/") + "titles.json", {cache:"no-cache"}).then(r => r.ok ? r.json() : {}).catch(() => ({}));
+let TT = {};
+function applyTitles(arr){ for(const e of arr || []) for(const s of (e && e.stories) || []){ const x = TT[s.sid]; if(x && x.t && !s._t0){ s._t0 = s.title; s.title = x.t; } } }
 // ───────── 불러오기 ─────────
 async function boot(){
   render();
@@ -955,6 +959,7 @@ async function boot(){
     const eds = await db.collection("editions").get();
     if(eds.empty){ clearTimeout(timer); return setFail("empty"); }
     S.eds = eds.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b) => String(a.crawledAt).localeCompare(String(b.crawledAt)));
+    TT = await Promise.race([TTL, new Promise(ok => setTimeout(() => ok({}), 2500))]); applyTitles(S.eds);
     const [rep, imp] = await Promise.all([db.collection("reports").get().catch(()=>({docs:[]})), db.collection("imp").get().catch(()=>({docs:[]}))]);
     rep.docs.forEach(d => S.reports[d.id] = d.data());
     imp.docs.forEach(d => S.imp[d.id] = new Set(d.data().ids || []));
@@ -992,7 +997,7 @@ async function fetchEd1(id){
   // 지난 판은 목록(_index.json)에 이름·시각만 있음 → 고를 때 그 판 파일을 받아 채움 (첫 화면 데이터 1.8MB → 약 0.4MB)
   const ix = S.eds.findIndex(e => e.id===id);
   if(ix >= 0 && S.eds[ix].stub){
-    try{ const r = await fetch((window.VFM_DATA_BASE || "../data/sisa/") + "editions/" + encodeURIComponent(id) + ".json", {cache:"no-cache"}); if(r.ok) S.eds[ix] = {id, ...(await r.json())}; }catch(_){}
+    try{ const r = await fetch((window.VFM_DATA_BASE || "../data/sisa/") + "editions/" + encodeURIComponent(id) + ".json", {cache:"no-cache"}); if(r.ok){ S.eds[ix] = {id, ...(await r.json())}; applyTitles([S.eds[ix]]); } }catch(_){}
   }
   if(!S.edCache[id]){
     const [feed, tr] = await Promise.all([S.db.collection("feed").where("edition","==",id).get(), S.db.collection("tr").where("edition","==",id).get()]);
@@ -2891,7 +2896,7 @@ async function checkNew(manual){
     const list = eds.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b) => String(a.crawledAt).localeCompare(String(b.crawledAt)));
     const latest = list[list.length-1];
     const isNew = latest && !S.eds.some(e => e.id===latest.id);
-    S.eds = list;
+    S.eds = list; applyTitles(S.eds);
     if(isNew && !manual){ S.newEd = latest; if(S.view==="today" || S.view==="feed") render(); }
     else if(isNew){ await loadEdition(latest.id); S.newEd = null; route(); toast(`${latest.label}을 불러왔어요`); }
     else { if(S.view==="today") render(); if(manual) toast(`새 판이 없어요 · 최신은 ${latest.label} (${kstTime(latest.crawledAt)} 수집)`); }
