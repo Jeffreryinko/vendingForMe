@@ -48,7 +48,7 @@ JSON 하나만:
 {items}"""
 
 
-def wiki(title):
+def wiki(title, _again=True):
     if not title: return ""
     q = urllib.parse.urlencode({"action": "query", "prop": "extracts", "explaintext": 1, "redirects": 1, "titles": title, "format": "json", "formatversion": 2})
     try:
