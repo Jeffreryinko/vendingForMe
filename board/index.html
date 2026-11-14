@@ -52,6 +52,8 @@ td.r,th.r{text-align:right}
   <div class="card"><table><thead><tr><th>로봇</th><th>마지막 갱신</th><th>판</th><th class="r">고장 난 출처</th></tr></thead><tbody id="rows"></tbody></table></div>
   <p class="cap">이번 달 번역 사용량 (DeepL)</p>
   <div class="card" id="usage"></div>
+  <p class="cap">Claude API 크레딧 (이번 주기)</p>
+  <div class="card" id="claude"></div>
   <p class="cap">방문 수</p>
   <div class="card"><p class="note" style="margin-top:12px">아직 집계 장치가 없어요. 퀘스트 1단계 "방문 수 세는 장치 달기"를 끝내면 여기에 나와요.</p></div>
 </div>
@@ -66,7 +68,23 @@ td.r,th.r{text-align:right}
     ["도구", "tools/_meta.json", "updatedAt", "label", "tools/_health.json", 12],
     ["딜", "deal/_meta.json", "updatedAt", "label", "deal/_health.json", 12],
     ["라디오", "radio/_index.json", "at", "label", null, 18],
-    ["배댓", "baedat/_meta.json", "updatedAt", "latest", null, 24 * 35]];
+    ["배댓", "baedat/_meta.json", "updatedAt", "latest", null, 24 * 35],
+    ["시사 브리핑", "sisa/briefing/latest.json", "at", "model", null, 14],
+    ["뇌 실험·사례", "brain/exp_ai.json", "at", null, null, 24 * 30],
+    ["뇌 논문", "brain/papers_ai.json", "at", null, null, 24 * 30],
+    ["뇌 연구 브리핑", "brain/briefing.json", "at", "by", null, 14],
+    ["이야기 (Claude)", "iyagi/claude_stories.json", "at", null, null, 24 * 30],
+    ["배움 깊이 읽기", "sisa/deep_long.json", "at", null, null, 24 * 30],
+    ["책 깊이 소개", "book/deep_ai.json", "at", null, null, 24 * 30]];
+  // Claude API 사용 기록 (robot/briefing.py claude() — 로봇마다 파일 하나, 주기 = 매달 30일 시작)
+  var CL = ["briefing", "deal_briefing", "ai_briefing", "brain_briefing", "tools_explain", "baedat_ai", "sisa_titles", "brain_cases", "brain_papers", "iyagi_claude", "learn_deep", "book_deep", "manual"];
+  var CAP = 50;
+  function period() {
+    var n = new Date(Date.now() + 9 * 36e5), y = n.getUTCFullYear(), m = n.getUTCMonth();
+    var st = function (yy, mm) { return Math.min(30, new Date(Date.UTC(yy, mm + 1, 0)).getUTCDate()); };
+    if (n.getUTCDate() < st(y, m)) { m--; if (m < 0) { m = 11; y--; } }
+    return y + "-" + ("0" + (m + 1)).slice(-2) + "-" + ("0" + st(y, m)).slice(-2);
+  }
   var USAGE = [["시사", "sisa/_usage.json"], ["트렌드", "trends/_usage.json"]];
   var FREE = 500000; // DeepL 무료 요금제 한 달 한도(자)
   var DAY = 864e5;
@@ -103,11 +121,21 @@ td.r,th.r{text-align:right}
       "<div class='meter" + (pct > 85 ? " warn" : "") + "'><i style='width:" + pct.toFixed(1) + "%'></i></div>" +
       "<p class='note'>무료 한도의 " + pct.toFixed(0) + "%. 한도를 넘으면 로봇이 무료 기계번역(NLLB)으로 바꿔서 돈은 나가지 않아요.</p>";
 
+    var PER = period();
+    Promise.all(CL.map(function (n) { return j("claude_usage/" + n + ".json"); })).then(function (us) {
+      var rows = CL.map(function (n, k) { var r = us[k] && us[k][PER]; return [n, r ? r.usd : 0, r ? r.calls : 0]; }).filter(function (r) { return r[1] > 0; }).sort(function (a, b) { return b[1] - a[1]; });
+      var tot = rows.reduce(function (s, r) { return s + r[1]; }, 0), pc = Math.min(100, tot / CAP * 100);
+      var NM = { briefing: "시사 브리핑", deal_briefing: "딜 브리핑", ai_briefing: "AI 브리핑", brain_briefing: "뇌 연구 브리핑", tools_explain: "도구 설명", baedat_ai: "배댓 고르기", sisa_titles: "시사 제목 다듬기", brain_cases: "뇌 실험·사례", brain_papers: "뇌 논문", iyagi_claude: "이야기", learn_deep: "배움 깊이 읽기", book_deep: "책 깊이 소개", manual: "첫 실행(손으로 적음)" };
+      document.getElementById("claude").innerHTML = "<table><tbody>" + rows.map(function (r) { return "<tr><td>" + esc(NM[r[0]] || r[0]) + "</td><td class='r'>" + r[2] + "번 · <b>$" + r[1].toFixed(2) + "</b></td></tr>"; }).join("") +
+        "<tr><td><b>합계</b></td><td class='r'><b>$" + tot.toFixed(2) + "</b> <span class='dim'>/ $" + CAP + "</span></td></tr></tbody></table>" +
+        "<div class='meter" + (pc > 85 ? " warn" : "") + "'><i style='width:" + pc.toFixed(1) + "%'></i></div><p class='note'>주기 " + PER + " 시작 · 매달 30일에 새로. 한도에 닿으면 로봇이 무료 AI(Gemini·Groq)로 바꿔요. 하루 몫(남은 돈 ÷ 남은 날)을 넘어도 그날은 무료 AI로.</p>";
+      var kc = document.getElementById("kclaude"); if (kc) kc.innerHTML = "<b>$" + tot.toFixed(1) + "</b><small>Claude 크레딧 / $" + CAP + "</small>";
+    });
     document.getElementById("kpi").innerHTML =
       "<div><b>" + okN + "/" + BOTS.length + "</b><small>제때 도는 로봇</small></div>" +
       "<div><b>" + brokeN + "</b><small>오늘 고장 난 출처</small></div>" +
       "<div><b>" + pct.toFixed(0) + "%</b><small>이번 달 번역 한도</small></div>" +
-      "<div><b>0원</b><small>이번 달 비용</small></div>";
+      "<div id='kclaude'><b>…</b><small>Claude 크레딧</small></div>";
     document.getElementById("sub").textContent = mk.replace("-", "년 ") + "월 · " + new Date().toLocaleTimeString("ko", { hour: "2-digit", minute: "2-digit" }) + " 기준";
   });
 })();
