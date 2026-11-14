@@ -80,4 +80,4 @@ jobs:
           git add data/sisa
           git diff --cached --quiet && echo "변경 없음" && exit 0
           git commit -m "시사: $(TZ=Asia/Seoul date '+%m월 %d일 %H시판') 자동 수집"
-          for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 10; done
+          for i in 1 2 3; do (git pull --rebase -X theirs --autostash || (git rebase --abort; false)) && git push && break || sleep 10; done

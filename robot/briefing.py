@@ -259,7 +259,8 @@ def groq(prompt):
 # 열쇠: GitHub 비밀 ANTHROPIC_API_KEY. 한 주기에 CLAUDE_MONTHLY_USD(기본 50달러)를 넘으면 스스로 멈추고 무료 AI 로 넘어가요.
 # 주기는 매달 30일(2월은 말일)에 새로 시작 — 주현의 API 크레딧 지정일. 쓴 돈은 data/claude_usage.json 에 주기별로 적어요.
 PRICE = {"claude-haiku-5-5": (0.10, 0.50), "claude-sonnet-5-5": (2.0, 10.0), "claude-opus-5-5": (4.0, 20.0)}   # 100만 토큰당 달러 (입력, 출력)
-USAGE = Path(__file__).resolve().parent.parent / "data" / "claude_usage.json"
+UDIR = Path(__file__).resolve().parent.parent / "data" / "claude_usage"     # 로봇마다 제 파일 하나 (동시에 올려도 안 부딪치게)
+USAGE = UDIR / ((os.environ.get("CLAUDE_USAGE_NAME") or Path(sys.argv[0]).stem or "etc") + ".json")
 
 
 def claude_period(now=None):
@@ -273,8 +274,12 @@ def claude_period(now=None):
 
 
 def claude_spent():
-    u = rj(USAGE, {}) or {}
-    return float((u.get(claude_period()) or {}).get("usd", 0)), u
+    """이번 주기에 모든 로봇이 쓴 돈 합계, 오늘 쓴 돈 합계, 그리고 이 로봇의 기록"""
+    per, today, tot, tday = claude_period(), datetime.now(KST).strftime("%Y-%m-%d"), 0.0, 0.0
+    for f in UDIR.glob("*.json"):
+        r = (rj(f, {}) or {}).get(per) or {}
+        tot += float(r.get("usd", 0)); tday += float((r.get("days") or {}).get(today, 0))
+    return tot, tday, rj(USAGE, {}) or {}
 
 
 def claude_days_left(now=None):
@@ -291,11 +296,10 @@ def claude(prompt, model=None, max_tokens=24000):
     key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not key: return None, "열쇠 없음"
     cap = float(os.environ.get("CLAUDE_MONTHLY_USD") or 50)
-    spent, u = claude_spent()
+    spent, tday, u = claude_spent()
     if spent >= cap: return None, f"이번 주기 한도 {cap}달러 다 씀 ({spent:.2f})"
     # 하루 몫: 남은 돈을 남은 날로 나눔 → 주기 끝까지 고르게 (하루에 몰아 쓰지 않게)
     today = datetime.now(KST).strftime("%Y-%m-%d")
-    tday = float(((u.get(claude_period()) or {}).get("days") or {}).get(today, 0))
     allow = (cap - (spent - tday)) / claude_days_left()
     if tday >= allow: return None, f"오늘 몫 {allow:.2f}달러 다 씀 ({tday:.2f}) → 무료 AI 로"
     m = model or os.environ.get("CLAUDE_MODEL", "").strip() or "claude-sonnet-5-5"
@@ -317,7 +321,7 @@ def claude(prompt, model=None, max_tokens=24000):
     rec["in"] += us.get("input_tokens", 0); rec["out"] += us.get("output_tokens", 0)
     dd = rec.setdefault("days", {}); dd[today] = round(dd.get(today, 0) + cost, 4)
     for k in sorted(dd)[:-40]: dd.pop(k)
-    wj(USAGE, u)
+    UDIR.mkdir(parents=True, exist_ok=True); wj(USAGE, u)
     log(f"  Claude {m}: 입력 {us.get('input_tokens', 0):,} · 출력 {us.get('output_tokens', 0):,} 토큰 · {cost:.3f}달러 (이번 주기 {rec['usd']:.2f}/{cap})")
     txt = "".join(b.get("text", "") for b in r.get("content") or [] if b.get("type") == "text")
     return (txt, "claude:" + m), None
