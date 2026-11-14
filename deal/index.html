@@ -2,6 +2,7 @@
 <script>window.VFM_APP="deal";</script>
 <script src="../assets/claude-shim.js"></script>
 <script src="../assets/deck.js"></script>
+<script src="briefing.js?v=1"></script>
 <script src="learn/terms.js?v=1" defer></script>
 <link rel="manifest" href="../manifest.webmanifest"><meta name="theme-color" content="#F2F2F7"><link rel="apple-touch-icon" href="../assets/icon-192.png">
 <title>딜 자판기</title>
@@ -136,7 +137,7 @@ const SRC_T = { formd: "미국 Form D 신고", dart: "한국 공시" };
 
 /* ───── 자료 ───── */
 async function loadAll() {
-  [S.idx, S.now] = await Promise.all([getJ("_index.json"), getJ("now.json")]);
+  [S.idx, S.now] = await Promise.all([getJ("_index.json"), getJ("now.json"), window.DBRF ? DBRF.load() : null]);
   for (const d of S.now.deals || []) S.byId[d.id] = d;
   S.seenPrev = S.seen; markSeen();
   loadFirms();
@@ -278,9 +279,11 @@ function renderToday() {
   const all = (S.now.deals || []).filter(d => !S.hide[d.id]);
   const picks = todayPicks(), dl = S.now.daily || {};
   let h = head("딜", `${ago(S.now.at)} 갱신 · 1달러 ${Math.round((S.idx.fx || {}).USD || 0).toLocaleString()}원`, '<button class="ib" data-act="find" aria-label="찾기">⌕</button>') + broken() + seenLine();
+  const brf = window.DBRF && DBRF.data;                                         // 첫 화면 = 브리핑 글, 그 아래에 예전 카드·목록
+  if (brf) h += DBRF.view() + `<h2 class="sec">더 살펴보기<small>로봇이 고른 카드와 전체 목록</small></h2>`;
   const fh = all.filter(d => d.new && folHit(d).length);
   if (fh.length) h += `<button class="tile" style="width:100%;margin:6px 0" data-go="#names"><b>◎ 따라가는 이름 새 소식 ${fh.length}건</b><small>${esc([...new Set(fh.flatMap(folHit))].slice(0, 5).join(" · "))}</small></button>`;
-  if (!LS.g("helpSeen2", 0)) h += `<div class="help"><b>하루 12장이면 충분하게.</b> 로봇이 세계 투자·인수합병·사모·상장·펀드 소식을 하루 4번 모아 같은 거래끼리 묶고, 아침 6시 판에서 <b>오늘의 딜 12</b>를 골라요 — 큰 돈 3 · 한국 3 · 인수합병 2 · 조용한 돈 1 · 내 렌즈 2 · 낯선 곳 1.<br>카드의 점은 믿을 만한 정도예요: <span class="gd f"><i></i>공시로 확인</span> <span class="gd m"><i></i>여러 매체 일치</span> <span class="gd s"><i></i>한 매체</span> <span class="gd c"><i></i>확인 필요</span>. 소문·무산은 따로 두고 합계엔 안 넣어요. <button class="btn sm" data-act="helpok" style="margin-top:6px">알겠어요</button></div>`;
+  if (!brf && !LS.g("helpSeen2", 0)) h += `<div class="help"><b>하루 12장이면 충분하게.</b> 로봇이 세계 투자·인수합병·사모·상장·펀드 소식을 하루 4번 모아 같은 거래끼리 묶고, 아침 6시 판에서 <b>오늘의 딜 12</b>를 골라요 — 큰 돈 3 · 한국 3 · 인수합병 2 · 조용한 돈 1 · 내 렌즈 2 · 낯선 곳 1.<br>카드의 점은 믿을 만한 정도예요: <span class="gd f"><i></i>공시로 확인</span> <span class="gd m"><i></i>여러 매체 일치</span> <span class="gd s"><i></i>한 매체</span> <span class="gd c"><i></i>확인 필요</span>. 소문·무산은 따로 두고 합계엔 안 넣어요. <button class="btn sm" data-act="helpok" style="margin-top:6px">알겠어요</button></div>`;
   const L = S.lens || {}, lensTxt = [...(L.sec || []).map(x => SN()[x] || x), ...(L.kw || [])].join(" · ");
   h += `<button class="tile" style="width:100%;margin:6px 0" data-go="#lens"><b>내 렌즈 ✎</b><small>${esc(lensTxt || "아직 없음 — 관심 분야·낱말을 넣으면 매일 2장 골라 줘요")}</small></button>`;
   h += modeBar();

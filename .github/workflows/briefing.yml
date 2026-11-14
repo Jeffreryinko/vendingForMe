@@ -1,4 +1,4 @@
-name: 시사 브리핑 (아침 7시 · 저녁 7시, 무료 AI)
+name: 시사·딜 브리핑 (아침 7시 · 저녁 7시, 무료 AI)
 
 # 가장 새 판을 보고 무료 AI(Gemini → Groq)가 브리핑 글을 씀 → data/sisa/briefing/latest.json
 # 열쇠: 저장소 Settings → Secrets and variables → Actions 에 GEMINI_API_KEY · GROQ_API_KEY (둘 중 하나만 있어도 됨)
@@ -34,11 +34,18 @@ jobs:
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
           GROQ_MODEL: ${{ vars.GROQ_MODEL }}
         run: python robot/briefing.py
+      - name: 딜 브리핑 쓰기
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          GROQ_MODEL: ${{ vars.GROQ_MODEL }}
+        run: python robot/deal_briefing.py
       - name: 저장소에 올리기
         run: |
           git config user.name "sisa-robot"
           git config user.email "robot@users.noreply.github.com"
-          git add data/sisa/briefing
+          git add data/sisa/briefing data/sisa/lean.json data/deal/briefing
           git diff --cached --quiet && echo "변경 없음" && exit 0
           git commit -m "시사 브리핑: $(TZ=Asia/Seoul date '+%m월 %d일 %H시')"
           for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 10; done
