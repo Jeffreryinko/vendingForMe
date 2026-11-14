@@ -105,3 +105,10 @@ end $$;
 select cron.schedule('vfm-push-poll', '*/15 * * * *', 'select vfm_push.poll()');
 select cron.schedule('vfm-push-review', '30 12 * * *',
   $$select vfm_push.send('review', '📚 오늘의 복습 3분', '어제 배운 것 몇 문제만 풀고 연속 기록을 이어가요.', 'sisa/learn/', 'vfm-review')$$);
+
+-- ── 2) 딜 '따라가는 이름' 알림 (같은 날 추가) ──
+-- 로봇(deal.yml)이 data/deal/push.json(오늘·어제 거래, 찾기용 소문자 글 hay) → 15분마다 이름이 들어 있으면 그 기기에
+alter table public.vfm_push_subs add column if not exists follow text[] not null default '{}';
+-- public.vfm_push_follow(p_endpoint, p_follow): 이름 60개까지, 2~40자, 소문자로 저장
+-- vfm_push.poll_deal(): req_deal 번호로 위와 같은 방식. 제목 '💼 따라가는 이름: …', 주소 deal/#name=…, 밤 23~6시는 안 보냄
+-- vfm_push_sub 의 주제에 'deal' 추가.  cron: vfm-push-poll = poll() + poll_deal()

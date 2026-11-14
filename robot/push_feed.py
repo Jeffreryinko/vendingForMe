@@ -29,6 +29,22 @@ def cut(s, n):
     return s if len(s) <= n else s[: n - 1].rstrip() + "…"
 
 
+def deal():
+    """딜: 오늘·어제 새로 들어온 거래 — 수파베이스가 '따라가는 이름'과 맞춰 봄"""
+    d = load(os.path.join(ROOT, "data", "deal", "now.json"), {}) or {}
+    today = dt.datetime.now(KST).date()
+    keep = {str(today), str(today - dt.timedelta(days=1))}
+    out = []
+    for x in d.get("deals") or []:
+        if x.get("date") not in keep or x.get("st") == "rumor":
+            continue
+        hay = " ".join(str(v) for v in [x.get("title"), x.get("ko"), x.get("co"), x.get("tgt"), " ".join(x.get("inv") or [])] if v).lower()
+        out.append({"id": "deal:" + x["id"], "hay": cut(hay, 400), "body": cut(x.get("ko") or x.get("title"), 110)})
+    with open(os.path.join(ROOT, "data", "deal", "push.json"), "w", encoding="utf-8") as f:
+        json.dump({"v": 1, "at": dt.datetime.now(KST).isoformat(timespec="minutes"), "deals": out[:150]}, f, ensure_ascii=False, separators=(",", ":"))
+    print("deal push.json:", len(out))
+
+
 def main():
     old = load(OUT, {}) or {}
     out = {"v": 1, "at": dt.datetime.now(KST).isoformat(timespec="minutes")}
@@ -71,4 +87,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    deal() if "deal" in sys.argv[1:] else main()

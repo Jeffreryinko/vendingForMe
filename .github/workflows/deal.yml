@@ -80,7 +80,9 @@ jobs:
           SEC_CONTACT_EMAIL: ${{ secrets.SEC_CONTACT_EMAIL }}
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           DEAL_MAX_MINUTES: "50"
-        run: python robot/deal_run.py ${{ inputs.no_translate == 'yes' && '--no-translate' || '' }}
+        run: |
+          python robot/deal_run.py ${{ inputs.no_translate == 'yes' && '--no-translate' || '' }}
+          python robot/push_feed.py deal || echo "알림 쪽지 실패 — 넘어감"
       - name: 저장소에 올리기
         run: |
           git config user.name "deal-robot"

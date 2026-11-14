@@ -570,6 +570,7 @@ async function renderFollow() {
   const names = folNames().sort((a, b) => (S.fol[b].at || 0) - (S.fol[a].at || 0));
   let h = head("따라가기", "회사·투자사 이름 한 장: 누가 어디에 넣었고 누구와 같이 나오는지. 넣어 두면 새로 뜰 때 오늘 화면에 알려 줘요");
   h += `<button class="tile" style="width:100%;margin:4px 0 8px" data-go="#firms"><b>🏦 주요 투자사 ${FI ? FI.firms.length + "곳" : ""} ›</b><small>세계·한국 VC·사모펀드·국부펀드 + 한국 VC 전체(전자공시) — 소개·투자 실적·펀드·최근 거래</small></button>`;
+  if (!/"deal"/.test(localStorage.getItem("vfm:push:topics") || "")) h += `<p class="s" style="margin:4px 2px 0;color:var(--muted);font-size:13px">🔔 따라가는 이름이 새 거래에 나오면 폰으로 알려 드려요 — 오른쪽 위 ⋯ → 알림 → '따라가는 회사 딜'</p>`;
   h += `<div class="fol-row"><input class="search" id="fadd" type="search" placeholder="예: 소프트뱅크, a16z, 토스, 엔비디아"><button class="btn pri" data-act="fadd">넣기</button></div>`;
   if (names.length) {
     h += `<h2 class="sec">따라가는 이름<small>최근 30일</small></h2><div class="list">${names.map(n => {
@@ -590,7 +591,7 @@ function follow(n, on) {
   n = String(n || "").trim(); if (!n) return;
   if (on === false || (on == null && S.fol[n])) { delete S.fol[n]; toast("뺐어요"); }
   else { S.fol[n] = { at: Date.now(), seen: "" }; toast(`'${n}' 따라가요`); }
-  save("fol");
+  save("fol"); try { window.vfm.pushFollow && window.vfm.pushFollow(); } catch (e) { }
 }
 
 /* ───── 화면: 주요 투자사 ───── */

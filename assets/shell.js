@@ -278,7 +278,7 @@
   };
 
   /* ── 알림(웹 푸시) — 수파베이스가 브리핑·큰 소식·복습 때 보내 줌 ── */
-  var PT = [["brief", "아침·저녁 브리핑", "7시 · 19시쯤"], ["big", "큰 소식", "여러 나라가 한꺼번에 다룰 때 · 밤엔 안 울려요"], ["review", "오늘의 복습", "21시 30분"]];
+  var PT = [["brief", "아침·저녁 브리핑", "7시 · 19시쯤"], ["big", "큰 소식", "여러 나라가 한꺼번에 다룰 때 · 밤엔 안 울려요"], ["review", "오늘의 복습", "21시 30분"], ["deal", "따라가는 회사 딜", "딜 앱에서 따라가기 한 이름이 새 거래에 나올 때"]];
   function pushOk() { return "PushManager" in window && "serviceWorker" in navigator && "Notification" in window && !!(window.VFM_SYNC && window.VFM_SYNC.url); }
   function pushTopics() { try { return JSON.parse(localStorage.getItem("vfm:push:topics") || "[]"); } catch (e) { return []; } }
   function pushRpc(fn, body) {
@@ -296,6 +296,14 @@
     }).join("") + "</div>" +
       '<p class="foot">' + (denied ? "이 브라우저에서 알림이 막혀 있어요. 주소창 왼쪽 자물쇠 → 알림 허용 후 다시 눌러 주세요." : "아이폰은 홈 화면에 추가한 앱에서만 알림이 와요.") + "</p>";
   }
+  function pushFollow() {   // 딜 앱 '따라가기' 이름 목록을 서버에 맞춰 둠
+    if (!pushOk() || pushTopics().indexOf("deal") < 0 && arguments[0] !== "force") return;
+    var names = []; try { names = Object.keys(JSON.parse(localStorage.getItem("vfm:deal:fol") || "{}")); } catch (e) { }
+    navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription(); }).then(function (sub) {
+      if (sub) return pushRpc("vfm_push_follow", { p_endpoint: sub.endpoint, p_follow: names });
+    }).catch(function () { });
+  }
+  window.vfm = window.vfm || {}; window.vfm.pushFollow = pushFollow;
   function pushToggle(t, back) {
     if (Notification.permission === "denied") { toast("브라우저에서 알림이 막혀 있어요 — 사이트 설정에서 허용해 주세요"); return; }
     var on = pushTopics(), i = on.indexOf(t), first = on.length === 0;
@@ -313,6 +321,7 @@
       var j = sub.toJSON();
       return pushRpc("vfm_push_sub", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_topics: on, p_ua: navigator.userAgent.slice(0, 200) }).then(function () {
         if (!on.length) return sub.unsubscribe();
+        if (on.indexOf("deal") >= 0) pushFollow("force");
         if (first) return pushRpc("vfm_push_test", { p_endpoint: j.endpoint });
       });
     });
