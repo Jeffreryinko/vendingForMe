@@ -68,7 +68,7 @@ header h1{flex:1;margin:0;font-size:30px;font-weight:800;letter-spacing:-.02em}
    읽기는 허용된 구글 계정(think_is_owner)만. 알림은 자판기 앱의 서비스 워커(../sw.js)를 같이 씀. */
 const CFG = window.VFM_SYNC, $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-let sb, rows = [], tab = '할 일', open = new Set();
+let sb, rows = [], tab = '한눈에', open = new Set();
 const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2400); };
 const gate = h => { $('#app').innerHTML = `<div class="gate">${h}</div>`; };
 
@@ -93,12 +93,12 @@ function render() {
   const run = chats.filter(l => l[0].state === '진행');
   const done = chats.filter(l => l[0].state === '완료');
   const unseen = rows.filter(r => !r.seen).length;
-  const lists = { '할 일': todo, '진행 중': run, '끝남': done, '전체': chats };
-  const tabs = Object.keys(lists).map(k => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${k} ${lists[k].length}</button>`).join('');
+  const lists = { '한눈에': chats, '할 일': todo, '진행 중': run, '끝남': done };
+  const tabs = Object.keys(lists).map(k => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${k}${k === '한눈에' ? '' : ' ' + lists[k].length}</button>`).join('');
   const card = l => {
     const r = l[0], h = open.has(r.chat);
     return `<div class="card${l.some(x => !x.seen) ? ' new' : ''}" id="w${r.id}">
-      <div class="row"><div class="chat">${esc(r.chat)}</div><span class="st ${r.state}">${r.state === '질문' ? '답 필요' : r.state}</span></div>
+      <div class="row"><div class="chat">${esc(r.chat)}</div><span class="st ${r.state}">${r.state === '질문' ? '답 필요' : r.state === '진행' ? (Date.now() - new Date(r.at) > 3 * 3600e3 ? '진행 · 소식 없음' : '진행 중') : r.state}</span></div>
       <p class="title">${esc(r.title)}</p>
       ${r.note ? `<p class="note">${esc(r.note)}</p>` : ''}
       <div class="meta"><span>${ago(r.at)}</span>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">채팅 열기 ›</a>` : ''}
@@ -107,9 +107,13 @@ function render() {
     </div>`;
   };
   const list = lists[tab];
-  $('#app').innerHTML = `<p class="sub">채팅 ${chats.length}개 · 새 소식 ${unseen}개</p><div class="tabs">${tabs}</div>
-    <div id="pushBox"></div>
-    ${list.length ? list.map(card).join('') : `<div class="empty">${tab === '할 일' ? '지금 답을 기다리는 채팅이 없어요.' : rows.length ? '여기엔 아직 없어요.' : '아직 기록이 없어요.<br>채팅이 일을 끝내면 여기에 한 줄씩 쌓여요.'}</div>`}`;
+  const sec = (name, l, empty) => `<div class="cap">${name} ${l.length}</div>` + (l.length ? l.map(card).join('') : `<div class="card" style="color:var(--sub)">${empty}</div>`);
+  const body = tab === '한눈에'
+    ? (rows.length ? sec('🙋 내 답이 필요해요', todo, '없어요') + sec('⏳ 진행 중', run, '지금 일하는 채팅이 없어요') + sec('✅ 최근 끝남', done.slice(0, 6), '아직 없어요')
+                   : '<div class="empty">아직 기록이 없어요.<br>채팅이 일을 시작하고 끝낼 때마다 여기에 한 줄씩 쌓여요.</div>')
+    : list.length ? list.map(card).join('') : `<div class="empty">${tab === '할 일' ? '지금 답을 기다리는 채팅이 없어요.' : tab === '진행 중' ? '지금 일하는 채팅이 없어요.' : '여기엔 아직 없어요.'}</div>`;
+  $('#app').innerHTML = `<p class="sub">채팅 ${chats.length}개 · 진행 중 ${run.length}개 · 새 소식 ${unseen}개</p><div class="tabs">${tabs}</div>
+    <div id="pushBox"></div>${body}`;
   pushBox();
   const hit = location.hash.slice(1) && document.getElementById('w' + location.hash.slice(1));
   if (hit) { hit.classList.add('hi'); hit.scrollIntoView({ block: 'center' }); }
