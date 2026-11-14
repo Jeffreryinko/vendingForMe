@@ -1,5 +1,5 @@
 /* sw.js — 홈화면 앱(PWA)용. 앱 껍데기는 미리 저장, 데이터는 네트워크 우선 + 실패하면 마지막 저장본. */
-const VER = "vfm-v130-sisawide";
+const VER = "vfm-v131-push";
 const SHELL = ["./", "./index.html", "./sisa/", "./sisa/index.html", "./ai/", "./ai/index.html", "./tools/", "./tools/index.html", "./deal/", "./deal/index.html", "./box/", "./box/index.html", "./deal/learn/", "./deal/learn/index.html", "./deal/learn/terms.js", "./deal/learn/figs.js", "./deal/learn/course.js", "./deal/learn/history.js", "./sisa/learn/", "./sisa/learn/index.html", "./sisa/learn/terms.js", "./sisa/learn/figs.js", "./sisa/learn/course.js", "./sisa/learn/history.js", "./gicho/", "./gicho/index.html", "./gicho/terms.js", "./gicho/terms2.js", "./gicho/figs.js", "./gicho/course.js", "./gicho/course1b.js", "./gicho/course2.js", "./gicho/course3.js", "./gicho/history.js", "./gicho/history2.js", "./gicho/history3.js", "./gicho/figs2.js", "./gicho/art.js", "./sisa/learn/deep.js", "./assets/learn.js", "./assets/learn.css", "./assets/learnart.js", "./assets/wikigal.js", "./sisa/learn/art.js", "./deal/learn/art.js",
   "./assets/claude-shim.js", "./assets/deck.js", "./assets/trendcard.js", "./assets/mix.js", "./assets/radio.js", "./assets/shell.js", "./assets/polish.css", "./assets/sync.js", "./assets/sync-config.js", "./assets/apple.css", "./assets/hot.js", "./assets/history-player.js", "./assets/history-player.css", "./assets/wikithumb.js", "./manifest.webmanifest"];
 
@@ -24,4 +24,21 @@ self.addEventListener("fetch", e => {
       return res;
     }).catch(() => caches.match(req).then(hit => hit || caches.match("./index.html")))
   );
+});
+
+/* 알림(웹 푸시): 수파베이스 → 이 폰. 누르면 해당 화면으로 */
+self.addEventListener("push", e => {
+  let d = {}; try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data && e.data.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || "자판기", {
+    body: d.body || "", tag: d.tag || "vfm", data: { url: d.url || "./" },
+    icon: "./assets/icon-192.png", badge: "./assets/icon-192.png", renotify: !!d.tag,
+  }));
+});
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  const url = new URL(e.notification.data && e.notification.data.url || "./", self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+    for (const c of list) if (c.url.split("#")[0] === url.split("#")[0] && "focus" in c) { c.navigate(url).catch(() => {}); return c.focus(); }
+    return self.clients.openWindow(url);
+  }));
 });

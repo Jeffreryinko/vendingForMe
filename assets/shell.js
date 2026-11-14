@@ -277,6 +277,52 @@
     window.dispatchEvent(new HashChangeEvent("hashchange"));
   };
 
+  /* ── 알림(웹 푸시) — 수파베이스가 브리핑·큰 소식·복습 때 보내 줌 ── */
+  var PT = [["brief", "아침·저녁 브리핑", "7시 · 19시쯤"], ["big", "큰 소식", "여러 나라가 한꺼번에 다룰 때 · 밤엔 안 울려요"], ["review", "오늘의 복습", "21시 30분"]];
+  function pushOk() { return "PushManager" in window && "serviceWorker" in navigator && "Notification" in window && !!(window.VFM_SYNC && window.VFM_SYNC.url); }
+  function pushTopics() { try { return JSON.parse(localStorage.getItem("vfm:push:topics") || "[]"); } catch (e) { return []; } }
+  function pushRpc(fn, body) {
+    var k = window.VFM_SYNC.key;
+    return fetch(window.VFM_SYNC.url + "/rest/v1/rpc/" + fn, { method: "POST", headers: { apikey: k, Authorization: "Bearer " + k, "Content-Type": "application/json" }, body: JSON.stringify(body || {}) })
+      .then(function (r) { if (!r.ok) throw new Error("서버 " + r.status); return r.json(); });
+  }
+  function b64key(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+  function pushHtml() {
+    if (!pushOk()) return "";
+    var on = pushTopics(), denied = Notification.permission === "denied";
+    return '<div class="cap">알림</div><div class="grp" id="vfmPush">' + PT.map(function (t) {
+      var y = on.indexOf(t[0]) >= 0;
+      return '<button type="button" data-act="push" data-t="' + t[0] + '"><span class="tint">' + t[1] + '<small style="display:block;color:var(--ap-label2);font-size:12px;font-weight:400">' + t[2] + '</small></span><span class="v">' + (y ? "켜짐 ●" : "꺼짐 ○") + "</span></button>";
+    }).join("") + "</div>" +
+      '<p class="foot">' + (denied ? "이 브라우저에서 알림이 막혀 있어요. 주소창 왼쪽 자물쇠 → 알림 허용 후 다시 눌러 주세요." : "아이폰은 홈 화면에 추가한 앱에서만 알림이 와요.") + "</p>";
+  }
+  function pushToggle(t, back) {
+    if (Notification.permission === "denied") { toast("브라우저에서 알림이 막혀 있어요 — 사이트 설정에서 허용해 주세요"); return; }
+    var on = pushTopics(), i = on.indexOf(t), first = on.length === 0;
+    if (i >= 0) on.splice(i, 1); else on.push(t);
+    var job = Notification.requestPermission().then(function (p) {
+      if (p !== "granted") throw new Error("알림을 허용해야 켤 수 있어요");
+      return navigator.serviceWorker.ready;
+    }).then(function (reg) {
+      return reg.pushManager.getSubscription().then(function (sub) {
+        if (sub || !on.length) return sub;
+        return pushRpc("planner_vapid_public").then(function (key) { return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64key(key) }); });
+      });
+    }).then(function (sub) {
+      if (!sub) return;
+      var j = sub.toJSON();
+      return pushRpc("vfm_push_sub", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_topics: on, p_ua: navigator.userAgent.slice(0, 200) }).then(function () {
+        if (!on.length) return sub.unsubscribe();
+        if (first) return pushRpc("vfm_push_test", { p_endpoint: j.endpoint });
+      });
+    });
+    job.then(function () {
+      localStorage.setItem("vfm:push:topics", JSON.stringify(on));
+      var g = back.querySelector("#vfmPush"); if (g) g.outerHTML = pushHtml().replace(/^<div class="cap">알림<\/div>/, "").replace(/<p class="foot">.*$/, "");
+      toast(on.indexOf(t) >= 0 ? (first ? "켰어요 — 시험 알림을 보냈어요" : "켰어요") : "껐어요");
+    }).catch(function (x) { toast((x && x.message) || "알림 설정 실패"); });
+  }
+
   /* ── 설정 시트 ── */
   function openSheet() {
     var back = document.createElement("div"); back.className = "vfm-back";
@@ -284,6 +330,7 @@
     back.innerHTML =
       '<div class="vfm-sheet" role="dialog" aria-label="자판기 설정"><div class="grab"></div><h3>설정</h3>' +
       '<div class="cap">마지막 갱신</div><div class="grp" id="vfmUpd">' + APPS.map(function (a) { return '<div data-u="' + a[0] + '"><span>' + a[1] + '</span><span class="v">…</span></div>'; }).join("") + "</div>" +
+      pushHtml() +
       '<div class="cap">폰·PC 이어 보기</div><div class="grp" id="vfmSync">' + syncHtml() + "</div>" +
       '<div class="cap">유튜브 내 계정으로 보기</div><div class="grp">' +
       '<button type="button" data-act="ytlogin"><span class="tint">크롬에서 유튜브 로그인</span><span class="v">한 번만 ↗</span></button></div>' +
@@ -318,6 +365,7 @@
       if (e.target === back) return back.remove();
       var b = e.target.closest("[data-act]"); if (!b) return;
       var act = b.getAttribute("data-act");
+      if (act === "push") { pushToggle(b.getAttribute("data-t"), back); return; }
       if (act === "go") { location.href = b.getAttribute("data-go"); return; }
       if (act === "box") { location.href = ROOT + "box/"; return; }
       if (act === "ytlogin") { var yu = "https://accounts.google.com/ServiceLogin?service=youtube&continue=" + encodeURIComponent("https://www.youtube.com/"); if (!openInChrome(yu)) window.open(yu, "_blank", "noopener"); return; }
