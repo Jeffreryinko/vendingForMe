@@ -15,6 +15,7 @@
 | 도구 로봇 `robot/tools_run.py` | GitHub 급상승·긱뉴스·해커뉴스·유튜브 해설·모음 목록 | 하루 4번 (`tools.yml`) |
 | 배댓 로봇 `robot/baedat_run.py` | 지난달 한국 유튜브 인기 영상 50개 × 배댓 10개, 유형·감정은 낱말 규칙(토큰 0). 예전 클로드 '배댓 월간판' 예약 작업 대신. 화면은 [사람 자판기](https://jeffreryinko.github.io/vfm-mind/baedat/) 가 이 자료를 읽어요 | 매월 1일 05:23 (`baedat.yml`) |
 | **딜 로봇** `robot/deal_run.py` | 세계 투자 유치·인수합병·사모·상장·펀드 결성 뉴스(직접 RSS 15곳 + 구글 뉴스 13개 나라판) → 같은 거래끼리 묶기·금액 원 환산·단계·분야·나라·회사·투자사, 무료 기계번역. 미국 SEC Form D·상장·합병 서류, 한국 DART 공시를 3년치 + 매일 쌓음. 분류 낱말은 `robot/deal_sources.py`. 판정(성사·소문·무산·소식, 믿음 등급 f/m/s/c, 금액 검사, 위키데이터 회사 사전, 지난 이야기, 크기 자, 돈의 지도, 아침 6시 '오늘의 딜 12')은 `robot/deal_judge.py` | 하루 4번 07:50·13:50·19:50·00:50 (`deal.yml`) |
+| **AI 혜택 소식** (저장소 밖) | Claude 예약 작업 'AI 서비스 혜택·업데이트 일일 보고'가 Claude·해외 9개·중국 5개 서비스의 무료 혜택·새 소식을 찾아 Supabase 표 `ai_perks`에 하루 한 줄씩 씀 → AI 탭 '오늘' 맨 위(`ai/perks.js`)가 최근 14개를 읽음 | 매일 08:47 |
 | 라디오 `robot/radio_run.py` | 그날 카드를 오픈소스 음성으로 | `radio.yml` |
 
 ## 비밀 설정 (저장소 Settings → Secrets and variables → Actions)
