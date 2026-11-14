@@ -464,3 +464,7 @@ details.set > div > .btn { align-self: flex-start; }
 .drag-ghost { position: fixed; left: 0; top: 0; z-index: 300; pointer-events: none; max-width: 240px; padding: 9px 12px 9px 15px; border-radius: 10px; background: color-mix(in srgb, var(--c) 16%, var(--surface)); box-shadow: var(--shadow), 0 0 0 1.5px var(--c); font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .task.lifting { opacity: .35; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* 띄어쓰기(줄바꿈): 문단 끝에 한두 글자만 남지 않게, 제목은 줄 길이를 고르게 */
+p, li { text-wrap: pretty; }
+h1, h2, h3 { text-wrap: balance; }
