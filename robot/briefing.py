@@ -301,7 +301,7 @@ def claude(prompt, model=None, max_tokens=24000):
     # 하루 몫: 남은 돈을 남은 날로 나눔 → 주기 끝까지 고르게 (하루에 몰아 쓰지 않게)
     today = datetime.now(KST).strftime("%Y-%m-%d")
     allow = (cap - (spent - tday)) / claude_days_left()
-    if tday >= allow: return None, f"오늘 몫 {allow:.2f}달러 다 씀 ({tday:.2f}) → 무료 AI 로"
+    if tday >= allow and not os.environ.get("CLAUDE_NO_DAILY"): return None, f"오늘 몫 {allow:.2f}달러 다 씀 ({tday:.2f}) → 무료 AI 로"
     m = model or os.environ.get("CLAUDE_MODEL", "").strip() or "claude-sonnet-5-5"
     try:
         body = {"model": m, "max_tokens": max_tokens,
@@ -321,6 +321,19 @@ def claude(prompt, model=None, max_tokens=24000):
     us = r.get("usage") or {}
     pi, po = PRICE.get(m, (4.0, 20.0))
     cost = (us.get("input_tokens", 0) * pi + us.get("output_tokens", 0) * po) / 1e6
+    with _ULOCK:
+        _claude_rec(m, us, cost, cap, today)
+    txt = "".join(b.get("text", "") for b in r.get("content") or [] if b.get("type") == "text")
+    if r.get("stop_reason") == "max_tokens": log(f"  Claude: 출력 한도({max_tokens})에서 잘림 · 생각 블록 {sum(1 for b in r.get('content') or [] if b.get('type') == 'thinking')}개")
+    return (txt, "claude:" + m), None
+
+
+import threading
+_ULOCK = threading.Lock()
+
+
+def _claude_rec(m, us, cost, cap, today):
+    u = rj(USAGE, {}) or {}
     rec = u.setdefault(claude_period(), {"usd": 0, "calls": 0, "in": 0, "out": 0})
     rec["usd"] = round(rec["usd"] + cost, 4); rec["calls"] += 1
     rec["in"] += us.get("input_tokens", 0); rec["out"] += us.get("output_tokens", 0)
@@ -328,9 +341,6 @@ def claude(prompt, model=None, max_tokens=24000):
     for k in sorted(dd)[:-40]: dd.pop(k)
     UDIR.mkdir(parents=True, exist_ok=True); wj(USAGE, u)
     log(f"  Claude {m}: 입력 {us.get('input_tokens', 0):,} · 출력 {us.get('output_tokens', 0):,} 토큰 · {cost:.3f}달러 (이번 주기 {rec['usd']:.2f}/{cap})")
-    txt = "".join(b.get("text", "") for b in r.get("content") or [] if b.get("type") == "text")
-    if r.get("stop_reason") == "max_tokens": log(f"  Claude: 출력 한도({max_tokens})에서 잘림 · 생각 블록 {sum(1 for b in r.get('content') or [] if b.get('type') == 'thinking')}개")
-    return (txt, "claude:" + m), None
 
 
 def ai_chain(cheap=False):

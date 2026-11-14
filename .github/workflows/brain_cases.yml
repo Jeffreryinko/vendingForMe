@@ -12,6 +12,10 @@ on:
         description: "이번에 쓸 장 수 (기본 40)"
         required: false
         default: "40"
+      fast:
+        description: "하루 몫 무시하고 한 번에 (주기 한도는 지킴) — 1 이면 켬"
+        required: false
+        default: ""
 
 concurrency:
   group: data-brain
@@ -23,7 +27,7 @@ permissions:
 jobs:
   cases:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -34,6 +38,8 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_MONTHLY_USD: ${{ vars.CLAUDE_MONTHLY_USD }}
           BRAIN_N: ${{ inputs.n || '40' }}
+          BRAIN_PAR: "4"
+          CLAUDE_NO_DAILY: ${{ inputs.fast }}
         run: python robot/brain_cases.py
       - name: 저장소에 올리기
         run: |

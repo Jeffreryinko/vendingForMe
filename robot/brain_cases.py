@@ -69,33 +69,46 @@ def main():
     BR.log(f"목록 {len(T)}개 중 쓴 것 {len(have)}개 · 이번에 {len(todo)}개")
     if not todo: return 0
     if not dry and not os.environ.get("ANTHROPIC_API_KEY"): BR.log("Claude 열쇠가 없어요 → 멈춤"); return 0
-    got = 0
-    for b in range(0, len(todo), PER):
-        batch = todo[b:b + PER]
+    def one(batch):
         blocks = []
         for id_, ch, name, wt in batch:
-            w = wiki(wt); time.sleep(0.3)
+            w = wiki(wt)
             blocks.append(f"■ id={id_} · 갈래: {ch} · 주제: {name}" + (f"\n[위키백과 '{wt}' 발췌]\n{w}" if w else "\n[위키백과 없음 — 확실히 아는 것만]"))
         prompt = PROMPT.format(rs=", ".join(RS), items="\n\n".join(blocks))
-        if dry: BR.log(prompt[:3000]); BR.log(f"… {len(prompt):,}자"); return 0
+        if dry: return prompt, None, batch
         res, err = BR.claude(prompt, os.environ.get("BRAIN_MODEL") or "claude-sonnet-5-5", 16000)
-        if not res: BR.log(f"Claude: {err} → 이번 실행은 여기까지"); break
-        try:
-            meta = {x[0]: x for x in batch}
-            for it in BR.parse_json(res[0]).get("items") or []:
-                m = meta.get(it.get("id"))
-                st = str(it.get("story") or "").strip()
-                if not m or not it.get("title") or len(st) < 300: continue
-                doc["items"].append({"id": m[0], "title": str(it["title"])[:80], "book": it.get("book") if it.get("book") in ("유명한 실험", "유명한 사례") else "유명한 실험",
-                                     "ch": m[1], "who": str(it.get("who") or "")[:120], "field": str(it.get("field") or "")[:30],
-                                     "rs": [r for r in (it.get("rs") or []) if r in RS][:3], "ref": str(it.get("ref") or "")[:200],
-                                     "story": st[:2400], "insight": str(it.get("insight") or "")[:300], "wiki": m[3], "by": res[1].split(":")[-1]})
-                got += 1
-        except Exception as e:
-            BR.log(f"답을 못 읽음 ({e}) → 다음 묶음으로")
-        doc["at"] = datetime.now(BR.KST).isoformat(timespec="minutes")
-        doc["items"].sort(key=lambda x: x["id"])
-        BR.wj(OUT, doc)                                   # 묶음마다 저장 (중간에 멈춰도 쓴 건 남게)
+        return res, err, batch
+
+    batches = [todo[b:b + PER] for b in range(0, len(todo), PER)]
+    if dry:
+        p, _, _ = one(batches[0]); BR.log(p[:3000]); BR.log(f"… {len(p):,}자"); return 0
+    got, stop = 0, False
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    with ThreadPoolExecutor(int(os.environ.get("BRAIN_PAR") or 4)) as ex:
+        futs = [ex.submit(one, b) for b in batches]
+        for f in as_completed(futs):
+            res, err, batch = f.result()
+            if not res:
+                BR.log(f"Claude: {err}")
+                if "한도" in str(err) or "몫" in str(err): stop = True
+                continue
+            try:
+                meta = {x[0]: x for x in batch}
+                for it in BR.parse_json(res[0]).get("items") or []:
+                    m = meta.get(it.get("id"))
+                    st = str(it.get("story") or "").strip()
+                    if not m or not it.get("title") or len(st) < 300 or any(x["id"] == m[0] for x in doc["items"]): continue
+                    doc["items"].append({"id": m[0], "title": str(it["title"])[:80], "book": it.get("book") if it.get("book") in ("유명한 실험", "유명한 사례") else "유명한 실험",
+                                         "ch": m[1], "who": str(it.get("who") or "")[:120], "field": str(it.get("field") or "")[:30],
+                                         "rs": [r for r in (it.get("rs") or []) if r in RS][:3], "ref": str(it.get("ref") or "")[:200],
+                                         "story": st[:2400], "insight": str(it.get("insight") or "")[:300], "wiki": m[3], "by": res[1].split(":")[-1]})
+                    got += 1
+            except Exception as e:
+                BR.log(f"답을 못 읽음 ({e}) → 건너뜀")
+            doc["at"] = datetime.now(BR.KST).isoformat(timespec="minutes")
+            doc["items"].sort(key=lambda x: x["id"])
+            BR.wj(OUT, doc)                               # 묶음마다 저장
+            if stop: [x.cancel() for x in futs]
     BR.log(f"새로 {got}장 · 모두 {len(doc['items'])}장")
     return 0
 
