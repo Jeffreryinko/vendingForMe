@@ -9,7 +9,7 @@ on:
       app:
         description: "앱 (gicho · ai · sisa)"
         required: false
-        default: "gicho"
+        default: ""
       fast:
         description: "하루 몫 무시하고 한 번에 (주기 한도는 지킴) — 1 이면 켬"
         required: false
