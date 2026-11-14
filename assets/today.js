@@ -75,6 +75,7 @@
         var ok = isOk(t);
         return '<a href="' + e(t[1]) + '" data-td="' + t[0] + '" class="' + (ok ? "ok" : "") + '"><i>' + (ok ? "✓" : "") + "</i><span>" + e(t[2]) + "</span>" + (t[3] ? "<small>" + e(t[3]) + "</small>" : "") + "</a>";
       }).join("") + "</div></div>";
+    if (window.vfm && vfm.trailStrip) h += vfm.trailStrip();
     if (D.sb && D.sb.items) {
       h += '<div class="tp-sec"><p class="tp-k"><span>' + e(D.sb.label || "시사 브리핑") + '</span><a href="sisa/">전체 ›</a></p>' +
         (D.sb.lead ? '<p class="tp-lead">' + e(D.sb.lead.split(/(?<=[.요다])\s/).slice(0, 2).join(" ")) + "</p>" : "") +
@@ -108,7 +109,8 @@
     done[k] = 1; try { localStorage.setItem("vfm:home:done", JSON.stringify(done)); } catch (x) { }
     try { vfm.tick("done", true); } catch (x) { }
   });
-  window.addEventListener("pageshow", function () { paint(); });   // 다른 화면에서 돌아오면 체크·숫자 새로
+  window.addEventListener("pageshow", function () { paint(); });
+  document.addEventListener("vfm:trailready", function () { paint(); });   // 다른 화면에서 돌아오면 체크·숫자 새로
 
   /* ① 전체 검색 — 들고 있는 자료(브리핑 두 개·배움 목록 두 개·이야기 목록)에서 찾고, 딜·시사는 그 앱으로 넘김 */
   var q = document.getElementById("tpq"), res = document.getElementById("tpr"), t0;

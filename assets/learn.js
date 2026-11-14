@@ -151,6 +151,7 @@
     return head("코스", `${CH.length}장 · 한 장에 5분쯤. ${TX.course}`) + CH.map((c, i) => { const d = S.ch[c.id], gh = c.g && c.g !== pg && G[c.g] ? `<h2 class="sec">${esc(G[c.g][0])}<small>${esc(G[c.g][1] || "")}</small></h2>` : ""; pg = c.g || pg; return gh + `<button class="card" data-go="#ch=${c.id}"><span class="fl" style="font:800 15px var(--ap-display)">${d ? "✓" : c.flag || i + 1}</span><div class="bx"><p class="t">${esc(c.t)}${nx === c ? '<span class="lv l1">다음</span>' : ""}${!d && sk.has(c.id) ? '<span class="lv">아는 장</span>' : ""}</p><p class="s">${esc(c.sub)}</p><div class="meta"><span>카드 ${c.cards.length}장 · 문제 ${c.quiz.length}개</span>${d ? `<span>${esc(d.day)} 마침 · ${d.q}/${c.quiz.length}</span>` : ""}</div></div></button>`; }).join("") + (DG.length ? `<button class="btn more" data-go="#diag">수준 확인 ${S.diag ? "다시 " : ""}하기</button>` : "");
   }
   let cv = null;
+  const TR = o => { try { (window.vfm && vfm.trail ? vfm.trail : function (o) { (window.__vfmTQ = window.__vfmTQ || []).push(o); })(Object.assign({ app: (window.VFM_APP || "learn") + "-learn", kind: "learn" }, o)); } catch (e) { } };   // 배운 길 (trail.js)
   function renderCh(id) {
     const c = CH.find(x => x.id === id); if (!c) return renderCourse();
     if (!cv || cv.id !== id) cv = { id, i: 0, qi: -1, ok: 0, ans: null };
@@ -158,6 +159,7 @@
     let h = backTop(`<span class="note" style="margin:0">${esc(c.t)}</span>`) + `<div class="dots">${Array.from({ length: tot }, (_, i) => `<i class="${i <= pos ? "on" : ""}"></i>`).join("")}</div>`;
     if (cv.qi < 0) {
       const k = c.cards[cv.i];
+      TR({ id: "ch:" + id + ":" + cv.i, t: c.t + " · " + k.h, u: location.pathname + "#ch=" + id, kw: (k.tm || []).slice(0, 4) });
       if (cv.i === 0) h += newsBox("ch:" + id);
       h += `<div class="lc" id="swipe"><h3>${esc(k.h)}</h3>${fmt(k.b)}${DEEP.card ? DEEP.card(k, DH) : ""}${k.fig && FIG[k.fig] ? FIG[k.fig]() : ""}${ART.comic((window.VFM_CARDCM || {})[c.id + ":" + cv.i])}</div>${k.tm ? `<p class="note" style="margin:8px 2px 2px">이 카드의 말 (누르면 뜻)</p><div>${chips(k.tm)}</div>` : ""}<div class="pg">${cv.i ? '<button class="btn" data-cv="-1">‹ 이전</button>' : ""}<button class="btn pri" data-cv="1">${cv.i === c.cards.length - 1 ? "확인 문제 ›" : "다음 ›"}</button></div>`;
     } else if (cv.qi < c.quiz.length) {
@@ -203,7 +205,7 @@
   }
   const termRows = lst => lst.map(t => `<button class="li" data-term="${t.id}"><div class="bx"><p class="t">${esc(t.t)}${t.lv === 1 ? '<span class="lv l1">꼭</span>' : ""}</p><p class="s">${esc(t.s)}</p></div>${boxes(t.id)}</button>`).join("") || '<p class="note" style="padding:14px 0">찾는 말이 없어요</p>';
   function openTerm(id) {
-    const t = TB[id]; if (!t) return; closeSheet();
+    const t = TB[id]; if (!t) return; closeSheet(); TR({ id: "term:" + id, t: "낱말 · " + (t.w || t.t || id), u: location.pathname + "#term=" + encodeURIComponent(id), kind: "term" });
     const b = document.createElement("div"); b.className = "back"; b.innerHTML = `<div class="sheet"><div class="grab"></div>${termCard(t)}<div class="pg">${S.box[id] ? "" : `<button class="btn" data-addbox="${id}">복습에 넣기</button>`}<button class="btn pri" data-act="close">닫기</button></div></div>`;
     b.addEventListener("click", e => { if (e.target === b) closeSheet(); }); document.body.appendChild(b);
   }
@@ -232,7 +234,8 @@
     const q = yd.qs[yd.i];
     return backTop(`<span class="note" style="margin:0">어제 복습 ${yd.i + 1}/${yd.qs.length}</span>`) + `<p class="note">${q.k === "c" ? "코스" : "역사"} · ${esc(q.from)}</p><div class="lc"><h3>${esc(q.q)}</h3></div>` + q.o.map((o, i) => `<button class="opt${yd.ans == null ? "" : i === q.a ? " ok" : i === yd.ans ? " no" : " dim"}" data-yd="${i}" ${yd.ans == null ? "" : "disabled"}>${esc(o)}</button>`).join("") + (yd.ans != null ? `<div class="why"><b>${yd.ans === q.a ? "맞았어요." : "아쉬워요."}</b> ${esc(q.why || "")}</div><button class="btn pri" data-yd="next">${yd.i === yd.qs.length - 1 ? "마치기" : "다음 문제 ›"}</button>` : "");
   }
-  function markEp(k) { k = epKey(k); if (!S.ep[k]) { S.ep[k] = kst(); save("ep"); bump("ep"); } }
+  function markEp(k) { try { const [rid, i] = String(k).split(":"), x = HS.find(h => h.id === rid), e = x && x.items[+i]; if (e) TR({ id: "ep:" + e._k, t: e.t + (e.y ? " (" + e.y + ")" : ""), u: location.pathname + "#hist=" + rid, kw: (e.co || []).slice(0, 4) }); } catch (er) { }
+    k = epKey(k); if (!S.ep[k]) { S.ep[k] = kst(); save("ep"); bump("ep"); } }
 
   /* ───── 오늘 기사로 연습 (앱마다 다름: L.practice.load() → [{q, o, a, why}]) ───── */
   let pr = null;
