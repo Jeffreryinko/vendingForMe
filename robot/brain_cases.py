@@ -72,7 +72,7 @@ def main():
     def one(batch):
         blocks = []
         for id_, ch, name, wt in batch:
-            w = wiki(wt)
+            w = wiki(wt); time.sleep(1.2)
             blocks.append(f"■ id={id_} · 갈래: {ch} · 주제: {name}" + (f"\n[위키백과 '{wt}' 발췌]\n{w}" if w else "\n[위키백과 없음 — 확실히 아는 것만]"))
         prompt = PROMPT.format(rs=", ".join(RS), items="\n\n".join(blocks))
         if dry: return prompt, None, batch

@@ -189,7 +189,7 @@ def build_prompt(ed, by, names, li, prev, label):
 # ───────── 무료 AI 부르기 ─────────
 def http_json(url, body=None, headers=None, timeout=120):
     req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None,
-                                 headers={"Content-Type": "application/json", "User-Agent": "vendingForMe-briefing/1.0", **(headers or {})})
+                                 headers={"Content-Type": "application/json", "User-Agent": "vendingForMe-robot/1.0 (https://github.com/Jeffreryinko/vendingForMe; personal reading app)", **(headers or {})})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read().decode("utf-8"))
 
@@ -361,6 +361,12 @@ def parse_json(txt):
     try:
         return json.loads(raw)
     except Exception:
+        try:
+            import json_repair                                   # 깨진 JSON 고쳐 읽기 (pip install json-repair)
+            o = json_repair.loads(raw)
+            if isinstance(o, dict) and o: return o
+        except ImportError:
+            pass
         fix = re.sub(r",\s*([}\]])", r"\1", raw)                                  # 끝에 남은 쉼표
         fix = re.sub(r"\{\s*\"([^\"]*)\"\s*,\s*\"([^\"]*)\"\s*\}", r'{"t":"\1","b":"\2"}', fix)   # {"t","b"} 꼴
         return json.loads(fix)

@@ -53,6 +53,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - run: pip install -q json-repair || true
       - name: 번역 모델 캐시 (AI·이야기 로봇과 공유)
         if: inputs.no_translate != 'yes'
         uses: actions/cache@v4

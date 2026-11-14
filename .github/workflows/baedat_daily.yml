@@ -25,6 +25,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - run: pip install -q json-repair || true
       - name: 모으고 거르기
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
