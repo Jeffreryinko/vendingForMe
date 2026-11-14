@@ -160,7 +160,7 @@
       return `${S.newEd ? `<button type="button" class="newed" data-ed="${S.newEd.id}">새 판이 도착했어요 · ${esc(S.newEd.label)} 보기</button>` : ""}${B.sw()}
       <div class="brf">
         <section class="brf-hero">
-          <p class="brf-k"><i></i>${d.slot === "am" ? "아침 브리핑" : "저녁 브리핑"}</p>
+          <p class="brf-k"><i></i>${d.slot === "am" ? "아침 브리핑" : d.slot === "noon" ? "점심 브리핑" : "저녁 브리핑"}</p>
           <h1 class="brf-h">${esc(d.label || "오늘의 브리핑")}</h1>
           <p class="brf-meta"><span>이슈 ${d.items.length}개 · 짧은 판 1분${hm ? " · " + hm : ""}</span>${"speechSynthesis" in window ? `<button type="button" class="brf-tts" data-brftts aria-pressed="${speaking}">${speaking ? "■ 멈추기" : "▶ 듣기"}</button>` : ""}</p>
           <p class="brf-lead">${esc(d.lead || "")}</p>

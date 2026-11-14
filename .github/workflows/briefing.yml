@@ -1,4 +1,4 @@
-name: 시사·딜 브리핑 (아침 7시 · 저녁 7시, 무료 AI)
+name: 시사·딜·AI 브리핑 (아침 · 점심 · 저녁, Claude → 무료 AI)
 
 # 가장 새 판을 보고 무료 AI(Gemini → Groq)가 브리핑 글을 씀 → data/sisa/briefing/latest.json
 # 열쇠: 저장소 Settings → Secrets and variables → Actions 에 GEMINI_API_KEY · GROQ_API_KEY (둘 중 하나만 있어도 됨)
@@ -7,6 +7,7 @@ name: 시사·딜 브리핑 (아침 7시 · 저녁 7시, 무료 AI)
 on:
   schedule:
     - cron: "35 21 * * *"     # 한국시간 06:35 → 7시 전에 아침 브리핑
+    - cron: "35 3 * * *"      # 한국시간 12:35 → 점심 브리핑
     - cron: "35 9 * * *"      # 한국시간 18:35 → 7시 전에 저녁 브리핑
   workflow_dispatch:
 

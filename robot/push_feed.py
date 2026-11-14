@@ -54,7 +54,7 @@ def main():
         first = b["items"][0].get("t", "")
         out["brief"] = {
             "id": "brief:" + b["id"],
-            "title": "☀️ " + b.get("label", "브리핑") if b.get("slot") == "am" else "🌙 " + b.get("label", "브리핑"),
+            "title": {"am": "☀️ ", "noon": "🌤️ "}.get(b.get("slot"), "🌙 ") + b.get("label", "브리핑"),
             "body": cut(first + " 외 " + str(len(b["items"]) - 1) + "가지", 110),
             "url": "sisa/",
         }

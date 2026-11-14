@@ -256,7 +256,7 @@ def groq(prompt):
 
 
 # ───────── Claude (유료 API, 주현 100달러 크레딧) ─────────
-# 열쇠: GitHub 비밀 ANTHROPIC_API_KEY. 한 주기에 CLAUDE_MONTHLY_USD(기본 80달러)를 넘으면 스스로 멈추고 무료 AI 로 넘어가요.
+# 열쇠: GitHub 비밀 ANTHROPIC_API_KEY. 한 주기에 CLAUDE_MONTHLY_USD(기본 50달러)를 넘으면 스스로 멈추고 무료 AI 로 넘어가요.
 # 주기는 매달 30일(2월은 말일)에 새로 시작 — 주현의 API 크레딧 지정일. 쓴 돈은 data/claude_usage.json 에 주기별로 적어요.
 PRICE = {"claude-haiku-5-5": (0.10, 0.50), "claude-sonnet-5-5": (2.0, 10.0), "claude-opus-5-5": (4.0, 20.0)}   # 100만 토큰당 달러 (입력, 출력)
 USAGE = Path(__file__).resolve().parent.parent / "data" / "claude_usage.json"
@@ -280,10 +280,10 @@ def claude_spent():
 def claude(prompt, model=None, max_tokens=16000):
     key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not key: return None, "열쇠 없음"
-    cap = float(os.environ.get("CLAUDE_MONTHLY_USD") or 80)
+    cap = float(os.environ.get("CLAUDE_MONTHLY_USD") or 50)
     spent, u = claude_spent()
     if spent >= cap: return None, f"이번 주기 한도 {cap}달러 다 씀 ({spent:.2f})"
-    m = model or os.environ.get("CLAUDE_MODEL", "").strip() or "claude-sonnet-5-5"
+    m = model or os.environ.get("CLAUDE_MODEL", "").strip() or "claude-opus-5-5"
     try:
         r = http_json("https://api.anthropic.com/v1/messages",
                       {"model": m, "max_tokens": max_tokens, "temperature": 0.3,
@@ -307,8 +307,8 @@ def claude(prompt, model=None, max_tokens=16000):
 
 
 def ai_chain(cheap=False):
-    """먼저 Claude, 안 되면 무료 Gemini → Groq. cheap=True 면 Claude 는 Haiku."""
-    c = (lambda p: claude(p, "claude-haiku-5-5", 8000)) if cheap else claude
+    """먼저 Claude(기본 Opus), 안 되면 무료 Gemini → Groq. cheap=True 면 Claude 는 Sonnet."""
+    c = (lambda p: claude(p, "claude-sonnet-5-5", 8000)) if cheap else claude
     return (("Claude", c), ("Gemini", gemini), ("Groq", groq))
 
 
@@ -350,9 +350,9 @@ def main():
     ed = latest_edition()
     if not ed: log("판이 없어요"); return 0
     now = datetime.now(KST)
-    slot = "am" if now.hour < 13 else "pm"
+    slot = "am" if now.hour < 11 else "noon" if now.hour < 16 else "pm"
     bid = f"{now:%Y-%m-%d}_{slot}"
-    label = f"{now.month}월 {now.day}일 {'아침' if slot == 'am' else '저녁'} 브리핑"
+    label = f"{now.month}월 {now.day}일 {dict(am='아침', noon='점심', pm='저녁')[slot]} 브리핑"
     by, (names, _lean), li = feed_items(ed["id"]), source_names(), learn_index()
     prev = rj(OUT / "latest.json")
     prompt = build_prompt(ed, by, names, li, prev, label)
