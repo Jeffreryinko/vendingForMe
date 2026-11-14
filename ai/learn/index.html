@@ -40,6 +40,8 @@ window.VFM_LEARN.practice = { sub: "오늘 AI 소식 제목 — 새 모델일까
     return (b.items || []).filter(it => KN[it.kind]).slice(0, 6).map(it => ({ lab: "이 소식은 어떤 종류일까요?", q: it.t, sub: it.one, o: Object.values(KN), a: Object.keys(KN).indexOf(it.kind), why: why[it.kind] + " (분류는 로봇이 붙여서 가끔 틀릴 수 있어요)", tm: tm[it.kind] }));
   } };
 </script>
+<script>/* Claude(API)가 쓴 깊이 읽기(robot/learn_deep.py) */
+fetch("../../data/ai/deep_long.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.patch && window.VFM_DEEP_ADD) { VFM_DEEP_ADD.course({ patch: j.patch }); dispatchEvent(new Event("vfm-long")); } }).catch(() => {});</script>
 <script src="../../assets/learn.js?v=15"></script>
 <script src="../../assets/shell.js"></script>
 </body></html>

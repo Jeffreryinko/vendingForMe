@@ -19,7 +19,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import briefing as BR
 
 ROOT = Path(__file__).resolve().parent.parent
-APPS = {"gicho": (["gicho/course.js", "gicho/course1b.js", "gicho/course2.js", "gicho/course3.js"], "기초 교실 — 과학·심리학·철학을 처음부터")}
+APPS = {   # 앱: (배움 화면 index.html — 거기 적힌 스크립트를 순서대로 읽어 장·카드를 꺼냄, 이름)
+  "gicho": ("gicho/index.html", "기초 교실 — 과학·심리학·철학을 처음부터"),
+  "ai": ("ai/learn/index.html", "AI 교실 — 인공지능을 기초부터 최신까지"),
+  "sisa": ("sisa/learn/index.html", "세상 읽기 교실 — 뉴스 뒤의 세계"),
+  "deal": ("deal/learn/index.html", "딜 교실 — 기업 인수·투자의 세계"),
+}
 PER = 4
 
 PROMPT = """너는 '{name}'의 수석 필자예요. 아래 코스 카드마다, 카드 본문을 읽은 사람이 '아, 이제 진짜 알겠다'가 되도록 깊이 읽기 글을 써요.
@@ -39,18 +44,27 @@ JSON 하나만: {{"cards":[{{"k":"장id|카드 제목(그대로)","long":[["소�
 {items}"""
 
 
-def dump(files):
-    js = "global.window={};const fs=require('fs');" + "".join(f"eval(fs.readFileSync({json.dumps(str(ROOT / f))},'utf8'));" for f in files) + \
-         "const L=window.VFM_LEARN||{};process.stdout.write(JSON.stringify((L.chapters||[]).map(c=>({id:c.id,t:c.t,cards:c.cards.map(k=>({h:k.h,b:k.b,ex:k.ex||'',pt:k.pt||[],long:!!k.long}))}))))"
+def dump(page):
+    import re as _re
+    base = (ROOT / page).parent
+    srcs = [m for m in _re.findall(r'<script src="([^"]+)"', (ROOT / page).read_text(encoding="utf-8")) if "assets/" not in m]
+    files = [str((base / m.split("?")[0]).resolve()) for m in srcs]
+    stub = ("window.VFM_DEEP_ADD={course(o){const CH=(window.VFM_LEARN||{}).chapters||[];for(const k in (o.patch||{})){const i=k.indexOf('|'),c=k.slice(0,i),h=k.slice(i+1);"
+            "const ch=CH.find(x=>x.id===c),cd=ch&&ch.cards.find(x=>x.h===h);if(cd)Object.assign(cd,o.patch[k])}"
+            "for(const c in (o.cards||{})){const ch=CH.find(x=>x.id===c);if(ch)for(const k of o.cards[c])if(!ch.cards.some(x=>x.h===k.h))ch.cards.push(k)}"
+            "for(const ch of (o.chapters||[]))if(!CH.some(x=>x.id===ch.id))CH.push(ch)},hist(){},terms(){},tags(){},build(){}};")
+    js = ("global.window=global;global.document={addEventListener(){},querySelector(){return null}};global.addEventListener=()=>{};const fs=require('fs');" + stub +
+          "".join(f"try{{if(!{json.dumps(f)}.endsWith('/deep.js'))eval(fs.readFileSync({json.dumps(f)},'utf8'))}}catch(e){{}}" for f in files) +
+          "const L=window.VFM_LEARN||{};process.stdout.write(JSON.stringify((L.chapters||[]).map(c=>({id:c.id,t:c.t,cards:c.cards.map(k=>({h:k.h,b:k.b,ex:k.ex||'',pt:k.pt||[],long:!!k.long}))}))))")
     return json.loads(subprocess.run(["node", "-e", js], capture_output=True, text=True, check=True).stdout)
 
 
 def main():
     app = (sys.argv[1:] or ["gicho"])[0]; dry = "--dry" in sys.argv
-    files, name = APPS[app]
+    page, name = APPS[app]
     out = ROOT / f"data/{app}/deep_long.json"
     doc = BR.rj(out, None) or {"patch": {}}
-    chs = dump(files)
+    chs = dump(page)
     todo = [(f"{c['id']}|{k['h']}", c, k) for c in chs for k in c["cards"] if not k["long"] and f"{c['id']}|{k['h']}" not in doc["patch"]]
     n = int(os.environ.get("LEARN_N") or 400)
     BR.log(f"{app}: 카드 {sum(len(c['cards']) for c in chs)}장 · 남은 것 {len(todo)}장 · 이번에 {min(n, len(todo))}장")
