@@ -36,7 +36,7 @@ window.VFM_LEARN.termFig = { editorial: "newsTypes", wire: "newsPath", poll: "po
 <script>
 (function () {
   /* 묶음 이름 → 개수.  long = 역사, tlong = 낱말, clong = 코스 카드 */
-  var SETS = { long: 26, tlong: 13, clong: 5 }, files = [], left;
+  var SETS = { long: 26, tlong: 13, clong: 7 }, files = [], left;
   for (var k in SETS) for (var i = 1; i <= SETS[k]; i++) files.push("deep-" + k + "-" + i + ".js?v=1");
   left = files.length;
   function done() { if (--left === 0) dispatchEvent(new Event("vfm-long")); }
