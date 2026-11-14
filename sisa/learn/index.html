@@ -34,7 +34,7 @@ window.VFM_LEARN.termFig = { editorial: "newsTypes", wire: "newsPath", poll: "po
 </script>
 <script>/* Claude(API)가 쓴 깊이 읽기(robot/learn_deep.py) */
 fetch("../../data/sisa/deep_long.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.patch && window.VFM_DEEP_ADD) { VFM_DEEP_ADD.course({ patch: j.patch }); dispatchEvent(new Event("vfm-long")); } }).catch(() => {});</script>
-<script src="../../assets/learn.js?v=15"></script>
+<script src="../../assets/learn.js?v=16"></script>
 <!-- 깊이 읽기(긴 글 26묶음, 약 850KB)는 첫 화면을 그린 뒤에 받아 와요. 다 오면 열려 있는 역사 화면만 다시 그려요. -->
 <script>
 (function () {

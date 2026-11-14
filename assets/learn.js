@@ -22,7 +22,7 @@
 
   const css = `
 .fg{width:100%;height:auto;display:block;font-family:inherit;margin:10px 0 2px}
-.lc{background:var(--surface);border-radius:var(--r);padding:16px 16px 14px;margin:0 0 10px}.lc h3{margin:0 0 8px;font:700 19px/1.35 var(--ap-display);letter-spacing:-.02em}.lc p{margin:0 0 9px;font-size:calc(15px*var(--fs))}.lc p:last-child{margin-bottom:0}.lc b{color:var(--accent)}
+.lc{background:var(--surface);border-radius:var(--r);padding:16px 16px 14px;margin:0 0 10px}.ltts{float:right;margin:-2px 0 6px 8px;border:0;border-radius:999px;padding:5px 11px;font:inherit;font-size:12.5px;font-weight:600;background:var(--ap-fill);color:var(--ink,var(--ap-label));cursor:pointer}.evb .ltts{margin-top:4px}.lc h3{margin:0 0 8px;font:700 19px/1.35 var(--ap-display);letter-spacing:-.02em}.lc p{margin:0 0 9px;font-size:calc(15px*var(--fs))}.lc p:last-child{margin-bottom:0}.lc b{color:var(--accent)}
 .ring{display:flex;gap:16px;align-items:center;background:var(--surface);border-radius:var(--r);padding:16px;margin:8px 0}.ring svg{flex:none}.ring .tx{flex:1;min-width:0}.ring .tx b{font:800 20px var(--ap-display);display:block;letter-spacing:-.02em}.ring .tx small{color:var(--muted);font-size:13px}
 .step{display:flex;gap:10px;align-items:center;width:100%;text-align:left;border:0;background:none;padding:11px 0;border-bottom:.5px solid var(--ap-sep);color:inherit}.step:last-child{border-bottom:0}
 .step i{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--ap-label3);display:grid;place-items:center;font-style:normal;font-size:13px;color:#fff}.step.ok i{background:var(--up);border-color:var(--up)}.step.now i{border-color:var(--accent)}
@@ -161,7 +161,7 @@
       const k = c.cards[cv.i];
       TR({ id: "ch:" + id + ":" + cv.i, t: c.t + " · " + k.h, u: location.pathname + "#ch=" + id, kw: (k.tm || []).slice(0, 4) });
       if (cv.i === 0) h += newsBox("ch:" + id);
-      h += `<div class="lc" id="swipe"><h3>${esc(k.h)}</h3>${fmt(k.b)}${DEEP.card ? DEEP.card(k, DH) : ""}${k.fig && FIG[k.fig] ? FIG[k.fig]() : ""}${ART.comic((window.VFM_CARDCM || {})[c.id + ":" + cv.i])}</div>${k.tm ? `<p class="note" style="margin:8px 2px 2px">이 카드의 말 (누르면 뜻)</p><div>${chips(k.tm)}</div>` : ""}<div class="pg">${cv.i ? '<button class="btn" data-cv="-1">‹ 이전</button>' : ""}<button class="btn pri" data-cv="1">${cv.i === c.cards.length - 1 ? "확인 문제 ›" : "다음 ›"}</button></div>`;
+      h += `<div class="lc" id="swipe">${"speechSynthesis" in window ? `<button class="ltts" data-ltts aria-label="소리로 듣기">▶ 듣기</button>` : ""}<h3>${esc(k.h)}</h3>${fmt(k.b)}${DEEP.card ? DEEP.card(k, DH) : ""}${k.fig && FIG[k.fig] ? FIG[k.fig]() : ""}${ART.comic((window.VFM_CARDCM || {})[c.id + ":" + cv.i])}</div>${k.tm ? `<p class="note" style="margin:8px 2px 2px">이 카드의 말 (누르면 뜻)</p><div>${chips(k.tm)}</div>` : ""}<div class="pg">${cv.i ? '<button class="btn" data-cv="-1">‹ 이전</button>' : ""}<button class="btn pri" data-cv="1">${cv.i === c.cards.length - 1 ? "확인 문제 ›" : "다음 ›"}</button></div>`;
     } else if (cv.qi < c.quiz.length) {
       const q = c.quiz[cv.qi];
       h += `<p class="note">확인 문제 ${cv.qi + 1}/${c.quiz.length}</p><div class="lc"><h3>${esc(q.q)}</h3></div>${q.o.map((o, i) => `<button class="opt${cv.ans == null ? "" : i === q.a ? " ok" : i === cv.ans ? " no" : " dim"}" data-cq="${i}" ${cv.ans == null ? "" : "disabled"}>${esc(o)}</button>`).join("")}${cv.ans != null ? `<div class="why">${ART.face("me", cv.ans === q.a ? "s" : "t")}<b>${cv.ans === q.a ? "맞았어요." : "아쉬워요."}</b> ${esc(q.why)}</div><button class="btn pri go" data-cv="2">${cv.qi === c.quiz.length - 1 ? "마치기" : "다음 문제 ›"}</button>` : ""}`;
@@ -224,7 +224,7 @@
     const toon = e => (e.toon || []).length ? `<div class="toon">${e.toon.map((p, i) => `<div class="tp${i % 2 ? " r" : ""}"><span class="tf">${esc(p[0])}</span><span class="tb">${esc(p[1])}</span></div>`).join("")}</div>` : "";
     return backTop() + head(`${x.flag} ${esc(x.name)}`, esc(x.intro)) + newsBox("hist:" + id) + (window.VFM_ART ? ART.strip(x.items, i => !!S.ep[x.items[i]._k], +String(openEp).split(":")[1]) : "") + `<div class="tlv">${x.items.map((e, i) => { const k = id + ":" + i, op = openEp === k;
       if (!op) return `<button class="ev${S.ep[e._k] ? " rd" : ""}" data-ep="${k}" id="ep-${i}"><span class="y">${esc(e.y)}</span><div>${pic(e, "hpt")}<p class="t">${esc(e.t)}</p><p class="hint">${x.virt ? esc(e._f || "") + " " : ""}${(e.co || []).length ? esc(e.co.slice(0, 4).join(" · ")) : "눌러서 읽기"}</p></div></button>`;
-      return `<div class="ev op${S.ep[e._k] ? " rd" : ""}" id="ep-${i}"><button class="evh" data-ep="${k}"><span class="y">${esc(e.y)}</span><p class="t">${esc(e.t)}</p></button><div class="evb">${toon(e)}<div class="b">${fmt(e.b)}</div>${(e.co || []).length ? `<p class="colab">나오는 이름</p><div class="cos">${e.co.map(c => `<span>${esc(c)}</span>`).join("")}</div>` : ""}${e.fig && FIG[e.fig] ? FIG[e.fig]() : ""}${DEEP.hist ? DEEP.hist(e, DH) : ""}${e.w ? `<p class="w">→ ${TX.w || (APP === "sisa" ? "오늘 뉴스와" : "오늘 기사와")}: ${esc(e.w)}</p>` : ""}</div></div>`; }).join("")}</div>` + (() => { const nx = nextHash(); return nx && !nx.startsWith("#hist") ? `<button class="btn pri go" data-go="${nx}">이어서 하기 ›</button>` : ""; })();
+      return `<div class="ev op${S.ep[e._k] ? " rd" : ""}" id="ep-${i}"><button class="evh" data-ep="${k}"><span class="y">${esc(e.y)}</span><p class="t">${esc(e.t)}</p></button><div class="evb">${"speechSynthesis" in window ? `<button class="ltts" data-ltts aria-label="소리로 듣기">▶ 듣기</button>` : ""}${toon(e)}<div class="b">${fmt(e.b)}</div>${(e.co || []).length ? `<p class="colab">나오는 이름</p><div class="cos">${e.co.map(c => `<span>${esc(c)}</span>`).join("")}</div>` : ""}${e.fig && FIG[e.fig] ? FIG[e.fig]() : ""}${DEEP.hist ? DEEP.hist(e, DH) : ""}${e.w ? `<p class="w">→ ${TX.w || (APP === "sisa" ? "오늘 뉴스와" : "오늘 기사와")}: ${esc(e.w)}</p>` : ""}</div></div>`; }).join("")}</div>` + (() => { const nx = nextHash(); return nx && !nx.startsWith("#hist") ? `<button class="btn pri go" data-go="${nx}">이어서 하기 ›</button>` : ""; })();
   }
   let yd = null;
   function renderYday() {
@@ -271,6 +271,22 @@
   addEventListener("vfm-long", () => { if (/^#(hist|ch)=/.test(location.hash)) paint(true); });   // 긴 글이 뒤늦게 도착하면 열려 있는 역사·코스 화면만 다시 그림
   addEventListener("hashchange", () => { cv = location.hash.startsWith("#ch=") ? cv : null; if (location.hash !== "#review") rv = null; if (location.hash !== "#yday") yd = null; if (location.hash !== "#diag") dg = null; if (location.hash !== "#practice") pr = null; closeSheet(); paint(); });
   tabs.addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) nav("#" + b.dataset.v); });
+  /* 소리로 듣기 (결정: 브리핑·배움 글 듣기) — 카드/사건 글을 한국어 음성으로. 다시 누르면 멈춤 */
+  let ttsOn = null;
+  function ttsStop() { try { speechSynthesis.cancel(); } catch (x) { } if (ttsOn) ttsOn.textContent = "▶ 듣기"; ttsOn = null; }
+  addEventListener("hashchange", ttsStop);
+  document.addEventListener("click", e => {
+    const tb = e.target.closest("[data-ltts]"); if (!tb) return;
+    e.preventDefault(); e.stopPropagation();
+    if (ttsOn === tb) return ttsStop();
+    ttsStop();
+    const box = tb.closest(".lc, .evb"); if (!box) return;
+    const c = box.cloneNode(true); c.querySelectorAll("button, .vfm-ask, svg, .toon, .cos, .colab, figure, .fig").forEach(x => x.remove());
+    const parts = c.innerText.replace(/\s+\n/g, "\n").split(/(?<=[.?!요다])\s+/).filter(x => x.trim());
+    const voice = speechSynthesis.getVoices().find(v => /^ko/i.test(v.lang));
+    ttsOn = tb; tb.textContent = "■ 멈추기";
+    parts.forEach((t, i) => { const u = new SpeechSynthesisUtterance(t); u.lang = "ko-KR"; u.rate = 1.05; if (voice) u.voice = voice; if (i === parts.length - 1) u.onend = () => { if (ttsOn === tb) ttsStop(); }; speechSynthesis.speak(u); });
+  }, true);
   document.addEventListener("click", e => {
     const el = e.target.closest("[data-go],[data-act],[data-term],[data-size],[data-step],[data-dg],[data-cv],[data-cq],[data-rv],[data-tc],[data-ep],[data-pq],[data-addbox],[data-yd],[data-wg]"); if (!el) return; const d = el.dataset;
     if (d.go) { if (d.more) rv = buildReview(6); return nav(d.go); }

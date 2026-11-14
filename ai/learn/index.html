@@ -42,6 +42,6 @@ window.VFM_LEARN.practice = { sub: "오늘 AI 소식 제목 — 새 모델일까
 </script>
 <script>/* Claude(API)가 쓴 깊이 읽기(robot/learn_deep.py) */
 fetch("../../data/ai/deep_long.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.patch && window.VFM_DEEP_ADD) { VFM_DEEP_ADD.course({ patch: j.patch }); dispatchEvent(new Event("vfm-long")); } }).catch(() => {});</script>
-<script src="../../assets/learn.js?v=15"></script>
+<script src="../../assets/learn.js?v=16"></script>
 <script src="../../assets/shell.js"></script>
 </body></html>
