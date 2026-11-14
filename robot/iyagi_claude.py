@@ -99,6 +99,8 @@ def main():
                     got += 1
             except Exception as e:
                 BR.log(f"답을 못 읽음 ({e})")
+                m_ = re.search(r"char (\d+)", str(e))
+                if m_: c = int(m_.group(1)); raw = re.search(r"\{.*\}", res[0], re.S); raw = raw.group(0) if raw else res[0]; BR.log("  ▸ 깨진 곳: " + raw[max(0, c - 160):c + 60].replace("\n", "⏎"))
             doc["at"] = datetime.now(BR.KST).isoformat(timespec="minutes"); doc["items"].sort(key=lambda x: x["id"])
             OUT.parent.mkdir(parents=True, exist_ok=True); BR.wj(OUT, doc)
     BR.log(f"새로 {got}편 · 모두 {len(doc['items'])}편")
