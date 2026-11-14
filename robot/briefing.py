@@ -357,7 +357,13 @@ def any_key():
 def parse_json(txt):
     txt = txt.strip()
     m = re.search(r"\{.*\}", txt, re.S)
-    return json.loads(m.group(0) if m else txt)
+    raw = m.group(0) if m else txt
+    try:
+        return json.loads(raw)
+    except Exception:
+        fix = re.sub(r",\s*([}\]])", r"\1", raw)                                  # 끝에 남은 쉼표
+        fix = re.sub(r"\{\s*\"([^\"]*)\"\s*,\s*\"([^\"]*)\"\s*\}", r'{"t":"\1","b":"\2"}', fix)   # {"t","b"} 꼴
+        return json.loads(fix)
 
 
 def clean(o, ed, li):
