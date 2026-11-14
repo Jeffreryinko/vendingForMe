@@ -1162,7 +1162,8 @@ function warmPhotos(ed){
 }
 function storyItems(s){ return s.items.filter(id => S.byId[id] && !S.fb[s.id+"__"+id]).map(id=>S.byId[id]); }
 const isBrief = s => s.kind === "brief";
-const okStory = s => storyItems(s).length >= (isBrief(s) ? 1 : 2);
+// 스포츠는 줄임(2026-11-14 결정): 5개 나라 넘게 다룬 큰 경기만 남김
+const okStory = s => storyItems(s).length >= (isBrief(s) ? 1 : 2) && (s.cat !== "spo" || issueCountries(s).length >= 5);
 // 사건 제목: 묶은 단어가 아니라, 묶음 안에서 핵심 단어를 가장 많이 담은 기사 제목을 문장으로 사용
 function storyTitle(s, its){
   const kw = s.kw || [];
