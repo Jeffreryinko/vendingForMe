@@ -1,0 +1,45 @@
+name: 뇌 실험·사례 카드 (Claude가 목록을 차례로 씀)
+
+# robot/brain_topics.py 목록(약 490개)을 robot/brain_cases.py 가 하루 두 번 40장씩 써서 data/brain/exp_ai.json 에 쌓음.
+# 다 쓰면 할 일이 없어 바로 끝남. 돈은 Claude 주기 한도·하루 몫을 따름.
+on:
+  schedule:
+    - cron: "10 18 * * *"       # 한국시간 03:10
+    - cron: "10 6 * * *"        # 한국시간 15:10
+  workflow_dispatch:
+    inputs:
+      n:
+        description: "이번에 쓸 장 수 (기본 40)"
+        required: false
+        default: "40"
+
+concurrency:
+  group: data-brain
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  cases:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 카드 쓰기
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MONTHLY_USD: ${{ vars.CLAUDE_MONTHLY_USD }}
+          BRAIN_N: ${{ inputs.n || '40' }}
+        run: python robot/brain_cases.py
+      - name: 저장소에 올리기
+        run: |
+          git config user.name "brain-robot"
+          git config user.email "robot@users.noreply.github.com"
+          git add data/brain data/claude_usage
+          git diff --cached --quiet && echo "변경 없음" && exit 0
+          git commit -m "뇌 사례: $(TZ=Asia/Seoul date '+%m월 %d일 %H시') Claude 카드"
+          for i in 1 2 3; do (git pull --rebase -X theirs --autostash || (git rebase --abort; false)) && git push && break || sleep 10; done
