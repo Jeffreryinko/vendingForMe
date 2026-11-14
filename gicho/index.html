@@ -40,6 +40,8 @@ VFM_DEEP_ADD.build({
 });
 window.VFM_LEARN.termFig = { entropy: "entropy", spectrum: "spectrum", emwave: "spectrum", duality: "slit", superpos: "superpos", uncert: "uncert", entangle: "entangle", stdmodel: "forces", bigbang: "cosmos", dogma: "dogma", neuron: "neuron", classcond: "cond", wmem: "memory", sys12: "sys12", bigfive: "bigfive", argument: "argument", util: "ethics3", paradigm: "paradigm", atom: "atomModels", hypothesis: "method" };
 </script>
-<script src="../assets/learn.js?v=9"></script>
+<script>/* Claude(API)가 쓴 깊이 읽기(robot/learn_deep.py) — 늦게 와도 열려 있는 카드를 다시 그림 */
+fetch("../data/gicho/deep_long.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.patch && window.VFM_DEEP_ADD) { VFM_DEEP_ADD.course({ patch: j.patch }); dispatchEvent(new Event("vfm-long")); } }).catch(() => {});</script>
+<script src="../assets/learn.js?v=15"></script>
 <script src="../assets/shell.js"></script>
 </body></html>
