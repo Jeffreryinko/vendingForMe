@@ -35,9 +35,9 @@ D = ROOT / "data" / "sisa"
 OUT = D / "briefing"
 KST = timezone(timedelta(hours=9))
 CAT = {"war": "전쟁·안보", "pol": "정치·외교", "eco": "경제·시장", "tech": "기술·과학", "dis": "재난·사고", "soc": "사회", "cul": "문화", "etc": "기타"}
-MAX_STORIES = 42          # AI 에게 보여 줄 이슈 수
+MAX_STORIES = 60          # AI 에게 보여 줄 이슈 수
 MAX_HEADS = 9             # 이슈 하나에 보여 줄 기사 제목 수
-MIN_ITEMS, MAX_ITEMS = 8, 20
+MIN_ITEMS, MAX_ITEMS = 8, 28          # 결정: 이슈 20~30개 (화면에 짧은 판 1분 + 더 보기)
 
 
 def log(*a): print(*a, flush=True)
@@ -183,7 +183,7 @@ def build_prompt(ed, by, names, li, prev, label):
     stories = "\n\n".join(story_block(s, by, names) for s in pick_stories(ed))
     learn = "\n".join(f"{k}: " + ", ".join(f"{i}={n}" for i, n in v.items()) for k, v in li.items() if v)
     pv = "\n".join(f"  - {it.get('t', '')}: {it.get('one', '')}" for it in (prev or {}).get("items", [])[:14]) or "  (없음)"
-    return PROMPT.format(label=label, lo=MIN_ITEMS + 4, hi=MAX_ITEMS, prev=pv, learn=learn or "(없음)", buzz=buzz_block() or "(없음)", stories=stories)
+    return PROMPT.format(label=label, lo=20, hi=26, prev=pv, learn=learn or "(없음)", buzz=buzz_block() or "(없음)", stories=stories)
 
 
 # ───────── 무료 AI 부르기 ─────────
