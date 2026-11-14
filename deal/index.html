@@ -494,7 +494,19 @@ async function renderName(n) {
   if (top.length) h += `<p class="sh2">같이 나온 이름<small>함께 넣은 곳·상대 회사</small></p><div>${top.map(([x, c]) => `<button class="nm" data-name="${esc(x)}">${esc(x)} <small>${c}</small></button>`).join("")}</div>`;
   const sc = {}; for (const d of hits) for (const x of (d.sec || []).filter(y => y !== "etc")) sc[x] = (sc[x] || 0) + 1;
   if (Object.keys(sc).length) h += `<p class="note" style="margin-top:8px">주로 나온 분야: ${esc(Object.entries(sc).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([x, c]) => `${SN()[x] || x} ${c}`).join(" · "))}</p>`;
-  h += `<p class="sh2">흐름<small>최근 것 먼저</small></p>` + (hits.length ? hits.slice(0, 40).map(d => card(d, role(d))).join("") : '<p class="note">최근 90일엔 없어요</p>');
+  // 연표: 달마다 묶고, 맨 위에 점 줄(언제 몰렸나)
+  if (hits.length) {
+    const mon = {}; for (const d of hits) (mon[d.date.slice(0, 7)] = mon[d.date.slice(0, 7)] || []).push(d);
+    const days = [...new Set(hits.map(d => d.date))].sort();
+    h += `<p class="sh2">연표<small>${esc(days[0].slice(5).replace("-", "/"))} ~ ${esc(days[days.length - 1].slice(5).replace("-", "/"))} · ${days.length}일에 걸쳐</small></p>`;
+    let n = 0;
+    for (const [m, l] of Object.entries(mon).sort((a, b) => b[0].localeCompare(a[0]))) {
+      if (n >= 40) break;
+      const s2 = sum(l);
+      h += `<p class="flab" style="margin:12px 2px 4px;font-weight:700">${+m.slice(5)}월 · ${l.length}건${s2 ? " · " + won(s2) : ""}</p>` + l.slice(0, 40 - n).map(d => card(d, role(d))).join("");
+      n += l.length;
+    }
+  } else h += '<p class="note">최근 90일엔 없어요</p>';
   return h;
 }
 
@@ -571,7 +583,7 @@ async function renderFollow() {
   let h = head("따라가기", "회사·투자사 이름 한 장: 누가 어디에 넣었고 누구와 같이 나오는지. 넣어 두면 새로 뜰 때 오늘 화면에 알려 줘요");
   h += `<button class="tile" style="width:100%;margin:4px 0 8px" data-go="#firms"><b>🏦 주요 투자사 ${FI ? FI.firms.length + "곳" : ""} ›</b><small>세계·한국 VC·사모펀드·국부펀드 + 한국 VC 전체(전자공시) — 소개·투자 실적·펀드·최근 거래</small></button>`;
   if (!/"deal"/.test(localStorage.getItem("vfm:push:topics") || "")) h += `<p class="s" style="margin:4px 2px 0;color:var(--muted);font-size:13px">🔔 따라가는 이름이 새 거래에 나오면 폰으로 알려 드려요 — 오른쪽 위 ⋯ → 알림 → '따라가는 회사 딜'</p>`;
-  h += `<div class="fol-row"><input class="search" id="fadd" type="search" placeholder="예: 소프트뱅크, a16z, 토스, 엔비디아"><button class="btn pri" data-act="fadd">넣기</button></div>`;
+  h += `<div class="fol-row"><input class="search" id="fadd" type="search" placeholder="예: 소프트뱅크, a16z, 토스, 엔비디아"><button class="btn" data-act="fsee">찾아보기</button><button class="btn pri" data-act="fadd">넣기</button></div>`;
   if (names.length) {
     h += `<h2 class="sec">따라가는 이름<small>최근 30일</small></h2><div class="list">${names.map(n => {
       const hits = pool.filter(d => folHit(d).includes(n)), nw = hits.filter(d => d.date > (S.fol[n].seen || "")).length;
@@ -932,6 +944,7 @@ document.addEventListener("click", async e => {
   if (a === "fdmore") { fdLimit += 120; return paint(); }
   if (a === "kvmore") { kvLimit += 120; return paint(); }
   if (a === "lkw") { const i = document.getElementById("lkw"), v = i && i.value.trim(); if (v && !S.lens.kw.includes(v)) { S.lens.kw.push(v); save("lens"); } return paint(); }
+  if (a === "fsee") { const i = document.getElementById("fadd"), v = i && i.value.trim(); if (v) nav("#name=" + encodeURIComponent(v)); return; }
   if (a === "fadd") { const i = document.getElementById("fadd"); follow(i && i.value, true); return paint(); }
   if (a === "unhide") { S.hide = {}; save("hide"); toast("다시 보여요"); return paint(); }
   if (a === "clearread") { S.read = {}; save("read"); toast("지웠어요"); return paint(); }
