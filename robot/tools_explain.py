@@ -15,7 +15,7 @@ import briefing as BR  # noqa: E402
 
 D = BR.ROOT / "data" / "tools"
 OUT = D / "explain.json"
-MAX = 20
+MAX = 12
 
 PROMPT = """너는 개발자가 아닌 직장인에게 새 AI 도구·오픈소스를 소개하는 한국어 편집자야.
 아래 [항목]마다 쉬운 해요체로 설명을 써 줘. 사실은 주어진 설명·README 에 있는 것만 쓰고, 모르면 "README 에 안 나와요"라고 써. 지어내지 마.
@@ -43,7 +43,7 @@ def readme(owner, repo):
                     t = r.read(60000).decode("utf-8", "ignore")
                 t = re.sub(r"<[^>]+>|!\[[^\]]*\]\([^)]*\)|```.*?```", " ", t, flags=re.S)
                 t = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", t)
-                return re.sub(r"\s+", " ", t).strip()[:2500]
+                return re.sub(r"\s+", " ", t).strip()[:1500]
             except Exception:
                 continue
     return ""
@@ -65,14 +65,16 @@ def main():
     pool.sort(key=lambda x: -(x.get("gain") or x.get("stars") or x.get("score") or 0))
     pool = pool[:MAX]
     if not pool: BR.log("설명할 새 항목이 없어요"); return 0
-    rows = []
+    rd = {}
     for x in pool:
-        extra = ""
         m = re.match(r"https://github\.com/([^/]+)/([^/#?]+)", x.get("url", ""))
-        if m: extra = readme(m.group(1), m.group(2))
-        rows.append(f"id={x['id']} | 이름={x.get('owner', '') + '/' if x.get('owner') else ''}{x.get('title', '')} | 설명={x.get('sum', '')} | 언어={x.get('lang', '')} | 주소={x.get('url', '')}"
-                    + (f"\n  README: {extra}" if extra else ""))
-    prompt = PROMPT.format(rows="\n".join(rows))
+        rd[x["id"]] = readme(m.group(1), m.group(2)) if m else ""
+
+    def make(items, rl):   # Gemini 는 넉넉히, Groq 는 분당 8천 토큰 한도라 작게
+        return PROMPT.format(rows="\n".join(
+            f"id={x['id']} | 이름={x.get('owner', '') + '/' if x.get('owner') else ''}{x.get('title', '')} | 설명={x.get('sum', '')} | 언어={x.get('lang', '')} | 주소={x.get('url', '')}"
+            + (f"\n  README: {rd[x['id']][:rl]}" if rd[x["id"]] else "") for x in items))
+    prompt = make(pool, 1500)
     BR.log(f"설명할 항목 {len(pool)}개 · AI 에게 보낼 글 {len(prompt):,}자")
     if dry: BR.log(prompt[:3000]); return 0
     if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GROQ_API_KEY")):
@@ -80,8 +82,8 @@ def main():
     ids = {x["id"] for x in pool}
     S = lambda v, n: re.sub(r"\s+", " ", str(v or "")).strip()[:n]
     now = datetime.now(BR.KST).isoformat(timespec="minutes")
-    for name, fn in (("Gemini", BR.gemini), ("Groq", BR.groq)):
-        res, err = fn(prompt)
+    for name, fn, pr in (("Gemini", BR.gemini, prompt), ("Groq", BR.groq, make(pool[:4], 500))):
+        res, err = fn(pr)
         if not res: BR.log(f"{name}: {err}"); continue
         try:
             n = 0

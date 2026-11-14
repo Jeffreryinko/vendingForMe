@@ -211,7 +211,7 @@ def gemini(prompt):
         except Exception as e:
             return None, f"모델 목록 실패: {e}"
     err = "쓸 모델 없음"
-    for m in cands:
+    for m in cands + cands[:1]:   # 붐빔(503)이면 잠깐 쉬고 맨 앞 모델로 한 번 더
         try:
             r = http_json(f"{base}/models/{m}:generateContent?key={key}",
                           {"contents": [{"role": "user", "parts": [{"text": prompt}]}],
@@ -221,7 +221,7 @@ def gemini(prompt):
         except urllib.error.HTTPError as e:
             err = f"{m}: HTTP {e.code} {e.read()[:200].decode('utf-8', 'ignore')}"
             log("  Gemini 실패 →", err)
-            if e.code == 429: time.sleep(20)
+            if e.code in (429, 503): time.sleep(20)
         except Exception as e:
             err = f"{m}: {e}"; log("  Gemini 실패 →", err)
     return None, err
