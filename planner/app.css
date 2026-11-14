@@ -468,3 +468,12 @@ details.set > div > .btn { align-self: flex-start; }
 /* 띄어쓰기(줄바꿈): 문단 끝에 한두 글자만 남지 않게, 제목은 줄 길이를 고르게 */
 p, li { text-wrap: pretty; }
 h1, h2, h3 { text-wrap: balance; }
+
+/* 한 달 보기 (돌아보기) */
+.mcal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.mcal .mw{font-size:11.5px;color:var(--muted,#888);text-align:center;padding:2px 0}
+.mc{min-height:64px;display:flex;flex-direction:column;align-items:stretch;gap:2px;padding:5px 4px;border:0;border-radius:10px;background:var(--surface,#fff);box-shadow:inset 0 0 0 .5px var(--line,rgba(0,0,0,.1));text-align:left;font:inherit;color:inherit;cursor:pointer;overflow:hidden}
+.mc b{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.mc.out{opacity:.4}.mc.today{box-shadow:inset 0 0 0 2px var(--accent,#5B6CFF)}.mc.late b{color:#C2410C}
+.mc-due{display:flex;flex-direction:column;gap:1px}.mc-due i{font-style:normal;font-size:10.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:color-mix(in srgb,var(--accent,#5B6CFF) 12%,transparent);border-radius:4px;padding:0 3px}
+.mc-dots{margin-top:auto;display:flex;gap:4px;font-size:10.5px;color:var(--muted,#888)}.mc-dots em{font-style:normal}.mc-dots .b{color:var(--accent,#5B6CFF)}

@@ -1,8 +1,37 @@
 // 돌아보기: 레벨·연속 기록·잔디·주간 시간 배분·회고
 import * as db from './db.js';
 import * as M from './model.js';
-import { h, icon, today, addDays, mondayOf, fmtShort, fmtMD, WD, dow, hoursText, diffDays } from './util.js';
+import { h, icon, today, addDays, mondayOf, fmtShort, fmtMD, WD, dow, hoursText, diffDays, ymd } from './util.js';
 import { ui, isPhone } from './ui.js';
+
+// 한 달 보기: 날마다 마감 남은 일·끝낸 일·잡아 둔 시간 — 칸을 누르면 그날로
+function monthCal(td) {
+  const base = ui.month || td.slice(0, 7);
+  const [y, m] = base.split('-').map(Number), first = `${base}-01`, days = new Date(y, m, 0).getDate();
+  const start = addDays(first, -((dow(first) + 6) % 7));
+  const open = M.tasks().filter(M.isOpen), done = M.tasks().filter(t => t.st === 'done' && t.doneAt);
+  const dueBy = {}, doneBy = {};
+  for (const t of open) if (t.due) (dueBy[t.due] = dueBy[t.due] || []).push(t);
+  for (const t of done) { const d = ymd(new Date(t.doneAt)); doneBy[d] = (doneBy[d] || 0) + 1; }
+  const cells = [];
+  for (let i = 0; i < 42; i++) {
+    const d = addDays(start, i), inM = d.slice(0, 7) === base;
+    if (i >= 35 && !inM) break;
+    const due = dueBy[d] || [], nd = doneBy[d] || 0, nb = M.blocksOn(d).length;
+    cells.push(h('button', { type: 'button', class: 'mc' + (inM ? '' : ' out') + (d === td ? ' today' : '') + (d < td && due.length ? ' late' : ''), onclick: () => ui.go(d), title: `${fmtMD(d)} · 마감 ${due.length} · 끝냄 ${nd} · 시간 ${nb}` },
+      h('b', {}, String(Number(d.slice(8)))),
+      due.length ? h('span', { class: 'mc-due' }, due.slice(0, 2).map(t => h('i', {}, t.title.slice(0, 8)))) : null,
+      h('span', { class: 'mc-dots' }, nd ? h('em', {}, `✓${nd}`) : null, nb ? h('em', { class: 'b' }, `◷${nb}`) : null)));
+  }
+  const mv = k => { const d = new Date(y, m - 1 + k, 1); ui.month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; ui.render(); };
+  return h('section', { class: 'r-sec' },
+    h('div', { class: 'pane-head', style: 'margin-bottom:10px' }, h('h3', { style: 'margin:0' }, `${y}년 ${m}월`),
+      h('div', { class: 'right week-nav' }, h('button', { class: 'icon-btn', type: 'button', 'aria-label': '지난달', onclick: () => mv(-1) }, icon('left', 16)),
+        h('button', { class: 'btn sm', type: 'button', onclick: () => { ui.month = null; ui.render(); } }, '이번 달'),
+        h('button', { class: 'icon-btn', type: 'button', 'aria-label': '다음 달', onclick: () => mv(1) }, icon('right', 16)))),
+    h('div', { class: 'mcal' }, ['월', '화', '수', '목', '금', '토', '일'].map(w => h('span', { class: 'mw' }, w)), cells),
+    h('p', { class: 'sub', style: 'margin-top:8px' }, '칸 안 글씨 = 그날 마감인 일 · ✓ 끝낸 일 · ◷ 잡아 둔 시간. 누르면 그날로 가요.'));
+}
 
 export function renderReview(el) {
   const st = M.stats(), td = today();
@@ -70,6 +99,6 @@ export function renderReview(el) {
     w.notes.length ? h('ul', { class: 'notes' }, w.notes.map(n => h('li', {}, h('time', {}, `${fmtShort(n.date)} (${WD[dow(n.date)]})`), h('span', {}, n.note))))
       : h('p', { class: 'empty' }, '이 주에 남긴 회고가 없어요.'));
 
-  el.replaceChildren(h('div', { class: 'review-wrap' }, level, heat, week, notes));
+  el.replaceChildren(h('div', { class: 'review-wrap' }, level, monthCal(td), heat, week, notes));
   const hm = el.querySelector('.heat'); if (hm) hm.scrollLeft = hm.scrollWidth;
 }
