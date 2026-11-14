@@ -320,7 +320,7 @@
       if (!sub) return;
       var j = sub.toJSON();
       return pushRpc("vfm_push_sub", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_topics: on, p_ua: navigator.userAgent.slice(0, 200) }).then(function () {
-        if (!on.length) return sub.unsubscribe();
+        if (!on.length && !localStorage.getItem("vfm:work:push")) return sub.unsubscribe();   // 현황판 알림이 켜져 있으면 구독은 남겨 둠
         if (on.indexOf("deal") >= 0) pushFollow("force");
         if (first) return pushRpc("vfm_push_test", { p_endpoint: j.endpoint });
       });

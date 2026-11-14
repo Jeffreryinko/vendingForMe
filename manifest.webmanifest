@@ -26,5 +26,18 @@
    "type": "image/png",
    "purpose": "maskable"
   }
+ ],
+ "shortcuts": [
+  {
+   "name": "작업 현황판",
+   "short_name": "현황판",
+   "url": "./work/",
+   "icons": [
+    {
+     "src": "assets/icon-192.png",
+     "sizes": "192x192"
+    }
+   ]
+  }
  ]
 }
