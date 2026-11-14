@@ -42,6 +42,13 @@ jobs:
           BRAIN_PAR: "4"
           CLAUDE_NO_DAILY: ${{ inputs.fast }}
         run: python robot/brain_cases.py
+      - name: 논문 카드 쓰기
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MONTHLY_USD: ${{ vars.CLAUDE_MONTHLY_USD }}
+          PAPER_N: ${{ inputs.n || '40' }}
+          PAPER_FAST: ${{ inputs.fast }}
+        run: python robot/brain_papers.py || echo "논문 카드 실패 — 넘어감"
       - name: 저장소에 올리기
         run: |
           git config user.name "brain-robot"
