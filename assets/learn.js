@@ -225,7 +225,7 @@
     scrollTo(0, y);
   }
   const nav = h => { if (location.hash === h) paint(); else location.hash = h; };
-  addEventListener("vfm-long", () => { if (location.hash.startsWith("#hist=")) paint(true); });   // 긴 글이 뒤늦게 도착하면 열려 있는 역사 화면만 다시 그림
+  addEventListener("vfm-long", () => { if (/^#(hist|ch)=/.test(location.hash)) paint(true); });   // 긴 글이 뒤늦게 도착하면 열려 있는 역사·코스 화면만 다시 그림
   addEventListener("hashchange", () => { cv = location.hash.startsWith("#ch=") ? cv : null; if (location.hash !== "#review") rv = null; if (location.hash !== "#diag") dg = null; if (location.hash !== "#practice") pr = null; closeSheet(); paint(); });
   tabs.addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) nav("#" + b.dataset.v); });
   document.addEventListener("click", e => {

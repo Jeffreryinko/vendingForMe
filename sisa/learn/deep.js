@@ -5,8 +5,8 @@
 
    깊이 읽기(긴 글):       long [[소제목, 글]…]  — deep-long-*.js 에 따로 둠. 숫자·날짜·이름은 위키백과와 대조해 씀
    역사 사건에 덧붙는 칸:  why 왜 일어났나 · flow [[때, 일]] 어떻게 흘러갔나 · who [[이름, 누구]] · num [[숫자, 뜻]] · aft 그 뒤 · mis 헷갈리기 쉬운 점 · tm [낱말 id]
-   낱말에 덧붙는 칸:      d 조금 더 자세히 · ex 실제 예 · mis 헷갈리기 쉬운 점 · hs 어디서 온 말
-   코스 카드에 덧붙는 칸:  ex 예를 들면 · pt [기억할 것]                                                                                         */
+   낱말에 덧붙는 칸:      long 깊이 읽기 · d 조금 더 자세히 · ex 실제 예 · mis 헷갈리기 쉬운 점 · hs 어디서 온 말
+   코스 카드에 덧붙는 칸:  long 깊이 읽기 · ex 예를 들면 · pt [기억할 것]                                                                                         */
 (function () {
   const L = window.VFM_LEARN = window.VFM_LEARN || {};
   const css = `
@@ -34,6 +34,8 @@
 
   const para = (s, H) => String(s).split("\n").map(x => "<p>" + H.esc(x).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>") + "</p>").join("");
   const sec = (title, body, cls = "") => body ? `<div class="${cls}"><h5>${title}</h5>${body}</div>` : "";
+  /* 깊이 읽기(긴 글) 한 덩이: [[소제목, 글]…] → 500자를 1분으로 셈 */
+  const lg = (long, H) => (long || []).length ? `<div class="lg"><h5>깊이 읽기 <small>${Math.max(1, Math.round(long.reduce((n, x) => n + x[1].length, 0) / 500))}분</small></h5>${long.map(x => `<h6>${H.esc(x[0])}</h6>${para(x[1], H)}`).join("")}</div>` : "";
 
   window.VFM_DEEP = {
     hist(e, H) {
@@ -45,18 +47,18 @@
         sec("숫자로 보면", (e.num || []).length ? `<div class="nums">${e.num.map(n => `<div><b>${H.esc(n[0])}</b><span>${H.esc(n[1])}</span></div>`).join("")}</div>` : "") +
         sec("그 뒤", e.aft ? para(e.aft, H) : "") +
         sec("헷갈리기 쉬운 점", e.mis ? para(e.mis, H) : "", "mis") +
-        ((e.long || []).length ? `<div class="lg"><h5>깊이 읽기 <small>${Math.max(1, Math.round(e.long.reduce((n, x) => n + x[1].length, 0) / 500))}분</small></h5>${e.long.map(x => `<h6>${H.esc(x[0])}</h6>${para(x[1], H)}`).join("")}</div>` : "") +
+        lg(e.long, H) +
         ((e.tm || []).length && H.chips(e.tm) ? `<div><h5>함께 볼 낱말</h5><div>${H.chips(e.tm)}</div></div>` : "") + `</div>`;
     },
     term(t, H) {
-      if (!t || !(t.d || t.ex || t.mis || t.hs)) return "";
+      if (!t || !(t.d || t.ex || t.mis || t.hs || t.long)) return "";
       return `<div class="dp">` + sec("조금 더 자세히", t.d ? para(t.d, H) : "") + sec("실제 예", t.ex ? para(t.ex, H) : "", "bx2") +
-        sec("헷갈리기 쉬운 점", t.mis ? para(t.mis, H) : "", "mis") + sec("어디서 온 말", t.hs ? para(t.hs, H) : "") + `</div>`;
+        sec("헷갈리기 쉬운 점", t.mis ? para(t.mis, H) : "", "mis") + sec("어디서 온 말", t.hs ? para(t.hs, H) : "") + lg(t.long, H) + `</div>`;
     },
     card(k, H) {
-      if (!k || !(k.ex || k.pt)) return "";
+      if (!k || !(k.ex || k.pt || k.long)) return "";
       return `<div class="dp">` + sec("예를 들면", k.ex ? para(k.ex, H) : "", "bx2") +
-        sec("기억할 것", (k.pt || []).length ? `<ul class="pt">${k.pt.map(x => `<li>${H.esc(x)}</li>`).join("")}</ul>` : "") + `</div>`;
+        sec("기억할 것", (k.pt || []).length ? `<ul class="pt">${k.pt.map(x => `<li>${H.esc(x)}</li>`).join("")}</ul>` : "") + lg(k.long, H) + `</div>`;
     },
   };
 

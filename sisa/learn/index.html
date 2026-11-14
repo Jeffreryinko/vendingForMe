@@ -23,7 +23,7 @@
 <script src="../../assets/wikithumb.js"></script><script src="../../assets/wikigal.js?v=2"></script><script src="../../assets/learnart.js?v=2"></script>
 <script src="terms.js?v=1"></script><script src="figs.js?v=1"></script><script src="course.js?v=1"></script><script src="history.js?v=4"></script><script src="art.js?v=2"></script>
 <!-- 깊이 더하기: 원래 글은 그대로 두고 '자세히'와 새 사건·낱말·장을 덧붙임 (deep.js 가 도구, deep-*.js 가 글) -->
-<script src="deep.js?v=3"></script><script src="deep-history-1.js?v=1"></script><script src="deep-history-2.js?v=1"></script><script src="deep-history-3.js?v=1"></script><script src="deep-history-4.js?v=1"></script><script src="deep-history-5.js?v=1"></script><script src="deep-history-6.js?v=1"></script><script src="deep-history-7.js?v=1"></script>
+<script src="deep.js?v=4"></script><script src="deep-history-1.js?v=1"></script><script src="deep-history-2.js?v=1"></script><script src="deep-history-3.js?v=1"></script><script src="deep-history-4.js?v=1"></script><script src="deep-history-5.js?v=1"></script><script src="deep-history-6.js?v=1"></script><script src="deep-history-7.js?v=1"></script>
 <script src="deep-terms-1.js?v=1"></script><script src="deep-terms-2.js?v=1"></script>
 <script src="deep-course-1.js?v=1"></script><script src="deep-course-2.js?v=1"></script>
 <script src="deep-nation-1.js?v=1"></script><script src="deep-nation-2.js?v=1"></script><script src="deep-nation-3.js?v=1"></script><script src="deep-nation-4.js?v=1"></script>
@@ -35,10 +35,13 @@ window.VFM_LEARN.termFig = { editorial: "newsTypes", wire: "newsPath", poll: "po
 <!-- 깊이 읽기(긴 글 26묶음, 약 850KB)는 첫 화면을 그린 뒤에 받아 와요. 다 오면 열려 있는 역사 화면만 다시 그려요. -->
 <script>
 (function () {
-  var N = 26, left = N;
+  /* 묶음 이름 → 개수.  long = 역사, tlong = 낱말, clong = 코스 카드 */
+  var SETS = { long: 26, tlong: 1, clong: 0 }, files = [], left;
+  for (var k in SETS) for (var i = 1; i <= SETS[k]; i++) files.push("deep-" + k + "-" + i + ".js?v=1");
+  left = files.length;
   function done() { if (--left === 0) dispatchEvent(new Event("vfm-long")); }
-  function go() { for (var i = 1; i <= N; i++) { var s = document.createElement("script"); s.src = "deep-long-" + i + ".js?v=1"; s.async = true; s.onload = s.onerror = done; document.body.appendChild(s); } }
-  if (location.hash.indexOf("#hist=") === 0) go(); else (window.requestIdleCallback || function (f) { setTimeout(f, 300); })(go);
+  function go() { files.forEach(function (f) { var s = document.createElement("script"); s.src = f; s.async = true; s.onload = s.onerror = done; document.body.appendChild(s); }); }
+  if (/^#(hist|ch)=/.test(location.hash)) go(); else (window.requestIdleCallback || function (f) { setTimeout(f, 300); })(go);
 })();
 </script>
 <script src="../../assets/shell.js"></script>
