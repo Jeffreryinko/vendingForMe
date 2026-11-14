@@ -326,6 +326,25 @@ function renderDay() {
       top.length ? h('button', { class: 'link', type: 'button', style: 'margin-left:auto;font-size:13px', onclick: () => openTopPicker(date) }, '바꾸기') : null),
     slots);
 
+  // 아침 3분: 오늘 핵심이 비어 있으면 후보 3개를 골라 한 번에 정하게 / 저녁: 마감 안 했으면 마감하자고
+  const hr = new Date().getHours(), skip = (lsGet('planner:ritual') || '') === date;
+  let ritual = null;
+  if (isToday && !skip && !top.length && hr < 13) {
+    const pr = t => (t.due && t.due <= date ? 0 : t.due && t.due <= addDays(date, 2) ? 1 : 2) * 10 + ({ 1: 0, 6: 1, 3: 2, 5: 3, 4: 4, 2: 5 }[t.cat] ?? 6);
+    const cand = M.tasks().filter(M.isOpen).sort((x, y) => pr(x) - pr(y) || (x.at || 0) - (y.at || 0)).slice(0, 3);
+    if (cand.length) ritual = h('div', { class: 'ritual' },
+      h('p', { class: 'r-k' }, '☀️ 아침 3분'), h('p', { class: 'r-t' }, '오늘 이것만 끝내면 성공이에요'),
+      h('ol', {}, cand.map(t => h('li', {}, t.title, t.due ? h('span', { class: 'chip ' + dueInfo(t.due).cls }, dueInfo(t.due).text) : null))),
+      h('div', { class: 'r-acts' },
+        h('button', { class: 'btn primary', type: 'button', onclick: () => { cand.forEach(t => M.toggleTop(date, t.id)); toast('오늘의 핵심 3을 정했어요. 하나씩 끝내 봐요'); } }, '이대로 정하기'),
+        h('button', { class: 'btn', type: 'button', onclick: () => openTopPicker(date) }, '직접 고르기'),
+        h('button', { class: 'link', type: 'button', onclick: () => { lsSet('planner:ritual', date); render(); } }, '오늘은 넘기기')));
+  } else if (isToday && !d.closedAt && hr >= 18) {
+    ritual = h('div', { class: 'ritual eve' },
+      h('p', { class: 'r-k' }, '🌙 하루 마감'), h('p', { class: 'r-t' }, top.length ? `핵심 ${p.topDone}/${top.length} — 오늘을 한 줄로 남기고 도장 찍어요` : '오늘을 한 줄로 남기고 도장 찍어요'),
+      h('div', { class: 'r-acts' }, h('button', { class: 'btn primary', type: 'button', onclick: () => openCloseDay(date) }, '마감하기')));
+  }
+
   const dueSoon = isToday ? M.tasks().filter(t => M.isOpen(t) && t.due && t.due <= date && !M.blocksOn(date).some(b => b.taskId === t.id)).slice(0, 6) : [];
   const strips = [
     dueSoon.length ? h('div', { class: 'strip' }, h('b', {}, '마감 임박'), dueSoon.map(t => h('button', { type: 'button', class: 'chip ' + dueInfo(t.due).cls, title: '눌러서 시간 붙이기', onclick: () => openBlock(null, placePreset(t)) }, t.title))) : null,
@@ -339,7 +358,7 @@ function renderDay() {
     h('span', { class: 'grow' }),
     d.closedAt ? null : h('button', { class: 'btn seal', type: 'button', onclick: () => openCloseDay(date) }, '하루 마감'));
 
-  el.replaceChildren(...[head, top3, ...strips, d.note && d.closedAt ? h('p', { class: 'note-view' }, d.note) : null, acts, renderTimeline(date, gev)].filter(Boolean));
+  el.replaceChildren(...[head, ritual, top3, ...strips, d.note && d.closedAt ? h('p', { class: 'note-view' }, d.note) : null, acts, renderTimeline(date, gev)].filter(Boolean));
   el.scrollTop = scroll;
 }
 

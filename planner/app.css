@@ -477,3 +477,10 @@ h1, h2, h3 { text-wrap: balance; }
 .mc.out{opacity:.4}.mc.today{box-shadow:inset 0 0 0 2px var(--accent,#5B6CFF)}.mc.late b{color:#C2410C}
 .mc-due{display:flex;flex-direction:column;gap:1px}.mc-due i{font-style:normal;font-size:10.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:color-mix(in srgb,var(--accent,#5B6CFF) 12%,transparent);border-radius:4px;padding:0 3px}
 .mc-dots{margin-top:auto;display:flex;gap:4px;font-size:10.5px;color:var(--muted,#888)}.mc-dots em{font-style:normal}.mc-dots .b{color:var(--accent,#5B6CFF)}
+
+/* 아침 3분 · 하루 마감 띠 */
+.ritual{margin:12px 0;padding:14px 16px;border-radius:16px;background:linear-gradient(135deg,color-mix(in srgb,#FFB020 16%,var(--surface,#fff)),var(--surface,#fff));box-shadow:inset 0 0 0 .5px var(--line,rgba(0,0,0,.1))}
+.ritual.eve{background:linear-gradient(135deg,color-mix(in srgb,#5B6CFF 16%,var(--surface,#fff)),var(--surface,#fff))}
+.ritual .r-k{margin:0;font-size:12.5px;font-weight:700;color:var(--muted,#888)}.ritual .r-t{margin:2px 0 8px;font-size:16px;font-weight:700;letter-spacing:-.01em}
+.ritual ol{margin:0 0 10px;padding-left:20px;display:grid;gap:4px;font-size:14.5px}.ritual ol .chip{margin-left:6px}
+.ritual .r-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
