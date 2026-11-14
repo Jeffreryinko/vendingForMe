@@ -18,6 +18,7 @@
   FEED_H 72   이보다 오래된(발행 시각 기준) 글은 판에 안 실음
   이슈의 핵심어(core)는 처음 정해지면 고정 — 글이 붙어도 늘리지 않음 (블랙홀 막기)
   새 글이 붙으려면: 핵심어와 2개 이상 겹치고 + (이름 사전의 고유명사가 끼어 있거나, 겹친 낱말이 충분히 드물어야)
+  나라·수도·큰 도시 이름(PLACE0)은 고유명사 근거가 못 되고, 겹친 낱말이 그것뿐이면 못 붙음 (CORE_V 2, 11/15)
   한 이슈는 전체 글의 CAP_RATE(8%)·최소 CAP_MIN(60)개까지 — 넘으면 최신 글만
 """
 from __future__ import annotations
@@ -94,6 +95,21 @@ def proper_names():
     return _PROPER
 
 
+# 나라·도시 이름 — 같은 나라 소식이라고 같은 사건은 아님 (11/15 '델리 금값'·'중국 블로거'가 '방글라데시 대사관 여권' 이슈에 붙던 것 막기)
+# 아래 목록(나라·수도·큰 도시)만 — '크라쿠프'처럼 드문 도시는 그대로 좋은 근거. 묶을 때 '고유명사 근거'로 안 치고, 겹친 낱말이 장소뿐이면 못 붙음
+PLACE0 = set("""미국 중국 러시아 일본 영국 프랑스 독일 한국 북한 이란 이스라엘 우크라이나 유럽 대만 브라질 멕시코 스페인 인도네시아 인도 파키스탄 방글라데시
+스리랑카 네팔 베트남 태국 필리핀 말레이시아 싱가포르 미얀마 캄보디아 몽골 호주 뉴질랜드 캐나다 아르헨티나 칠레 콜롬비아 페루 베네수엘라 쿠바
+이집트 튀르키예 터키 사우디 사우디아라비아 이라크 시리아 레바논 요르단 카타르 예멘 아프가니스탄 나이지리아 케냐 남아공 에티오피아 수단 리비아 알제리 모로코
+이탈리아 폴란드 네덜란드 벨기에 스위스 오스트리아 스웨덴 노르웨이 덴마크 핀란드 그리스 포르투갈 헝가리 체코 루마니아 세르비아 아일랜드 벨라루스 조지아
+아시아 아프리카 중동 남미 북미 남아시아 동남아 동남아시아 서방 팔레스타인 가자 서울 도쿄 베이징 상하이 홍콩 모스크바 키이우 워싱턴 뉴욕 런던 파리 베를린
+델리 뉴델리 뭄바이 다카 카라치 이슬라마바드 라호르 콜카타 첸나이 벵갈루루 하노이 방콕 마닐라 자카르타 테헤란 바그다드 카이로 두바이 리야드 예루살렘 텔아비브
+시드니 토론토 로마 마드리드 바르셀로나 브뤼셀 제네바 이스탄불 앙카라 부산 인천 오사카 평양 치타공""".split())
+def places():
+    return PLACE0
+
+
+CORE_V = 2           # 묶음 규칙 판 — 바뀌면 모든 이슈의 글을 한 번 다시 검사
+
 # 어느 사건에나 나오는 말 — 핵심어로 안 씀 (이것만 겹쳐서 '스페인 폭발'이 '튀르키예 폭발'에 붙던 것 막기)
 WEAK = set(("발생 발생한 발생해 수가 증가 감소 이후 관련 위해 대한 통해 지난 오늘 현지 당국 사건 소식 결과 상황 문제 가능성 예정 계획 최근 이번 처음 다시 이상 이하 사람들 사람 지역 국가 정부 "
              "이는 그가 그는 그의 그를 그녀가 그녀는 그녀의 그들은 그들이 그들의 그것은 그것이 이것은 이것이 이를 이에 이로 이와 자신의 자신이 자신을 우리는 우리가 "
@@ -106,6 +122,7 @@ def tighten(ids, items, title_of, tokens, GENERIC, proper):
     두 글이 '단단히 이어짐' = 흔하지 않은 낱말 2개 이상 겹치거나, 고유명사 1개가 겹침.
     가장 큰 무리만 남기고 나머지(예: '입장 표명'만 겹친 다른 사건 기사)는 뺌."""
     tk = {i: {t for t in tokens(title_of(items[i]) or "") if core_ok(t, GENERIC)} for i in ids if i in items}
+    PL = places(); proper = proper - PL
     blind = [i for i in tk if not tk[i]]                      # 아직 번역 안 돼 낱말이 없는 글은 판단 못 함 → 그대로 둠
     ids = [i for i in tk if tk[i]]; par = {i: i for i in ids}
     def root(x):
@@ -114,7 +131,7 @@ def tighten(ids, items, title_of, tokens, GENERIC, proper):
     for a in range(len(ids)):
         for b in range(a + 1, len(ids)):
             ov = tk[ids[a]] & tk[ids[b]]
-            if len(ov) >= 2 or (ov & proper): par[root(ids[a])] = root(ids[b])
+            if (len(ov) >= 2 and ov - PL) or (ov & proper): par[root(ids[a])] = root(ids[b])
     grp = {}
     for i in ids: grp.setdefault(root(i), []).append(i)
     best = max(grp.values(), key=len) if grp else []
@@ -141,6 +158,7 @@ def carry(prev_stories, items, prev_items, ed, tokens, GENERIC, title_of, ctry, 
     """이전 판 이슈를 새 판으로 이어받음.
     돌려주는 것: (이어받은 이슈 목록, 피드에서 밀려났지만 남겨 둘 글 {언어: [글]}, 끝난 이슈 목록, 쓴 글 id 모음)"""
     now = now_of(ed); proper = proper_names() if proper is None else proper
+    PL = places(); proper = proper - PL                     # 나라·도시는 고유명사 근거가 못 됨
     tk = {}
     def toks(it):
         i = it["id"]
@@ -155,6 +173,7 @@ def carry(prev_stories, items, prev_items, ed, tokens, GENERIC, title_of, ctry, 
     one = math.log(1 / ONE_RARE)
     def fit(it, core, need=2):
         ov = toks(it) & core
+        if not ov - PL: return False                         # 겹친 게 나라·도시 이름뿐이면 다른 사건
         if len(ov) == 1 and need <= 2:                       # 낱말 하나만 겹쳐도: 이름 사전의 고유명사이고 아주 드물면(전체 글의 1% 아래) 같은 사건으로 봄 (예: 아이젠코트)
             t = next(iter(ov)); return t in proper and idf(t) >= one
         if len(ov) < need: return False
@@ -165,7 +184,7 @@ def carry(prev_stories, items, prev_items, ed, tokens, GENERIC, title_of, ctry, 
     order = sorted([x for x in prev_stories if x.get("method") in ("ai-v1", "auto-v1")], key=lambda s: len(s.get("items") or []))   # 작은 이슈부터 (큰 이슈가 다 가져가지 않게)
     for s in order:
         brief = s.get("kind") == "brief"
-        first_time = not s.get("core")                       # 새 규칙을 처음 적용받는 이슈 → 지금 있는 글도 전부 다시 검사 (블랙홀 청소)
+        first_time = not s.get("core") or s.get("cv") != CORE_V                     # 새 규칙을 처음 적용받는 이슈 → 지금 있는 글도 전부 다시 검사 (블랙홀 청소)
         core = core_of(s, tokens, GENERIC)
         keep = []
         for i in s.get("items") or []:
@@ -178,7 +197,7 @@ def carry(prev_stories, items, prev_items, ed, tokens, GENERIC, title_of, ctry, 
             t = toks(it)
             if t and core and not brief:                     # 번역이 없는 글(낱말 없음)은 판단할 수 없어 그대로 둠
                 if first_time and not fit(it, core): continue
-                if not first_time and not (t & core): continue
+                if not first_time and not (t & core) - PL: continue
             if back:
                 carried.setdefault(it.get("_lang", ""), []).append({k: v for k, v in it.items() if k != "_lang"}); items[i] = it
             keep.append(i)
@@ -193,7 +212,7 @@ def carry(prev_stories, items, prev_items, ed, tokens, GENERIC, title_of, ctry, 
             ended.append({"title": s.get("title") or s.get("label") or "", "born": s.get("born") or "", "cat": s.get("cat") or "", "kind": s.get("kind") or ""})
             continue
         used |= set(ids)
-        s2 = dict(s); s2["items"] = ids; s2["core"] = sorted(core)
+        s2 = dict(s); s2["items"] = ids; s2["core"] = sorted(core); s2["cv"] = CORE_V
         s2["countries"] = sorted({ctry(items[i]) for i in ids}); s2["langs"] = sorted({items[i].get("_lang", "") for i in ids})
         if brief and len(ids) >= 2:
             s2["kind"] = "global" if len(s2["countries"]) >= 2 else "local"
