@@ -3,8 +3,7 @@ name: 책 깊이 소개 (Claude)
 # vfm-story 의 많이 추천된 책 순서로 깊이 소개를 써서 data/book/deep_ai.json 에 쌓음.
 # 다 쓰면 할 일이 없어 바로 끝남. 돈은 Claude 주기 한도·하루 몫을 따름.
 on:
-  schedule:
-    - cron: "20 19 * * 0"       # 한국시간 월요일 04:20 (새로 순위에 든 책)
+  # 정해진 시각 실행은 끔(11/15) — 한꺼번에 쓰는 글은 작업 시간에 구독으로 직접 씀. 필요하면 Actions 에서 손으로 실행
   workflow_dispatch:
     inputs:
       n:

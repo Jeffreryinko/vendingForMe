@@ -2,8 +2,7 @@ name: 배움 깊이 읽기 (Claude가 코스 카드를 5배로)
 
 # robot/learn_deep.py — 아직 긴 글이 없는 코스 카드에 '깊이 읽기'를 써서 data/<앱>/deep_long.json 에 쌓음.
 on:
-  schedule:
-    - cron: "40 19 * * *"       # 한국시간 04:40 (남은 카드가 있으면 하루 몫 안에서 이어 씀)
+  # 정해진 시각 실행은 끔(11/15) — 한꺼번에 쓰는 글은 작업 시간에 구독으로 직접 씀. 필요하면 Actions 에서 손으로 실행
   workflow_dispatch:
     inputs:
       app:
