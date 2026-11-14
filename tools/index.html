@@ -103,7 +103,7 @@ const isYT = p => p.sec === "yt" || p.sec === "ye";
 
 /* ───── 자료 ───── */
 async function loadAll() {
-  [S.idx, S.now] = await Promise.all([getJ("_index.json"), getJ("now.json")]);
+  [S.idx, S.now, S.ex] = await Promise.all([getJ("_index.json"), getJ("now.json"), getJ("explain.json").catch(() => ({}))]);
   S.byId = {};
   for (const [k, lst] of Object.entries(S.now.sec || {})) for (const p of lst) { p.sec = p.sec || k; S.byId[p.id] = p; }
   S.catName = Object.fromEntries((S.idx.cats || []).map(c => [c[0], c[1]]));
@@ -163,11 +163,16 @@ function deckCard(p) {
     <h2 class="vdk-t">${p.sec === "gh" ? `<span>${esc(p.title)}</span>` : esc(ko || p.title)}</h2>${ko ? `<p class="vdk-note" style="margin:-6px 0 10px">${esc(p.title)}</p>` : ""}
     <div class="meta">${metaOf(p).map(x => `<span>${x}</span>`).join("")}${p.ch && !isYT(p) ? `<span>${esc(p.ch)}</span>` : ""}</div>
     ${p.cm && window.vfm && vfm.ytComments ? vfm.ytComments(p.cm) : ""}
-    ${sum ? `<p class="vdk-h">${isYT(p) ? "영상 설명" : p.sec === "gn" ? "요약" : "무엇인가"}</p><p class="vdk-p">${esc(sum.length > 420 ? sum.slice(0, 420) + "…" : sum).replace(/ · /g, "<br>· ")}</p>` : ""}
+    ${exHtml(p)}${sum && !(S.ex || {})[p.id] ? `<p class="vdk-h">${isYT(p) ? "영상 설명" : p.sec === "gn" ? "요약" : "무엇인가"}</p><p class="vdk-p">${esc(sum.length > 420 ? sum.slice(0, 420) + "…" : sum).replace(/ · /g, "<br>· ")}</p>` : ""}
     ${(p.cats || []).filter(c => c !== "etc").length ? `<p class="vdk-note">분류: ${(p.cats || []).filter(c => c !== "etc").map(c => esc(S.catName[c] || c)).join(" · ")}</p>` : ""}
     <a class="vdk-more" href="${esc(p.url)}" target="_blank" rel="noopener">${OPEN_LBL(p)}</a>
     ${p.disc && p.disc !== p.url ? `<a class="vdk-more" href="${esc(p.disc)}" target="_blank" rel="noopener">댓글 토론 보기 ↗</a>` : ""}
     <button type="button" class="vdk-more" data-open="${esc(p.id)}">자세히 · 별표 · 메모 ›</button></div>`;
+}
+// 로봇(robot/tools_explain.py)이 붙인 자세한 설명: 무엇인가 · 누구에게 · 써 보는 법 · 조심할 점
+function exHtml(p) {
+  const x = (S.ex || {})[p.id]; if (!x) return "";
+  return [["무엇인가", x.what], ["누구에게 쓸모", x.who], ["써 보는 법", x.how], ["조심할 점", x.care]].filter(r => r[1]).map(r => `<p class="vdk-h">${r[0]}</p><p class="vdk-p">${esc(r[1])}</p>`).join("") + `<p class="vdk-note">설명: README·소개글을 보고 무료 AI가 정리 — 틀릴 수 있어요</p>`;
 }
 function deckItems(lst) { return lst.map(p => ({ key: p.id, sa: "tools", title: p.ko || p.title, url: p.url, shareText: (p.ko || p.title) + "\n" + p.url, html: () => deckCard(p), p })); }
 // 오늘 넘겨보기: 지금 뜨는 것 먼저, 그다음 출처를 돌아가며 한 장씩 (한 곳 것만 몰리지 않게)
@@ -294,6 +299,7 @@ function openItem(id) {
   const mine = S.memo[id] || "";
   let body = "";
   if (p.vid) body += `<iframe class="vid${p.kind === "쇼츠" ? " short" : ""}" src="https://www.youtube.com/embed/${esc(p.vid)}" allow="encrypted-media;picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
+  body += exHtml(p);
   if (sum) body += `<div class="body"><p>${esc(sum).replace(/ · /g, "</p><p>")}</p>${p.ksum && p.sum && p.ksum !== p.sum ? `<p class="orig" style="margin-top:8px">원문: ${esc(p.sum)}</p>` : ""}</div>`;
   if (p.topics && p.topics.length) body += `<p class="note">${p.topics.map(t => "#" + esc(t)).join(" ")}</p>`;
   const acts = [`<a class="btn pri" href="${esc(p.url)}" target="_blank" rel="noopener">${OPEN_LBL(p)}</a>`];

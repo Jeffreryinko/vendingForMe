@@ -83,6 +83,13 @@ jobs:
           REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
           TOOLS_MAX_MINUTES: "40"
         run: python robot/tools_run.py ${{ inputs.no_translate == 'yes' && '--no-translate' || '' }}
+      - name: 도구 자세한 설명 (무료 AI)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          GROQ_MODEL: ${{ vars.GROQ_MODEL }}
+        run: python robot/tools_explain.py || echo "설명 실패 — 넘어감"
       - name: 저장소에 올리기
         run: |
           git config user.name "tools-robot"
