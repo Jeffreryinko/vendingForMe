@@ -4,7 +4,7 @@
 - 주소: https://jeffreryinko.github.io/vendingForMe/
 - 다른 자판기: [이야기 자판기](https://jeffreryinko.github.io/vfm-story/) (이야기·역사·뇌) · [사람 자판기](https://jeffreryinko.github.io/vfm-mind/) (배댓·맨탈)
 - 같은 주소(jeffreryinko.github.io)라서 폰에 저장된 별표·메모·보관함은 세 사이트가 함께 써요.
-- [작업 현황판](https://jeffreryinko.github.io/vendingForMe/work/) — `work/`. 여러 채팅이 일을 끝내거나 답이 필요할 때 Supabase `public.work_post(채팅이름, 상태, 한 줄, 자세히, 링크)` 로 한 줄씩 남기면 채팅별로 모아 보고 폰 알림(상태: 진행·완료·막힘·질문, 진행은 알림 없음). 허용된 구글 계정만 읽음(`think_is_owner`).
+- 작업 현황판은 [work-board 저장소](https://github.com/Jeffreryinko/work-board)로 옮김 (`work/`는 새 주소로 넘겨 주기만 함).
 - [매일 업무 플래너](https://jeffreryinko.github.io/vendingForMe/planner/) — `planner/` 폴더. 자판기와는 따로 도는 개인 플래너(설명은 [planner/README.md](planner/README.md)). 로그인만 함께 써요.
 
 | 로봇 | 무엇 | 언제 |
