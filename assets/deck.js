@@ -6,6 +6,7 @@
  *    화면 너비의 30%(최소 100px) 넘게 밀거나, 80px 넘게 빠르게 밀었을 때 넘어감.
  *  · 외국어 글은 카드가 보일 때 자동으로 한국어로 번역(구글 번역 무료 주소, 폰에 기억). '원문 보기'로 되돌림.
  *    화면 가장자리 28px 안에서 시작한 손가락은 폰 뒤로가기 제스처라서 무시.
+ *  · 카드 끝(카드 아래쪽이 화면에 보일 때)에서 위로 세게 쓸어 올리면 다음 카드. 천천히 올리면 그냥 스크롤.
  *  · 카드마다 좋아요(♡)·공유 — 좋아요는 "vfm:likes" 하나에 모든 앱 것을 같이 저장.
  *
  * 앱 쪽 사용법:
@@ -217,7 +218,7 @@
     return '<div class="vdk-card" data-vdk-card="' + esc(this.id) + '">' + body +
       bar(this.sa(k), k, { title: it.title, url: it.url, hash: it.hash, text: it.shareText, kw: it.kw }) +
       '<div class="vdk-nav"><button type="button" data-vdk-act="prev" data-vdk="' + esc(this.id) + '" ' + (this.pos <= 0 ? "disabled" : "") + ' aria-label="이전 카드">‹</button>' +
-      '<span class="vdk-left">' + (left ? "안 본 카드 " + left + "장 남음" : "마지막 카드") + '<small>옆으로 밀면 다음</small></span>' +
+      '<span class="vdk-left">' + (left ? "안 본 카드 " + left + "장 남음" : "마지막 카드") + '<small>옆으로 밀거나 끝에서 위로 세게 밀면 다음</small></span>' +
       '<button type="button" data-vdk-act="next" data-vdk="' + esc(this.id) + '" aria-label="다음 카드">›</button></div></div>';
   };
   Deck.prototype.html = function () {
@@ -270,7 +271,8 @@
     for (var n = e.target; n && n !== card; n = n.parentElement) {
       if (n.scrollWidth > n.clientWidth + 2) { var ox = getComputedStyle(n).overflowX; if (ox === "auto" || ox === "scroll") return; }
     }
-    g = { card: card, id: card.getAttribute("data-vdk-card"), x0: x, y0: e.touches[0].clientY, t0: Date.now(), dx: 0, lock: null, lastX: x, lastT: Date.now(), v: 0 };
+    var endAt = card.getBoundingClientRect().bottom <= window.innerHeight + 40;   // 카드 끝이 보이는 상태에서 시작했나
+    g = { card: card, id: card.getAttribute("data-vdk-card"), x0: x, y0: e.touches[0].clientY, t0: Date.now(), dx: 0, dy: 0, lock: null, lastX: x, lastT: Date.now(), v: 0, endAt: endAt };
   }, { passive: true });
   document.addEventListener("touchmove", function (e) {
     if (!g) return;
@@ -281,7 +283,10 @@
       if (Math.abs(dx) < 16 && Math.abs(dy) < 16) return;
       if (g.lock === null) g.lock = Math.abs(dx) > Math.abs(dy) * 1.1 ? "h" : "v";
       else if (Date.now() - g.t0 < 350 && Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.5) g.lock = "h";
-      if (g.lock === "v") { if (Date.now() - g.t0 > 350) g = null; return; }   // 세로 = 그냥 스크롤
+      if (g.lock === "v") {                                                 // 세로 = 그냥 스크롤
+        if (g.endAt) { g.dy = dy; return; }                                 // 카드 끝: 위로 세게 올리는지 끝까지 지켜봄
+        if (Date.now() - g.t0 > 350) g = null; return;
+      }
     }
     if (e.cancelable) e.preventDefault();                                   // 옆으로 미는 동안 화면이 위아래로 흔들리지 않게
     var now = Date.now(); if (now > g.lastT) { g.v = (x - g.lastX) / (now - g.lastT); g.lastX = x; g.lastT = now; }
@@ -293,6 +298,16 @@
   document.addEventListener("touchcancel", function () { if (g) settle(g.card); g = null; }, { passive: true });
   document.addEventListener("touchend", function () {
     if (!g) return; var s = g; g = null;
+    if (s.lock === "v" && s.endAt) {
+      // 카드 끝에서 위로 세게: 110px 넘게, 빠르게(0.7px/ms 이상) 쓸어 올리면 다음 카드
+      var dt = Math.max(1, Date.now() - s.t0), sp = -s.dy / dt, dv = decks[s.id];
+      if (dv && s.dy <= -110 && sp >= 0.7) {
+        s.card.style.transition = "transform .16s ease-in, opacity .16s";
+        s.card.style.transform = "translateY(-60px)"; s.card.style.opacity = "0";
+        setTimeout(function () { dv.step(1); }, 150);
+      }
+      return;
+    }
     if (s.lock !== "h") return;
     // 중간 감도: 화면 너비의 30%(최소 100px) 넘게 밀거나, 80px 넘게 '쓱' 빠르게 밀면 넘어감
     var W = window.innerWidth, need = Math.max(100, W * 0.3);
