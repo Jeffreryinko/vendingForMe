@@ -34,12 +34,16 @@ PROMPT = """너는 한국어 'AI 브리핑' 편집자야. 아래 [소식 목록]
 - one: 한두 문장. 무엇이 나왔나.
 - why: 1~2문장. 왜 중요한가.
 - how: 1~2문장. 나는 어떻게 써 보나 (어디서 켜나, 누가 쓸 수 있나, 값). 써 볼 게 없으면 빈 글자.
+- bg: 이 소식을 이해하는 데 도움이 될 배움 글을 [배움 글 목록]에서 0~3개. [{{"k":"term|hist|ch","id":"목록에 있는 번호"}}]. 목록에 없는 번호는 쓰지 마.
 
 그리고 lead: 오늘 AI 소식의 줄기를 2~3문장으로 (lead 도 꼭 해요체, "~했습니다" 쓰지 마).
 답은 JSON 하나만: {{"lead":"…","items":[…]}}
 
 [소식 목록]  (번호 | 출처 | 제목 | 요약)
 {rows}
+
+[배움 글 목록]  (k:id=이름)
+{learn}
 """
 
 
@@ -58,7 +62,10 @@ def main():
     rows = [f"{x['id']} | {x['src']} | {S(x['t'], 120)} | {S(x['s'], 220)}" for x in pool]
     t = datetime.now(BR.KST)
     label = f"{t.month}월 {t.day}일 AI 브리핑"
-    prompt = PROMPT.format(label=label, lo=6, hi=10, rows="\n".join(rows))
+    li = BR.rj(D / "learn_index.json", {}) or {}
+    li = {k: li.get(k, {}) for k in ("term", "hist", "ch")}
+    learn = "\n".join(f"{k}: " + ", ".join(f"{i}={n}" for i, n in v.items()) for k, v in li.items() if v)
+    prompt = PROMPT.format(label=label, lo=6, hi=10, rows="\n".join(rows), learn=learn or "(없음)")
     BR.log(f"AI 소식 {len(rows)}건 · AI 에게 보낼 글 {len(prompt):,}자")
     if dry: BR.log(prompt[:2500]); return 0
     if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GROQ_API_KEY")):
@@ -76,7 +83,9 @@ def main():
                 used.update(ii)
                 items.append({"ids": ii, "kind": it.get("kind") if it.get("kind") in KINDS else "etc", "who": S(it.get("who"), 40),
                               "t": S(it.get("t"), 60), "one": S(it.get("one"), 260), "why": S(it.get("why"), 260), "how": S(it.get("how"), 260),
-                              "links": [[by[i]["src"], by[i]["url"]] for i in ii if by[i]["url"]][:3]})
+                              "links": [[by[i]["src"], by[i]["url"]] for i in ii if by[i]["url"]][:3],
+                              "bg": [{"k": b["k"], "id": b["id"], "t": li[b["k"]][b["id"]]} for b in (it.get("bg") or [])[:3]
+                                     if isinstance(b, dict) and b.get("k") in li and b.get("id") in li[b["k"]]]})
             if len(items) >= 4 and o.get("lead"):
                 out = ({"lead": S(o["lead"], 420), "items": items[:10]}, res[1]); break
             BR.log(f"{name}: 쓸 만한 소식이 {len(items)}건뿐")

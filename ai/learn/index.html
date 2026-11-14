@@ -1,0 +1,44 @@
+<!doctype html><html lang="ko" class="ap ap-ai"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>window.VFM_APP="ai";window.VFM_ROOT="../../";</script>
+<link rel="manifest" href="../../manifest.webmanifest"><meta name="theme-color" content="#F2F2F7"><link rel="apple-touch-icon" href="../../assets/icon-192.png">
+<title>AI 교실 — AI 자판기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../../assets/apple.css">
+<style>
+/* AI 교실 — 기초부터 최신까지. 글·그림은 이 폴더의 terms.js · course.js · history.js · figs.js · art.js, 화면은 assets/learn.js */
+:root{--bg:#F2F2F7;--surface:#fff;--sunk:#E9E9EE;--ink:#000;--muted:#6E6E73;--line:#E5E5EA;--accent:#0C6E77;--accent-ink:#fff;--accent-soft:#D5ECEE;
+  --up:#1E7F4F;--up-soft:#DDF2E6;--fs:1;--r:14px;--nav-h:58px;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--surface:#1C1C1E;--sunk:#2C2C2E;--ink:#fff;--muted:#98989F;--line:#38383A;--accent:#45C4C6;--accent-soft:#1C3D40;--up:#5BD18F;--up-soft:#173325;color-scheme:dark}
+  html.ap.ap-ai:not([data-theme="light"]){--accent-ink:#0B1A1D}}
+:root[data-theme="dark"]{--bg:#000;--surface:#1C1C1E;--sunk:#2C2C2E;--ink:#fff;--muted:#98989F;--line:#38383A;--accent:#45C4C6;--accent-soft:#1C3D40;--up:#5BD18F;--up-soft:#173325;color-scheme:dark}
+html.ap.ap-ai[data-theme="dark"]{--accent-ink:#0B1A1D}
+</style>
+<link rel="stylesheet" href="../../assets/learn.css?v=1">
+</head><body>
+<div class="wrap" id="app"></div>
+<nav class="tabs" id="tabs">
+  <button data-v="home" aria-current="page"><b>☀︎</b>오늘 몫</button>
+  <button data-v="course"><b>▤</b>코스</button>
+  <button data-v="terms"><b>Aa</b>사전</button>
+  <button data-v="hist"><b>⌛︎</b>역사</button>
+</nav>
+<script src="../../assets/wikithumb.js"></script><script src="../../assets/wikigal.js?v=2"></script><script src="../../assets/learnart.js?v=2"></script>
+<script src="terms.js?v=1"></script><script src="figs.js?v=1"></script><script src="course.js?v=1"></script><script src="history.js?v=1"></script><script src="art.js?v=1"></script>
+<script>
+window.VFM_LEARN.txt = { course: "순서대로 가면 AI 소식이 읽혀요.", x: "실제로는", terms: "뜻 한 줄, 비유, 실제로 쓰이는 모습", ph: "낱말 찾기 (예: 토큰, transformer)", hist: "튜링에서 챗GPT 너머까지, 큰 장면만 골랐어요. 장면마다 '오늘 AI 소식과 이어지는 점'이 붙어 있어요.", w: "오늘 AI 소식과", seen: "AI 소식에", note: "여기 글은 공부용 설명이에요. 빠르게 바뀌는 분야라 숫자와 이름은 쓴 날(2026년 11월) 기준이에요.", lv3: "AI 소식 읽는 사람" };
+window.VFM_LEARN.levels = [[0, "새싹"], [150, "첫걸음"], [400, "AI 소식 읽는 사람"], [800, "원리를 아는 사람"], [1400, "흐름을 읽는 사람"], [2200, "잘 부리는 사람"], [3500, "설명해 주는 사람"], [5000, "척척박사"]];
+window.VFM_LEARN.termFig = { ai: "nest", "deep-learning": "nest", ml: "rules", "rule-based": "rules", supervised: "mlTypes", rl: "mlTypes", neuron: "neuron", "neural-net": "layers", layer: "layers", "gradient-descent": "descent", backprop: "descent", overfitting: "overfit", cnn: "cnn", token: "tokens", embedding: "embed", attention: "attention", transformer: "attention", llm: "nextword", pretraining: "pipeline", rlhf: "pipeline", "fine-tuning": "pipeline", "scaling-law": "scaling", diffusion: "diffusion", rag: "rag", hallucination: "halluc", agent: "agentLoop", cot: "cot", "reasoning-model": "cot", gpu: "cpuGpu", hbm: "hbm", "open-weight": "openClosed", "closed-model": "openClosed", "ai-winter": "timeline" };
+window.VFM_LEARN.news = { url: "../../data/ai/briefing/latest.json", link: function () { return "../"; } };
+/* 오늘 AI 소식으로 연습: 로봇이 쓴 오늘 AI 브리핑 제목으로 '어떤 종류의 소식인지' 맞혀 봐요 */
+window.VFM_LEARN.practice = { sub: "오늘 AI 소식 제목 — 새 모델일까 새 기능일까",
+  async load() {
+    const r = await fetch("../../data/ai/briefing/latest.json", { cache: "no-cache" }), b = await r.json();
+    const KN = { model: "새 모델이 나왔다", feat: "기존 서비스에 새 기능", biz: "회사·투자·사업 소식", rule: "규제·사건·사고", paper: "연구 논문" };
+    const why = { model: "AI의 '두뇌' 자체가 새로 나온 소식이에요. 이름 뒤 숫자가 바뀌는 경우가 많아요.", feat: "두뇌는 그대로, 쓰는 방법이 늘어난 소식이에요.", biz: "돈·회사·계약 이야기예요.", rule: "법·소송·장애·사고 이야기예요.", paper: "연구실에서 나온 새 방법이에요. 제품이 되기까지 시간이 걸려요." };
+    const tm = { model: ["llm", "parameter"], feat: ["agent", "multimodal"], biz: ["gpu", "open-weight"], rule: ["ai-act", "hallucination"], paper: ["benchmark", "arxiv"] };
+    return (b.items || []).filter(it => KN[it.kind]).slice(0, 6).map(it => ({ lab: "이 소식은 어떤 종류일까요?", q: it.t, sub: it.one, o: Object.values(KN), a: Object.keys(KN).indexOf(it.kind), why: why[it.kind] + " (분류는 로봇이 붙여서 가끔 틀릴 수 있어요)", tm: tm[it.kind] }));
+  } };
+</script>
+<script src="../../assets/learn.js?v=13"></script>
+<script src="../../assets/shell.js"></script>
+</body></html>

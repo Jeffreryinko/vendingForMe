@@ -104,13 +104,14 @@ nav.tabs button b{font-size:19px;font-weight:400}nav.tabs button[aria-current="p
 .vdk-card .en{color:var(--muted,#666);font-size:13px;margin:-6px 0 8px}
 </style></head><body>
 <script src="../assets/deck.js"></script>
-<script src="briefing.js?v=1"></script>
+<script src="briefing.js?v=2"></script>
 <div class="wrap" id="app"></div>
 <nav class="tabs" id="tabs">
   <button data-v="today" aria-current="page"><b>☀︎</b>오늘</button>
   <button data-v="terms"><b>ⓣ</b>용어장</button>
   <button data-v="know"><b>✦</b>내 지식</button>
   <button data-v="box"><b>☆</b>보관함</button>
+  <button type="button" onclick="location.href='learn/'"><b>✎</b>배움</button>
 </nav>
 <script>
 "use strict";
@@ -175,7 +176,9 @@ async function renderToday() {
   const app = document.getElementById("app");
   app.innerHTML = `<div class="top"><h1 class="lt">오늘</h1><div class="r"><button class="ib" data-act="search" title="찾기" aria-label="찾기"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></svg></button><button class="ib" data-act="cfg" aria-label="AI 탭 설정"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg></button></div></div>
     <div class="date">${(S.idx.days || []).slice().reverse().map(d => `<button data-day="${d}" aria-current="${d === S.day}">${d === S.idx.today ? "오늘 " : ""}${fmtDay(d)}</button>`).join("")}</div><div id="aibrf"></div><div id="body"><p class="empty">불러오는 중…</p></div>`;
-  if (S.day === S.idx.today && window.aiBriefing) window.aiBriefing().then(h => { const el = document.getElementById("aibrf"); if (el) el.innerHTML = h; });
+  { const tile = `<a href="learn/" style="display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:16px;padding:12px 14px;margin:6px 0 12px;color:inherit;text-decoration:none"><span style="font-size:26px">🎓</span><span style="flex:1"><b style="display:block;font-size:15.5px">AI 교실 — 기초부터 최신까지</b><small style="color:var(--muted);font-size:13px">코스 12장 · 용어 110여 개 · 역사 42편 · 그림과 퀴즈</small></span><span style="color:var(--muted)">›</span></a>`;
+    const put = h => { const el = document.getElementById("aibrf"); if (el) el.innerHTML = (h || "") + tile; };
+    if (S.day === S.idx.today && window.aiBriefing) window.aiBriefing().then(put); else put(""); }
   let d; try { d = await loadDay(S.day); } catch (e) { document.getElementById("body").innerHTML = `<p class="empty">이 날 자료가 없어요. 로봇이 새벽 4시 30분에 처음 돌고 나면 채워집니다.</p>`; return; }
   const broken = Object.keys(S.idx.broken || {});
   const papers = (d.papers || []).filter(p => !S.hide[p.id]);

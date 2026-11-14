@@ -37,7 +37,7 @@
 
   var IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>';
   box.className = "tp";
-  box.innerHTML = '<div class="tp-q">' + IC + '<input id="tpq" type="search" placeholder="전체 검색 — 뉴스·딜·낱말·역사·이야기" autocomplete="off"></div><div class="tp-res" id="tpr"></div><div id="tpb"></div>';
+  box.innerHTML = '<div class="tp-q">' + IC + '<input id="tpq" type="search" placeholder="전체 검색 — 뉴스·딜·AI·낱말·이야기" autocomplete="off"></div><div class="tp-res" id="tpr"></div><div id="tpb"></div>';
 
   var D = { sb: null, db: null, li: null, dli: null, st: null };
   var done = g("vfm:home:done", {}); if (done.d !== today) done = { d: today };
@@ -94,7 +94,7 @@
 
   /* ① 전체 검색 — 들고 있는 자료(브리핑 두 개·배움 목록 두 개·이야기 목록)에서 찾고, 딜·시사는 그 앱으로 넘김 */
   var q = document.getElementById("tpq"), res = document.getElementById("tpr"), t0;
-  q.addEventListener("focus", function () { if (!D.dli) j("data/deal/learn_index.json").then(function (x) { D.dli = x || {}; }); }, { once: true });
+  q.addEventListener("focus", function () { if (!D.dli) j("data/deal/learn_index.json").then(function (x) { D.dli = x || {}; }); if (!D.ali) j("data/ai/learn_index.json").then(function (x) { D.ali = x || {}; }); }, { once: true });
   q.addEventListener("input", function () { clearTimeout(t0); t0 = setTimeout(search, 160); });
   function hit(s, w) { s = String(s || "").toLowerCase(); return w.every(function (x) { return s.indexOf(x) >= 0; }); }
   function search() {
@@ -114,6 +114,7 @@
     };
     add("시사 배움", learn(D.li, "sisa/learn/", "시사 배움"));
     add("딜 배움", learn(D.dli, "deal/learn/", "투자 교실"));
+    add("AI 배움", learn(D.ali, "ai/learn/", "AI 교실"));
     add("이야기", (D.stAll || []).filter(function (s) { return hit([s.title, s.orig, s.hook, (s.tags || []).join(" "), s.region].join(" "), w); })
       .map(function (s) { return row(STORY + "iyagi/#read-" + encodeURIComponent(s.id), s.title, s.hook); }));
     G.push("<h5>다른 곳에서 더 찾기</h5>" + row("deal/#name=" + encodeURIComponent(v), "딜에서 '" + v + "' 거래 모아 보기", "최근 90일 투자·인수합병") +

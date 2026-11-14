@@ -23,6 +23,7 @@
     return `<section class="aib"><p class="aib-k">${e(B.label)}<small>${e(B.by || "")}</small></p><p class="aib-lead">${e(B.lead)}</p>` +
       B.items.map(it => `<details><summary><i>${K[it.kind] || "소식"}</i><span>${e(it.t)}</span></summary><div class="bd"><p>${e(it.one)}</p>` +
         (it.why ? `<h5>왜 중요한가</h5><p>${e(it.why)}</p>` : "") + (it.how ? `<h5>나는 어떻게 써 보나</h5><p>${e(it.how)}</p>` : "") +
+        ((it.bg || []).length ? `<h5>배경 더 알기</h5><p style="display:flex;flex-wrap:wrap;gap:6px">${it.bg.map(b => `<a href="learn/#${b.k}=${encodeURIComponent(b.id)}" style="border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:13px;color:var(--ink);text-decoration:none">${{ term: "낱말", hist: "역사", ch: "코스" }[b.k] || ""} · ${e(b.t)}</a>`).join("")}</p>` : "") +
         `<p style="margin-top:6px">${(it.links || []).map(l => `<a href="${e(l[1])}" target="_blank" rel="noopener">${e(l[0])} 원문 ↗</a>`).join("")}</p></div></details>`).join("") +
       `<p class="aib-note">${e(B.note || "")}</p></section>`;
   };
