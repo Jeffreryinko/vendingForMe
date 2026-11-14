@@ -40,6 +40,6 @@ window.VFM_LEARN.practice = { sub: "오늘 AI 소식 제목 — 새 모델일까
     return (b.items || []).filter(it => KN[it.kind]).slice(0, 6).map(it => ({ lab: "이 소식은 어떤 종류일까요?", q: it.t, sub: it.one, o: Object.values(KN), a: Object.keys(KN).indexOf(it.kind), why: why[it.kind] + " (분류는 로봇이 붙여서 가끔 틀릴 수 있어요)", tm: tm[it.kind] }));
   } };
 </script>
-<script src="../../assets/learn.js?v=13"></script>
+<script src="../../assets/learn.js?v=14"></script>
 <script src="../../assets/shell.js"></script>
 </body></html>

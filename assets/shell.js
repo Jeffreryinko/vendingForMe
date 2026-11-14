@@ -523,7 +523,8 @@
     return '<img class="vfm-pic vfm-logo ' + (cls || "") + '" src="https://www.google.com/s2/favicons?domain=' + m[1] + '&sz=128" alt="" loading="lazy" decoding="async">';
   };
   document.addEventListener("error", function (ev) {
-    var t = ev.target; if (!t || t.tagName !== "IMG" || !t.classList.contains("vfm-pic")) return;
+    var t = ev.target; if (!t || t.tagName !== "IMG") return;
+    if (!t.classList.contains("vfm-pic")) { if (/(^|[\s-])(th|thumb|ph|pic|img)\b|-th\b/.test(t.className) || t.loading === "lazy") { t.style.display = "none"; var hc = t.closest(".has-th"); if (hc) hc.classList.remove("has-th"); } return; }
     if (t.dataset.orig && t.src !== t.dataset.orig) { t.src = t.dataset.orig; return; }
     var w = t.closest(".vfm-picw"); (w || t).remove();
   }, true);
@@ -561,7 +562,7 @@
       '<button type="button" data-act="syncnow"><span class="tint">지금 맞추기</span><span class="v">›</span></button><button type="button" data-act="logout"><span>로그아웃</span><span class="v">›</span></button>';
   }
   // 설정 파일은 늘 새로 받음 (브라우저가 10분 묵혀 두지 않게)
-  (function () { var a = document.createElement("script"); a.src = ROOT + "assets/ask.js?v=1"; a.defer = true; document.head.appendChild(a); var j = document.createElement("script"); j.src = ROOT + "assets/joy.js?v=1"; document.head.appendChild(j); })();   // 모든 카드에 'AI에게 자세히 묻기' (assets/ask.js)
+  (function () { var a = document.createElement("script"); a.src = ROOT + "assets/ask.js?v=2"; a.defer = true; document.head.appendChild(a); var j = document.createElement("script"); j.src = ROOT + "assets/joy.js?v=1"; document.head.appendChild(j); })();   // 모든 카드에 'AI에게 자세히 묻기' (assets/ask.js)
   [ROOT + "assets/sync-config.js?t=" + Math.floor(Date.now() / 60000), ROOT + "assets/sync.js?v=5"].reduce(function (p, src) {
     return p.then(function () { return new Promise(function (ok) { var sc = document.createElement("script"); sc.src = src; sc.onload = sc.onerror = ok; document.head.appendChild(sc); }); });
   }, Promise.resolve()).then(function () { if (window.vfmSync) { window.vfmSync.render = syncHtml; gate(); } });

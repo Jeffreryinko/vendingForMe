@@ -14,7 +14,7 @@
 .brf-sw button{flex:1;border:0;background:none;border-radius:9px;padding:8px 4px;font-size:13.5px;font-weight:500;color:var(--muted)}
 .brf-sw button[aria-pressed=true]{background:var(--surface);color:var(--ink);font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.10)}
 .brf{display:flex;flex-direction:column;gap:12px}
-.brf-hero{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px 18px 16px}
+.brf-hero{background:var(--surface);border:.5px solid var(--line);box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 30px -12px rgba(0,0,0,.10);border-radius:20px;padding:18px 18px 16px}
 .brf-k{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--accent);margin:0 0 6px}
 .brf-k i{width:8px;height:8px;border-radius:50%;background:var(--accent)}
 .brf-h{font-size:24px;line-height:1.25;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
@@ -23,7 +23,7 @@
 .brf-tts[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .brf-lead{font-size:17px;line-height:1.72;margin:0;word-break:keep-all}
 .brf-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
-.brf-it{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.brf-it{background:var(--surface);border:.5px solid var(--line);box-shadow:0 1px 2px rgba(0,0,0,.03);border-radius:18px;overflow:hidden}
 .brf-it.rd .brf-t{color:var(--muted)}
 .brf-top{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;border:0;background:none;padding:14px 16px;color:inherit;font:inherit}
 .brf-n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:800;display:grid;place-items:center;margin-top:1px}
@@ -47,14 +47,15 @@
 .brf-chg{background:var(--coin-soft);border-radius:12px;padding:9px 12px;font-size:14.5px;line-height:1.6;margin:0 0 10px}
 .brf-chg b{display:block;font-size:12.5px;color:var(--coin);margin-bottom:2px}
 .brf-more{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:13px;font-size:15px;font-weight:700;color:var(--accent)}
-.brf-box{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.brf-box{background:var(--surface);border:.5px solid var(--line);border-radius:18px;padding:14px 16px}
 .brf-box h3{font-size:15px;font-weight:800;margin:0 0 2px}
 .brf-box .note{margin-bottom:8px}
 .brf-box button{display:block;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:10px 0;color:inherit;font:inherit}
 .brf-box button b{display:block;font-size:15px;line-height:1.4}
 .brf-box button span{display:block;font-size:13.5px;color:var(--muted);margin-top:2px}
 .brf-foot{font-size:12.5px;line-height:1.6;color:var(--muted);margin:2px 4px 0}
-.brf-ib{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:12px 0}
+.brf-ib{margin:8px 0 12px}
+.brf-it>.vfm-ask{margin:0 0 14px 54px}.brf-hero>.vfm-ask{margin-top:12px}
 .brf-ib p{font-size:16px;line-height:1.74;margin:0 0 8px;word-break:keep-all}
 .brf-ib .brf-by{font-size:12px;color:var(--muted);margin:10px 0 0}
 .brf-tm{border:0;background:none;padding:0;font:inherit;color:inherit;border-bottom:1.5px dotted var(--accent);cursor:pointer}

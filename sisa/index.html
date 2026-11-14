@@ -3,7 +3,7 @@
 <script>window.VFM_APP="sisa";</script>
 <script src="../assets/claude-shim.js"></script>
 <script src="../assets/deck.js"></script>
-<script src="briefing.js?v=2"></script>
+<script src="briefing.js?v=3"></script>
 <link rel="manifest" href="../manifest.webmanifest"><meta name="theme-color" content="#0C6E77"><link rel="apple-touch-icon" href="../assets/icon-192.png">
 
 <title>시사 자판기</title>
@@ -649,12 +649,12 @@ h4.rh{font-size:13px;color:var(--muted);margin:12px 0 4px;font-weight:700}
 .or-t{flex:1;min-width:0;font-size:15.5px;font-weight:600;line-height:1.4}
 .or-c{flex:none;font-size:15px;letter-spacing:1px}
 /* 흐름 */
-.ftabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;position:sticky;top:calc(env(safe-area-inset-top,0px) + 62px);z-index:5;background:var(--bg);padding:8px 0;margin-bottom:-14px}
+.ftabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:10px 0 8px;box-shadow:0 8px 12px -10px rgba(0,0,0,.12);margin-bottom:-14px}
 .ftabs::-webkit-scrollbar{display:none}
 .ftabs button{flex:none;border:0;background:var(--sunk);color:var(--muted);border-radius:999px;padding:8px 15px;font:inherit;font-size:14px;font-weight:600}
 .ftabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .tline{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
-.tlh{position:sticky;top:calc(env(safe-area-inset-top,0px) + 112px);background:var(--bg);font-size:12.5px;font-weight:700;color:var(--muted);padding:14px 0 6px;letter-spacing:.02em;z-index:2}
+.tlh{position:sticky;top:calc(env(safe-area-inset-top,0px) + 52px);background:var(--bg);font-size:12.5px;font-weight:700;color:var(--muted);padding:14px 0 6px;letter-spacing:.02em;z-index:2}
 .tlr{display:flex;flex-direction:column;gap:4px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:12px 2px;color:var(--ink);font:inherit}
 .tlr.seen{opacity:.55}
 .tlr-m{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
