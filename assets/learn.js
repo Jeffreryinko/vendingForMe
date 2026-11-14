@@ -49,7 +49,7 @@
 .hero{background:var(--accent-soft);border-radius:var(--r);padding:14px 16px;margin:8px 0;font-size:14px}.hero b{display:block;font:700 17px var(--ap-display);margin-bottom:3px}
 .back{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9500;display:flex;align-items:flex-end;justify-content:center}
 .sheet{width:100%;max-width:560px;max-height:84vh;overflow:auto;background:var(--bg);border-radius:14px 14px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom,0px))}.sheet .grab{width:36px;height:5px;border-radius:3px;background:var(--ap-label3);margin:0 auto 10px}`;
-  const st = document.createElement("style"); st.textContent = css + ".lvbox{background:var(--surface);border-radius:var(--r);padding:14px 16px;margin:8px 0}.lvtop{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}.lvtop small{color:var(--muted);font-size:12.5px}.lvbar{height:8px;border-radius:4px;background:var(--ap-fill);margin:8px 0 10px;overflow:hidden}.lvbar i{display:block;height:100%;background:var(--accent);border-radius:4px}.wk{display:flex;align-items:center;gap:4px;flex-wrap:wrap}.wkl{font-size:13px;font-weight:650;margin-right:6px}.wk i{font-style:normal;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:var(--ap-fill);color:var(--muted)}.wk i.on{background:var(--up);color:#fff}.wk i.td{outline:2px solid var(--accent);outline-offset:1px}"; document.head.appendChild(st);
+  const st = document.createElement("style"); st.textContent = css + ".lvbox{background:var(--surface);border-radius:var(--r);padding:14px 16px;margin:8px 0}.lvtop{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}.lvtop small{color:var(--muted);font-size:12.5px}.lvbar{height:8px;border-radius:4px;background:var(--ap-fill);margin:8px 0 10px;overflow:hidden}.lvbar i{display:block;height:100%;background:var(--accent);border-radius:4px}.wk{display:flex;align-items:center;gap:4px;flex-wrap:wrap}.wkl{font-size:13px;font-weight:650;margin-right:6px}.wk i{font-style:normal;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:var(--ap-fill);color:var(--muted)}.wk i.on{background:var(--up);color:#fff}.wk i.td{outline:2px solid var(--accent);outline-offset:1px}.nwbox{background:var(--surface);border-radius:var(--r);padding:10px 14px;margin:10px 0;border:1px solid var(--ap-sep,rgba(60,60,67,.15))}.nwh{font-size:12.5px;font-weight:700;color:var(--accent);margin:0 0 4px}.nwh small{color:var(--muted);font-weight:500;margin-left:4px}.nwbox a{display:block;padding:8px 0;border-top:.5px solid var(--ap-sep,rgba(60,60,67,.2));color:var(--ink);text-decoration:none}.nwbox a:first-of-type{border-top:0}.nwbox a b{display:block;font-size:14.5px;line-height:1.4}.nwbox a span{display:block;font-size:13px;color:var(--muted);margin-top:2px;line-height:1.45}"; document.head.appendChild(st);
 
   /* ───── 하루 몫 ───── */
   const SIZE = { light: { ch: 1, tm: 5, ep: 1, n: "가볍게 · 5분" }, normal: { ch: 1, tm: 8, ep: 2, n: "보통 · 10분" }, more: { ch: 2, tm: 15, ep: 3, n: "많이 · 20분" } };
@@ -66,6 +66,16 @@
     const tmNeed = Math.min(q.tm, d.tm + due().length + fresh().length), chNeed = Math.min(q.ch, d.ch + chLeft().length), epNeed = Math.min(q.ep, d.ep + epLeft().length);
     return [["rd", "어제 복습", rdDone() ? 1 : 0, rdDone() || rdAvail() ? 1 : 0, "어제 읽은 것을 문제로 (2분)"], ["ch", "코스 한 장", d.ch, chNeed, "카드 5~6장 + 문제 3개"], ["tm", "용어", d.tm, tmNeed, "복습 먼저, 그다음 새 말"], ["ep", "역사 이야기", d.ep, epNeed, "큰 사건 한 편씩"]].filter(x => x[3] > 0);
   }
+  /* ───── 지금 뉴스에서: 배움 글 → 오늘 브리핑 이슈 (L.news = {url, link(sid)}) ───── */
+  let NEWS = null;
+  if (L.news) fetch(L.news.url, { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(d => {
+    if (!d || !Array.isArray(d.items)) return; const m = {};
+    const add = (k, it) => { const sid = (it.sids || [])[0]; if (!sid) return; const a = (m[k] = m[k] || []); if (!a.some(x => x.sid === sid)) a.push({ t: it.t, one: it.one || "", sid }); };
+    d.items.forEach(it => { (it.bg || []).forEach(b => add(b.k + ":" + b.id, it)); const txt = [it.t, it.one, it.sum].join(" "); TERMS.forEach(t => { if (t.t && t.t.length >= 2 && txt.includes(t.t)) add("term:" + t.id, it); }); });
+    NEWS = { m, label: d.label || "" }; if (/^#(term=|hist=|ch=)/.test(location.hash)) paint(true);
+  }).catch(() => { });
+  const newsBox = k => { const a = NEWS && NEWS.m[k]; if (!a || !a.length) return ""; return `<div class="nwbox"><p class="nwh">지금 뉴스에서<small>${esc(NEWS.label)}</small></p>${a.slice(0, 3).map(x => `<a href="${L.news.link(x.sid)}"><b>${esc(x.t)}</b>${x.one ? `<span>${esc(x.one)}</span>` : ""}</a>`).join("")}</div>`; };
+
   /* ───── 어제 복습 · 점수 · 단계 · 주간 목표 ───── */
   const lastDay = () => { for (let i = 1; i < 60; i++) { const k = kst(-i), d = S.day[k]; if (d && d.ch + d.ep > 0) return k; } return null; };   // 마지막으로 코스·역사를 읽은 날(보통 어제)
   const rdDone = () => !!S.rd[kst()];
@@ -148,6 +158,7 @@
     let h = backTop(`<span class="note" style="margin:0">${esc(c.t)}</span>`) + `<div class="dots">${Array.from({ length: tot }, (_, i) => `<i class="${i <= pos ? "on" : ""}"></i>`).join("")}</div>`;
     if (cv.qi < 0) {
       const k = c.cards[cv.i];
+      if (cv.i === 0) h += newsBox("ch:" + id);
       h += `<div class="lc" id="swipe"><h3>${esc(k.h)}</h3>${fmt(k.b)}${DEEP.card ? DEEP.card(k, DH) : ""}${k.fig && FIG[k.fig] ? FIG[k.fig]() : ""}${ART.comic((window.VFM_CARDCM || {})[c.id + ":" + cv.i])}</div>${k.tm ? `<p class="note" style="margin:8px 2px 2px">이 카드의 말 (누르면 뜻)</p><div>${chips(k.tm)}</div>` : ""}<div class="pg">${cv.i ? '<button class="btn" data-cv="-1">‹ 이전</button>' : ""}<button class="btn pri" data-cv="1">${cv.i === c.cards.length - 1 ? "확인 문제 ›" : "다음 ›"}</button></div>`;
     } else if (cv.qi < c.quiz.length) {
       const q = c.quiz[cv.qi];
@@ -178,7 +189,8 @@
     else h += `<button class="opt dim" data-rv="?">모르겠어요</button>`;
     return h;
   }
-  function termCard(t) {
+  const termCard = t => termCard0(t) + newsBox("term:" + t.id);
+  function termCard0(t) {
     const cn = (CATS.find(c => c[0] === t.c) || [])[1] || "";
     return `<div class="lc"><p class="note" style="margin:0 0 4px">${esc(cn)}${t.en ? " · " + esc(t.en) : ""} ${boxes(t.id)}</p><h3>${esc(t.t)}</h3>${ART.termComic ? ART.termComic(t) : `<p>${esc(t.s)}</p>${t.a ? `<p><b>비유</b> ${esc(t.a)}</p>` : ""}${t.x ? `<p><b>${TX.x}</b> ${esc(t.x)}</p>` : ""}`}${(L.termFig || {})[t.id] && FIG[L.termFig[t.id]] ? FIG[L.termFig[t.id]]() : ""}${DEEP.term ? DEEP.term(t, DH) : ""}${ART.relMap(t, TB)}${(t.r || []).length ? `<p class="note" style="margin:10px 0 2px">이어지는 말</p><div>${chips(t.r)}</div>` : ""}</div>`;
   }
@@ -208,7 +220,7 @@
     const pk = e => e.wk ? "en:" + String(e.wk).replace(/_/g, " ") : "";
     const pic = (e, cls) => pk(e) ? `<img class="${cls}" data-wt="${esc(pk(e))}" alt="" loading="lazy">` : "";
     const toon = e => (e.toon || []).length ? `<div class="toon">${e.toon.map((p, i) => `<div class="tp${i % 2 ? " r" : ""}"><span class="tf">${esc(p[0])}</span><span class="tb">${esc(p[1])}</span></div>`).join("")}</div>` : "";
-    return backTop() + head(`${x.flag} ${esc(x.name)}`, esc(x.intro)) + (window.VFM_ART ? ART.strip(x.items, i => !!S.ep[x.items[i]._k], +String(openEp).split(":")[1]) : "") + `<div class="tlv">${x.items.map((e, i) => { const k = id + ":" + i, op = openEp === k;
+    return backTop() + head(`${x.flag} ${esc(x.name)}`, esc(x.intro)) + newsBox("hist:" + id) + (window.VFM_ART ? ART.strip(x.items, i => !!S.ep[x.items[i]._k], +String(openEp).split(":")[1]) : "") + `<div class="tlv">${x.items.map((e, i) => { const k = id + ":" + i, op = openEp === k;
       if (!op) return `<button class="ev${S.ep[e._k] ? " rd" : ""}" data-ep="${k}" id="ep-${i}"><span class="y">${esc(e.y)}</span><div>${pic(e, "hpt")}<p class="t">${esc(e.t)}</p><p class="hint">${x.virt ? esc(e._f || "") + " " : ""}${(e.co || []).length ? esc(e.co.slice(0, 4).join(" · ")) : "눌러서 읽기"}</p></div></button>`;
       return `<div class="ev op${S.ep[e._k] ? " rd" : ""}" id="ep-${i}"><button class="evh" data-ep="${k}"><span class="y">${esc(e.y)}</span><p class="t">${esc(e.t)}</p></button><div class="evb">${toon(e)}<div class="b">${fmt(e.b)}</div>${(e.co || []).length ? `<p class="colab">나오는 이름</p><div class="cos">${e.co.map(c => `<span>${esc(c)}</span>`).join("")}</div>` : ""}${e.fig && FIG[e.fig] ? FIG[e.fig]() : ""}${DEEP.hist ? DEEP.hist(e, DH) : ""}${e.w ? `<p class="w">→ ${TX.w || (APP === "sisa" ? "오늘 뉴스와" : "오늘 기사와")}: ${esc(e.w)}</p>` : ""}</div></div>`; }).join("")}</div>` + (() => { const nx = nextHash(); return nx && !nx.startsWith("#hist") ? `<button class="btn pri go" data-go="${nx}">이어서 하기 ›</button>` : ""; })();
   }
