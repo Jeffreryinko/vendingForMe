@@ -54,16 +54,26 @@ def main():
     old = BR.rj(OUT, {}) or {}
     cut = (datetime.now(BR.KST) - timedelta(days=30)).isoformat()
     old = {k: v for k, v in old.items() if v.get("at", "") >= cut}
-    days = sorted(p for p in (D / "days").glob("20*.json") if "_more" not in p.name)[-2:]
+    reqf = BR.ROOT / "data" / "requests.json"
+    reqs = BR.rj(reqf, {"items": []}) or {"items": []}
+    want = {r["id"] for r in reqs["items"] if r.get("app") == "tools" and not r.get("done")}   # 앱에서 '자세히 풀어 주세요'를 누른 것
+    alld = sorted(p for p in (D / "days").glob("20*.json"))
     pool = []
-    for p in reversed(days):
+    if want:
+        for p in reversed(alld[-30:]):
+            for x in (BR.rj(p, {}) or {}).get("items") or []:
+                if x.get("id") in want and not any(y["id"] == x["id"] for y in pool): pool.append(x)
+    if "--requests" in sys.argv and not pool: BR.log("채울 요청이 없어요"); return 0
+    days = sorted(p for p in (D / "days").glob("20*.json") if "_more" not in p.name)[-2:]
+    for p in ([] if "--requests" in sys.argv else reversed(days)):
         for x in (BR.rj(p, {}) or {}).get("items") or []:
             s = x.get("ksum") or x.get("sum") or ""
             if x["id"] in old or x.get("sec") not in ("gh", "hn", "hf", "ph") or len(s) >= 90: continue
             if any(y["id"] == x["id"] for y in pool): continue
             pool.append(x)
-    pool.sort(key=lambda x: -(x.get("gain") or x.get("stars") or x.get("score") or 0))
-    pool = pool[:MAX]
+    req_first = [x for x in pool if x["id"] in want]; rest = [x for x in pool if x["id"] not in want]
+    rest.sort(key=lambda x: -(x.get("gain") or x.get("stars") or x.get("score") or 0))
+    pool = (req_first + rest)[:MAX]
     if not pool: BR.log("설명할 새 항목이 없어요"); return 0
     rd = {}
     for x in pool:
@@ -95,6 +105,10 @@ def main():
         except Exception as e:
             BR.log(f"{name}: 답을 못 읽음 ({e})")
     OUT.write_text(json.dumps(old, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    if want:                                                     # 채운 요청은 '완료' → requests.yml 이 이슈를 닫음
+        for r in reqs["items"]:
+            if r.get("app") == "tools" and r["id"] in old and not r.get("done"): r["done"] = now
+        reqf.write_text(json.dumps(reqs, ensure_ascii=False, indent=1), encoding="utf-8")
     return 0
 
 

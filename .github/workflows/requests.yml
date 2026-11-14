@@ -33,7 +33,7 @@ jobs:
           import json, os, re
           from datetime import datetime, timezone, timedelta
           from pathlib import Path
-          t = os.environ["TITLE"]; m = re.match(r"^\[요청\]\s+(ai|iyagi)\s+(\S+)\s*[·:-]?\s*(.*)$", t)
+          t = os.environ["TITLE"]; m = re.match(r"^\[요청\]\s+(ai|iyagi|tools)\s+(\S+)\s*[·:-]?\s*(.*)$", t)
           if not m: raise SystemExit("모양이 안 맞는 요청: " + t)
           p = Path("data/requests.json"); r = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {"items": []}
           if not any(x["app"] == m[1] and x["id"] == m[2] and not x.get("done") for x in r["items"]):
@@ -61,3 +61,28 @@ jobs:
           import json; r = json.load(open('data/requests.json'))
           print(' '.join(str(x['issue']) for x in r['items'] if x.get('done') and x.get('issue') and not x.get('closed')))" > /tmp/done.txt
           for n in $(cat /tmp/done.txt); do gh issue close "$n" -c "만들어서 앱에 올렸어요. 앱에서 다시 열어 보세요." || true; done
+
+  tools:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q json-repair || true
+      - name: 도구 설명 요청 채우기
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MONTHLY_USD: ${{ vars.CLAUDE_MONTHLY_USD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: python robot/tools_explain.py --requests
+      - name: 저장소에 올리기
+        run: |
+          git config user.name "tools-robot"
+          git config user.email "robot@users.noreply.github.com"
+          git add data/tools/explain.json data/requests.json data/claude_usage
+          git diff --cached --quiet && echo "변경 없음" && exit 0
+          git commit -m "도구: 요청한 설명 채움"
+          for i in 1 2 3; do (git pull --rebase -X theirs --autostash || (git rebase --abort; false)) && git push && break || sleep 10; done
