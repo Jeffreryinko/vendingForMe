@@ -304,11 +304,16 @@ def claude(prompt, model=None, max_tokens=24000):
     if tday >= allow: return None, f"오늘 몫 {allow:.2f}달러 다 씀 ({tday:.2f}) → 무료 AI 로"
     m = model or os.environ.get("CLAUDE_MODEL", "").strip() or "claude-sonnet-5-5"
     try:
-        r = http_json("https://api.anthropic.com/v1/messages",
-                      {"model": m, "max_tokens": max_tokens,
-                       "system": "답은 설명 없이 JSON 객체 하나만 써요. 한국어는 해요체로, 사실은 주어진 글에 있는 것만 써요.",
-                       "messages": [{"role": "user", "content": prompt}]},
-                      headers={"x-api-key": key, "anthropic-version": "2023-06-01"}, timeout=300)
+        body = {"model": m, "max_tokens": max_tokens,
+                "output_config": {"effort": os.environ.get("CLAUDE_EFFORT", "").strip() or "low"},   # 새 모델은 생각(thinking)도 출력 토큰으로 셈 → JSON 정리 일엔 '낮게'
+                "system": "답은 설명 없이 JSON 객체 하나만 써요. 한국어는 해요체로, 사실은 주어진 글에 있는 것만 써요.",
+                "messages": [{"role": "user", "content": prompt}]}
+        try:
+            r = http_json("https://api.anthropic.com/v1/messages", body, headers={"x-api-key": key, "anthropic-version": "2023-06-01"}, timeout=300)
+        except urllib.error.HTTPError as e:
+            if e.code != 400: raise
+            body.pop("output_config", None)                  # effort 를 모르는 모델이면 빼고 한 번 더
+            r = http_json("https://api.anthropic.com/v1/messages", body, headers={"x-api-key": key, "anthropic-version": "2023-06-01"}, timeout=300)
     except urllib.error.HTTPError as e:
         return None, f"{m}: HTTP {e.code} {e.read()[:200].decode('utf-8', 'ignore')}"
     except Exception as e:
@@ -324,6 +329,7 @@ def claude(prompt, model=None, max_tokens=24000):
     UDIR.mkdir(parents=True, exist_ok=True); wj(USAGE, u)
     log(f"  Claude {m}: 입력 {us.get('input_tokens', 0):,} · 출력 {us.get('output_tokens', 0):,} 토큰 · {cost:.3f}달러 (이번 주기 {rec['usd']:.2f}/{cap})")
     txt = "".join(b.get("text", "") for b in r.get("content") or [] if b.get("type") == "text")
+    if r.get("stop_reason") == "max_tokens": log(f"  Claude: 출력 한도({max_tokens})에서 잘림 · 생각 블록 {sum(1 for b in r.get('content') or [] if b.get('type') == 'thinking')}개")
     return (txt, "claude:" + m), None
 
 
