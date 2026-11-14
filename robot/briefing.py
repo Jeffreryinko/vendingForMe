@@ -256,23 +256,33 @@ def groq(prompt):
 
 
 # ───────── Claude (유료 API, 주현 100달러 크레딧) ─────────
-# 열쇠: GitHub 비밀 ANTHROPIC_API_KEY. 달마다 CLAUDE_MONTHLY_USD(기본 15달러)를 넘으면 스스로 멈추고 무료 AI 로 넘어가요.
-# 쓴 돈은 data/claude_usage.json 에 달별로 적어요 (토큰 수 × 공식 가격표로 셈).
+# 열쇠: GitHub 비밀 ANTHROPIC_API_KEY. 한 주기에 CLAUDE_MONTHLY_USD(기본 80달러)를 넘으면 스스로 멈추고 무료 AI 로 넘어가요.
+# 주기는 매달 30일(2월은 말일)에 새로 시작 — 주현의 API 크레딧 지정일. 쓴 돈은 data/claude_usage.json 에 주기별로 적어요.
 PRICE = {"claude-haiku-5-5": (0.10, 0.50), "claude-sonnet-5-5": (2.0, 10.0), "claude-opus-5-5": (4.0, 20.0)}   # 100만 토큰당 달러 (입력, 출력)
 USAGE = Path(__file__).resolve().parent.parent / "data" / "claude_usage.json"
 
 
+def claude_period(now=None):
+    """크레딧 주기 이름 = 그 주기가 시작한 날 (매달 30일, 2월은 말일). 예: 2026-11-30"""
+    import calendar
+    n = now or datetime.now(KST)
+    def start(y, m): return min(int(os.environ.get("CLAUDE_RESET_DAY") or 30), calendar.monthrange(y, m)[1])
+    y, m = n.year, n.month
+    if n.day < start(y, m): y, m = (y - 1, 12) if m == 1 else (y, m - 1)
+    return f"{y}-{m:02d}-{start(y, m):02d}"
+
+
 def claude_spent():
     u = rj(USAGE, {}) or {}
-    return float((u.get(datetime.now(KST).strftime("%Y-%m")) or {}).get("usd", 0)), u
+    return float((u.get(claude_period()) or {}).get("usd", 0)), u
 
 
 def claude(prompt, model=None, max_tokens=16000):
     key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not key: return None, "열쇠 없음"
-    cap = float(os.environ.get("CLAUDE_MONTHLY_USD") or 15)
+    cap = float(os.environ.get("CLAUDE_MONTHLY_USD") or 80)
     spent, u = claude_spent()
-    if spent >= cap: return None, f"이번 달 한도 {cap}달러 다 씀 ({spent:.2f})"
+    if spent >= cap: return None, f"이번 주기 한도 {cap}달러 다 씀 ({spent:.2f})"
     m = model or os.environ.get("CLAUDE_MODEL", "").strip() or "claude-sonnet-5-5"
     try:
         r = http_json("https://api.anthropic.com/v1/messages",
@@ -287,12 +297,11 @@ def claude(prompt, model=None, max_tokens=16000):
     us = r.get("usage") or {}
     pi, po = PRICE.get(m, (4.0, 20.0))
     cost = (us.get("input_tokens", 0) * pi + us.get("output_tokens", 0) * po) / 1e6
-    mo = datetime.now(KST).strftime("%Y-%m")
-    rec = u.setdefault(mo, {"usd": 0, "calls": 0, "in": 0, "out": 0})
+    rec = u.setdefault(claude_period(), {"usd": 0, "calls": 0, "in": 0, "out": 0})
     rec["usd"] = round(rec["usd"] + cost, 4); rec["calls"] += 1
     rec["in"] += us.get("input_tokens", 0); rec["out"] += us.get("output_tokens", 0)
     wj(USAGE, u)
-    log(f"  Claude {m}: 입력 {us.get('input_tokens', 0):,} · 출력 {us.get('output_tokens', 0):,} 토큰 · {cost:.3f}달러 (이번 달 {rec['usd']:.2f}/{cap})")
+    log(f"  Claude {m}: 입력 {us.get('input_tokens', 0):,} · 출력 {us.get('output_tokens', 0):,} 토큰 · {cost:.3f}달러 (이번 주기 {rec['usd']:.2f}/{cap})")
     txt = "".join(b.get("text", "") for b in r.get("content") or [] if b.get("type") == "text")
     return (txt, "claude:" + m), None
 
