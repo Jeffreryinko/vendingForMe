@@ -277,13 +277,28 @@ def claude_spent():
     return float((u.get(claude_period()) or {}).get("usd", 0)), u
 
 
-def claude(prompt, model=None, max_tokens=16000):
+def claude_days_left(now=None):
+    """이번 주기가 끝나기까지 남은 날 (오늘 포함)"""
+    import calendar
+    n = now or datetime.now(KST)
+    y, m, d = map(int, claude_period(n).split("-"))
+    y2, m2 = (y + 1, 1) if m == 12 else (y, m + 1)
+    nxt = datetime(y2, m2, min(int(os.environ.get("CLAUDE_RESET_DAY") or 30), calendar.monthrange(y2, m2)[1]), tzinfo=KST)
+    return max(1, (nxt.date() - n.date()).days)
+
+
+def claude(prompt, model=None, max_tokens=24000):
     key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not key: return None, "열쇠 없음"
     cap = float(os.environ.get("CLAUDE_MONTHLY_USD") or 50)
     spent, u = claude_spent()
     if spent >= cap: return None, f"이번 주기 한도 {cap}달러 다 씀 ({spent:.2f})"
-    m = model or os.environ.get("CLAUDE_MODEL", "").strip() or "claude-opus-5-5"
+    # 하루 몫: 남은 돈을 남은 날로 나눔 → 주기 끝까지 고르게 (하루에 몰아 쓰지 않게)
+    today = datetime.now(KST).strftime("%Y-%m-%d")
+    tday = float(((u.get(claude_period()) or {}).get("days") or {}).get(today, 0))
+    allow = (cap - (spent - tday)) / claude_days_left()
+    if tday >= allow: return None, f"오늘 몫 {allow:.2f}달러 다 씀 ({tday:.2f}) → 무료 AI 로"
+    m = model or os.environ.get("CLAUDE_MODEL", "").strip() or "claude-sonnet-5-5"
     try:
         r = http_json("https://api.anthropic.com/v1/messages",
                       {"model": m, "max_tokens": max_tokens,
@@ -300,6 +315,8 @@ def claude(prompt, model=None, max_tokens=16000):
     rec = u.setdefault(claude_period(), {"usd": 0, "calls": 0, "in": 0, "out": 0})
     rec["usd"] = round(rec["usd"] + cost, 4); rec["calls"] += 1
     rec["in"] += us.get("input_tokens", 0); rec["out"] += us.get("output_tokens", 0)
+    dd = rec.setdefault("days", {}); dd[today] = round(dd.get(today, 0) + cost, 4)
+    for k in sorted(dd)[:-40]: dd.pop(k)
     wj(USAGE, u)
     log(f"  Claude {m}: 입력 {us.get('input_tokens', 0):,} · 출력 {us.get('output_tokens', 0):,} 토큰 · {cost:.3f}달러 (이번 주기 {rec['usd']:.2f}/{cap})")
     txt = "".join(b.get("text", "") for b in r.get("content") or [] if b.get("type") == "text")
@@ -307,8 +324,8 @@ def claude(prompt, model=None, max_tokens=16000):
 
 
 def ai_chain(cheap=False):
-    """먼저 Claude(기본 Opus), 안 되면 무료 Gemini → Groq. cheap=True 면 Claude 는 Sonnet."""
-    c = (lambda p: claude(p, "claude-sonnet-5-5", 8000)) if cheap else claude
+    """먼저 Claude(기본 Sonnet, 하루 몫 안에서), 안 되면 무료 Gemini → Groq. cheap=True 면 Claude 는 Haiku."""
+    c = (lambda p: claude(p, "claude-haiku-5-5", 8000)) if cheap else claude
     return (("Claude", c), ("Gemini", gemini), ("Groq", groq))
 
 
