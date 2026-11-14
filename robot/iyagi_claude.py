@@ -57,7 +57,47 @@ def wiki(title, _again=True):
         return ""
 
 
+DEEP = """너는 한국어 이야기꾼이에요. 아래 이야기의 '깊이 읽기'(d3)를 새로, 훨씬 풍부하게 써요.
+- 문단 6~7개, 모두 1,600~2,200자. 기원과 판본 차이, 시대 배경, 인물의 속마음, 다른 문화의 닮은 이야기, 뒤에 남긴 영향(작품·말·풍습)을 장면처럼.
+- 사실은 주어진 위키백과와 확실히 아는 것만. 지어내지 마요. 원문 인용은 한 문장 이하. 큰따옴표 대신 ‘ ’.
+- 이야기체 '-했습니다'. 앞 단계(d1·d2)와 같은 문장을 되풀이하지 마요.
+JSON 하나만: {{"d3":["문단", …]}}
+
+제목: {title} ({orig})
+d1: {d1}
+d2: {d2}
+[위키백과]
+{w}"""
+
+
+def deepen():
+    doc = BR.rj(OUT, None) or {"items": []}
+    wt = {f"cl-{i + 1:03d}": w for i, (g, n, w) in enumerate(T)}
+    todo = [x for x in doc["items"] if not x.get("deep") and sum(len(p) for p in (x["depths"].get("d3") or {}).get("body", [])) < 1300][:int(os.environ.get("IYAGI_N") or 200)]
+    BR.log(f"깊이 읽기 늘릴 이야기 {len(todo)}편")
+    if not todo or not os.environ.get("ANTHROPIC_API_KEY"): return 0
+    if os.environ.get("IYAGI_FAST"): os.environ["CLAUDE_NO_DAILY"] = "1"
+    def one(x):
+        p = DEEP.format(title=x["title"], orig=x["orig"], d1=" ".join(x["depths"]["d1"]["body"]), d2=" ".join((x["depths"].get("d2") or {}).get("body", [])), w=wiki(wt.get(x["id"], ""))[:5000] or "(없음 — 확실히 아는 것만)")
+        return BR.claude(p, "claude-sonnet-5-5", 12000), x
+    got = 0
+    with ThreadPoolExecutor(4) as ex:
+        for f in as_completed([ex.submit(one, x) for x in todo]):
+            (res, err), x = f.result()
+            if not res: BR.log(f"Claude: {err}"); continue
+            try:
+                body = [str(p)[:900] for p in BR.parse_json(res[0]).get("d3") or [] if len(str(p)) > 60]
+                if sum(map(len, body)) >= 1200:
+                    x["depths"]["d3"] = {"min": max(7, round(sum(map(len, body)) / 280)), "body": body}; x["deep"] = 1; got += 1
+            except Exception as e:
+                BR.log(f"답을 못 읽음 ({e})")
+            BR.wj(OUT, doc)
+    BR.log(f"깊이 읽기 늘림 {got}편")
+    return 0
+
+
 def main():
+    if "--deepen" in sys.argv: return deepen()
     dry = "--dry" in sys.argv
     doc = BR.rj(OUT, None) or {"items": []}
     have = {x["id"] for x in doc["items"]}

@@ -41,7 +41,9 @@ jobs:
           IYAGI_N: ${{ inputs.n || '40' }}
           IYAGI_FAST: ${{ inputs.fast }}
           CLAUDE_NO_DAILY: ${{ inputs.fast }}
-        run: python robot/iyagi_claude.py
+        run: |
+          python robot/iyagi_claude.py
+          python robot/iyagi_claude.py --deepen || true
       - name: 저장소에 올리기
         run: |
           git config user.name "iyagi-robot"
