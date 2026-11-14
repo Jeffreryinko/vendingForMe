@@ -19,4 +19,4 @@ if __name__ == "__main__":
     a = sys.argv[1:]; n = 1100
     if a and a[0] == "-n": n = int(a[1]); a = a[2:]
     for k in a:
-        print("##", k); print(get(k, n).replace("\n", " ")); print(); time.sleep(0.8)
+        print("##", k); print(get(k, n).replace("\n", " ")); print(); time.sleep(2.5)
