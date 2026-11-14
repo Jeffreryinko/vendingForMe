@@ -3,6 +3,7 @@
 <script>window.VFM_APP="sisa";</script>
 <script src="../assets/claude-shim.js"></script>
 <script src="../assets/deck.js"></script>
+<script src="briefing.js?v=1"></script>
 <link rel="manifest" href="../manifest.webmanifest"><meta name="theme-color" content="#0C6E77"><link rel="apple-touch-icon" href="../assets/icon-192.png">
 
 <title>시사 자판기</title>
@@ -960,7 +961,9 @@ async function boot(){
     // 이번 판만 받으면 바로 화면을 그림. 이전 판(같은 글의 지난 번역을 이어 쓰는 용도)은 그 뒤에 받아 덧붙임
     //  (예전: 이전 판 20여 개 파일을 다 받은 뒤에야 이번 판을 받기 시작 → 첫 화면이 두 배 늦었음)
     const cur = S.eds[S.eds.length-1].id, prev = S.eds.length > 1 ? S.eds[S.eds.length-2].id : null;
+    const brfP = window.BRF ? BRF.load() : null;   // 브리핑 글 (작은 파일 하나) — 판과 함께 받음
     await loadEdition(cur);
+    if(brfP) await brfP;
     if(S.demo) return;   // 예시를 보는 중이면 화면을 바꾸지 않음
     S.loaded = true; S.fail = null; clearTimeout(timer);
     route();
@@ -1978,10 +1981,11 @@ function issueInner(s, inDeck){
       ${rb && changed.length ? `<div class="ichg"><b>지난번에 읽은 뒤 달라진 것</b><span class="note">${esc(ago(new Date(rb).toISOString()))} 읽으셨어요 · 그 뒤 새 글 ${changed.length}개${(() => { const c = new Set(changed.map(ctry)); return c.size > 1 ? ` · ${c.size}개국` : ""; })()}</span>
         <div class="irows">${changed.slice(0, 4).map(rowItem).join("")}</div>${changed.length > 4 ? `<button type="button" class="linkbtn" data-jump="sec-tl">흐름에서 나머지 ${changed.length - 4}개 보기 ›</button>` : ""}</div>`
         : rb ? `<p class="ichg-none">✓ ${esc(ago(new Date(rb).toISOString()))} 읽으신 뒤로 새 글이 없어요.</p>` : ""}
-      <h2 class="ititle">${esc(s.title || storyTitle(s, its))}</h2>
+      <h2 class="ititle">${esc((window.BRF && BRF.of(s) || {}).t || s.title || storyTitle(s, its))}</h2>
       ${s.wk ? `<p class="iwk"><span class="wkb">위키백과 '요즘 화제'에 실린 사건</span> <a href="https://en.wikipedia.org/wiki/Portal:Current_events/${encodeURIComponent(String(s.wk.d||"").replace(/ /g,"_"))}" target="_blank" rel="noopener">${esc(wkDay(s.wk.d))} 원문 ›</a><small>${esc(s.wk.t)}</small></p>` : ""}
       ${(() => { const ps = its.map(i => i.p).filter(Boolean).sort(); if(!ps.length) return ""; const a = mdDay(ps[0]), b = mdDay(ps[ps.length-1]);
         return `<p class="idates">🗓 기사 날짜 ${a === b ? a : a + " ~ " + b} · 기사 ${its.length}개 · 가장 최근 ${ago(ps[ps.length-1])}</p>`; })()}
+      ${window.BRF ? BRF.issueBlock(s) : ""}
       ${(() => { const ph = storyPhoto(s); return ph ? `<figure class="iphoto has-ph"><a href="${esc(ph.i.u || "#")}" target="_blank" rel="noopener" aria-label="사진이 실린 기사 열기">${phImg(ph.u, "ip-img", ph.b, inDeck && s.top && s.top <= 2)}</a>
         <figcaption><span>사진: ${esc(srcOf(ph.i.s).n)} 기사${ph.i.p ? ` (${mdTime(ph.i.p)})` : ""}${koOf(ph.i) ? ` 「${esc(koOf(ph.i).slice(0, 40))}${koOf(ph.i).length > 40 ? "…" : ""}」` : ""}</span><button type="button" class="ip-map" data-mapfull="${sid}">🗺 지도</button></figcaption></figure>` : ""; })()}
       <div class="imap${storyPhoto(s) ? " ph-fb" : ""}">
@@ -2354,7 +2358,10 @@ function krBlind(list){
 function viewHome(){
   const allS = (S.ed.stories||[]).filter(okStory);
   if(!allS.some(s => s.key)) return viewTodayOld();
-  const msw = D ? D.modeSwitch("sisa-today", () => render()) : "";
+  // 첫 화면 기본 = 브리핑 글. 넘겨보기·목록은 위쪽 단추로 바꿈
+  const brfOn = window.BRF && BRF.data && S.edId === S.eds[S.eds.length-1].id;
+  if(brfOn && BRF.mode() === "brief") return BRF.view();
+  const msw = brfOn ? BRF.sw() : (D ? D.modeSwitch("sisa-today", () => render()) : "");
   if(D && D.mode("sisa-today") === "deck"){
     S.issueOrder = todayDeckList().map(s => s.id);
     return `${S.newEd ? `<button type="button" class="newed" data-ed="${S.newEd.id}">새 판이 도착했어요 · ${esc(S.newEd.label)} 보기</button>` : ""}${msw}${todayDeck().html()}`;
@@ -3154,7 +3161,7 @@ document.addEventListener("submit", e => {
 });
 
 boot();
-window.SISA = {S, render, esc, ago, toast, replaceTo(h){ hashSwap(h); }};   // 트렌드 코너(assets/hot.js)가 쓰는 다리
+window.SISA = {S, render, esc, ago, toast, replaceTo(h){ hashSwap(h); }, findStory, flag, cname, CAT, storyPhoto, issueCountries, sm, issueOpened};   // 트렌드 코너(assets/hot.js)가 쓰는 다리
 })();
 </script>
 
