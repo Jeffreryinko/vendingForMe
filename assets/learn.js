@@ -164,7 +164,7 @@
       const q = c.quiz[cv.qi];
       h += `<p class="note">확인 문제 ${cv.qi + 1}/${c.quiz.length}</p><div class="lc"><h3>${esc(q.q)}</h3></div>${q.o.map((o, i) => `<button class="opt${cv.ans == null ? "" : i === q.a ? " ok" : i === cv.ans ? " no" : " dim"}" data-cq="${i}" ${cv.ans == null ? "" : "disabled"}>${esc(o)}</button>`).join("")}${cv.ans != null ? `<div class="why">${ART.face("me", cv.ans === q.a ? "s" : "t")}<b>${cv.ans === q.a ? "맞았어요." : "아쉬워요."}</b> ${esc(q.why)}</div><button class="btn pri go" data-cv="2">${cv.qi === c.quiz.length - 1 ? "마치기" : "다음 문제 ›"}</button>` : ""}`;
     } else {
-      const first = !S.ch[id]; S.ch[id] = { day: kst(), q: cv.ok }; save("ch"); if (first) bump("ch");
+      const first = !S.ch[id]; S.ch[id] = { day: kst(), q: cv.ok }; save("ch"); if (first) { bump("ch"); try { vfm.tick("done", true); vfm.cheer(true, "<b>한 장 끝!</b>" + (30 + cv.ok * 5) + "점 얻었어요"); } catch (e) { } }
       for (const t of new Set(c.cards.flatMap(k => k.tm || []))) if (TB[t] && !S.box[t]) S.box[t] = { b: 1, due: kst(1) }; save("box");
       const nx = nextHash(); cv = null;
       h = backTop() + head("한 장 끝 ✓", `'${esc(c.t)}' — 문제 ${S.ch[id].q}/${c.quiz.length}개 맞음. 이 장의 말들은 내일부터 복습에 나와요.`) + `<div>${chips([...new Set(c.cards.flatMap(k => k.tm || []))])}</div>` + (nx ? `<button class="btn pri go" data-go="${nx}" style="margin-top:14px">이어서 하기 ›</button>` : `<p class="endnote">오늘 몫을 다 했어요 ✓</p>`) + `<button class="btn go" data-go="#home">오늘 화면으로</button>`;
@@ -228,7 +228,7 @@
   function renderYday() {
     if (!yd) yd = { qs: ydayItems(), i: 0, ans: null, ok: 0 };
     if (!yd.qs.length) { yd = null; return backTop() + head("어제 복습", "어제 읽은 코스나 역사가 없어요. 오늘 읽은 것은 내일 문제로 나와요."); }
-    if (yd.i >= yd.qs.length) { const n = yd.qs.length, ok = yd.ok; S.rd[kst()] = { n, ok }; save("rd"); yd = null; const nx = nextHash(); return backTop() + head("어제 복습 끝 ✓", `${n}문제 중 ${ok}개 맞음 · 점수 +${10 + ok * 5}. 틀린 것은 그 장과 사건을 다시 열어 보세요.`) + (nx ? `<button class="btn pri go" data-go="${nx}">이어서 하기 ›</button>` : "") + `<button class="btn go" data-go="#home">오늘 화면으로</button>`; }
+    if (yd.i >= yd.qs.length) { const n = yd.qs.length, ok = yd.ok; S.rd[kst()] = { n, ok }; save("rd"); try { vfm.tick("done", true); vfm.cheer(ok === n, "<b>복습 끝!</b>" + ok + "/" + n); } catch (e) { } yd = null; const nx = nextHash(); return backTop() + head("어제 복습 끝 ✓", `${n}문제 중 ${ok}개 맞음 · 점수 +${10 + ok * 5}. 틀린 것은 그 장과 사건을 다시 열어 보세요.`) + (nx ? `<button class="btn pri go" data-go="${nx}">이어서 하기 ›</button>` : "") + `<button class="btn go" data-go="#home">오늘 화면으로</button>`; }
     const q = yd.qs[yd.i];
     return backTop(`<span class="note" style="margin:0">어제 복습 ${yd.i + 1}/${yd.qs.length}</span>`) + `<p class="note">${q.k === "c" ? "코스" : "역사"} · ${esc(q.from)}</p><div class="lc"><h3>${esc(q.q)}</h3></div>` + q.o.map((o, i) => `<button class="opt${yd.ans == null ? "" : i === q.a ? " ok" : i === yd.ans ? " no" : " dim"}" data-yd="${i}" ${yd.ans == null ? "" : "disabled"}>${esc(o)}</button>`).join("") + (yd.ans != null ? `<div class="why"><b>${yd.ans === q.a ? "맞았어요." : "아쉬워요."}</b> ${esc(q.why || "")}</div><button class="btn pri" data-yd="next">${yd.i === yd.qs.length - 1 ? "마치기" : "다음 문제 ›"}</button>` : "");
   }
@@ -277,18 +277,18 @@
     if (d.addbox) { S.box[d.addbox] = { b: 1, due: kst(1) }; save("box"); toast("내일부터 복습에 나와요"); closeSheet(); return paint(true); }
     if (d.size) { S.size = d.size; save("size"); return paint(true); }
     if (d.wg) { S.wg = +d.wg; save("wg"); return paint(true); }
-    if (d.yd != null) { if (d.yd === "next") { yd.i++; yd.ans = null; return paint(); } const q = yd.qs[yd.i]; yd.ans = +d.yd; if (yd.ans === q.a) yd.ok++; return paint(true); }
+    if (d.yd != null) { if (d.yd === "next") { yd.i++; yd.ans = null; return paint(); } const q = yd.qs[yd.i]; yd.ans = +d.yd; if (yd.ans === q.a) { yd.ok++; (window.vfm && vfm.tick && vfm.tick("quiz")); } return paint(true); }
     if (d.step) return nav(d.step === "rd" ? "#yday" : d.step === "ch" ? (chLeft().length ? "#ch=" + startCh().id : "#course") : d.step === "tm" ? "#review" : (epLeft()[0] ? "#hist=" + epLeft()[0][0].id : "#hist"));
     if (d.dg != null) { const q = DG[dg.i]; if (+d.dg === q.a) dg.ok.push(dg.i); dg.i++; return paint(); }
     if (d.cv) { const c = CH.find(x => x.id === cv.id), n = +d.cv; if (n === 2) { cv.qi++; cv.ans = null; } else if (n === 1 && cv.i === c.cards.length - 1) cv.qi = 0; else cv.i = Math.max(0, cv.i + n); return paint(); }
-    if (d.cq != null) { const q = CH.find(x => x.id === cv.id).quiz[cv.qi]; cv.ans = +d.cq; if (cv.ans === q.a) cv.ok++; return paint(true); }
+    if (d.cq != null) { const q = CH.find(x => x.id === cv.id).quiz[cv.qi]; cv.ans = +d.cq; if (cv.ans === q.a) { cv.ok++; (window.vfm && vfm.tick && vfm.tick("quiz")); } return paint(true); }
     if (d.rv) { const [t, kind] = rv.q[rv.i];
       if (d.rv === "learn") { S.box[t.id] = { b: 1, due: kst(1) }; save("box"); bump("tm"); rv.i++; rv.opts = null; return paint(); }
       if (d.rv === "next") { rv.i++; rv.ans = null; rv.opts = null; return paint(); }
       rv.ans = d.rv; const ok = d.rv === t.id, b = ok ? Math.min(5, (S.box[t.id].b || 1) + 1) : 1; S.box[t.id] = { b, due: kst(GAP[b]) }; save("box"); bump("tm"); if (ok) rv.ok++; return paint(true); }
     if (d.tc != null) { tf.c = d.tc; return paint(true); }
     if (d.ep) { const shut = openEp === d.ep; openEp = shut ? d.ep.split(":")[0] + ":-" : d.ep; if (!shut) markEp(openEp); return paint(true); }
-    if (d.pq != null) { if (d.pq === "next") { pr.i++; pr.ans = null; return paint(); } pr.ans = +d.pq; if (pr.ans === pr.qs[pr.i].a) pr.ok++; return paint(true); }
+    if (d.pq != null) { if (d.pq === "next") { pr.i++; pr.ans = null; return paint(); } pr.ans = +d.pq; if (pr.ans === pr.qs[pr.i].a) { pr.ok++; (window.vfm && vfm.tick && vfm.tick("quiz")); } return paint(true); }
   });
   // 코스 카드: 옆으로 밀어 넘기기
   let sx = null; document.addEventListener("touchstart", e => { sx = e.target.closest("#swipe") ? e.touches[0].clientX : null; }, { passive: true });
