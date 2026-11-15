@@ -1,4 +1,4 @@
-/* univ.js — '주현 대학': 내가 만든 자판기·띵크폴미·타이쿤을 4학기 과정으로 끝까지 익히는 일정표의 계산 부분.
+/* univ.js — 'univ.': 내가 만든 자판기·띵크폴미·타이쿤을 4학기 과정으로 끝까지 익히는 일정표의 계산 부분.
    진도는 각 앱이 이 기기에 이미 남기는 기록을 읽어서 저절로 세요(로봇·토큰 0). 타이쿤만 주소가 달라 판 수를 직접 눌러요.
      세 교실   vfm:learn:<sisa|deal|gicho>:ch(끝낸 장) · box(외우기 상자에 든 용어) · ep(읽은 역사) · diag(수준 확인 {c,n})
      뇌        vfm:brain:srs  {부위: {b}}  — b 3 이상 = 외움 (뇌 화면의 '외운 부위'와 같은 기준)
@@ -147,7 +147,7 @@
     if (!el) return;
     if (!document.getElementById("uv-css")) { var st = document.createElement("style"); st.id = "uv-css"; st.textContent = CARD_CSS; document.head.appendChild(st); }
     var C = calc(), t = pick(C), s = status(C), pc = Math.round(C.done / C.tot * 100);
-    var head = C.el < 0 ? "주현 대학 · " + fmt(pd(START)) + " 첫 수업" : "주현 대학 · " + TERMS[C.term].n + " " + C.week + "주차";
+    var head = C.el < 0 ? "univ. · " + fmt(pd(START)) + " 첫 수업" : "univ. · " + TERMS[C.term].n + " " + C.week + "주차";
     el.innerHTML = '<a class="uv" href="' + LINK.univ + '"><div class="k"><span>' + esc(head) + '<span class="pl ' + s[0] + '">' + s[1] + '</span></span><b>' + pc + "% · 졸업 " + (C.end.getMonth() + 1) + "/" + C.end.getDate() + "</b></div>" +
       (t ? '<p class="t">' + esc(t.u.name) + " " + t.n + t.u.unit + " · 약 " + t.min + "분</p>" : '<p class="t">전 과정을 끝냈어요</p>') +
       '<p class="d">누르면 오늘 할 것과 학기 진도가 열려요</p><div class="bar"><i style="width:' + Math.max(2, pc) + '%"></i></div></a>';

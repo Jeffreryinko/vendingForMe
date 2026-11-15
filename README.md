@@ -5,7 +5,7 @@
 - 다른 자판기: [이야기 자판기](https://jeffreryinko.github.io/vfm-story/) (이야기·역사·뇌) · [사람 자판기](https://jeffreryinko.github.io/vfm-mind/) (배댓·맨탈)
 - 같은 주소(jeffreryinko.github.io)라서 폰에 저장된 별표·메모·보관함은 세 사이트가 함께 써요.
 - 작업 현황판은 [work-board 저장소](https://github.com/Jeffreryinko/work-board)로 옮김 (`work/`는 새 주소로 넘겨 주기만 함).
-- [주현 대학](https://jeffreryinko.github.io/vendingForMe/univ/) — `univ/` + `assets/univ.js`. 자판기·띵크폴미·타이쿤을 4학기(약 86시간)로 익히는 일정표. 진도는 각 앱이 기기에 남기는 기록(교실 `vfm:learn:*`, 뇌 `vfm:brain:srs`, 이야기 `iyagi-library-v1`, 맨탈 `vfm:mental:school`)을 읽어 저절로 셈, 타이쿤 판 수만 직접 누름(`vfm:univ`). 첫 화면과 띵크폴미 홈에 '오늘 수업' 카드(`VFM_UNIV.card`·`html`).
+- [univ.](https://jeffreryinko.github.io/vendingForMe/univ/) — `univ/` + `assets/univ.js`. 자판기·띵크폴미·타이쿤을 4학기(약 86시간)로 익히는 일정표. 진도는 각 앱이 기기에 남기는 기록(교실 `vfm:learn:*`, 뇌 `vfm:brain:srs`, 이야기 `iyagi-library-v1`, 맨탈 `vfm:mental:school`)을 읽어 저절로 셈, 타이쿤 판 수만 직접 누름(`vfm:univ`). 첫 화면과 띵크폴미 홈에 '오늘 수업' 카드(`VFM_UNIV.card`·`html`).
 - [매일 업무 플래너](https://jeffreryinko.github.io/vendingForMe/planner/) — `planner/` 폴더. 자판기와는 따로 도는 개인 플래너(설명은 [planner/README.md](planner/README.md)). 로그인만 함께 써요.
 
 | 로봇 | 무엇 | 언제 |
