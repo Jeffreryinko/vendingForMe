@@ -13,25 +13,30 @@
 <script>window.VFM_APP = "univ";</script>
 <script src="../assets/claude-shim.js"></script>
 <style>
-/* 배치: 위에서 요약(졸업일·진도) → 오늘 수업 → 이번 주 → 그래프 → 학기별 수강표 → 설정. 폰 한 줄 */
+/* 배치: 위에서 요약(졸업일·진도) → 오늘 수업 → 숫자 한 줄 → 이번 주 → 그래프 → 학기별 수강표 → 설정. 과목 줄과 '세부 분석'을 누르면 숫자 화면이 위로 덮임 */
 html.ap.ap-univ{--ap-tint:var(--ap-blue);--ap-tint-t:var(--ap-blue-t)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--ap-bg);color:var(--ap-label);font:16px/1.5 var(--ap-font);word-break:keep-all;overflow-wrap:anywhere;
   padding:calc(env(safe-area-inset-top,0px) + 14px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 40px) max(16px,env(safe-area-inset-left,0px))}
-.wrap{max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+html.lock,html.lock body{overflow:hidden}
+.wrap,.shin{max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+#app{display:flex;flex-direction:column;gap:12px}
 a.home{align-self:flex-start;padding:6px 2px;color:var(--ap-tint-t);text-decoration:none;font-size:16px}
 h1{margin:0 4px;font:800 34px/1.15 var(--ap-display);letter-spacing:-.03em}
 h2{margin:0;font:700 20px/1.3 var(--ap-display);letter-spacing:-.02em;text-wrap:balance}
+h3{margin:0;font:700 16px/1.3 var(--ap-display);letter-spacing:-.01em}
 p{margin:0}
 .sub{color:var(--ap-label2);font-size:14.5px;margin:0 4px}
-.num{font-variant-numeric:tabular-nums}
+.num,.kp b,.tb,.it .v{font-variant-numeric:tabular-nums}
 .card{background:var(--ap-surface);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:12px}
 .kp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.kp div{background:var(--ap-surface);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:2px;min-width:0}
-.kp b{font:800 25px/1.2 var(--ap-display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kp>div{background:var(--ap-surface);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kp b{font:800 24px/1.2 var(--ap-display);letter-spacing:-.02em}
 .kp span{font-size:13px;color:var(--ap-label2)}
 .kp .main{background:var(--ap-blue);color:#fff}.kp .main span{color:rgba(255,255,255,.85)}
-.pl{display:inline-block;font-size:13px;font-weight:700;padding:2px 10px;border-radius:99px;align-self:flex-start}
+.kp.in>div{background:var(--ap-fill);padding:12px}.kp.in b{font-size:21px}
+.kp.c3{grid-template-columns:repeat(3,minmax(0,1fr))}.kp.c3 b{font-size:19px}
+.pl{display:inline-block;font-size:13px;font-weight:700;padding:2px 10px;border-radius:99px;align-self:flex-start;white-space:nowrap}
 .pl.good{background:rgba(52,199,89,.16);color:var(--ap-green-t)}.pl.warn{background:rgba(255,149,0,.16);color:var(--ap-orange-t)}.pl.bad{background:rgba(255,59,48,.14);color:var(--ap-red-t)}.pl.wait{background:var(--ap-fill);color:var(--ap-label2)}
 .bar{height:10px;border-radius:99px;background:var(--ap-fill);overflow:hidden}.bar i{display:block;height:100%;border-radius:99px;background:var(--ap-blue)}
 .bar.thin{height:6px}.bar.ok i{background:var(--ap-green)}
@@ -55,21 +60,45 @@ p{margin:0}
 .exit .c{display:flex;gap:8px;align-items:flex-start}.exit .c i{flex:none;width:20px;height:20px;border-radius:50%;border:2px solid var(--ap-label3);margin-top:1px;display:grid;place-items:center;font-style:normal;font-size:12px;color:#fff}
 .exit .c.ok i{background:var(--ap-green);border-color:var(--ap-green)}
 .exit .c small{color:var(--ap-label2)}
-.it{display:flex;flex-direction:column;gap:6px;padding:12px 0;border-top:.5px solid var(--ap-sep)}
+.it{display:flex;flex-direction:column;gap:6px;padding:12px 0;border-top:.5px solid var(--ap-sep);width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;color:inherit;font:inherit;cursor:pointer}
 .it .r{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.it a{color:var(--ap-label);font-weight:600;text-decoration:none}
+.it .nm{font-weight:600}
 .it .m{font-size:13px;color:var(--ap-label2);font-variant-numeric:tabular-nums}
-.it .v{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
-.it .auto{font-size:11.5px;font-weight:700;color:var(--ap-green-t);background:rgba(52,199,89,.14);border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+.it .v{font-weight:700;white-space:nowrap}.it .v em{font-style:normal;color:var(--ap-label3);font-weight:400;margin-left:4px}
 .stp{display:flex;gap:6px}.stp button{min-width:48px;height:44px;border:0;border-radius:12px;background:var(--ap-fill);color:var(--ap-label);font:700 16px var(--ap-font);cursor:pointer}
 .stp button.p{background:var(--ap-blue);color:#fff}
 .seg{display:flex;background:var(--ap-fill);border-radius:12px;padding:3px;gap:3px}
-.seg button{flex:1;border:0;border-radius:9px;background:none;color:var(--ap-label);font:600 14px/1.3 var(--ap-font);padding:9px 4px;cursor:pointer}
+.seg button{flex:1;border:0;border-radius:9px;background:none;color:var(--ap-label);font:600 14px/1.3 var(--ap-font);padding:9px 2px;cursor:pointer;min-width:0}
 .seg button[aria-pressed="true"]{background:var(--ap-seg-on,var(--ap-surface));box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.seg small{display:block;font-weight:400;font-size:11.5px;color:var(--ap-label2)}
+.seg small{display:block;font-weight:400;font-size:11px;color:var(--ap-label2)}
 table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:8px 4px;border-top:.5px solid var(--ap-sep);vertical-align:top}th{color:var(--ap-label2);font-weight:600;white-space:nowrap}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 button:focus-visible,a:focus-visible{outline:2px solid var(--ap-blue);outline-offset:2px}
-.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);transform:translate(-50%,20px);padding:11px 18px;border-radius:99px;background:var(--ap-label);color:var(--ap-bg);font-weight:700;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;white-space:nowrap}
+/* 숫자 화면(덮개) */
+.sh{position:fixed;inset:0;z-index:60;background:var(--ap-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;
+  padding:0 max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 40px) max(16px,env(safe-area-inset-left,0px))}
+.sh.on{display:block}
+.shh{position:sticky;top:0;z-index:2;background:var(--ap-bg);display:flex;justify-content:space-between;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 12px) 0 10px;max-width:600px;margin:0 auto}
+.shh b{font:800 22px/1.2 var(--ap-display);letter-spacing:-.02em;min-width:0}
+.shh button{flex:none;border:0;border-radius:99px;background:var(--ap-fill);color:var(--ap-label);font:700 15px var(--ap-font);padding:9px 16px;cursor:pointer}
+.row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:10px 0;border-top:.5px solid var(--ap-sep)}
+.row:first-child{border-top:0}
+.row .a{min-width:0}.row .a b{font-weight:600}.row .a small{display:block;color:var(--ap-label2);font-size:13px;font-variant-numeric:tabular-nums}
+.row .b{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}.row .b small{display:block;font-weight:400;color:var(--ap-label2);font-size:12.5px}
+.row .bar{grid-column:1/-1;margin-top:4px}
+.row.done .a b{color:var(--ap-label2)}
+.ck{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:2px solid var(--ap-label3);font-size:12px;color:#fff;margin-right:8px;vertical-align:-4px;flex:none}
+.ck.ok{background:var(--ap-green);border-color:var(--ap-green)}.ck.nx{border-color:var(--ap-blue)}
+.grp{font:700 13px var(--ap-font);color:var(--ap-label2);padding:14px 0 2px;display:flex;justify-content:space-between}
+.stack{display:flex;height:14px;border-radius:99px;overflow:hidden;background:var(--ap-fill)}
+.stack i{display:block;height:100%}
+.lg{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:13px;color:var(--ap-label2);font-variant-numeric:tabular-nums}
+.lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+.dots i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ap-fill);margin-left:3px}.dots i.on{background:var(--ap-blue)}
+.dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:92px}
+.dow div{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;height:100%;font-size:12px;color:var(--ap-label2);font-variant-numeric:tabular-nums}
+.dow i{display:block;width:100%;border-radius:6px 6px 2px 2px;background:var(--ap-blue);min-height:2px}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);transform:translate(-50%,20px);padding:11px 18px;border-radius:99px;background:var(--ap-label);color:var(--ap-bg);font-weight:700;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;white-space:nowrap;z-index:80}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -78,27 +107,33 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--ap-blue);outline-of
 <div class="wrap">
   <a class="home" href="../">‹ 자판기</a>
   <h1>univ.</h1>
-  <p class="sub">자판기 · 띵크폴미 · 타이쿤을 만든 의도대로 끝까지 익히는 4학기 과정이에요. 각 앱에서 공부하면 진도가 여기 저절로 올라와요.</p>
+  <p class="sub">자판기 · 띵크폴미 · 타이쿤을 만든 의도대로 끝까지 익히는 4학기 과정이에요. 각 앱에서 공부하면 진도가 여기 저절로 올라와요. 과목을 누르면 세부 숫자가 열려요.</p>
   <div id="app"></div>
 </div>
+<div class="sh" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT"><div class="shh"><b id="shT"></b><button type="button" id="shX">닫기</button></div><div class="shin" id="shB"></div></div>
 <div class="toast" id="toast"></div>
-<script src="../assets/univ.js?v=2"></script>
+<script src="../assets/univ.js?v=3"></script>
 <script>
 (function () {
   "use strict";
-  var V = window.VFM_UNIV, X = V.util, esc = X.esc, app = document.getElementById("app");
+  var V = window.VFM_UNIV, X = V.util, esc = X.esc, app = document.getElementById("app"), CAT = null, EXT = {};
+  var COL = ["var(--ap-label3)", "#8fb4ff", "#5b8ff5", "#2f6be0", "#1c46a8", "var(--ap-green)"];
   function toast(m) { var t = document.getElementById("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(function () { t.classList.remove("on"); }, 1800); }
   function bar(a, b, c) { return '<div class="bar ' + (c || "") + '"><i style="width:' + Math.min(100, (a / b * 100) || 0).toFixed(1) + '%"></i></div>'; }
+  function pct(a, b) { return b ? Math.round(a / b * 100) : 0; }
+  function r1(x) { return Math.round(x * 10) / 10; }
+  function mm(m) { return Math.round(m) + "분"; }
+  function mdS(d) { return (d.getMonth() + 1) + "/" + d.getDate(); }
+  function tile(label, big, small) { return "<div><span>" + label + "</span><b>" + big + "</b><span>" + (small || "") + "</span></div>"; }
+  function load(key, url) { if (EXT[key] !== undefined) return; EXT[key] = null; fetch(url, { cache: "no-cache" }).then(function (r) { return r.json(); }).then(function (j) { EXT[key] = j; route(); }).catch(function () { EXT[key] = false; route(); }); }
 
   function weekPlan(C) {
-    // 이번 주(오늘부터 7일): 하루씩 해 나간다고 치고 다음 날 몫을 미리 계산
     var got = {}; Object.keys(C.R.got).forEach(function (k) { got[k] = C.R.got[k]; });
     var start = C.el < 0 ? X.pd(V.START) : C.now, out = [];
     for (var i = 0; i < 7; i++) {
-      var day = X.addDays(start, i), sim = { R: { got: got }, cur: C.cur, p: C.p, sp: C.sp, el: 0, now: day };
-      var cur = 0; while (cur < 3 && V.U.filter(function (u) { return u.term === cur; }).every(function (u) { return got[u.id] >= u.total; })) cur++;
-      sim.cur = cur;
-      var t = V.pick(sim, day); out.push({ day: day, t: t });
+      var day = X.addDays(start, i), cur = 0;
+      while (cur < 3 && V.U.filter(function (u) { return u.term === cur; }).every(function (u) { return got[u.id] >= u.total; })) cur++;
+      var t = V.pick({ R: { got: got }, cur: cur, p: C.p, sp: C.sp, el: 0, now: day }, day); out.push({ day: day, t: t });
       if (t) got[t.u.id] = Math.min(t.u.total, got[t.u.id] + t.n);
     }
     return out;
@@ -108,14 +143,27 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--ap-blue);outline-of
     var x = function (d) { return L + Math.max(0, Math.min(1, d / C.days)) * pw; }, y = function (h) { return T + ph - Math.max(0, Math.min(1, h / th)) * ph; };
     var o = '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="계획한 누적 시간과 실제로 끝낸 누적 시간" font-family="inherit">';
     [0, .25, .5, .75, 1].forEach(function (f) { var yy = y(th * f); o += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '" stroke="var(--ap-sep)"/><text x="' + (L - 6) + '" y="' + (yy + 4) + '" text-anchor="end" font-size="12" fill="var(--ap-label2)">' + Math.round(th * f) + "</text>"; });
-    C.T.forEach(function (t, i) { var xx = x(X.dd(s0, t.to) + 1), an = i === 3 ? "end" : "middle"; o += '<line x1="' + xx + '" x2="' + xx + '" y1="' + T + '" y2="' + (T + ph) + '" stroke="var(--ap-sep)" stroke-dasharray="2 4"/><text x="' + xx + '" y="' + (H - 18) + '" text-anchor="' + an + '" font-size="12" fill="var(--ap-label2)">' + V.TERMS[i].n + '</text><text x="' + xx + '" y="' + (H - 4) + '" text-anchor="' + an + '" font-size="12" fill="var(--ap-label2)">' + (t.to.getMonth() + 1) + "/" + t.to.getDate() + "</text>"; });
+    C.T.forEach(function (t, i) { var xx = x(X.dd(s0, t.to) + 1), an = i === 3 ? "end" : "middle"; o += '<line x1="' + xx + '" x2="' + xx + '" y1="' + T + '" y2="' + (T + ph) + '" stroke="var(--ap-sep)" stroke-dasharray="2 4"/><text x="' + xx + '" y="' + (H - 18) + '" text-anchor="' + an + '" font-size="12" fill="var(--ap-label2)">' + V.TERMS[i].n + '</text><text x="' + xx + '" y="' + (H - 4) + '" text-anchor="' + an + '" font-size="12" fill="var(--ap-label2)">' + mdS(t.to) + "</text>"; });
     o += '<line x1="' + x(0) + '" y1="' + y(0) + '" x2="' + x(C.days) + '" y2="' + y(th) + '" stroke="var(--ap-label3)" stroke-width="2" stroke-dasharray="6 5"/>';
     var pts = [[0, 0]]; Object.keys(C.s.log).sort().forEach(function (k) { var d = X.dd(s0, X.pd(k)) + 1; if (d > 0) pts.push([d, C.s.log[k] / 60]); });
-    var td = Math.max(0, C.el + 1), last = pts[pts.length - 1]; if (td > last[0]) pts.push([td, C.done / 60]); last = pts[pts.length - 1];
+    var td = Math.max(0, C.el + 1), last = pts[pts.length - 1]; if (td > last[0]) pts.push([td, C.done / 60]); else if (td === last[0]) last[1] = C.done / 60; last = pts[pts.length - 1];
     var path = pts.map(function (p) { return x(p[0]).toFixed(1) + "," + y(p[1]).toFixed(1); }).join(" "), right = x(last[0]) > W - 120;
     o += '<polygon points="' + path + " " + x(last[0]).toFixed(1) + "," + y(0) + " " + x(0) + "," + y(0) + '" fill="var(--ap-blue)" opacity=".12"/><polyline points="' + path + '" fill="none" stroke="var(--ap-blue)" stroke-width="3" stroke-linejoin="round"/>';
-    o += '<circle cx="' + x(last[0]) + '" cy="' + y(last[1]) + '" r="5" fill="var(--ap-blue)"/><text x="' + (x(last[0]) + (right ? -9 : 9)) + '" y="' + (y(last[1]) - 9) + '" font-size="13" font-weight="700" fill="var(--ap-blue)" text-anchor="' + (right ? "end" : "start") + '">지금 ' + Math.round(C.done / 6) / 10 + "시간</text>";
+    o += '<circle cx="' + x(last[0]) + '" cy="' + y(last[1]) + '" r="5" fill="var(--ap-blue)"/><text x="' + (x(last[0]) + (right ? -9 : 9)) + '" y="' + (y(last[1]) - 9) + '" font-size="13" font-weight="700" fill="var(--ap-blue)" text-anchor="' + (right ? "end" : "start") + '">지금 ' + r1(C.done / 60) + "시간</text>";
     return o + '<text x="' + (L - 6) + '" y="9" text-anchor="end" font-size="11" fill="var(--ap-label2)">시간</text></svg>';
+  }
+  function bars14(C, S) {
+    var W = 640, H = 210, L = 34, R = 8, T = 16, B = 30, pw = W - L - R, ph = H - T - B, mx = Math.max(S.need, C.p.we, 10); S.ser.forEach(function (x) { if (x.min > mx) mx = x.min; }); mx = Math.ceil(mx / 10) * 10;
+    var bw = pw / 14, y = function (m) { return T + ph - m / mx * ph; }, o = '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="최근 14일 하루 공부 시간(분)" font-family="inherit">';
+    [0, .5, 1].forEach(function (f) { var yy = y(mx * f); o += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '" stroke="var(--ap-sep)"/><text x="' + (L - 6) + '" y="' + (yy + 4) + '" text-anchor="end" font-size="12" fill="var(--ap-label2)">' + Math.round(mx * f) + "</text>"; });
+    S.ser.forEach(function (s, i) {
+      var xx = L + i * bw + bw * .18, w = bw * .64, h = s.min / mx * ph, wd = s.d.getDay(), td = i === 13;
+      if (s.min > 0) o += '<rect x="' + xx.toFixed(1) + '" y="' + (T + ph - h).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="4" fill="var(--ap-blue)" opacity="' + (td ? 1 : .7) + '"/><text x="' + (xx + w / 2).toFixed(1) + '" y="' + (T + ph - h - 4).toFixed(1) + '" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ap-blue-t)">' + Math.round(s.min) + "</text>";
+      else if (!s.pre) o += '<rect x="' + xx.toFixed(1) + '" y="' + (T + ph - 2) + '" width="' + w.toFixed(1) + '" height="2" fill="var(--ap-label3)"/>';
+      o += '<text x="' + (xx + w / 2).toFixed(1) + '" y="' + (H - 14) + '" text-anchor="middle" font-size="11" font-weight="' + (td ? 700 : 400) + '" fill="' + (wd === 0 || wd === 6 ? "var(--ap-red-t)" : "var(--ap-label2)") + '">' + V.DAYN[wd] + '</text><text x="' + (xx + w / 2).toFixed(1) + '" y="' + (H - 2) + '" text-anchor="middle" font-size="10" fill="var(--ap-label3)">' + s.d.getDate() + "</text>";
+    });
+    var ny = y(S.need);
+    return o + '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + ny + '" y2="' + ny + '" stroke="var(--ap-orange)" stroke-width="2" stroke-dasharray="6 4"/><text x="' + (W - R) + '" y="' + (ny - 5) + '" text-anchor="end" font-size="12" font-weight="700" fill="var(--ap-orange-t)">필요 ' + Math.round(S.need) + "분</text></svg>";
   }
   function exitRow(C, e) {
     var ok = false, extra = "";
@@ -123,60 +171,206 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--ap-blue);outline-of
     else { var u = V.U.filter(function (x) { return x.id === e[1]; })[0]; ok = C.R.got[u.id] >= u.total; if (!ok) extra = " · " + C.R.got[u.id] + "/" + u.total; }
     return '<div class="c' + (ok ? " ok" : "") + '"><i>' + (ok ? "✓" : "") + "</i><span>" + esc(e[2]) + "<small>" + esc(extra) + "</small></span></div>";
   }
+  function fcUnit(C, S, u) { var left = u.total - C.R.got[u.id], rate = S.u7[u.id] / S.span; return !left ? "끝" : rate > 0 ? mdS(X.addDays(C.now, Math.ceil(left / rate))) + " 끝" : "아직 속도 없음"; }
 
+  /* ───── 첫 화면 ───── */
   function render() {
-    var C = V.calc(), st = V.status(C), t = V.pick(C), h = "", pc = Math.round(C.done / C.tot * 100), units = V.U.reduce(function (a, u) { return a + u.total; }, 0);
+    var C = V.calc(), S = V.stats(C), st = V.status(C), t = V.pick(C), h = "", pc = r1(C.done / C.tot * 100);
     h += '<div class="kp"><div class="main"><span>졸업일 (계획)</span><b>' + X.md(C.end) + "</b><span>" + C.end.getFullYear() + "년 · " + Math.round(C.days / 7) + "주 과정</span></div>" +
-      "<div><span>전체 범위</span><b>" + X.hrs(C.tot) + "</b><span>학습 단위 " + units.toLocaleString() + "개</span></div>" +
-      "<div><span>지금 진도</span><b>" + pc + "%</b><span>" + X.hrs(C.done) + " 끝냄</span></div>" +
+      tile("전체 범위", X.hrs(C.tot), "학습 단위 " + C.nU.toLocaleString() + "개") + tile("지금 진도", pc + "%", C.nD.toLocaleString() + "개 · " + X.hrs(C.done)) +
       '<div><span>계획 대비</span><b><span class="pl ' + st[0] + '">' + st[1] + "</span></b><span>" + (C.fc ? "이 속도면 " + X.md(C.fc) + " 졸업" : "일주일 뒤부터 예상 졸업일이 나와요") + "</span></div></div>";
 
     if (t) {
       var ty = t.u.src[0] === "ty";
       h += '<div class="card today"><span class="note">' + (C.el < 0 ? "첫 수업 · " + X.fmt(t.day) : "오늘 수업 · " + V.TERMS[C.term].n + " " + C.week + "주차 · " + X.fmt(C.now)) + '</span><p class="big">' + esc(t.u.name) + ' <span class="num">' + t.n + t.u.unit + "</span> · 약 " + t.min + "분</p>" +
         '<a class="btn" href="' + t.u.url + '">' + (ty ? "타이쿤 열기" : "열어서 시작") + "</a>" +
-        '<p class="note">' + (ty ? "한 판 끝내면 아래 " + V.TERMS[t.u.term].n + " 표에서 타이쿤 +1을 눌러요. 타이쿤은 주소가 달라서 이것만 직접 세요." : "그 화면에서 공부하면 진도가 여기 저절로 올라와요. 교실은 '이어서 하기' 하나만 누르면 돼요.") + "</p>" +
+        '<p class="note">' + (ty ? "한 판 끝내면 아래 " + V.TERMS[t.u.term].n + " 표에서 타이쿤 +1판을 눌러요. 타이쿤은 주소가 달라서 이것만 직접 세요." : "그 화면에서 공부하면 진도가 여기 저절로 올라와요. 교실은 '이어서 하기' 하나만 누르면 돼요.") + "</p>" +
         '<a class="btn2" href="' + V.LINK.think + '">띵크폴미 · 아침 2분 핵심 3가지, 밤 2분 하루 마감</a></div>';
     } else h += '<div class="card today"><p class="big">전 과정을 끝냈어요. 졸업이에요.</p></div>';
 
+    var gap = S.avg7 - S.need;
+    h += '<div class="card"><div class="th"><h2>숫자로 보기</h2><span class="pl ' + (gap >= 0 ? "good" : gap > -10 ? "warn" : "bad") + '">하루 ' + (gap >= 0 ? "+" : "−") + Math.abs(Math.round(gap)) + "분</span></div>" +
+      '<div class="kp in">' + tile("최근 7일 하루 평균", mm(S.avg7), "7일 합계 " + mm(S.m7)) + tile("졸업일 맞추려면 하루", mm(S.need), "남은 " + X.hrs(S.left) + " ÷ " + S.daysLeft + "일") +
+      tile("연속 공부", S.streak + "일", "시작 뒤 " + S.act + " / " + S.el + "일 공부") + tile("남은 단위", (C.nU - C.nD).toLocaleString() + "개", "끝낸 것 " + C.nD.toLocaleString() + "개") + "</div>" +
+      '<button type="button" class="btn" data-open="an">세부 분석 열기</button></div>';
+
     h += '<div class="card"><h2>이번 주</h2><div class="wk">' + weekPlan(C).map(function (w, i) {
-      return '<div class="d' + (i === 0 ? " on" : "") + '"><b>' + (w.day.getMonth() + 1) + "/" + w.day.getDate() + " " + V.DAYN[w.day.getDay()] + "</b><span>" + (w.t ? esc(w.t.u.name) + " " + w.t.n + w.t.u.unit : "끝") + "</span><span>" + (w.t ? w.t.min + "분" : "") + "</span></div>";
+      return '<div class="d' + (i === 0 ? " on" : "") + '"><b>' + mdS(w.day) + " " + V.DAYN[w.day.getDay()] + "</b><span>" + (w.t ? esc(w.t.u.name) + " " + w.t.n + w.t.u.unit : "끝") + "</span><span>" + (w.t ? w.t.min + "분" : "") + "</span></div>";
     }).join("") + '</div><p class="note">빠진 날은 몰아서 채우지 않아요. 다음 날은 그냥 그날 몫만 하고, 졸업일이 그만큼 밀려요.</p></div>';
 
     h += '<div class="card"><h2>계획과 실제</h2><div class="leg"><span><i class="p"></i>계획</span><span><i></i>실제로 끝낸 시간</span></div><div class="chart">' + chart(C) + "</div></div>";
 
     C.T.forEach(function (tm, i) {
       var fin = tm.done >= tm.min - 1e-6, cur = i === C.cur;
-      h += '<div class="card"><div class="th"><h2>' + V.TERMS[i].n + " · " + V.TERMS[i].t + '</h2><span class="pl ' + (fin ? "good" : cur ? "warn" : "wait") + '">' + (fin ? "통과" : cur ? "진행 중" : "대기") + "</span></div>" +
+      h += '<div class="card"><div class="th"><h2>' + V.TERMS[i].n + " · " + V.TERMS[i].t + '</h2><span class="pl ' + (fin ? "good" : cur ? "warn" : "wait") + '">' + (fin ? "통과" : cur ? "진행 중 " + pct(tm.done, tm.min) + "%" : "대기") + "</span></div>" +
         '<p class="when">' + X.fmt(tm.from) + " ~ " + X.fmt(tm.to, true) + " · " + tm.weeks + "주 · " + X.hrs(tm.min) + "</p><p>" + V.TERMS[i].goal + "</p>" + bar(tm.done, tm.min, fin ? "ok" : "") +
         '<div class="exit"><span class="h">통과 기준</span>' + V.EXIT[i].map(function (e) { return exitRow(C, e); }).join("") + "</div><div>" +
-        V.U.filter(function (u) { return u.term === i; }).map(function (u) {
+        V.U.map(function (u, ix) {
+          if (u.term !== i) return "";
           var g = C.R.got[u.id], ty = u.src[0] === "ty", wl = Math.max(1, Math.ceil((X.dd(C.now, tm.to) + 1) / 7)), q = Math.ceil((u.total - g) / Math.min(wl, tm.weeks));
-          return '<div class="it"><div class="r"><span><a href="' + u.url + '">' + esc(u.name) + "</a>" + (ty ? "" : '<span class="auto">자동</span>') + '</span><span class="v">' + g + " / " + u.total + "</span></div>" +
-            '<div class="r"><span class="m">' + X.hrs(u.total * u.min * C.sp) + (g < u.total && C.el >= 0 && i === C.cur ? " · 이번 주 몫 " + q + u.unit : "") + "</span>" +
+          return '<div class="it" role="button" tabindex="0" data-open="d-' + ix + '"><div class="r"><span class="nm">' + esc(u.name) + '</span><span class="v">' + g + " / " + u.total + "<em>›</em></span></div>" +
+            '<div class="r"><span class="m">' + pct(g, u.total) + "% · 남은 " + X.hrs((u.total - g) * u.min * C.sp) + (g < u.total && C.el >= 0 && i === C.cur ? " · 이번 주 몫 " + q + u.unit : "") + "</span>" +
             (ty ? '<span class="stp"><button type="button" id="tym' + i + '" data-ty="-1" aria-label="타이쿤 한 판 빼기">−</button><button type="button" class="p" id="typ' + i + '" data-ty="1" aria-label="타이쿤 한 판 더하기">+1판</button></span>' : "") + "</div>" + bar(g, u.total, "thin" + (g >= u.total ? " ok" : "")) + "</div>";
         }).join("") + "</div></div>";
     });
 
-    h += '<div class="card"><h2>하루에 얼마나</h2><div class="seg" role="group" aria-label="하루 공부량">' + V.PACES.map(function (p, i) { return '<button type="button" id="pace' + i + '" data-pace="' + i + '" aria-pressed="' + (C.s.set.pace === i) + '">' + p.n + "<small>평일 " + p.wd + "분 · 주말 " + p.we + "분</small></button>"; }).join("") + "</div>" +
+    h += '<div class="card"><h2>하루에 얼마나</h2><div class="seg" role="group" aria-label="하루 공부량">' + V.PACES.map(function (p, i) { return '<button type="button" id="pace' + i + '" data-pace="' + i + '" aria-pressed="' + (C.s.set.pace === i) + '">' + p.n + "<small>평일 " + p.wd + " · 주말 " + p.we + "분</small></button>"; }).join("") + "</div>" +
       '<p class="note">실제로 해 보니 하나에 드는 시간이 추정보다</p><div class="seg" role="group" aria-label="실제 속도">' + [[70, "빨라요"], [100, "비슷해요"], [140, "느려요"]].map(function (x) { return '<button type="button" id="sp' + x[0] + '" data-speed="' + x[0] + '" aria-pressed="' + (C.s.set.speed === x[0]) + '">' + x[1] + "</button>"; }).join("") + "</div>" +
-      '<p class="note">바꾸면 학기 날짜와 졸업일이 바로 다시 계산돼요. 14일 넘게 밀리면 가볍게로 내려요.</p></div>';
+      '<p class="note">바꾸면 학기 날짜와 졸업일이 바로 다시 계산돼요. 14일 넘게 밀리면 한 단계 내려요.</p></div>';
 
-    h += '<div class="card"><h2>요일마다 하는 것</h2><table><tr><th>요일</th><th>하는 것</th></tr><tr><td>월 · 수</td><td>교실 코스 2장 또는 용어 12개. 머리가 맑을 때 새 개념</td></tr><tr><td>화 · 목</td><td>타이쿤 한 판 이어 하기, 뇌 부위 (4학기는 맨탈 수업). 손으로 굴리는 날</td></tr><tr><td>금</td><td>역사 7편. 읽기만 하는 가벼운 날</td></tr><tr><td>토 · 일</td><td>이야기 10편. 일요일 밤엔 띵크폴미 회고 탭에서 주간 회고</td></tr></table>' +
-      '<p class="note">진도를 세는 법: 교실은 끝낸 장 · 외우기 상자에 넣은 용어 · 읽은 역사, 뇌는 외운 부위(3번 맞힘), 이야기는 한 단계라도 읽은 편, 맨탈은 끝낸 수업. 하나에 드는 시간은 추정이에요. 구글로 로그인하면 폰과 PC 진도가 합쳐져요.</p></div>';
+    h += '<div class="card"><h2>요일마다 하는 것</h2><table><tr><th>요일</th><th>하는 것</th></tr><tr><td>월 · 수</td><td>교실 코스 또는 용어. 머리가 맑을 때 새 개념</td></tr><tr><td>화 · 목</td><td>타이쿤 한 판 이어 하기, 뇌 부위 (4학기는 맨탈 수업). 손으로 굴리는 날</td></tr><tr><td>금</td><td>역사. 읽기만 하는 가벼운 날</td></tr><tr><td>토 · 일</td><td>이야기. 일요일 밤엔 띵크폴미 회고 탭에서 주간 회고</td></tr></table></div>';
     app.innerHTML = h;
   }
 
-  app.addEventListener("click", function (e) {
-    var b = e.target.closest("button"); if (!b) return;
-    if (b.dataset.ty) { V.addTy(+b.dataset.ty); if (+b.dataset.ty > 0) toast("타이쿤 한 판 끝"); }
-    else if (b.dataset.pace) { V.setOpt("pace", +b.dataset.pace); toast("졸업일을 다시 계산했어요"); }
-    else if (b.dataset.speed) { V.setOpt("speed", +b.dataset.speed); toast("졸업일을 다시 계산했어요"); }
-    else return;
-    var id = b.id; render(); var f = document.getElementById(id); if (f) f.focus({ preventScroll: true });
-  });
-  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") render(); });
-  render();
+  /* ───── 세부 분석 ───── */
+  function sheetAn() {
+    var C = V.calc(), S = V.stats(C), h = "", gap = S.avg7 - S.need, rec = C.R.rec;
+    var fc7 = S.avg7 > 0 ? X.addDays(C.now, Math.ceil(S.left / S.avg7)) : null;
+    h += '<div class="card"><h2>속도</h2><div class="kp in">' + tile("남은 공부", X.hrs(S.left), (C.nU - C.nD).toLocaleString() + "개 · " + r1(100 - C.done / C.tot * 100) + "%") + tile("졸업일까지", S.daysLeft + "일", X.fmt(C.end, true)) +
+      tile("하루에 필요한 시간", mm(S.need), "주 " + r1(S.need * 7 / 60) + "시간") + tile("최근 7일 하루 평균", mm(S.avg7), "공부한 날 " + S.act7 + " / " + S.span + "일") +
+      tile("필요한 것과의 차이", (gap >= 0 ? "+" : "−") + Math.abs(Math.round(gap)) + "분", gap >= 0 ? "이대로면 일찍 끝나요" : "하루 " + Math.abs(Math.round(gap)) + "분 더 필요해요") +
+      tile("최근 7일 속도로 가면", fc7 ? mdS(fc7) : "—", fc7 ? fc7.getFullYear() + "년 졸업 · 계획과 " + (X.dd(C.end, fc7) > 0 ? X.dd(C.end, fc7) + "일 늦음" : -X.dd(C.end, fc7) + "일 빠름") : "공부 기록이 생기면 나와요") + "</div></div>";
+
+    h += '<div class="card"><h2>최근 14일, 하루 몇 분</h2><div class="chart">' + bars14(C, S) + '</div><p class="note">끝낸 개수에 하나당 드는 시간(추정)을 곱한 값이에요. 실제 앉아 있던 시간이 아니라 진도를 시간으로 바꾼 숫자예요.</p></div>';
+
+    var mxD = Math.max.apply(null, S.byDow.concat([1]));
+    h += '<div class="card"><h2>요일별 하루 평균</h2><div class="dow">' + [1, 2, 3, 4, 5, 6, 0].map(function (k) { return "<div><span>" + Math.round(S.byDow[k]) + '</span><i style="height:' + Math.max(2, S.byDow[k] / mxD * 56) + 'px"></i><span>' + V.DAYN[k] + "</span></div>"; }).join("") + "</div>" +
+      '<p class="note">' + (S.best ? "가장 많이 한 날은 " + X.fmt(S.best.d) + " " + mm(S.best.min) + "이에요. " : "") + "시작한 뒤 " + S.el + "일 가운데 " + S.act + "일 공부했어요 (" + pct(S.act, S.el) + "%).</p></div>";
+
+    h += '<div class="card"><h2>학기별로 필요한 속도</h2><div>' + C.T.map(function (t, i) {
+      var left = t.min - t.done, dl = Math.max(1, X.dd(C.now < t.from ? t.from : C.now, t.to) + 1), fin = left < 1e-6;
+      return '<div class="row' + (fin ? " done" : "") + '"><div class="a"><b>' + V.TERMS[i].n + " · " + V.TERMS[i].t + "</b><small>" + mdS(t.from) + " ~ " + mdS(t.to) + " · " + X.hrs(t.done) + " / " + X.hrs(t.min) + '</small></div><div class="b">' + pct(t.done, t.min) + "%<small>" + (fin ? "통과" : "남은 " + X.hrs(left) + " · 하루 " + mm(left / dl)) + "</small></div>" + bar(t.done, t.min, fin ? "ok" : "") + "</div>";
+    }).join("") + "</div></div>";
+
+    h += '<div class="card"><h2>과목 ' + V.U.length + '개 전부</h2><p class="note">누르면 그 과목의 세부가 열려요. 7일은 최근 7일에 끝낸 개수예요.</p><div>' + V.U.map(function (u, ix) {
+      var g = C.R.got[u.id];
+      return '<div class="row' + (g >= u.total ? " done" : "") + '" role="button" tabindex="0" data-open="d-' + ix + '" style="cursor:pointer"><div class="a"><b>' + esc(u.name) + "</b><small>" + V.TERMS[u.term].n + " · 남은 " + X.hrs((u.total - g) * u.min * C.sp) + " · 7일 " + S.u7[u.id] + u.unit + " · " + fcUnit(C, S, u) + '</small></div><div class="b">' + g + " / " + u.total + "<small>" + pct(g, u.total) + "%</small></div>" + bar(g, u.total, "thin" + (g >= u.total ? " ok" : "")) + "</div>";
+    }).join("") + "</div></div>";
+
+    // 정확도와 기억
+    var td = X.iso(C.now), q = "";
+    ["sisa", "deal", "gicho"].forEach(function (a) {
+      var r = rec.learn[a], box = r.box, ids = X.keys(box), dist = [0, 0, 0, 0, 0, 0], due = 0, qa = 0, qn = 0;
+      ids.forEach(function (k) { var b = Math.max(1, Math.min(5, (box[k] || {}).b || 1)); dist[b]++; if ((box[k] || {}).due && box[k].due <= td) due++; });
+      if (CAT) CAT[a].ch.forEach(function (c) { var d = r.ch[c.id]; if (d) { qa += Math.min(c.quiz, d.q || 0); qn += c.quiz; } });
+      var dg = r.diag;
+      q += '<h3>' + V.ROOM[a][0] + '</h3><div class="kp in c3">' + tile("코스 문제", qn ? pct(qa, qn) + "%" : "—", qn ? qa + " / " + qn + "개 맞음" : "끝낸 장 없음") + tile("수준 확인", dg && dg.n ? dg.c + "/" + dg.n : "—", dg && dg.day ? dg.day.slice(5).replace("-", "/") + " 풂" : "아직 안 풂") + tile("오늘 복습", due + "개", "상자에 " + ids.length + "개") + "</div>" +
+        (ids.length ? '<div class="stack">' + [1, 2, 3, 4, 5].map(function (b) { return '<i style="width:' + (dist[b] / ids.length * 100) + "%;background:" + COL[b] + '"></i>'; }).join("") + '</div><div class="lg">' + [1, 2, 3, 4, 5].map(function (b) { return '<span><i style="background:' + COL[b] + '"></i>' + b + "단계 " + dist[b] + "</span>"; }).join("") + "</div>" : "");
+    });
+    var ok = 0, ng = 0; Object.keys(rec.srs).forEach(function (k) { ok += rec.srs[k].ok || 0; ng += rec.srs[k].ng || 0; });
+    q += '<h3>뇌</h3><div class="kp in c3">' + tile("맞힌 비율", ok + ng ? pct(ok, ok + ng) + "%" : "—", ok + ng ? ok + " / " + (ok + ng) + "번" : "아직 안 풂") + tile("외운 부위", (C.R.got.br1 + C.R.got.br2) + "/52", "3번 맞히면 외움") + tile("시작한 부위", Object.keys(rec.srs).length + "개", "") + "</div>";
+    h += '<div class="card"><h2>정확도와 기억</h2><p class="note">용어는 맞힐 때마다 상자가 한 단계 올라가고 복습 간격이 길어져요. 5단계가 가장 단단히 외운 거예요.</p>' + q + "</div>";
+
+    // 범위가 어디에 얼마나
+    var ar = [["세상 읽기 교실", ["s_course", "s_terms", "s_hist"]], ["투자 교실", ["d_course", "d_terms", "d_hist"]], ["기초 교실", ["g_course", "g_terms", "g_hist"]], ["맨탈", ["mental"]], ["이야기", ["iy1", "iy2", "iy3", "iy4"]], ["타이쿤", ["ty1", "ty2"]], ["뇌", ["br1", "br2"]], ["졸업 시험", ["final"]]];
+    var mxA = 0; ar.forEach(function (x) { x.m = 0; x.d = 0; x.n = 0; V.U.forEach(function (u) { if (x[1].indexOf(u.id) >= 0) { x.m += u.total * u.min * C.sp; x.d += C.R.got[u.id] * u.min * C.sp; x.n += u.total; } }); if (x.m > mxA) mxA = x.m; });
+    h += '<div class="card"><h2>전체 범위 ' + X.hrs(C.tot) + ', 어디에 얼마나</h2><div>' + ar.map(function (x) { return '<div class="row"><div class="a"><b>' + x[0] + "</b><small>" + x.n.toLocaleString() + "개 · 전체의 " + pct(x.m, C.tot) + '%</small></div><div class="b">' + X.hrs(x.m) + "<small>" + pct(x.d, x.m) + '% 끝</small></div><div class="bar thin" style="width:' + Math.max(4, x.m / mxA * 100) + '%"><i style="width:' + (x.d / x.m * 100) + '%"></i></div></div>'; }).join("") +
+      '</div><p class="note">막대 길이가 그 분야의 분량이에요. 매일 새로 들어오는 것(시사 뉴스, 오늘의 딜, 배댓, 위키 역사 전체, 이야기 목록 1,500개 가운데 100편을 뺀 나머지)은 끝이 없어서 범위에 넣지 않았어요.</p></div>';
+
+    // 띵크폴미
+    var tf = X.g("tfm:cache", null);
+    if (tf && tf.length) {
+      var wk = Date.now() - 7 * 864e5, nodes = tf.filter(function (i) { return i.kind === "node" && !i.deleted; }), use = tf.filter(function (i) { return i.kind === "use"; }), u7 = 0, o7 = 0;
+      for (var j = 0; j < 7; j++) { var id = "use:" + X.iso(X.addDays(C.now, -j)); use.forEach(function (x) { if (x.id === id) { u7++; o7 += x.n || 0; } }); }
+      h += '<div class="card"><h2>띵크폴미</h2><div class="kp in">' + tile("쌓인 생각", nodes.length + "개", "이번 주 " + nodes.filter(function (n) { return (n.at || 0) > wk; }).length + "개") + tile("최근 7일 연 날", u7 + "일", "모두 " + o7 + "번 열었어요") +
+        tile("주간 회고", tf.filter(function (i) { return i.kind === "review"; }).length + "번", "일요일 밤에 한 번") + tile("끝낸 할 일", tf.filter(function (i) { return i.kind === "task" && i.st === "done"; }).length + "개", "열린 것 " + tf.filter(function (i) { return i.kind === "task" && i.st === "open" && !i.deleted; }).length + "개") +
+        '</div><p class="note">이 기기에 저장된 띵크폴미 기록으로 센 숫자예요. 시간 계산에는 넣지 않았어요.</p></div>';
+    } else h += '<div class="card"><h2>띵크폴미</h2><p class="note">이 기기에서 띵크폴미에 로그인하면 쌓인 생각, 연 날, 주간 회고 숫자가 여기 나와요.</p><a class="btn2" href="' + V.LINK.think + '">띵크폴미 열기</a></div>';
+
+    h += '<div class="card"><h2>숫자를 이렇게 셌어요</h2><table><tr><th>과목</th><th>끝낸 것으로 치는 기준</th><th class="n">하나에</th></tr>' +
+      '<tr><td>코스</td><td>문제까지 풀어 끝낸 장</td><td class="n">' + ["sisa", "deal", "gicho"].map(function (a) { return V.TOT[a].chMin; }).join(" · ") + '분</td></tr><tr><td>용어</td><td>외우기 상자에 넣은 낱말</td><td class="n">2.5분</td></tr><tr><td>역사</td><td>열어서 읽은 사건</td><td class="n">4분</td></tr><tr><td>뇌</td><td>3번 맞힌 부위</td><td class="n">5분</td></tr><tr><td>이야기</td><td>한 단계라도 읽은 편</td><td class="n">6분</td></tr><tr><td>맨탈</td><td>끝낸 수업</td><td class="n">10분</td></tr><tr><td>타이쿤</td><td>직접 누른 판 수</td><td class="n">45분</td></tr></table>' +
+      '<p class="note">전체 개수는 세 교실의 글 파일을 실제로 읽어 센 숫자예요(코스 ' + ["sisa", "deal", "gicho"].map(function (a) { return V.TOT[a].ch; }).join("+") + "장, 용어 " + ["sisa", "deal", "gicho"].map(function (a) { return V.TOT[a].tm; }).join("+") + "개, 역사 " + ["sisa", "deal", "gicho"].map(function (a) { return V.TOT[a].ep; }).join("+") + "편). 코스 한 장의 시간은 카드 한 장 1.3분, 문제 하나 0.6분으로 어림했어요. 하나에 드는 시간은 모두 추정이라, 해 보고 다르면 첫 화면 '하루에 얼마나'에서 빨라요·느려요를 눌러요. 용어·뇌·이야기의 날짜별 숫자는 이 화면이나 자판기 첫 화면을 연 날 기준으로 잡혀요.</p></div>";
+    return ["세부 분석", h];
+  }
+
+  /* ───── 과목 하나 ───── */
+  function sheetUnit(ix) {
+    var u = V.U[ix]; if (!u) return null;
+    var C = V.calc(), S = V.stats(C), rec = C.R.rec, g = C.R.got[u.id], left = u.total - g, tm = C.T[u.term], h = "", r = u.src;
+    var dl = Math.max(1, X.dd(C.now < tm.from ? tm.from : C.now, tm.to) + 1);
+    h += '<div class="card"><div class="th"><span class="note">' + V.TERMS[u.term].n + " · " + mdS(tm.from) + " ~ " + mdS(tm.to) + '</span><span class="pl ' + (left ? "warn" : "good") + '">' + (left ? pct(g, u.total) + "%" : "끝") + "</span></div>" + bar(g, u.total, left ? "" : "ok") +
+      '<div class="kp in">' + tile("끝낸 것", g + " / " + u.total + u.unit, "남은 " + left + u.unit) + tile("남은 시간", X.hrs(left * u.min * C.sp), "하나에 약 " + r1(u.min * C.sp) + "분") +
+      tile("최근 7일", S.u7[u.id] + u.unit, "하루 " + r1(S.u7[u.id] / S.span) + u.unit) + tile("학기 안에 끝내려면", (left / dl >= 1 ? "하루 " + r1(left / dl) : "주 " + r1(left / dl * 7)) + u.unit, "이 속도면 " + fcUnit(C, S, u)) + "</div>" +
+      '<a class="btn" href="' + u.url + '">' + (r[0] === "ty" ? "타이쿤 열기" : "열어서 하기") + "</a></div>";
+
+    if (r[0] === "learn" && !CAT) h += '<div class="card"><p class="note">' + (CAT === false ? "목차를 불러오지 못했어요. 인터넷이 되면 다시 열어 주세요." : "목차를 불러오는 중이에요…") + "</p></div>";
+    else if (r[0] === "learn" && r[2] === "ch") {
+      var cat = CAT[r[1]], ch = rec.learn[r[1]].ch, qa = 0, qn = 0, nx = null, groups = cat.chGroups.length ? cat.chGroups : [["", ""]], body = "";
+      cat.ch.forEach(function (c) { var d = ch[c.id]; if (d) { qa += Math.min(c.quiz, d.q || 0); qn += c.quiz; } else if (!nx) nx = c.id; });
+      groups.forEach(function (gp) {
+        var list = cat.ch.filter(function (c) { return (c.g || "") === gp[0] || (!cat.chGroups.length); }), dn = list.filter(function (c) { return ch[c.id]; }).length;
+        if (!list.length) return;
+        if (gp[1]) body += '<div class="grp"><span>' + esc(gp[1]) + '</span><span class="num">' + dn + " / " + list.length + "</span></div>";
+        body += list.map(function (c) { var d = ch[c.id]; return '<div class="row' + (d ? " done" : "") + '"><div class="a"><b><span class="ck' + (d ? " ok" : c.id === nx ? " nx" : "") + '">' + (d ? "✓" : "") + "</span>" + esc(c.t) + "</b><small>카드 " + c.cards + "장 · 문제 " + c.quiz + "개 · 용어 " + c.tm + "개 · 약 " + Math.round((c.cards * 1.3 + c.quiz * 0.6) * C.sp) + '분</small></div><div class="b">' + (d ? (d.q || 0) + "/" + c.quiz : c.id === nx ? "다음" : "") + "<small>" + (d && d.day ? esc(String(d.day).slice(5).replace("-", "/")) : "") + "</small></div></div>"; }).join("");
+      });
+      h += '<div class="card"><h2>장마다</h2><div class="kp in c3">' + tile("문제 정답률", qn ? pct(qa, qn) + "%" : "—", qn ? qa + " / " + qn + "개" : "끝낸 장 없음") + tile("카드", cat.ch.reduce(function (a, c) { return a + c.cards; }, 0) + "장", "전체") + tile("문제", cat.ch.reduce(function (a, c) { return a + c.quiz; }, 0) + "개", "전체") + "</div><div>" + body + "</div></div>";
+    } else if (r[0] === "learn" && r[2] === "box") {
+      var ct = CAT[r[1]], box = rec.learn[r[1]].box, ids = X.keys(box), dist = [0, 0, 0, 0, 0, 0], due = 0, td = X.iso(C.now), by = {};
+      ids.forEach(function (k) { var b = Math.max(1, Math.min(5, (box[k] || {}).b || 1)); dist[b]++; if ((box[k] || {}).due && box[k].due <= td) due++; });
+      ct.terms.forEach(function (t) { var o = by[t[2]] = by[t[2]] || [0, 0]; o[1]++; if (box[t[0]]) o[0]++; });
+      h += '<div class="card"><h2>기억 단계</h2><div class="kp in c3">' + tile("오늘 복습", due + "개", "기한이 된 낱말") + tile("단단히 외움", (dist[4] + dist[5]) + "개", "4단계 이상") + tile("아직 안 본", (ct.terms.length - ids.length) + "개", "") + '</div><div class="stack">' + (ids.length ? [1, 2, 3, 4, 5].map(function (b) { return '<i style="width:' + (dist[b] / ct.terms.length * 100) + "%;background:" + COL[b] + '"></i>'; }).join("") : "") + '</div><div class="lg">' + [1, 2, 3, 4, 5].map(function (b) { return '<span><i style="background:' + COL[b] + '"></i>' + b + "단계 " + dist[b] + "</span>"; }).join("") + '</div><p class="note">막대 전체가 낱말 ' + ct.terms.length + "개예요. 맞히면 한 단계 오르고 틀리면 1단계로 돌아가요.</p></div>" +
+        '<div class="card"><h2>갈래마다</h2><div>' + ct.cats.filter(function (c) { return by[c[0]]; }).map(function (c) { var o = by[c[0]]; return '<div class="row' + (o[0] >= o[1] ? " done" : "") + '"><div class="a"><b>' + esc(c[1]) + '</b></div><div class="b">' + o[0] + " / " + o[1] + "</div>" + bar(o[0], o[1], "thin" + (o[0] >= o[1] ? " ok" : "")) + "</div>"; }).join("") + "</div></div>";
+    } else if (r[0] === "learn" && r[2] === "ep") {
+      var ep = rec.learn[r[1]].ep;
+      h += '<div class="card"><h2>줄기마다</h2><div>' + CAT[r[1]].hist.map(function (x) { var n = x.keys.filter(function (k) { return ep[k]; }).length; return '<div class="row' + (n >= x.keys.length ? " done" : "") + '"><div class="a"><b>' + esc(x.flag) + " " + esc(x.name) + '</b></div><div class="b">' + n + " / " + x.keys.length + "</div>" + bar(n, x.keys.length, "thin" + (n >= x.keys.length ? " ok" : "")) + "</div>"; }).join("") + "</div></div>";
+    } else if (r[0] === "brain") {
+      load("brain", V.LINK.story + "data/brain/regions.json");
+      var B = EXT.brain;
+      if (!B) h += '<div class="card"><p class="note">' + (B === false ? "부위 목록을 불러오지 못했어요." : "부위 목록을 불러오는 중이에요…") + "</p></div>";
+      else {
+        var ok = 0, ng = 0, list = B.regions.filter(function (x) { return r[1] === 1 ? x.lv === 1 : x.lv !== 1; });
+        list.forEach(function (x) { var s = rec.srs[x.id] || {}; ok += s.ok || 0; ng += s.ng || 0; });
+        h += '<div class="card"><h2>부위마다</h2><div class="kp in c3">' + tile("맞힌 비율", ok + ng ? pct(ok, ok + ng) + "%" : "—", ok + ng ? ok + " / " + (ok + ng) + "번" : "아직 안 풂") + tile("시작함", list.filter(function (x) { return rec.srs[x.id]; }).length + "개", "") + tile("외움", g + "개", "3번 맞힘") + "</div><div>" +
+          list.map(function (x) { var s = rec.srs[x.id] || {}, b = Math.min(3, s.b || 0); return '<div class="row' + (b >= 3 ? " done" : "") + '"><div class="a"><b><span class="ck' + (b >= 3 ? " ok" : "") + '">' + (b >= 3 ? "✓" : "") + "</span>" + esc(x.ko) + "</b><small>" + esc(x.one || "") + '</small></div><div class="b"><span class="dots">' + [1, 2, 3].map(function (i) { return '<i class="' + (i <= b ? "on" : "") + '"></i>'; }).join("") + "</span><small>" + ((s.ok || 0) + (s.ng || 0) ? "맞음 " + (s.ok || 0) + " · 틀림 " + (s.ng || 0) : "아직") + "</small></div></div>"; }).join("") + "</div></div>";
+      }
+    } else if (r[0] === "iyagi") {
+      var lv = rec.levels, rd = Object.keys(lv).filter(function (k) { return lv[k] > 0; }), dep = {}, mxL = 0;
+      rd.forEach(function (k) { dep[lv[k]] = (dep[lv[k]] || 0) + 1; if (lv[k] > mxL) mxL = lv[k]; });
+      h += '<div class="card"><h2>읽은 이야기</h2><div class="kp in c3">' + tile("모두", C.R.story + "편", "목표 100편") + tile("100편까지", Math.max(0, 100 - C.R.story) + "편", "남은 " + X.hrs(Math.max(0, 100 - C.R.story) * 6 * C.sp)) + tile("이 구간", g + " / " + u.total, (r[1] + 1) + "~" + (r[1] + u.total) + "번째") + "</div>" +
+        (rd.length ? "<div>" + Object.keys(dep).sort().map(function (k) { return '<div class="row"><div class="a"><b>' + k + '단계 깊이까지 읽음</b></div><div class="b">' + dep[k] + "편</div>" + bar(dep[k], rd.length, "thin") + "</div>"; }).join("") + "</div>" : '<p class="note">아직 읽은 이야기가 없어요.</p>') +
+        '<p class="note">한 단계라도 읽으면 한 편으로 세요. 이야기 목록은 약 1,500개이고, 그 가운데 100편이 이 과정의 범위예요. 노아의 방주, 소크라테스, 햄릿처럼 대화에서 비유로 통하는 이야기부터 골라 읽어요.</p></div>';
+    } else if (r[0] === "mental") {
+      load("school", V.LINK.mind + "data/mental/school.json");
+      var M = EXT.school;
+      if (!M) h += '<div class="card"><p class="note">' + (M === false ? "수업 목록을 불러오지 못했어요." : "수업 목록을 불러오는 중이에요…") + "</p></div>";
+      else h += '<div class="card"><h2>고수마다</h2><div>' + M.masters.map(function (m) { var n = m.lessons.filter(function (l) { return rec.mental[l.k]; }).length; return '<div class="row' + (n >= m.lessons.length ? " done" : "") + '"><div class="a"><b>' + esc(m.name) + "</b><small>" + esc(m.role || "") + '</small></div><div class="b">' + n + " / " + m.lessons.length + "</div>" + bar(n, m.lessons.length, "thin" + (n >= m.lessons.length ? " ok" : "")) + "</div>"; }).join("") + "</div></div>";
+    } else if (r[0] === "ty") {
+      var pl = C.s.plays;
+      h += '<div class="card"><h2>끝낸 판 ' + pl.length + ' / 12</h2><div class="stp"><button type="button" id="tymS" data-ty="-1" aria-label="타이쿤 한 판 빼기">−</button><button type="button" class="p" id="typS" data-ty="1" aria-label="타이쿤 한 판 더하기" style="flex:1">한 판 끝냈어요 +1</button></div>' +
+        (pl.length ? "<div>" + pl.map(function (d, i) { return '<div class="row"><div class="a"><b>' + (i + 1) + "번째 판</b><small>" + (i < 3 ? "1학기 · 헬스장" : "2학기 · 다른 업종") + '</small></div><div class="b">' + esc(String(d).slice(5).replace("-", "/")) + "</div></div>"; }).join("") + "</div>" : "") +
+        '<p class="note">1학기 3판은 헬스장으로 해요. 첫 판은 계산 없이, 둘째 판은 같은 운 번호로 선택 하나만 바꿔서, 셋째 판은 다른 상권에서. 같은 운이면 같은 사건이 오기 때문에 바꾼 선택의 효과만 보여요. 2학기 9판은 나머지 업종을 한 판씩 하고 남은 판은 다시 해요.</p></div>';
+    } else if (r[0] === "final") {
+      h += '<div class="card"><h2>세 교실 다시 풀기</h2><div>' + ["sisa", "deal", "gicho"].map(function (a) { var d = C.R.diag[a], ok = d && d.n && d.c / d.n >= 0.83, late = d && d.day && X.pd(d.day) >= C.T[3].from; return '<div class="row' + (ok && late ? " done" : "") + '"><div class="a"><b><span class="ck' + (ok && late ? " ok" : "") + '">' + (ok && late ? "✓" : "") + "</span>" + V.ROOM[a][0] + "</b><small>" + (d && d.day ? esc(d.day) + "에 풂" + (late ? "" : " · 4학기에 다시 풀어야 세요") : "아직 안 풂") + '</small></div><div class="b">' + (d && d.n ? d.c + " / " + d.n : "—") + "</div></div>"; }).join("") + '</div><p class="note">4학기(' + mdS(C.T[3].from) + " 이후)에 각 교실의 수준 확인을 다시 풀어 12문제 중 10개 이상 맞히면 통과예요.</p></div>";
+    }
+    return [u.name, h];
+  }
+
+  /* ───── 덮개 열고 닫기 (#an, #d-번호) ───── */
+  var sheet = document.getElementById("sheet"), lastHash = null;
+  function route() {
+    var k = location.hash.slice(1), out = k === "an" ? sheetAn() : /^d-\d+$/.test(k) ? sheetUnit(+k.slice(2)) : null;
+    if (!out) { sheet.classList.remove("on"); document.documentElement.classList.remove("lock"); lastHash = null; render(); return; }
+    document.getElementById("shT").textContent = out[0]; document.getElementById("shB").innerHTML = out[1];
+    sheet.classList.add("on"); document.documentElement.classList.add("lock");
+    if (lastHash !== k) { sheet.scrollTop = 0; lastHash = k; }
+  }
+  var opened = 0;
+  function open(k) { opened++; location.hash = k; }
+  function close() { if (opened > 0) { opened--; history.back(); } else { history.replaceState(null, "", location.pathname); route(); } }
+  function click(e) {
+    var b = e.target.closest("button"), o;
+    if (b && b.dataset.ty) { V.addTy(+b.dataset.ty); if (+b.dataset.ty > 0) toast("타이쿤 한 판 끝"); var id = b.id; route(); var f = document.getElementById(id); if (f) f.focus({ preventScroll: true }); return; }
+    if (b && b.dataset.pace) { V.setOpt("pace", +b.dataset.pace); toast("졸업일을 다시 계산했어요"); id = b.id; render(); f = document.getElementById(id); if (f) f.focus({ preventScroll: true }); return; }
+    if (b && b.dataset.speed) { V.setOpt("speed", +b.dataset.speed); toast("졸업일을 다시 계산했어요"); id = b.id; render(); f = document.getElementById(id); if (f) f.focus({ preventScroll: true }); return; }
+    o = e.target.closest("[data-open]"); if (o && !e.target.closest("a")) open(o.dataset.open);
+  }
+  app.addEventListener("click", click); sheet.addEventListener("click", click);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && lastHash) close(); else if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches("[data-open][role=button]")) { e.preventDefault(); open(e.target.dataset.open); } });
+  document.getElementById("shX").addEventListener("click", close);
+  window.addEventListener("hashchange", route);
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") route(); });
+  fetch("catalog.json?v=1", { cache: "no-cache" }).then(function (r) { return r.json(); }).then(function (j) { CAT = j; if (lastHash) route(); }).catch(function () { CAT = false; if (lastHash) route(); });
+  route();
 })();
 </script>
 <script src="../assets/shell.js"></script>
