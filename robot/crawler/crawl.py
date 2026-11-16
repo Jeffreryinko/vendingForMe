@@ -208,6 +208,30 @@ def fetch_youtube(src):
     return rows
 
 
+def parse_naver_rank(src, content):
+    """네이버 뉴스 '언론사별 많이 본 뉴스' (RSS 없음 → 화면 글을 읽음). 언론사마다 1~5위가 있어
+    1위끼리 먼저, 그다음 2위끼리… 순서로 줄을 세움 (rank 가 작을수록 많이 읽힌 글)."""
+    try: page = content.decode("utf-8")
+    except UnicodeDecodeError: page = content.decode("cp949", "ignore")
+    rows, seen = [], set()
+    boxes = re.split(r'<div class="rankingnews_box', page)[1:]
+    per = []
+    for b in boxes:
+        L = re.findall(r'<a href="(https://n\.news\.naver\.com/article/\d+/\d+)[^"]*" class="list_title[^"]*"[^>]*>([^<]+)</a>', b)
+        per.append(L[:5])
+    for pos in range(5):
+        for L in per:
+            if pos >= len(L): continue
+            link, title = L[pos]
+            title = clean(html.unescape(title), 300)
+            if not title or link in seen: continue
+            seen.add(link)
+            rows.append({"guid_hash": h(link), "url": link, "title": title, "summary": None,
+                         "published_at": None, "rank": len(rows) + 1, "metric": {"tg": [f"네이버 {pos + 1}위"]}})
+            if len(rows) >= src["max_items"]: return rows
+    return rows
+
+
 def fetch_source(src):
     """한 수집처 수집. 한 곳의 오류가 전체를 멈추지 않도록 예외를 결과로 돌려줌."""
     t0 = time.time()
@@ -222,6 +246,8 @@ def fetch_source(src):
             rows = parse_trends(src, http_get(f"https://trends.google.com/trending/rss?geo={src['geo']}"))
         elif src["method"] == "youtube":
             rows = fetch_youtube(src)
+        elif src["method"] == "naver_rank":
+            rows = parse_naver_rank(src, http_get(src["url"], "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"))
         else:
             return src, None, "미연결"
         if not rows:

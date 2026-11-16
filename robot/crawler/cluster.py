@@ -58,7 +58,7 @@ def item_text(it) -> str:
     return it.get("title_ko") or ""
 
 
-def build_stories(items: list[dict], day: str, min_items=3, min_sources=2, max_stories=40):
+def build_stories(items: list[dict], day: str, min_items=3, min_sources=2, max_stories=60):
     # 한국어로 번역된 글만 사용 (원문끼리 묶으면 'por', 'die' 같은 외국어 기능어로 엉뚱하게 합쳐짐)
     pool = [it for it in items if it.get("kind") in ("news", "community") and it.get("title_ko")]
     if not pool:
@@ -133,5 +133,10 @@ def build_stories(items: list[dict], day: str, min_items=3, min_sources=2, max_s
             "last_at": times[-1],
             "method": "keyword-v1",
         })
-    stories.sort(key=lambda s: (-len(s["langs"]), -s["source_count"], -s["item_count"]))
-    return stories[:max_stories]
+    # 순서: 언어권 수만 먼저 보면 한국 언론 여러 곳이 크게 다룬 국내 사건(언어 1개)이 늘 꼴찌로 밀려 잘렸음 (11/16 세무사 AI 부정행위 빠짐)
+    # → 언어권 ×3 + 출처 ×2 + 글 수 점수로 고르고, 국내(한국어만) 사건은 따로 25개까지 자리를 보장
+    sc = lambda s: len(s["langs"]) * 3 + s["source_count"] * 2 + min(s["item_count"], 20) * 0.5
+    stories.sort(key=sc, reverse=True)
+    dom = [s for s in stories if s["langs"] == ["ko"]][:25]
+    rest = [s for s in stories if s not in dom][:max(0, max_stories - len(dom))]
+    return sorted(dom + rest, key=sc, reverse=True)

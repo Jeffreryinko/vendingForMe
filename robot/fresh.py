@@ -264,7 +264,7 @@ def breadth(s, items, ed, ctry):
     """최근 24시간에 이 이슈를 다룬 폭: 나라 수×3 + 출처 수×2"""
     now = now_of(ed)
     live = [items[i] for i in s.get("items") or [] if i in items and age_h(items[i], now) <= COOL_H]
-    return len({ctry(x) for x in live}) * 3 + len({x["s"] for x in live}) * 2
+    return len({ctry(x) for x in live}) * 3 + len({x["s"] for x in live}) * 2 + kr_weight(live)
 
 
 def heat(s, items, ed, ctry):
@@ -275,8 +275,24 @@ def heat(s, items, ed, ctry):
     live = [x for x in its if age_h(x, now) <= COOL_H]
     cs = {ctry(x) for x in live}; ns = {x["s"] for x in live}
     newest = min(age_h(x, now) for x in its)
-    base = len(cs) * 3 + len(ns) * 2 + (3 if s.get("life") == "new" else 0) + (2 if "KR" in cs else 0)
+    base = len(cs) * 3 + len(ns) * 2 + (3 if s.get("life") == "new" else 0) + (2 if "KR" in cs else 0) + kr_weight(live)
     return base / (newest + 2) ** 1.2
+
+
+KR_HOT = {"naver-rank", "gn-kr-top", "gn-kr-nation"}     # 한국에서 '지금 크게 다룸·많이 읽음' 신호가 되는 출처
+
+
+def kr_weight(live):
+    """국내 비중 (11/16): 읽는 사람이 한국 사람이라, 한국 언론 여러 곳이 다룬 일은 나라 수가 1이어도 크게 침.
+    한국 출처 1곳마다 +1 (기본 출처 점수와 합쳐 곳당 3) · 네이버 많이 본 뉴스·구글 뉴스 한국 주요에 오르면 +5"""
+    ks = {x["s"] for x in live if x.get("c") == "KR" and x.get("k") != "trend"}
+    return len(ks - KR_HOT) + (5 if ks & KR_HOT else 0)
+
+
+def is_domestic(s, items):
+    """국내 이슈: 글의 절반 넘게가 한국 출처"""
+    its = [items[i] for i in s.get("items") or [] if i in items]
+    return bool(its) and sum(1 for x in its if x.get("c") == "KR") * 2 > len(its)
 
 
 def pick_top(ranked, tokens, GENERIC, n=5, wide=None, proper=None):

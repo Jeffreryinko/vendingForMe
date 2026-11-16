@@ -29,7 +29,10 @@ def raw_path(ed): return WORK / f"raw_{ed}.json"
 
 def load_raw(ed):
     d = json.loads(raw_path(ed).read_text())
-    items = [i for i in d["items"] if i["first_rank"] <= LIMIT.get(i["kind"], 10)]
+    # 한국 출처는 번역이 필요 없어 비용이 0 → 출처마다 정한 max_items 만큼 다 실음 (예전엔 8개만 실어 국내 큰 뉴스가 묻혔음, 11/16)
+    import yaml
+    kmax = {s["id"]: s.get("max_items", 30) for s in yaml.safe_load((CRAWLER / "sources.yaml").read_text())["sources"] if s.get("lang") == "ko"}
+    items = [i for i in d["items"] if i["first_rank"] <= (kmax[i["source_id"]] if i["source_id"] in kmax and i["kind"] != "trend" else LIMIT.get(i["kind"], 10))]
     # 발행된 지 72시간 넘은 글은 판에 안 실음 (RSS 가 옛 글을 오래 걸어 두는 출처 — 인민망 정치 1.4년, NHK 94일 등)
     # 발행 시각이 없는 글은 여기서 못 가름 → 로봇이 처음 본 시각으로 이슈 쪽(robot/fresh.py)에서 셈
     now = _fresh.now_of(ed)
@@ -146,6 +149,7 @@ def cmd_build(ed, prev, ko_file, label):
         old = (p or {}).get("ko")
         if old and _bad(i["title"], old, i.get("lang", "en")): old = None      # 엉뚱한 옛 번역은 버리고 원문 제목으로
         i["title_ko"] = _tidy(_headline(ko.get(sid) or old or "")) or None   # 이어받은 옛 제목도 신문 제목체로 + 머리말(영상 |)·꼬리표(| News) 떼기
+        if i.get("lang") == "ko": i["title_ko"] = _tidy(i["title"]) or i["title"]   # 한국어 글은 원문 제목 그대로 — 예전엔 비어서 국내 기사가 이슈 묶기에서 통째로 빠졌음 (11/16)
         i["_first"] = (p or {}).get("first", prev) if p else ed
     stories = build_stories(items, ed[:10])
     idmap = {i["id"]: i["guid_hash"][:12] for i in items}
@@ -190,7 +194,7 @@ def cmd_build(ed, prev, ko_file, label):
         for i in sorted([x for x in items if x["lang"] == lang], key=lambda x: (x["source_id"], x["first_rank"])):
             o = {"id": i["guid_hash"][:12], "s": i["source_id"], "k": i["kind"], "c": i["country"], "t": i["title"],
                  "u": i["url"], "r": i["first_rank"], "first": i["_first"]}
-            if i.get("title_ko"): o["ko"] = i["title_ko"]
+            if i.get("title_ko") and lang != "ko": o["ko"] = i["title_ko"]
             if i.get("summary"): o["sm"] = i["summary"][:220 if i["kind"] != "trend" else 160]
             if i.get("published_at"): o["p"] = i["published_at"]
             if i.get("metric"): o["m"] = i["metric"]

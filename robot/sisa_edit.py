@@ -36,7 +36,7 @@ import tidy as T  # noqa: E402
 UA = "vendingForMe/1.0 (https://jeffreryinko.github.io/; robot)"
 NO_NET = os.environ.get("SISA_EDIT_NO_NET") == "1"
 DEADLINE = time.time() + int(os.environ.get("SISA_EDIT_MINUTES", "12")) * 60
-MAX_STORIES, MAX_BRIEFS, BRIEF_TARGET = 45, 60, 50
+MAX_STORIES, MAX_BRIEFS, BRIEF_TARGET = 55, 60, 50   # 55: 국내 이슈 자리를 늘리며 세계 이슈가 덜 잘리게 (11/16)
 PAYWALL = {"nyt-world", "lemonde", "lefigaro", "folha", "uol", "spiegel", "bild", "elpais", "ft-world", "nikkei-wor"}
 SKIP_RE = re.compile(r"운세|날씨|기상|광고|이벤트|구독|시간표|horoscope|weather|sponsored|promo|wordle|crossword|live updates?", re.I)
 
@@ -51,6 +51,7 @@ CATS = [  # (분야, 낱말) — 앞에 있을수록 먼저
     ("soc", "시위 경찰 재판 법원 판결 체포 범죄 살인 학교 교육 이민 난민 인권 의료 병원 환경 기후 여성 노동"),
 ]
 CATS = [(c, set(w.split())) for c, w in CATS]
+KO_BYLINE = re.compile(r"^\s*(?:[\[(（【][^\])）】]{1,30}[\])）】]\s*)*(?:[가-힣]{2,4}\s*(?:기자|특파원|기상캐스터)(?:\s*[=·]\s*|\s+))?(?:[가-힣]{2,4}\s*기자\s*=\s*)?")
 AIW = re.compile(r"AI|인공지능|챗GPT|오픈AI|엔비디아|반도체|데이터센터|생성형|LLM|제미나이|클로드|앤트로픽|딥시크", re.I)
 
 
@@ -204,6 +205,24 @@ class Ed:
         # 이야기 하나는 묶음 하나에만: 사람·기관 이름 먼저, 그 안에서는 더 작은(구체적인) 묶음
         order = sorted(by, key=lambda n: (S.typ.get(n) in ("place", "event"), len(by[n])))
         used = set(); out = {}
+        # 국내 같은 주제 (11/16): 이름 사전에 없는 주제(예: 'AI 부정행위')라도 큰 국내 이슈와 핵심어 2개 이상이 겹치는 국내 이야기는 그 밑에 모음
+        # ('ai'처럼 흔한 말만 겹치면 안 묶음, 한 묶음 6개까지)
+        dom = sorted([s for s in self.stories() if F.is_domestic(s, self.items)], key=lambda s: -len(s.get("items") or []))
+        core = {id(s): set(F.core_of(s, tokens, GENERIC)) for s in dom}
+        WEAKT = {"ai", "인공지능", "대통령", "정부", "국회", "경찰", "검찰", "법원", "서울", "한국", "논란", "의혹", "사건"}
+        for h in dom:
+            if id(h) in used or len(h.get("items") or []) < 6: continue
+            mem, shared = [h], Counter()
+            for s in dom:
+                if s is h or id(s) in used or len(mem) >= 6: continue
+                ov = core[id(h)] & core[id(s)]
+                if len(ov) >= 2 and ov - WEAKT:
+                    mem.append(s); shared.update(ov)
+            if len(mem) < 2: continue
+            top = [t for t, _ in shared.most_common(3)][:2]
+            n = "·".join("AI" if t == "ai" else t for t in sorted(top, key=lambda t: t != "ai"))
+            for s in mem: s["grp"] = n; used.add(id(s))
+            out[n] = len(mem)
         for n in order:
             L = [s for s in by[n] if id(s) not in used]
             if len(L) < 2: continue
@@ -319,8 +338,10 @@ class Ed:
                 m = re.match(r"^(.*[.!?。]|.*다\.)\s*[^.!?。]*$", sm, re.S)
                 if not re.search(r"[.!?。…”\"']$", sm) and m and len(m.group(1)) >= 40: sm = m.group(1).strip()
                 sm = re.sub(r"\s*[^.!?。]*(?:기자가 보도한 내용|reports|reported by)\s*:?\s*$", "", sm).strip() or sm
+                ko_src = self.items[s["rep"]].get("_lang") == "ko"
+                if ko_src: sm = KO_BYLINE.sub("", sm).strip() or sm          # 한국 기사 첫머리 '(서울=연합뉴스) 홍길동 기자 =' 떼기
                 s["sum"] = sm
-                s["key"] = f"{self.sname(self.items[s['rep']])} 기사 요약(기계번역): {sm}"
+                s["key"] = f"{self.sname(self.items[s['rep']])} 기사 요약{'' if ko_src else '(기계번역)'}: {sm}"
         self.E["stories"] = [s for s in self.E["stories"] if not s.pop("_drop", False)]
         log(f"새 이슈 이름 붙임 {n}개 (요약 번역 {len(tr)}개)")
 
@@ -345,6 +366,14 @@ class Ed:
         for s in st: F.stamp(s, self.items, self.ed, added=bool(s.get("grow")))
         st.sort(key=self.score, reverse=True)
         keep = st[:MAX_STORIES]
+        # 국내 이슈 자리 보장 (11/16): 세계 이슈에 밀려 잘린 국내 이슈를 15개까지 되살림 — 읽는 사람이 한국 사람
+        dom = [s for s in st if F.is_domestic(s, self.items)]
+        lack = [s for s in dom[:15] if s not in keep]
+        if lack: keep = sorted(keep + lack, key=self.score, reverse=True)
+        for s in st: s.pop("dom", None)
+        for s in keep:
+            if F.is_domestic(s, self.items): s["dom"] = 1
+        log(f"국내 이슈 {sum(1 for s in keep if s.get('dom'))}개 (되살림 {len(lack)}개): " + " / ".join(s.get("title", "")[:18] for s in keep if s.get("dom"))[:300])
         br = self.briefs()
         br.sort(key=lambda s: (s.get("delta") != "new", -(s.get("grow") or 0)))
         self.E["stories"] = keep + br[:MAX_BRIEFS]

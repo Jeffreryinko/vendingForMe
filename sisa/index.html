@@ -2303,7 +2303,7 @@ const shareWrap = (s, html) => `<div class="shw">${html}${shareBtn(s)}</div>`;
 function shareStory(s){
   if(!s) return;
   const url = appUrl("#issue-" + (s.sid || s.id) + "@" + S.edId);
-  const key = String(s.key || s.sum || "").replace(/^\S+ 기사 요약\(기계번역\):\s*/, "");
+  const key = String(s.key || s.sum || "").replace(/^\S+ 기사 요약(?:\(기계번역\))?:\s*/, "");
   const text = (s.title || "") + (key ? "\n" + (key.length > 120 ? key.slice(0, 118) + "…" : key) : "");
   if(navigator.share) return navigator.share({title: s.title || "시사", text, url}).catch(() => {});
   const all = text + "\n" + url;
@@ -2357,6 +2357,14 @@ function storiesBlock(list){
 }
 
 // 한국 언론엔 없는 세계 뉴스: 3개국 이상이 보도했는데 한국 출처 글이 하나도 없는 이야기
+// 국내 큰 뉴스 (11/16): 한국 언론 여러 곳이 다룬 국내 이슈 — 로봇이 s.dom 으로 표시. 출처 많은 순
+function krTop(list){
+  const srcN = s => new Set(storyItems(s).map(i => i.s)).size;
+  const L = list.filter(s => s.dom && !isBrief(s)).sort((a,b) => issueOpened(a) - issueOpened(b) || srcN(b) - srcN(a) || storyItems(b).length - storyItems(a).length).slice(0, 8);
+  if(!L.length) return {html:"", used:[]};
+  return {used:L, html:`<section class="blk"><div class="blk-h"><h2 class="ttl2">🇰🇷 국내 큰 뉴스</h2><span class="note">한국 언론 여러 곳이 함께 다룬 일 · 출처 많은 순</span></div>
+    <div class="srl">${L.map(storyRow).join("")}</div></section>`};
+}
 function krBlind(list){
   const L = list.filter(s => !isBrief(s) && !issueOpened(s) && issueCountries(s).length >= 3 && !storyItems(s).some(i => ctry(i) === "KR"))
     .sort((a,b) => issueCountries(b).length - issueCountries(a).length).slice(0, 5);
@@ -2380,9 +2388,10 @@ function viewHome(){
   const under = new Map(), gTaken = new Set();
   tops.forEach(s => { if(s.grp && !gTaken.has(s.grp)){ gTaken.add(s.grp); const L = allS.filter(x => x.grp === s.grp && !tops.includes(x)); if(L.length) under.set(s, L); } });
   const underSet = new Set([...under.values()].flat());
-  const others = allS.filter(s => !tops.includes(s) && !underSet.has(s));
+  const others0 = allS.filter(s => !tops.includes(s) && !underSet.has(s));
+  const kt = krTop(others0), others = others0.filter(s => !kt.used.includes(s));
   const {comm} = homePicks();
-  S.issueOrder = [...tops.flatMap(s => [s, ...(under.get(s) || [])]), ...others].map(s => s.id);
+  S.issueOrder = [...tops.flatMap(s => [s, ...(under.get(s) || [])]), ...kt.used, ...others].map(s => s.id);
   return `${S.newEd ? `<button type="button" class="newed" data-ed="${S.newEd.id}">새 판이 도착했어요 · ${esc(S.newEd.label)} 보기</button>` : ""}
     ${msw}${sinceHero()}
     ${dailyCard()}
@@ -2390,6 +2399,7 @@ function viewHome(){
     ${recapHtml(tops)}
     <section class="blk"><div class="blk-h"><h2 class="ttl2">꼭 알아야 할 다섯 가지</h2><span class="note">세계적 중요도 순</span></div>
       <div class="tc2-list">${tops.map((s,k) => under.has(s) ? `<div class="grpc"><div class="grp-h"><b>${esc(s.grp)}</b><span>관련 이야기 ${under.get(s).length + 1}개를 한데 모았어요</span></div>${homeTopCard(s, k+1)}${grpRows(s.grp, under.get(s))}</div>` : homeTopCard(s, k+1)).join("")}</div></section>
+    ${kt.html}
     ${krBlind(others)}
     ${opinionStrip()}
     ${themeTiles()}
@@ -2419,7 +2429,7 @@ function todayDeckList(){
   const allS = (S.ed.stories||[]).filter(okStory);
   const tops = allS.filter(s => s.top).sort((a,b) => a.top-b.top);
   const rest = allS.filter(s => !tops.includes(s));
-  const rk = s => issueOpened(s) ? 9 : readNew(s) ? 0.2 : (s.delta==="new" ? 0 : s.delta==="grown" ? 1 : 2) + (isBrief(s) ? 3 : 0) - (s.why3 || (s.bg||[]).length ? 0.5 : 0);
+  const rk = s => issueOpened(s) ? 9 : readNew(s) ? 0.2 : (s.delta==="new" ? 0 : s.delta==="grown" ? 1 : 2) + (isBrief(s) ? 3 : 0) - (s.why3 || (s.bg||[]).length ? 0.5 : 0) - (s.dom ? 0.6 : 0);
   rest.sort((a,b) => rk(a)-rk(b) || issueCountries(b).length - issueCountries(a).length || storyItems(b).length - storyItems(a).length);
   return [...tops, ...rest];
 }

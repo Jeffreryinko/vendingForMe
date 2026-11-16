@@ -91,7 +91,10 @@ def pick_stories(ed):
     def score(s):
         return (0 if s.get("top") else 1, -(len(s.get("countries") or [])) * 3 - len(s.get("items", [])) - (8 if s.get("wk") else 0) - (4 if s.get("delta") == "new" else 0))
     ss.sort(key=score)
-    return ss[:MAX_STORIES]
+    # 국내 이슈(한국 매체가 대부분) 15개까지는 꼭 보여 줌 — 예전엔 나라 수 순이라 국내 큰 일이 통째로 빠졌음 (11/16)
+    dom = [s for s in ss if s.get("dom")][:15]
+    world = [s for s in ss if not s.get("dom")][:MAX_STORIES - len(dom)]
+    return sorted(dom + world, key=score)
 
 
 OP = re.compile(r"opinion|editorial|column|comment|kommentar|meinung|tribune|opini[oó]n|opinie|analys|사설|칼럼|社説|社论|评论|editoriale|leitartikel", re.I)
@@ -116,9 +119,9 @@ def story_block(s, by, names):
     for it, ko in (first + rest)[:MAX_HEADS]:
         heads.append(f"  - {it['c']}|{names.get(it['s'], it['s'])}{'|의견' if is_opinion(it) else ''}: {ko[:120]}")
     kr = any(it.get("c") == "KR" for it in its)
-    key = re.sub(r"^.*?기사 요약\(기계번역\):\s*", "", s.get("key") or "")[:220]
+    key = re.sub(r"^.*?기사 요약(?:\(기계번역\))?:\s*", "", s.get("key") or "")[:220]
     return (f"[{s.get('sid') or s['id']}] {CAT.get(s.get('cat'), '기타')} · 기사 {len(s.get('items', []))}개 · {len(s.get('countries') or cs)}개 나라"
-            f"{' · 새 이슈' if s.get('delta') == 'new' else ''}{'' if kr else ' · 한국 매체 없음'}\n  지금 제목: {s.get('title', '')}\n"
+            f"{' · 새 이슈' if s.get('delta') == 'new' else ''}{' · 국내 이슈' if s.get('dom') else ''}{'' if kr else ' · 한국 매체 없음'}\n  지금 제목: {s.get('title', '')}\n"
             + (f"  요약(기계번역): {key}\n" if key else "") + "\n".join(heads))
 
 
@@ -139,7 +142,8 @@ PROMPT = """너는 한국어 뉴스 브리핑 편집자야. 아래 [이슈 목�
 꼭 지킬 것
 1. [이슈 목록]의 제목·요약에 **있는 내용만** 써. 네가 따로 아는 사실, 배경 지식, 숫자, 이름을 보태지 마. 모르면 쓰지 마.
 2. 같은 사건을 다룬 이슈가 여러 개면 **하나로 합쳐** (sids 에 번호를 모두 넣어). 한 묶음 안에 사건과 상관없는 제목이 섞여 있으면 무시해.
-3. 세계적으로 중요한 순서로 {lo}~{hi}개를 골라. 중요도 = 다룬 나라·매체 수 + 세상에 미치는 영향(전쟁·외교·경제·기술이 먼저) . 스포츠·연예·작은 사건 사고는 빼.
+3. 중요한 순서로 {lo}~{hi}개를 골라. 중요도 = 다룬 나라·매체 수 + 세상에 미치는 영향(전쟁·외교·경제·기술이 먼저) . 스포츠·연예·작은 사건 사고는 빼.
+3-1. 읽는 사람은 한국 사람이야. "국내 이슈" 표시가 붙은 한국 국내의 큰 일을 **6~9개 꼭** 넣고 dom 을 1 로 표시해 (한국 매체 여러 곳이 다룬 것, "네이버"·"구글 뉴스" 매체가 든 것 먼저). 국내 일은 나라 수가 1이어도 작은 일이 아니야. 국내 이슈가 그보다 적으면 있는 만큼만.
 4. 말투는 쉬운 **해요체**("올렸어요", "전했어요"). 한자어·전문 용어는 쉬운 말로 풀어. 번역투("~에 대해", "~함에 따라")를 쓰지 마.
 5. 사람·회사·나라 이름은 한국에서 흔히 쓰는 표기로 고쳐 (예: 젠슨 황, 러트닉, 튀르키예).
 6. 숫자가 매체마다 다르면 "매체에 따라 ○~○"처럼 써.
@@ -149,6 +153,7 @@ PROMPT = """너는 한국어 뉴스 브리핑 편집자야. 아래 [이슈 목�
 이슈마다 쓸 것
 - sids: 합친 이슈 번호들 (대괄호 안의 번호 그대로)
 - cat: war|pol|eco|tech|dis|soc|cul 중 하나
+- dom: 한국 국내 일이면 1, 아니면 0
 - t: 제목. 25자 안팎, 해요체 한 문장 ("~했어요"). 기계번역 제목을 베끼지 말고 무슨 일인지 바로 알게.
 - one: 한두 문장 (90자 안팎). 무슨 일이 있었는지만.
 - sum: 3~4문장 요약. 매체 이름을 넣어서.
@@ -159,7 +164,7 @@ PROMPT = """너는 한국어 뉴스 브리핑 편집자야. 아래 [이슈 목�
 - bg: 이 일을 이해하는 데 도움이 될 배움 글을 [배움 글 목록]에서 0~4개. [{{"k":"term|hist|ch","id":"목록에 있는 번호"}}]. 목록에 없는 번호는 쓰지 마.
 
 그리고
-- lead: 오늘 전체를 3~4문장으로 묶은 첫머리. 가장 큰 일 두세 가지를 이어서.
+- lead: 오늘 전체를 3~4문장으로 묶은 첫머리. 가장 큰 일 두세 가지를 이어서 — 국내 큰 일이 있으면 하나는 꼭 넣어.
 - kr: "한국 매체 없음" 표시가 있고 여러 나라가 다룬 이슈 중 0~3개. [{{"sid":"번호","t":"짧은 제목","one":"한 문장"}}]
 - buzz: [요즘 화제]에서 뉴스로서 뜻이 있는 것 0~4개. [{{"cc":"나라","t":"검색어","one":"왜 뜨는지 한 문장 (관련 기사 제목에 있는 만큼만)"}}]
 
@@ -374,6 +379,7 @@ def parse_json(txt):
 
 def clean(o, ed, li):
     sids = {s.get("sid") or s["id"] for s in ed["stories"]}
+    st_dom = {(s.get("sid") or s["id"]): bool(s.get("dom")) for s in ed["stories"]}
     S = lambda v, n: re.sub(r"\s+", " ", str(v or "")).strip()[:n]
     items, used = [], set()
     for it in o.get("items") or []:
@@ -387,7 +393,8 @@ def clean(o, ed, li):
         for b in (it.get("bg") or [])[:4]:
             k, i = (b or {}).get("k"), str((b or {}).get("id") or "")
             if k in li and i in li[k]: bg.append({"k": k, "id": i, "t": li[k][i]})
-        items.append({"sids": ss, "cat": it.get("cat") if it.get("cat") in CAT else "etc", "t": t, "one": one, "sum": S(it.get("sum"), 520),
+        dom = 1 if (it.get("dom") in (1, "1", True) or any(st_dom.get(x) for x in ss)) else 0
+        items.append({"sids": ss, **({"dom": 1} if dom else {}), "cat": it.get("cat") if it.get("cat") in CAT else "etc", "t": t, "one": one, "sum": S(it.get("sum"), 520),
                       "why": S(it.get("why"), 380), **({"chg": S(it.get("chg"), 240)} if S(it.get("chg"), 240) else {}), "views": views, **({"op": op} if op else {}), "bg": bg})
     kr = [{"sid": x["sid"], "t": S(x.get("t"), 50), "one": S(x.get("one"), 120)} for x in (o.get("kr") or [])[:3] if isinstance(x, dict) and x.get("sid") in sids and x.get("t")]
     buzz = [{"cc": S(x.get("cc"), 2).upper(), "t": S(x.get("t"), 40), "one": S(x.get("one"), 120)} for x in (o.get("buzz") or [])[:4] if isinstance(x, dict) and x.get("t")]

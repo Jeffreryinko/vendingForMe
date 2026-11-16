@@ -23,6 +23,7 @@
 .brf-tts[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .brf-lead{font-size:17px;line-height:1.72;margin:0;word-break:keep-all}
 .brf-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.brf-sec{display:flex;align-items:center;gap:7px;font-size:17px;font-weight:800;letter-spacing:-.01em;margin:22px 2px 10px}.brf-sec span{font-size:17px}.brf-sec small{font-size:13px;font-weight:600;color:var(--sub,#8e8e93)}
 .brf-it{background:var(--surface);border:.5px solid var(--line);box-shadow:0 1px 2px rgba(0,0,0,.03);border-radius:18px;overflow:hidden}
 .brf-it.rd .brf-t{color:var(--muted)}
 .brf-top{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;border:0;background:none;padding:14px 16px;color:inherit;font:inherit}
@@ -146,17 +147,22 @@
     view() {
       const d = B.data, when = d.at ? new Date(d.at) : null;
       const hm = when ? `${when.getHours()}시${when.getMinutes() ? " " + when.getMinutes() + "분" : ""}에 씀` : "";
-      const rows = d.items.map((it, k) => {
+      // 국내(dom) 이슈를 먼저 한 칸에, 그다음 세계 — 국내 큰 일이 세계 뉴스 사이에 묻히지 않게 (11/16)
+      const order = [...d.items.filter(it => it.dom), ...d.items.filter(it => !it.dom)];
+      const nDom = order.filter(it => it.dom).length;
+      const row = (it, k) => {
         const ss = B.stories(it), s = ss[0];
         const n = new Set(ss.flatMap(x => x.items || [])).size, cs = new Set(ss.flatMap(x => issueCountries(x))).size;
         const ph = k < 3 && s ? storyPhoto(s) : null;
         const rd = s && issueOpened(s);
         const top = `<span class="brf-n">${k + 1}</span><span class="brf-tx">${CAT[it.cat] ? `<span class="brf-c">${esc(CAT[it.cat])}</span>` : ""}<span class="brf-t">${esc(it.t)}</span><span class="brf-one">${esc(it.one || "")}</span>${n ? `<span class="brf-sub">${cs > 1 ? cs + "개 나라 · " : ""}기사 ${n}개${s ? " · 누르면 자세히" : ""}</span>` : ""}</span>${ph ? `<img class="brf-th" src="${esc(sm(ph.u, 168, 168))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"${ph.b ? ` style="background-image:url(data:image/webp;base64,${ph.b})"` : ""}>` : ""}`;
         return `<li class="brf-it${rd ? " rd" : ""}">${s ? `<button type="button" class="brf-top" data-issue="${esc(s.id)}">${top}</button>` : `<div class="brf-top">${top}</div>`}${full ? `<div class="brf-full">${B.body(it)}</div>` : ""}</li>`;
-      }).join("");
+      };
+      const rowsDom = order.slice(0, nDom).map((it, k) => row(it, k)).join("");
+      const rowsW = order.slice(nDom).map((it, k) => row(it, k + nDom)).join("");
       const kr = (d.kr || []).map(x => { const s = findStory(x.sid); return `<button type="button"${s ? ` data-issue="${esc(s.id)}"` : ""}><b>${esc(x.t)}</b><span>${esc(x.one || "")}</span></button>`; }).join("");
       const buzz = (d.buzz || []).map(x => `<button type="button"${x.q ? ` data-q="${esc(x.q)}"` : ""}><b>${x.cc ? flag(x.cc) + " " : ""}${esc(x.t)}</b><span>${esc(x.one || "")}</span></button>`).join("");
-      S.issueOrder = d.items.map(it => { const s = B.story(it); return s && s.id; }).filter(Boolean);
+      S.issueOrder = order.map(it => { const s = B.story(it); return s && s.id; }).filter(Boolean);
       return `${S.newEd ? `<button type="button" class="newed" data-ed="${S.newEd.id}">새 판이 도착했어요 · ${esc(S.newEd.label)} 보기</button>` : ""}${B.sw()}
       <div class="brf">
         <section class="brf-hero">
@@ -165,7 +171,8 @@
           <p class="brf-meta"><span>이슈 ${d.items.length}개 · 짧은 판 1분${hm ? " · " + hm : ""}</span>${"speechSynthesis" in window ? `<button type="button" class="brf-tts" data-brftts aria-pressed="${speaking}">${speaking ? "■ 멈추기" : "▶ 듣기"}</button>` : ""}</p>
           <p class="brf-lead">${esc(d.lead || "")}</p>
         </section>
-        <ol class="brf-list">${rows}</ol>
+        ${nDom ? `<h2 class="brf-sec"><span>🇰🇷</span>국내 <small>${nDom}</small></h2><ol class="brf-list">${rowsDom}</ol><h2 class="brf-sec"><span>🌐</span>세계 <small>${order.length - nDom}</small></h2>` : ""}
+        <ol class="brf-list" start="${nDom + 1}">${rowsW}</ol>
         <button type="button" class="brf-more" data-brffull>${full ? "짧은 판으로 접기" : "자세한 판 보기 — 요약 · 왜 중요한지 · 나라별 시각"}</button>
         ${kr ? `<section class="brf-box"><h3>한국 언론엔 잘 안 나온 일</h3><p class="note">해외에서는 여러 나라가 다뤘어요</p>${kr}</section>` : ""}
         ${buzz ? `<section class="brf-box"><h3>요즘 화제</h3><p class="note">나라별 검색어·게시판에서 뜨는 것</p>${buzz}</section>` : ""}
@@ -174,7 +181,7 @@
     },
     speakText() {
       const d = B.data; if (!d) return "";
-      return [d.label, d.lead].concat(d.items.map((it, k) => `${k + 1}번. ${it.t}. ${full ? [it.sum, it.why].filter(Boolean).join(" ") : it.one || ""}`)).filter(Boolean).join("\n");
+      return [d.label, d.lead].concat([...d.items.filter(it => it.dom), ...d.items.filter(it => !it.dom)].map((it, k) => `${k + 1}번. ${it.t}. ${full ? [it.sum, it.why].filter(Boolean).join(" ") : it.one || ""}`)).filter(Boolean).join("\n");
     },
     stop() { try { speechSynthesis.cancel(); } catch (e) { } speaking = false; },
     speak() {
