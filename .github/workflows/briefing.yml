@@ -21,7 +21,7 @@ permissions:
 jobs:
   briefing:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 25   # 무료 AI로 넘어가 느려져도 끝까지 저장되게 (11/16 12분에 끊김)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
