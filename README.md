@@ -6,6 +6,7 @@
 - 같은 주소(jeffreryinko.github.io)라서 폰에 저장된 별표·메모·보관함은 세 사이트가 함께 써요.
 - 작업 현황판은 [work-board 저장소](https://github.com/Jeffreryinko/work-board)로 옮김 (`work/`는 새 주소로 넘겨 주기만 함).
 - [univ.](https://jeffreryinko.github.io/vendingForMe/univ/) — `univ/` + `assets/univ.js`. 자판기·띵크폴미·타이쿤을 4학기(약 112시간, 학습 단위 1,483개)로 익히는 일정표. 진도는 각 앱이 기기에 남기는 기록(교실 `vfm:learn:*`, 뇌 `vfm:brain:srs`, 이야기 `iyagi-library-v1`, 맨탈 `vfm:mental:school`)을 읽어 저절로 셈, 타이쿤 판 수만 직접 누름(`vfm:univ`). '세부 분석'(#an)과 과목별 숫자 화면(#d-번호): 하루 필요 분·최근 14일·요일별·정답률·기억 단계·장/갈래/줄기별 진도. 전체 개수와 목차는 `python3 robot/univ_catalog.py`(크롬 필요)가 세 교실 글 파일을 읽어 `univ/catalog.json`과 `assets/univ.js`의 TOT 줄을 고쳐 씀 — 교실에 장·용어를 더하면 한 번 돌릴 것. 첫 화면과 띵크폴미 홈에 '오늘 수업' 카드(`VFM_UNIV.card`·`html`).
+- [종이 자판기](https://jeffreryinko.github.io/vendingForMe/ebook/) — `ebook/` 폴더. 이북리더기(전자잉크)용으로 다시 짠 읽기 전용 판. `robot/ebook_build.js`(node, 토큰 0)가 data/ 와 교실 글(sisa·deal·ai learn, gicho)을 읽어 흰 바탕·검은 글자·자바스크립트 없는 HTML 약 2,600장을 씀. 시사·AI·딜 브리핑(소식 한 장씩), 이슈·나라별, 도구, 트렌드, 네 교실(카드·역사·낱말, 퀴즈는 '정답 보기', 만화는 대화 글, 그림은 흑백). 라디오·univ.·퀘스트·보관함·점수판·랜덤 카드처럼 움직이는 건 뺌. 다른 로봇이 끝나면 `ebook.yml` 이 따라 돌아 다시 만듦. 기존 자판기 파일은 손대지 않음.
 - [매일 업무 플래너](https://jeffreryinko.github.io/vendingForMe/planner/) — `planner/` 폴더. 자판기와는 따로 도는 개인 플래너(설명은 [planner/README.md](planner/README.md)). 로그인만 함께 써요.
 
 | 로봇 | 무엇 | 언제 |

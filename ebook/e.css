@@ -1,0 +1,57 @@
+/* 종이 자판기 — 전자잉크 화면용. 회색은 아주 조금만, 그림자·애니메이션·웹폰트 없음 */
+:root{--accent:#000;--accent-soft:#ddd;--accent-ink:#fff;--up:#000;--up-soft:#e6e6e6;--muted:#444;--ink:#000;--sunk:#eee;--surface:#fff;--line:#000;--ap-label:#000;--ap-label2:#333;--ap-label3:#666;--ap-surface:#fff;--ap-sep:#000;--fs:1}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:#fff;color:#000;-webkit-text-size-adjust:100%}
+body{margin:0 auto;max-width:42em;padding:12px 20px 28px;font-family:"Noto Serif KR","Noto Serif CJK KR","Source Han Serif K","Nanum Myeongjo","NanumMyeongjo","Batang","AppleMyungjo",serif;font-size:20px;line-height:1.75;
+  word-break:keep-all;overflow-wrap:break-word;line-break:strict;text-rendering:optimizeLegibility}
+*{transition:none!important;animation:none!important}
+a{color:#000;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+h1{font-size:1.45em;line-height:1.35;margin:.5em 0 .3em;font-weight:800}
+h2{font-size:1.15em;margin:1.6em 0 .4em;padding-top:.5em;border-top:2px solid #000}
+h3{font-size:1em;margin:1.2em 0 .2em}
+h4{font-size:1em;margin:1em 0 .1em}
+h2 small,h3 small{font-weight:400;font-size:.75em}
+p{margin:.45em 0}
+small,.sub,.note,footer,.top{font-size:.8em;color:#222}
+.sub{margin:0 0 .8em}
+.lead{font-size:1.06em;font-weight:600}
+.tag{font-size:.8em;font-weight:700;display:inline-block;border:1.5px solid #000;padding:0 .5em;margin:0}
+.top{padding:6px 0 8px;border-bottom:2px solid #000}
+.top a{text-decoration:none}
+nav.pn{display:flex;gap:8px;margin:10px 0}
+nav.pn>*{flex:1;text-align:center}
+nav.pn a{display:block;border:2px solid #000;padding:12px 6px;text-decoration:none;font-weight:700;font-size:.85em;min-height:52px;line-height:1.4}
+nav.pn a:active{background:#000;color:#fff}
+.btn{display:inline-block;border:2px solid #000;padding:10px 16px;text-decoration:none;font-weight:700}
+.btn:active{background:#000;color:#fff}
+ul,ol{padding-left:1.3em;margin:.4em 0}
+.list>li{padding:.55em 0;border-bottom:1px solid #000}
+.list>li:last-child{border-bottom:0}
+.list>li>a:first-child{font-weight:700}
+.list.cols{columns:2;column-gap:2em}.list.cols>li{break-inside:avoid}
+.tl .y{font-weight:700;font-variant-numeric:tabular-nums;margin-right:.3em}
+.chips a{white-space:nowrap}
+.box{border:2px solid #000;padding:.3em .9em .5em;margin:1em 0}
+.box h3{margin-top:.4em}
+.mis{border-left:6px solid #000;padding:.1em 0 .1em .9em;margin:1em 0}
+.long{border-top:3px double #000;margin-top:1.6em}
+.long h4{font-size:1.02em}
+.cm{border:2px solid #000;margin:1em 0;padding:.2em .9em .5em}
+.cmp h4{margin:.6em 0 .2em;font-size:.85em}
+.cm p{margin:.25em 0}.cm p.you{padding-left:1.6em}.cm p.th{font-style:italic}
+.cm b{display:inline-block;min-width:1.6em}
+.fig{margin:1em 0;text-align:center}
+.fig svg{max-width:100%;height:auto;filter:grayscale(1) contrast(1.4)}
+.q{border-bottom:1px solid #000;padding:.6em 0 .9em}
+.q .opt{margin:.3em 0}
+details{margin-top:.4em}
+summary{display:inline-block;border:2px solid #000;padding:6px 14px;font-weight:700;cursor:pointer;list-style:none}
+summary::-webkit-details-marker{display:none}
+details[open] summary{background:#000;color:#fff}
+table.kv{border-collapse:collapse;margin:.8em 0;width:100%}
+table.kv th,table.kv td{border:1px solid #000;padding:.3em .6em;text-align:left;vertical-align:top}
+table.kv th{width:5em;white-space:nowrap}
+footer{margin-top:1.4em;padding-top:8px;border-top:2px solid #000}
+.home li{padding:.7em 0}
+@media (max-width:480px){body{font-size:19px;padding:10px 14px 24px}.list.cols{columns:1}}
+@media (min-width:900px){body{font-size:22px}}

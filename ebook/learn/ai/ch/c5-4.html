@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2017년, 트랜스포머 · 종이 자판기</title>
+<link rel="stylesheet" href="../../../e.css">
+</head><body>
+<header class="top"><a href="../../../index.html">종이 자판기</a> › <a href="../../../learn/ai/index.html">AI 교실</a> › <a href="../../../learn/ai/ch/c5.html">말을 숫자로 — 토큰, 임베딩, 트랜스포머</a></header>
+<nav class="pn"><a href="../../../learn/ai/ch/c5-3.html">‹ 앞 카드</a><a href="../../../learn/ai/ch/c5.html">장 목차</a><a href="../../../learn/ai/ch/c5-5.html">다음 카드 ›</a></nav>
+<main>
+<h1>2017년, 트랜스포머</h1>
+<p class="sub">말을 숫자로 — 토큰, 임베딩, 트랜스포머 · 4/5</p>
+<p>2017년 구글 연구진이 「Attention Is All You Need(필요한 건 어텐션뿐)」라는 논문에서 <b>트랜스포머</b>를 내놓았어요.</p><p>예전 모델은 글을 한 단어씩 차례로 읽어 느리고 긴 글의 앞부분을 잊었어요. 트랜스포머는 모든 단어가 서로를 <b>한꺼번에</b> 봐요. 그래서 GPU로 병렬 계산하기 좋고, 긴 글의 관계도 잘 잡아요.</p><p>GPT의 T가 트랜스포머예요. 지금 거의 모든 언어 모델, 그림·영상 모델의 뼈대예요.</p><section><h3>기억할 것</h3><ul><li>모든 단어가 서로를 한꺼번에 봄</li><li>GPT의 T = 트랜스포머</li></ul></section><section class="long"><h3>깊이 읽기 <small>1분</small></h3><h4>그 전에는: 한 단어씩 차례로</h4><p>트랜스포머 전에는 '순환 신경망(RNN)'과 그 개량형 'LSTM'이 글을 다뤘어요. 글을 왼쪽부터 한 단어씩 읽으며 앞 내용을 작은 '기억'에 눌러 담는 방식이에요.</p><p>문제는 두 가지였어요. ① 차례로 읽어야 하니 GPU의 동시 계산 능력을 제대로 못 써서 느렸어요. ② 문장이 길어지면 앞부분을 잊었어요. 긴 소설의 첫 장에 나온 인물을 마지막 장에서 기억하기 어려웠지요.</p><h4>어텐션만으로 충분하다</h4><p>2017년 구글 연구진은 순환 구조를 아예 빼고 어텐션만으로 번역 모델을 만들었어요. 모든 단어가 다른 모든 단어를 한꺼번에 보니 거리와 상관없이 관계를 잡고, 계산을 동시에 할 수 있었어요.</p><p>여기에 '여러 머리(multi-head)' 어텐션을 써서 한 번에 여러 관점으로 봐요. 어떤 머리는 문법 관계를, 어떤 머리는 대명사가 가리키는 대상을, 어떤 머리는 주제를 따라가는 식이에요. 이런 층을 수십~백 개 넘게 쌓은 것이 지금의 언어 모델이에요.</p><h4>약점과 그 뒤</h4><p>트랜스포머의 약점은 글이 길어질수록 계산이 빠르게 늘어난다는 거예요. 단어 수가 2배면 '모든 쌍'은 4배가 돼요. 그래서 긴 컨텍스트를 효율적으로 다루려는 연구가 이어졌어요.</p><p>'맘바' 같은 새 구조나 트랜스포머와 섞은 하이브리드 모델도 나왔지만, 2026년 지금까지도 최상위 모델 대부분은 트랜스포머를 뼈대로 해요. 한 편의 논문이 거의 10년 동안 업계 전체의 표준이 된 드문 사례예요.</p></section><section><h3>이 카드의 낱말</h3><p class="chips"><a href="../../../learn/ai/t/transformer.html">트랜스포머</a> · <a href="../../../learn/ai/t/gpt.html">GPT</a></p></section>
+</main>
+<nav class="pn"><a href="../../../learn/ai/ch/c5-3.html">‹ 앞 카드</a><a href="../../../learn/ai/ch/c5.html">장 목차</a><a href="../../../learn/ai/ch/c5-5.html">다음 카드 ›</a></nav>
+<footer>종이 자판기</footer>
+</body></html>
