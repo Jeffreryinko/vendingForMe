@@ -5,7 +5,8 @@
    움직이는 것(라디오·univ.·퀘스트·보관함·점수판·랜덤 카드·플래너)은 뺐고,
    퀴즈는 '정답 보기'(접었다 펴기)로, 만화는 대화 글로, 그림(SVG)은 흑백으로 바꿨어요. */
 "use strict";
-const fs = require("fs"), path = require("path"), vm = require("vm");
+const fs = require("fs"), path = require("path"), vm = require("vm"), crypto = require("crypto");
+const ver = s => crypto.createHash("md5").update(s).digest("hex").slice(0, 8);   // 모양·스크립트가 바뀌면 주소도 바뀌어 옛 저장본을 안 써요
 const ROOT = path.resolve(__dirname, ".."), OUT = path.join(ROOT, "ebook");
 const rd = p => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, p), "utf8")); } catch (e) { return null; } };
 const ls = p => { try { return fs.readdirSync(path.join(ROOT, p)).sort(); } catch (e) { return []; } };
@@ -46,7 +47,7 @@ function page(file, o) {
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(o.title)} · 종이 자판기</title>
-<link rel="stylesheet" href="${R}e.css">
+<link rel="stylesheet" href="${R}e.css?v=${ver(CSS)}">
 </head><body>
 <header class="top"><span class="cr">${crumbs.map(c => `<a href="${h(c[0])}">${esc(c[1])}</a>`).join(" › ")}</span><span class="md" hidden><a href="#" data-m="scroll">스크롤</a><a href="#" data-m="page">넘김</a></span></header>
 ${nav.replace('class="pn"', 'class="pn pt"')}
@@ -58,7 +59,7 @@ ${body}
 <div id="pi" hidden></div>
 ${nav.replace('class="pn"', 'class="pn pb"')}
 <footer>종이 자판기${file.startsWith("learn/") ? "" : ` · ${stamp} 만듦`}</footer>
-<script src="${R}e.js"></script>
+<script src="${R}e.js?v=${ver(JS)}"></script>
 </body></html>`;
   const fp = path.join(OUT, file); fs.mkdirSync(path.dirname(fp), { recursive: true }); fs.writeFileSync(fp, html); pages++;
 }
