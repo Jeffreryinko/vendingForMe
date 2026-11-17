@@ -377,6 +377,7 @@ nav.pn a:active{background:#000;color:#fff}
 .btn:active{background:#000;color:#fff}
 ul,ol{padding-left:1.3em;margin:.4em 0}
 .list>li{padding:.55em 0;border-bottom:1px solid #000}
+h1.art{margin-top:1.4em;padding-top:.6em;border-top:3px double #000}
 .list>li:last-child{border-bottom:0}
 .list>li>a:first-child{font-weight:700}
 .list.cols{columns:2;column-gap:2em}.list.cols>li{break-inside:avoid}
@@ -455,7 +456,9 @@ const JS = `/* 종이 자판기 보기 설정 — 스크롤 또는 넘김. 이 �
     m.style.columnWidth = m.style.webkitColumnWidth = W + "px";
     N = Math.max(1, Math.round(m.scrollWidth / (W + G)));
     var end = !keep && location.hash === "#end";
-    if (end) n = N - 1; if (n > N - 1) n = N - 1; show();
+    if (end) n = N - 1;
+    else if (!keep && location.hash.length > 1) { var el = d.getElementById(location.hash.slice(1)); if (el) n = Math.floor((el.offsetLeft - m.offsetLeft) / (W + G)); }
+    if (n > N - 1) n = N - 1; if (n < 0) n = 0; show();
   }
   function go(dir) {
     if (dir > 0 && n < N - 1) { n++; show(); return; }
@@ -502,7 +505,7 @@ function main() {
     fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
     fs.writeFileSync(path.join(OUT, "e.css"), CSS); fs.writeFileSync(path.join(OUT, "e.js"), JS);
     const d = JSON.parse(fs.readFileSync(process.env.EBOOK_HUB_DATA, "utf8"));
-    require("./ebook_hub.js")({ esc, inl, md, sec, ul, ext, page, paged, quizHtml }, { data: d, B: "", label: SITE, home: true, at: process.env.EBOOK_HUB_AT || "" });
+    require("./ebook_hub.js")({ esc, inl, md, sec, ul, ext, page, paged, quizHtml }, { data: d, B: "", label: SITE, home: true, compact: true, at: process.env.EBOOK_HUB_AT || "" });
     console.log(`[ebook] 영업 허브 종이판 ${pages}장 → ${OUT}`); return;
   }
   fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });

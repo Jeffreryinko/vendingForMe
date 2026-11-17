@@ -15,7 +15,9 @@
     m.style.columnWidth = m.style.webkitColumnWidth = W + "px";
     N = Math.max(1, Math.round(m.scrollWidth / (W + G)));
     var end = !keep && location.hash === "#end";
-    if (end) n = N - 1; if (n > N - 1) n = N - 1; show();
+    if (end) n = N - 1;
+    else if (!keep && location.hash.length > 1) { var el = d.getElementById(location.hash.slice(1)); if (el) n = Math.floor((el.offsetLeft - m.offsetLeft) / (W + G)); }
+    if (n > N - 1) n = N - 1; if (n < 0) n = 0; show();
   }
   function go(dir) {
     if (dir > 0 && n < N - 1) { n++; show(); return; }
