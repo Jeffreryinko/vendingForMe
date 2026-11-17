@@ -447,20 +447,21 @@ const JS = `/* 종이 자판기 보기 설정 — 스크롤 또는 넘김. 이 �
   function set(v) { try { localStorage.setItem(K, v); } catch (e) {} }
   var mode = get(), n = 0, N = 1, W = 0, G = 40;
   var sw = d.querySelector(".md"); if (sw) sw.hidden = false;
-  /* 전체화면: 브라우저 주소창·메뉴를 숨겨요. 브라우저 규칙상 다른 쪽으로 넘어가면 풀려서 쪽마다 다시 눌러요 */
-  var fsb = d.querySelector(".md a.fs"), Ro = d.documentElement;
+  /* 전체화면 보기: 켜 두면 이 기기에 기억해요. 브라우저는 '누를 때'만 전체화면을 허락해서,
+     새 쪽을 열면 첫 번째 누르기(넘기기 포함)에 다시 전체화면이 돼요. 끄면 일반 화면으로 돌아와요 */
+  var KF = "ebook:fs", fsb = d.querySelector(".md a.fs"), Ro = d.documentElement;
   var fsOn = function () { return !!(d.fullscreenElement || d.webkitFullscreenElement); };
   var canFs = !!(Ro.requestFullscreen || Ro.webkitRequestFullscreen) && (d.fullscreenEnabled !== false || d.webkitFullscreenEnabled);
-  function fsMark() { if (fsb) { fsb.textContent = fsOn() ? "전체화면 끄기" : "전체화면"; fsb.className = "fs" + (fsOn() ? " on" : ""); } }
-  if (fsb && canFs) fsb.hidden = false;
-  function fsToggle() {
-    try {
-      if (fsOn()) { (d.exitFullscreen || d.webkitExitFullscreen).call(d); }
-      else { var r = (Ro.requestFullscreen || Ro.webkitRequestFullscreen).call(Ro); if (r && r.catch) r.catch(function () {}); }
-    } catch (e) {}
-  }
-  d.addEventListener("fullscreenchange", function () { fsMark(); setTimeout(function () { layout(true); }, 150); });
-  d.addEventListener("webkitfullscreenchange", function () { fsMark(); setTimeout(function () { layout(true); }, 150); });
+  var fsPref = false; try { fsPref = localStorage.getItem(KF) === "1"; } catch (e) {}
+  function fsMark() { if (fsb) { fsb.textContent = fsPref ? "전체화면 끄기" : "전체화면"; fsb.className = "fs" + (fsPref ? " on" : ""); } }
+  if (fsb && canFs) { fsb.hidden = false; fsMark(); }
+  function fsEnter() { if (!canFs || fsOn()) return; try { var r = (Ro.requestFullscreen || Ro.webkitRequestFullscreen).call(Ro); if (r && r.catch) r.catch(function () {}); } catch (e) {} }
+  function fsExit() { if (!fsOn()) return; try { var r = (d.exitFullscreen || d.webkitExitFullscreen).call(d); if (r && r.catch) r.catch(function () {}); } catch (e) {} }
+  function fsToggle() { fsPref = !fsPref; try { localStorage.setItem(KF, fsPref ? "1" : "0"); } catch (e) {} fsMark(); if (fsPref) fsEnter(); else fsExit(); }
+  function fsAuto() { if (fsPref) fsEnter(); }
+  d.addEventListener("touchend", fsAuto, true); d.addEventListener("keydown", fsAuto, true);
+  d.addEventListener("fullscreenchange", function () { setTimeout(function () { layout(true); }, 150); });
+  d.addEventListener("webkitfullscreenchange", function () { setTimeout(function () { layout(true); }, 150); });
   function marks() { var a = d.querySelectorAll(".md a[data-m]"); for (var i = 0; i < a.length; i++) a[i].className = a[i].getAttribute("data-m") === mode ? "on" : ""; }
   function link(r) { var a = d.querySelector("nav.pt a[data-r=" + r + "]"); return a ? a.href : ""; }
   function show() { m.scrollLeft = n * (W + G); pi.textContent = (n + 1) + " / " + N + "  ·  누르거나 밀어서 넘겨요"; }
@@ -496,6 +497,7 @@ const JS = `/* 종이 자판기 보기 설정 — 스크롤 또는 넘김. 이 �
   d.addEventListener("click", function (e) {
     if (Date.now() - swiped < 600) { e.preventDefault(); return; }
     var t = e.target;
+    if (!(t && t.getAttribute && t.getAttribute("data-f")) && !(t && t.parentNode && t.parentNode.getAttribute && t.parentNode.getAttribute("data-f"))) fsAuto();
     while (t && t !== d) { if (t.getAttribute && t.getAttribute("data-f")) { e.preventDefault(); fsToggle(); return; }
       if (t.getAttribute && t.getAttribute("data-m")) { e.preventDefault(); mode = t.getAttribute("data-m"); set(mode); apply(); return; } t = t.parentNode; }
     if (mode !== "page") return;
@@ -551,7 +553,7 @@ ${learned.map(l => li(`learn/${l.app}/index.html`, l.label, `${l.desc} · ${l.n}
 </ul>
 ${more.map(g => `<h2>${esc(g.h)}</h2><ul class="list home">${g.items.map(x => li(x[0], x[1], x[2])).join("\n")}</ul>`).join("\n")}
 <h2>보기 방식</h2>
-<p><b>전체화면</b>: 맨 위 오른쪽 '전체화면'을 누르면 주소창이 사라져요. 브라우저 규칙상 다른 쪽으로 넘어가면 풀려서 쪽마다 다시 눌러야 해요. 계속 전체화면으로 보려면 브라우저 메뉴 → <b>홈 화면에 추가</b>로 열면 처음부터 끝까지 전체화면이에요.</p>
+<p><b>전체화면</b>: 맨 위 오른쪽 '전체화면'을 누르면 켜지고, '전체화면 끄기'를 누르면 일반 화면으로 돌아와요. 고른 것은 이 기기에 기억해요. 켜 둔 채 다른 쪽으로 가면 브라우저 규칙 때문에 잠깐 풀리지만, 그 쪽에서 처음 누르거나 넘길 때 다시 전체화면이 돼요. 처음부터 끝까지 끊김 없이 보려면 브라우저 메뉴 → <b>홈 화면에 추가</b>로 여세요.</p>
 <p>맨 위 오른쪽 <b>스크롤 · 넘김</b>으로 바꿔요. 넘김은 책처럼 한 화면씩 끊어서, 화면 오른쪽을 누르거나 왼쪽으로 밀면 다음, 왼쪽을 누르거나 오른쪽으로 밀면 앞으로 가요(북스 옆 버튼을 '쪽 넘김 키'로 맞춰 두면 버튼으로도 넘어가요). 글 끝에서 더 넘기면 다음 글로 이어져요. 고른 방식은 이 기기에 기억해요.</p>
 <h2>이 판에 대해</h2>
 <p>뉴스는 로봇이 자료를 모을 때마다 다시 만들어져요. 퀴즈는 '정답 보기'를 눌러 확인하고, 만화는 대화 글로 바꿨어요.</p>

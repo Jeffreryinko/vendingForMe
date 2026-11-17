@@ -5,20 +5,21 @@
   function set(v) { try { localStorage.setItem(K, v); } catch (e) {} }
   var mode = get(), n = 0, N = 1, W = 0, G = 40;
   var sw = d.querySelector(".md"); if (sw) sw.hidden = false;
-  /* 전체화면: 브라우저 주소창·메뉴를 숨겨요. 브라우저 규칙상 다른 쪽으로 넘어가면 풀려서 쪽마다 다시 눌러요 */
-  var fsb = d.querySelector(".md a.fs"), Ro = d.documentElement;
+  /* 전체화면 보기: 켜 두면 이 기기에 기억해요. 브라우저는 '누를 때'만 전체화면을 허락해서,
+     새 쪽을 열면 첫 번째 누르기(넘기기 포함)에 다시 전체화면이 돼요. 끄면 일반 화면으로 돌아와요 */
+  var KF = "ebook:fs", fsb = d.querySelector(".md a.fs"), Ro = d.documentElement;
   var fsOn = function () { return !!(d.fullscreenElement || d.webkitFullscreenElement); };
   var canFs = !!(Ro.requestFullscreen || Ro.webkitRequestFullscreen) && (d.fullscreenEnabled !== false || d.webkitFullscreenEnabled);
-  function fsMark() { if (fsb) { fsb.textContent = fsOn() ? "전체화면 끄기" : "전체화면"; fsb.className = "fs" + (fsOn() ? " on" : ""); } }
-  if (fsb && canFs) fsb.hidden = false;
-  function fsToggle() {
-    try {
-      if (fsOn()) { (d.exitFullscreen || d.webkitExitFullscreen).call(d); }
-      else { var r = (Ro.requestFullscreen || Ro.webkitRequestFullscreen).call(Ro); if (r && r.catch) r.catch(function () {}); }
-    } catch (e) {}
-  }
-  d.addEventListener("fullscreenchange", function () { fsMark(); setTimeout(function () { layout(true); }, 150); });
-  d.addEventListener("webkitfullscreenchange", function () { fsMark(); setTimeout(function () { layout(true); }, 150); });
+  var fsPref = false; try { fsPref = localStorage.getItem(KF) === "1"; } catch (e) {}
+  function fsMark() { if (fsb) { fsb.textContent = fsPref ? "전체화면 끄기" : "전체화면"; fsb.className = "fs" + (fsPref ? " on" : ""); } }
+  if (fsb && canFs) { fsb.hidden = false; fsMark(); }
+  function fsEnter() { if (!canFs || fsOn()) return; try { var r = (Ro.requestFullscreen || Ro.webkitRequestFullscreen).call(Ro); if (r && r.catch) r.catch(function () {}); } catch (e) {} }
+  function fsExit() { if (!fsOn()) return; try { var r = (d.exitFullscreen || d.webkitExitFullscreen).call(d); if (r && r.catch) r.catch(function () {}); } catch (e) {} }
+  function fsToggle() { fsPref = !fsPref; try { localStorage.setItem(KF, fsPref ? "1" : "0"); } catch (e) {} fsMark(); if (fsPref) fsEnter(); else fsExit(); }
+  function fsAuto() { if (fsPref) fsEnter(); }
+  d.addEventListener("touchend", fsAuto, true); d.addEventListener("keydown", fsAuto, true);
+  d.addEventListener("fullscreenchange", function () { setTimeout(function () { layout(true); }, 150); });
+  d.addEventListener("webkitfullscreenchange", function () { setTimeout(function () { layout(true); }, 150); });
   function marks() { var a = d.querySelectorAll(".md a[data-m]"); for (var i = 0; i < a.length; i++) a[i].className = a[i].getAttribute("data-m") === mode ? "on" : ""; }
   function link(r) { var a = d.querySelector("nav.pt a[data-r=" + r + "]"); return a ? a.href : ""; }
   function show() { m.scrollLeft = n * (W + G); pi.textContent = (n + 1) + " / " + N + "  ·  누르거나 밀어서 넘겨요"; }
@@ -54,6 +55,7 @@
   d.addEventListener("click", function (e) {
     if (Date.now() - swiped < 600) { e.preventDefault(); return; }
     var t = e.target;
+    if (!(t && t.getAttribute && t.getAttribute("data-f")) && !(t && t.parentNode && t.parentNode.getAttribute && t.parentNode.getAttribute("data-f"))) fsAuto();
     while (t && t !== d) { if (t.getAttribute && t.getAttribute("data-f")) { e.preventDefault(); fsToggle(); return; }
       if (t.getAttribute && t.getAttribute("data-m")) { e.preventDefault(); mode = t.getAttribute("data-m"); set(mode); apply(); return; } t = t.parentNode; }
     if (mode !== "page") return;
