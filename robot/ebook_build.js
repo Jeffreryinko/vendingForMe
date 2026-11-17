@@ -49,9 +49,9 @@ function page(file, o) {
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(o.title)}${o.title === SITE ? "" : " · " + esc(SITE)}</title>${o.noindex ? '\n<meta name="robots" content="noindex,nofollow">' : ""}
-<link rel="stylesheet" href="${R}e.css?v=${ver(CSS)}">
+<link rel="stylesheet" href="${R}e.css?v=${ver(CSS)}">${process.env.EBOOK_ONLY ? "" : `\n<link rel="manifest" href="${R}manifest.webmanifest">`}
 </head><body>
-<header class="top"><span class="cr">${crumbs.map(c => `<a href="${h(c[0])}">${esc(c[1])}</a>`).join(" › ")}</span><span class="md" hidden><a href="#" data-m="scroll">스크롤</a><a href="#" data-m="page">넘김</a></span></header>
+<header class="top"><span class="cr">${crumbs.map(c => `<a href="${h(c[0])}">${esc(c[1])}</a>`).join(" › ")}</span><span class="md" hidden><a href="#" data-m="scroll">스크롤</a><a href="#" data-m="page">넘김</a><a href="#" data-f="1" class="fs" hidden>전체화면</a></span></header>
 ${nav.replace('class="pn"', 'class="pn pt"')}
 <main id="m">
 ${o.h1 === false ? "" : `<h1>${esc(o.title)}</h1>`}
@@ -409,6 +409,7 @@ footer{margin-top:1.4em;padding-top:8px;border-top:2px solid #000}
 .md{white-space:nowrap;display:flex}
 .md a{border:2px solid #000;padding:3px 9px;text-decoration:none;font-weight:700;font-size:.95em}
 .md a+a{border-left:0}
+.md a.fs{margin-left:6px;border-left:2px solid #000}
 .md a.on{background:#000;color:#fff}
 /* 넘김 보기: 한 화면씩 끊어 옆으로 넘겨요 (e.js 가 켜요) */
 html.pm,html.pm body{height:100%;overflow:hidden}
@@ -446,7 +447,21 @@ const JS = `/* 종이 자판기 보기 설정 — 스크롤 또는 넘김. 이 �
   function set(v) { try { localStorage.setItem(K, v); } catch (e) {} }
   var mode = get(), n = 0, N = 1, W = 0, G = 40;
   var sw = d.querySelector(".md"); if (sw) sw.hidden = false;
-  function marks() { var a = d.querySelectorAll(".md a"); for (var i = 0; i < a.length; i++) a[i].className = a[i].getAttribute("data-m") === mode ? "on" : ""; }
+  /* 전체화면: 브라우저 주소창·메뉴를 숨겨요. 브라우저 규칙상 다른 쪽으로 넘어가면 풀려서 쪽마다 다시 눌러요 */
+  var fsb = d.querySelector(".md a.fs"), Ro = d.documentElement;
+  var fsOn = function () { return !!(d.fullscreenElement || d.webkitFullscreenElement); };
+  var canFs = !!(Ro.requestFullscreen || Ro.webkitRequestFullscreen) && (d.fullscreenEnabled !== false || d.webkitFullscreenEnabled);
+  function fsMark() { if (fsb) { fsb.textContent = fsOn() ? "전체화면 끄기" : "전체화면"; fsb.className = "fs" + (fsOn() ? " on" : ""); } }
+  if (fsb && canFs) fsb.hidden = false;
+  function fsToggle() {
+    try {
+      if (fsOn()) { (d.exitFullscreen || d.webkitExitFullscreen).call(d); }
+      else { var r = (Ro.requestFullscreen || Ro.webkitRequestFullscreen).call(Ro); if (r && r.catch) r.catch(function () {}); }
+    } catch (e) {}
+  }
+  d.addEventListener("fullscreenchange", function () { fsMark(); setTimeout(function () { layout(true); }, 150); });
+  d.addEventListener("webkitfullscreenchange", function () { fsMark(); setTimeout(function () { layout(true); }, 150); });
+  function marks() { var a = d.querySelectorAll(".md a[data-m]"); for (var i = 0; i < a.length; i++) a[i].className = a[i].getAttribute("data-m") === mode ? "on" : ""; }
   function link(r) { var a = d.querySelector("nav.pt a[data-r=" + r + "]"); return a ? a.href : ""; }
   function show() { m.scrollLeft = n * (W + G); pi.textContent = (n + 1) + " / " + N + "  ·  누르거나 밀어서 넘겨요"; }
   function layout(keep) {
@@ -481,7 +496,8 @@ const JS = `/* 종이 자판기 보기 설정 — 스크롤 또는 넘김. 이 �
   d.addEventListener("click", function (e) {
     if (Date.now() - swiped < 600) { e.preventDefault(); return; }
     var t = e.target;
-    while (t && t !== d) { if (t.getAttribute && t.getAttribute("data-m")) { e.preventDefault(); mode = t.getAttribute("data-m"); set(mode); apply(); return; } t = t.parentNode; }
+    while (t && t !== d) { if (t.getAttribute && t.getAttribute("data-f")) { e.preventDefault(); fsToggle(); return; }
+      if (t.getAttribute && t.getAttribute("data-m")) { e.preventDefault(); mode = t.getAttribute("data-m"); set(mode); apply(); return; } t = t.parentNode; }
     if (mode !== "page") return;
     t = e.target;
     while (t && t !== m) { if (/^(A|SUMMARY|DETAILS|BUTTON)$/.test(t.tagName)) return; t = t.parentNode; }
@@ -511,6 +527,8 @@ function main() {
   fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(path.join(OUT, "e.css"), CSS);
   fs.writeFileSync(path.join(OUT, "e.js"), JS);
+  /* 홈 화면에 추가하면 처음부터 전체화면으로 열려요 */
+  fs.writeFileSync(path.join(OUT, "manifest.webmanifest"), JSON.stringify({ name: "종이 자판기", short_name: "종이 자판기", start_url: "./index.html", scope: "./", display: "fullscreen", background_color: "#ffffff", theme_color: "#ffffff", icons: [{ src: "../assets/icon-192.png", sizes: "192x192", type: "image/png" }] }));
   const learned = LEARN.map(buildLearn);   // 교실 먼저 (브리핑이 낱말에 이어 붙어요)
   const s = buildSisa(), a = buildAi(), d = buildDeal(), t = buildTools(), tr = buildTrends();
   /* 다른 자판기(이야기·사람·뷰티게임) — robot/ebook_more.js. 저장소가 없으면 그 부분만 건너뛰어요 */
@@ -533,6 +551,7 @@ ${learned.map(l => li(`learn/${l.app}/index.html`, l.label, `${l.desc} · ${l.n}
 </ul>
 ${more.map(g => `<h2>${esc(g.h)}</h2><ul class="list home">${g.items.map(x => li(x[0], x[1], x[2])).join("\n")}</ul>`).join("\n")}
 <h2>보기 방식</h2>
+<p><b>전체화면</b>: 맨 위 오른쪽 '전체화면'을 누르면 주소창이 사라져요. 브라우저 규칙상 다른 쪽으로 넘어가면 풀려서 쪽마다 다시 눌러야 해요. 계속 전체화면으로 보려면 브라우저 메뉴 → <b>홈 화면에 추가</b>로 열면 처음부터 끝까지 전체화면이에요.</p>
 <p>맨 위 오른쪽 <b>스크롤 · 넘김</b>으로 바꿔요. 넘김은 책처럼 한 화면씩 끊어서, 화면 오른쪽을 누르거나 왼쪽으로 밀면 다음, 왼쪽을 누르거나 오른쪽으로 밀면 앞으로 가요(북스 옆 버튼을 '쪽 넘김 키'로 맞춰 두면 버튼으로도 넘어가요). 글 끝에서 더 넘기면 다음 글로 이어져요. 고른 방식은 이 기기에 기억해요.</p>
 <h2>이 판에 대해</h2>
 <p>뉴스는 로봇이 자료를 모을 때마다 다시 만들어져요. 퀴즈는 '정답 보기'를 눌러 확인하고, 만화는 대화 글로 바꿨어요.</p>

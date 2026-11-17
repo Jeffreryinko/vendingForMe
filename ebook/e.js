@@ -5,7 +5,21 @@
   function set(v) { try { localStorage.setItem(K, v); } catch (e) {} }
   var mode = get(), n = 0, N = 1, W = 0, G = 40;
   var sw = d.querySelector(".md"); if (sw) sw.hidden = false;
-  function marks() { var a = d.querySelectorAll(".md a"); for (var i = 0; i < a.length; i++) a[i].className = a[i].getAttribute("data-m") === mode ? "on" : ""; }
+  /* 전체화면: 브라우저 주소창·메뉴를 숨겨요. 브라우저 규칙상 다른 쪽으로 넘어가면 풀려서 쪽마다 다시 눌러요 */
+  var fsb = d.querySelector(".md a.fs"), Ro = d.documentElement;
+  var fsOn = function () { return !!(d.fullscreenElement || d.webkitFullscreenElement); };
+  var canFs = !!(Ro.requestFullscreen || Ro.webkitRequestFullscreen) && (d.fullscreenEnabled !== false || d.webkitFullscreenEnabled);
+  function fsMark() { if (fsb) { fsb.textContent = fsOn() ? "전체화면 끄기" : "전체화면"; fsb.className = "fs" + (fsOn() ? " on" : ""); } }
+  if (fsb && canFs) fsb.hidden = false;
+  function fsToggle() {
+    try {
+      if (fsOn()) { (d.exitFullscreen || d.webkitExitFullscreen).call(d); }
+      else { var r = (Ro.requestFullscreen || Ro.webkitRequestFullscreen).call(Ro); if (r && r.catch) r.catch(function () {}); }
+    } catch (e) {}
+  }
+  d.addEventListener("fullscreenchange", function () { fsMark(); setTimeout(function () { layout(true); }, 150); });
+  d.addEventListener("webkitfullscreenchange", function () { fsMark(); setTimeout(function () { layout(true); }, 150); });
+  function marks() { var a = d.querySelectorAll(".md a[data-m]"); for (var i = 0; i < a.length; i++) a[i].className = a[i].getAttribute("data-m") === mode ? "on" : ""; }
   function link(r) { var a = d.querySelector("nav.pt a[data-r=" + r + "]"); return a ? a.href : ""; }
   function show() { m.scrollLeft = n * (W + G); pi.textContent = (n + 1) + " / " + N + "  ·  누르거나 밀어서 넘겨요"; }
   function layout(keep) {
@@ -40,7 +54,8 @@
   d.addEventListener("click", function (e) {
     if (Date.now() - swiped < 600) { e.preventDefault(); return; }
     var t = e.target;
-    while (t && t !== d) { if (t.getAttribute && t.getAttribute("data-m")) { e.preventDefault(); mode = t.getAttribute("data-m"); set(mode); apply(); return; } t = t.parentNode; }
+    while (t && t !== d) { if (t.getAttribute && t.getAttribute("data-f")) { e.preventDefault(); fsToggle(); return; }
+      if (t.getAttribute && t.getAttribute("data-m")) { e.preventDefault(); mode = t.getAttribute("data-m"); set(mode); apply(); return; } t = t.parentNode; }
     if (mode !== "page") return;
     t = e.target;
     while (t && t !== m) { if (/^(A|SUMMARY|DETAILS|BUTTON)$/.test(t.tagName)) return; t = t.parentNode; }
