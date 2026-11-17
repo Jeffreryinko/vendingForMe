@@ -68,6 +68,16 @@ html.pm .fig,html.pm .list>li,html.pm .q p,html.pm .cm p{break-inside:avoid}
 html.pm h2,html.pm h3,html.pm h4{break-after:avoid}
 #pi{text-align:center;font-size:.8em;padding:6px 0 0;border-top:2px solid #000}
 /* 7인치 이북리더기(북스 Go 7·Page 등, 화면 폭 약 600px) 기준 */
+/* 영업 허브에서 옮겨 온 화면 */
+.v table{border-collapse:collapse;width:100%;font-size:.82em;margin:.6em 0}
+.v th,.v td{border:1px solid #000;padding:.25em .4em;vertical-align:top;text-align:left}
+.v dl{display:grid;grid-template-columns:auto 1fr;gap:.2em .8em}.v dt{font-weight:700}.v dd{margin:0}
+.v>div>div,.v div div div{margin:.3em 0}
+.bar{display:grid;grid-template-columns:6.5em 1fr auto;gap:.5em;align-items:center;margin:.3em 0;font-size:.9em}
+.bar i{display:block;height:.9em;background:#000}
+.big{font-size:2.2em;font-weight:800;line-height:1.1;margin:.4em 0 0}
+.sms{border:1.5px solid #000;padding:.5em .7em;font-size:.92em}
+blockquote{margin:1em 0;padding:.2em 0 .2em 1em;border-left:6px solid #000;font-size:1.08em;font-weight:600}
 @media (max-width:760px){body{font-size:19.5px;line-height:1.7;padding:8px 16px 20px}
   h1{font-size:1.35em}.top{font-size:.75em;padding:4px 0 6px}.top .cr{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
   nav.pn{margin:8px 0}nav.pn a{padding:9px 4px;min-height:44px;font-size:.8em}

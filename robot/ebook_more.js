@@ -47,6 +47,9 @@ module.exports = function (H) {
     for (const [ind, label] of [["beauty", "뷰티"], ["game", "게임"]]) try { items.push(buildConsumer(ind, label)); } catch (e) { console.warn("[ebook+]", label, e.message); }
     groups.push({ h: "뷰티·폰게임 자판기", items: items.filter(Boolean) });
   }
+  /* ═════════ 브로제이 영업 허브 (data/hub/hub.json, 원가 뺀 판) ═════════ */
+  try { const hub = require("./ebook_hub.js")(H, { data: rd("data/hub/hub.json"), B: "hub/", label: "영업 허브", at: "2026년 11월 17일" }); if (hub) groups.push({ h: "브로제이", items: [hub] }); }
+  catch (e) { console.warn("[ebook+] 영업 허브", e.message); }
   return groups;
 
   /* ── 이야기: 다시 쓴 이야기(깊이별) + 위키 서가 ── */

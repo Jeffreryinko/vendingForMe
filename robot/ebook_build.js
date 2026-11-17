@@ -7,7 +7,8 @@
 "use strict";
 const fs = require("fs"), path = require("path"), vm = require("vm"), crypto = require("crypto");
 const ver = s => crypto.createHash("md5").update(s).digest("hex").slice(0, 8);   // 모양·스크립트가 바뀌면 주소도 바뀌어 옛 저장본을 안 써요
-const ROOT = path.resolve(__dirname, ".."), OUT = path.join(ROOT, "ebook");
+const ROOT = path.resolve(__dirname, ".."), OUT = process.env.EBOOK_OUT ? path.resolve(process.env.EBOOK_OUT) : path.join(ROOT, "ebook");
+const SITE = process.env.EBOOK_SITE || "종이 자판기";   // 맨 위 경로·제목에 붙는 이름
 const abs = p => path.isAbsolute(p) ? p : path.join(ROOT, p);
 const rd = p => { try { return JSON.parse(fs.readFileSync(abs(p), "utf8")); } catch (e) { return null; } };
 const ls = p => { try { return fs.readdirSync(abs(p)).sort(); } catch (e) { return []; } };
@@ -42,12 +43,12 @@ function page(file, o) {
   const depth = file.split("/").length - 1, R = "../".repeat(depth);
   const h = x => /^(https?:|#|mailto:)/.test(x) ? x : R + x;
   const nav = (o.prev || o.next || o.up) ? `<nav class="pn">${o.prev ? `<a data-r="prev" href="${h(o.prev[0])}">‹ ${esc(o.prev[1] || "앞")}</a>` : "<span></span>"}${o.up ? `<a href="${h(o.up[0])}">${esc(o.up[1] || "목차")}</a>` : "<span></span>"}${o.next ? `<a data-r="next" href="${h(o.next[0])}">${esc(o.next[1] || "뒤")} ›</a>` : "<span></span>"}</nav>` : "";
-  const crumbs = [["index.html", "종이 자판기"]].concat(o.crumbs || []);
+  const crumbs = [["index.html", SITE]].concat(o.crumbs || []);
   const body = String(o.body).replace(/href="@([^"]*)"/g, (m, p) => `href="${R}${p}"`);
   const html = `<!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(o.title)} · 종이 자판기</title>
+<title>${esc(o.title)}${o.title === SITE ? "" : " · " + esc(SITE)}</title>${o.noindex ? '\n<meta name="robots" content="noindex,nofollow">' : ""}
 <link rel="stylesheet" href="${R}e.css?v=${ver(CSS)}">
 </head><body>
 <header class="top"><span class="cr">${crumbs.map(c => `<a href="${h(c[0])}">${esc(c[1])}</a>`).join(" › ")}</span><span class="md" hidden><a href="#" data-m="scroll">스크롤</a><a href="#" data-m="page">넘김</a></span></header>
@@ -59,7 +60,7 @@ ${body}
 </main>
 <div id="pi" hidden></div>
 ${nav.replace('class="pn"', 'class="pn pb"')}
-<footer>종이 자판기${file.startsWith("learn/") ? "" : ` · ${stamp} 만듦`}</footer>
+<footer>${esc(SITE)}${file.startsWith("learn/") ? "" : ` · ${stamp} 만듦`}</footer>
 <script src="${R}e.js?v=${ver(JS)}"></script>
 </body></html>`;
   const fp = path.join(OUT, file); fs.mkdirSync(path.dirname(fp), { recursive: true }); fs.writeFileSync(fp, html); pages++;
@@ -418,6 +419,16 @@ html.pm .fig,html.pm .list>li,html.pm .q p,html.pm .cm p{break-inside:avoid}
 html.pm h2,html.pm h3,html.pm h4{break-after:avoid}
 #pi{text-align:center;font-size:.8em;padding:6px 0 0;border-top:2px solid #000}
 /* 7인치 이북리더기(북스 Go 7·Page 등, 화면 폭 약 600px) 기준 */
+/* 영업 허브에서 옮겨 온 화면 */
+.v table{border-collapse:collapse;width:100%;font-size:.82em;margin:.6em 0}
+.v th,.v td{border:1px solid #000;padding:.25em .4em;vertical-align:top;text-align:left}
+.v dl{display:grid;grid-template-columns:auto 1fr;gap:.2em .8em}.v dt{font-weight:700}.v dd{margin:0}
+.v>div>div,.v div div div{margin:.3em 0}
+.bar{display:grid;grid-template-columns:6.5em 1fr auto;gap:.5em;align-items:center;margin:.3em 0;font-size:.9em}
+.bar i{display:block;height:.9em;background:#000}
+.big{font-size:2.2em;font-weight:800;line-height:1.1;margin:.4em 0 0}
+.sms{border:1.5px solid #000;padding:.5em .7em;font-size:.92em}
+blockquote{margin:1em 0;padding:.2em 0 .2em 1em;border-left:6px solid #000;font-size:1.08em;font-weight:600}
 @media (max-width:760px){body{font-size:19.5px;line-height:1.7;padding:8px 16px 20px}
   h1{font-size:1.35em}.top{font-size:.75em;padding:4px 0 6px}.top .cr{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
   nav.pn{margin:8px 0}nav.pn a{padding:9px 4px;min-height:44px;font-size:.8em}
@@ -487,6 +498,13 @@ const JS = `/* 종이 자판기 보기 설정 — 스크롤 또는 넘김. 이 �
 
 /* ── 처음 화면 ── */
 function main() {
+  if (process.env.EBOOK_ONLY === "hub") {   // 영업 허브 아티팩트에 넣을 종이판만 따로
+    fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
+    fs.writeFileSync(path.join(OUT, "e.css"), CSS); fs.writeFileSync(path.join(OUT, "e.js"), JS);
+    const d = JSON.parse(fs.readFileSync(process.env.EBOOK_HUB_DATA, "utf8"));
+    require("./ebook_hub.js")({ esc, inl, md, sec, ul, ext, page, paged, quizHtml }, { data: d, B: "", label: SITE, home: true, at: process.env.EBOOK_HUB_AT || "" });
+    console.log(`[ebook] 영업 허브 종이판 ${pages}장 → ${OUT}`); return;
+  }
   fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(path.join(OUT, "e.css"), CSS);
   fs.writeFileSync(path.join(OUT, "e.js"), JS);
