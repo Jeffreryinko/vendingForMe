@@ -435,7 +435,7 @@ const JS = `/* 종이 자판기 보기 설정 — 스크롤 또는 넘김. 이 �
   var sw = d.querySelector(".md"); if (sw) sw.hidden = false;
   function marks() { var a = d.querySelectorAll(".md a"); for (var i = 0; i < a.length; i++) a[i].className = a[i].getAttribute("data-m") === mode ? "on" : ""; }
   function link(r) { var a = d.querySelector("nav.pt a[data-r=" + r + "]"); return a ? a.href : ""; }
-  function show() { m.scrollLeft = n * (W + G); pi.textContent = (n + 1) + " / " + N + "  ·  화면 왼쪽·오른쪽을 눌러 넘겨요"; }
+  function show() { m.scrollLeft = n * (W + G); pi.textContent = (n + 1) + " / " + N + "  ·  누르거나 밀어서 넘겨요"; }
   function layout(keep) {
     if (mode !== "page") return;
     m.style.columnWidth = m.style.webkitColumnWidth = "auto"; m.scrollLeft = 0;
@@ -455,7 +455,16 @@ const JS = `/* 종이 자판기 보기 설정 — 스크롤 또는 넘김. 이 �
     if (mode === "page") { R.className += " pm"; pi.hidden = false; n = 0; layout(); }
     else { R.className = R.className.replace(/ ?pm/g, ""); pi.hidden = true; m.style.height = ""; m.style.columnWidth = m.style.webkitColumnWidth = ""; m.scrollLeft = 0; }
   }
+  /* 밀기(스와이프): 왼쪽·위로 밀면 다음, 오른쪽·아래로 밀면 앞 */
+  var sx = 0, sy = 0, st = 0, swiped = 0;
+  d.addEventListener("touchstart", function (e) { var t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); }, { passive: true });
+  d.addEventListener("touchend", function (e) {
+    if (mode !== "page") return; var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy, ax = Math.abs(dx), ay = Math.abs(dy);
+    if (Date.now() - st > 800 || Math.max(ax, ay) < 40) return;
+    swiped = Date.now(); if (ax > ay) go(dx < 0 ? 1 : -1); else go(dy < 0 ? 1 : -1);
+  }, { passive: true });
   d.addEventListener("click", function (e) {
+    if (Date.now() - swiped < 600) { e.preventDefault(); return; }
     var t = e.target;
     while (t && t !== d) { if (t.getAttribute && t.getAttribute("data-m")) { e.preventDefault(); mode = t.getAttribute("data-m"); set(mode); apply(); return; } t = t.parentNode; }
     if (mode !== "page") return;
@@ -497,7 +506,7 @@ ${li("trends/index.html", "트렌드", `${tr.n}개 나라 검색어·영상 순�
 ${learned.map(l => li(`learn/${l.app}/index.html`, l.label, `${l.desc} · ${l.n}`)).join("\n")}
 </ul>
 <h2>보기 방식</h2>
-<p>맨 위 오른쪽 <b>스크롤 · 넘김</b>으로 바꿔요. 넘김은 책처럼 한 화면씩 끊어서, 화면 오른쪽을 누르면 다음, 왼쪽을 누르면 앞으로 가요(북스 옆 버튼을 '쪽 넘김 키'로 맞춰 두면 버튼으로도 넘어가요). 글 끝에서 더 넘기면 다음 글로 이어져요. 고른 방식은 이 기기에 기억해요.</p>
+<p>맨 위 오른쪽 <b>스크롤 · 넘김</b>으로 바꿔요. 넘김은 책처럼 한 화면씩 끊어서, 화면 오른쪽을 누르거나 왼쪽으로 밀면 다음, 왼쪽을 누르거나 오른쪽으로 밀면 앞으로 가요(북스 옆 버튼을 '쪽 넘김 키'로 맞춰 두면 버튼으로도 넘어가요). 글 끝에서 더 넘기면 다음 글로 이어져요. 고른 방식은 이 기기에 기억해요.</p>
 <h2>이 판에 대해</h2>
 <p>뉴스는 로봇이 자료를 모을 때마다 다시 만들어져요. 퀴즈는 '정답 보기'를 눌러 확인하고, 만화는 대화 글로 바꿨어요.</p>
 <p>라디오·univ.·한 달 퀘스트·보관함·점수판·랜덤 카드처럼 움직이거나 이 기기 기록이 필요한 것은 뺐어요. 그런 건 <a href="../">원래 자판기</a>에서 보면 돼요.</p>`;

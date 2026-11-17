@@ -7,7 +7,7 @@
   var sw = d.querySelector(".md"); if (sw) sw.hidden = false;
   function marks() { var a = d.querySelectorAll(".md a"); for (var i = 0; i < a.length; i++) a[i].className = a[i].getAttribute("data-m") === mode ? "on" : ""; }
   function link(r) { var a = d.querySelector("nav.pt a[data-r=" + r + "]"); return a ? a.href : ""; }
-  function show() { m.scrollLeft = n * (W + G); pi.textContent = (n + 1) + " / " + N + "  ·  화면 왼쪽·오른쪽을 눌러 넘겨요"; }
+  function show() { m.scrollLeft = n * (W + G); pi.textContent = (n + 1) + " / " + N + "  ·  누르거나 밀어서 넘겨요"; }
   function layout(keep) {
     if (mode !== "page") return;
     m.style.columnWidth = m.style.webkitColumnWidth = "auto"; m.scrollLeft = 0;
@@ -27,7 +27,16 @@
     if (mode === "page") { R.className += " pm"; pi.hidden = false; n = 0; layout(); }
     else { R.className = R.className.replace(/ ?pm/g, ""); pi.hidden = true; m.style.height = ""; m.style.columnWidth = m.style.webkitColumnWidth = ""; m.scrollLeft = 0; }
   }
+  /* 밀기(스와이프): 왼쪽·위로 밀면 다음, 오른쪽·아래로 밀면 앞 */
+  var sx = 0, sy = 0, st = 0, swiped = 0;
+  d.addEventListener("touchstart", function (e) { var t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); }, { passive: true });
+  d.addEventListener("touchend", function (e) {
+    if (mode !== "page") return; var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy, ax = Math.abs(dx), ay = Math.abs(dy);
+    if (Date.now() - st > 800 || Math.max(ax, ay) < 40) return;
+    swiped = Date.now(); if (ax > ay) go(dx < 0 ? 1 : -1); else go(dy < 0 ? 1 : -1);
+  }, { passive: true });
   d.addEventListener("click", function (e) {
+    if (Date.now() - swiped < 600) { e.preventDefault(); return; }
     var t = e.target;
     while (t && t !== d) { if (t.getAttribute && t.getAttribute("data-m")) { e.preventDefault(); mode = t.getAttribute("data-m"); set(mode); apply(); return; } t = t.parentNode; }
     if (mode !== "page") return;
