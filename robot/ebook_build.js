@@ -39,7 +39,7 @@ function page(file, o) {
   if (o.up) { if (o.prev && o.prev[0] === o.up[0]) o.prev = null; if (o.next && o.next[0] === o.up[0]) o.next = null; }
   const depth = file.split("/").length - 1, R = "../".repeat(depth);
   const h = x => /^(https?:|#|mailto:)/.test(x) ? x : R + x;
-  const nav = (o.prev || o.next || o.up) ? `<nav class="pn">${o.prev ? `<a href="${h(o.prev[0])}">‹ ${esc(o.prev[1] || "앞")}</a>` : "<span></span>"}${o.up ? `<a href="${h(o.up[0])}">${esc(o.up[1] || "목차")}</a>` : "<span></span>"}${o.next ? `<a href="${h(o.next[0])}">${esc(o.next[1] || "뒤")} ›</a>` : "<span></span>"}</nav>` : "";
+  const nav = (o.prev || o.next || o.up) ? `<nav class="pn">${o.prev ? `<a data-r="prev" href="${h(o.prev[0])}">‹ ${esc(o.prev[1] || "앞")}</a>` : "<span></span>"}${o.up ? `<a href="${h(o.up[0])}">${esc(o.up[1] || "목차")}</a>` : "<span></span>"}${o.next ? `<a data-r="next" href="${h(o.next[0])}">${esc(o.next[1] || "뒤")} ›</a>` : "<span></span>"}</nav>` : "";
   const crumbs = [["index.html", "종이 자판기"]].concat(o.crumbs || []);
   const body = String(o.body).replace(/href="@([^"]*)"/g, (m, p) => `href="${R}${p}"`);
   const html = `<!doctype html>
@@ -48,15 +48,17 @@ function page(file, o) {
 <title>${esc(o.title)} · 종이 자판기</title>
 <link rel="stylesheet" href="${R}e.css">
 </head><body>
-<header class="top">${crumbs.map((c, i) => i < crumbs.length - 1 || !o.title ? `<a href="${h(c[0])}">${esc(c[1])}</a>` : `<a href="${h(c[0])}">${esc(c[1])}</a>`).join(" › ")}</header>
-${nav}
-<main>
+<header class="top"><span class="cr">${crumbs.map(c => `<a href="${h(c[0])}">${esc(c[1])}</a>`).join(" › ")}</span><span class="md" hidden><a href="#" data-m="scroll">스크롤</a><a href="#" data-m="page">넘김</a></span></header>
+${nav.replace('class="pn"', 'class="pn pt"')}
+<main id="m">
 ${o.h1 === false ? "" : `<h1>${esc(o.title)}</h1>`}
 ${o.sub ? `<p class="sub">${o.sub}</p>` : ""}
 ${body}
 </main>
-${nav}
+<div id="pi" hidden></div>
+${nav.replace('class="pn"', 'class="pn pb"')}
 <footer>종이 자판기${file.startsWith("learn/") ? "" : ` · ${stamp} 만듦`}</footer>
+<script src="${R}e.js"></script>
 </body></html>`;
   const fp = path.join(OUT, file); fs.mkdirSync(path.dirname(fp), { recursive: true }); fs.writeFileSync(fp, html); pages++;
 }
@@ -399,14 +401,84 @@ table.kv th,table.kv td{border:1px solid #000;padding:.3em .6em;text-align:left;
 table.kv th{width:5em;white-space:nowrap}
 footer{margin-top:1.4em;padding-top:8px;border-top:2px solid #000}
 .home li{padding:.7em 0}
-@media (max-width:480px){body{font-size:19px;padding:10px 14px 24px}.list.cols{columns:1}}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.md{white-space:nowrap;display:flex}
+.md a{border:2px solid #000;padding:3px 9px;text-decoration:none;font-weight:700;font-size:.95em}
+.md a+a{border-left:0}
+.md a.on{background:#000;color:#fff}
+/* 넘김 보기: 한 화면씩 끊어 옆으로 넘겨요 (e.js 가 켜요) */
+html.pm,html.pm body{height:100%;overflow:hidden}
+html.pm body{display:flex;flex-direction:column;padding-bottom:6px}
+html.pm main{flex:1;min-height:0;overflow:hidden;column-fill:auto}
+html.pm nav.pb,html.pm footer{display:none}
+html.pm .fig svg{max-height:55vh}
+html.pm .fig,html.pm .list>li,html.pm .q p,html.pm .cm p{break-inside:avoid}
+html.pm h2,html.pm h3,html.pm h4{break-after:avoid}
+#pi{text-align:center;font-size:.8em;padding:6px 0 0;border-top:2px solid #000}
+/* 7인치 이북리더기(북스 Go 7·Page 등, 화면 폭 약 600px) 기준 */
+@media (max-width:760px){body{font-size:19.5px;line-height:1.7;padding:8px 16px 20px}
+  h1{font-size:1.35em}.top{font-size:.75em;padding:4px 0 6px}.top .cr{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
+  nav.pn{margin:8px 0}nav.pn a{padding:9px 4px;min-height:44px;font-size:.8em}
+  .box,.cm{padding-left:.7em;padding-right:.7em}}
+@media (max-width:420px){body{font-size:18px}.list.cols{columns:1}}
 @media (min-width:900px){body{font-size:22px}}
+`;
+
+/* ── 보기 바꾸기: 스크롤 / 넘김 (기기에 기억). 옛 브라우저도 돌게 ES5로 ── */
+const JS = `/* 종이 자판기 보기 설정 — 스크롤 또는 넘김. 이 기기에만 기억해요 */
+(function () {
+  var K = "ebook:mode", d = document, R = d.documentElement, m = d.getElementById("m"), pi = d.getElementById("pi");
+  function get() { try { return localStorage.getItem(K) || "page"; } catch (e) { return "page"; } }
+  function set(v) { try { localStorage.setItem(K, v); } catch (e) {} }
+  var mode = get(), n = 0, N = 1, W = 0, G = 40;
+  var sw = d.querySelector(".md"); if (sw) sw.hidden = false;
+  function marks() { var a = d.querySelectorAll(".md a"); for (var i = 0; i < a.length; i++) a[i].className = a[i].getAttribute("data-m") === mode ? "on" : ""; }
+  function link(r) { var a = d.querySelector("nav.pt a[data-r=" + r + "]"); return a ? a.href : ""; }
+  function show() { m.scrollLeft = n * (W + G); pi.textContent = (n + 1) + " / " + N + "  ·  화면 왼쪽·오른쪽을 눌러 넘겨요"; }
+  function layout(keep) {
+    if (mode !== "page") return;
+    m.style.columnWidth = m.style.webkitColumnWidth = "auto"; m.scrollLeft = 0;
+    W = m.clientWidth; m.style.columnGap = m.style.webkitColumnGap = G + "px";
+    m.style.columnWidth = m.style.webkitColumnWidth = W + "px";
+    N = Math.max(1, Math.round(m.scrollWidth / (W + G)));
+    var end = !keep && location.hash === "#end";
+    if (end) n = N - 1; if (n > N - 1) n = N - 1; show();
+  }
+  function go(dir) {
+    if (dir > 0 && n < N - 1) { n++; show(); return; }
+    if (dir < 0 && n > 0) { n--; show(); return; }
+    var u = link(dir > 0 ? "next" : "prev"); if (u) location.href = u + (dir < 0 ? "#end" : "");
+  }
+  function apply() {
+    marks();
+    if (mode === "page") { R.className += " pm"; pi.hidden = false; n = 0; layout(); }
+    else { R.className = R.className.replace(/ ?pm/g, ""); pi.hidden = true; m.style.height = ""; m.style.columnWidth = m.style.webkitColumnWidth = ""; m.scrollLeft = 0; }
+  }
+  d.addEventListener("click", function (e) {
+    var t = e.target;
+    while (t && t !== d) { if (t.getAttribute && t.getAttribute("data-m")) { e.preventDefault(); mode = t.getAttribute("data-m"); set(mode); apply(); return; } t = t.parentNode; }
+    if (mode !== "page") return;
+    t = e.target;
+    while (t && t !== m) { if (/^(A|SUMMARY|DETAILS|BUTTON)$/.test(t.tagName)) return; t = t.parentNode; }
+    if (!t) return;
+    var x = e.clientX / window.innerWidth; if (x < 0.35) go(-1); else go(1);
+  });
+  d.addEventListener("keydown", function (e) {
+    if (mode !== "page") return; var k = e.key || e.keyCode;
+    if (k === "ArrowRight" || k === "ArrowDown" || k === "PageDown" || k === "AudioVolumeDown" || k === " " || k === 39 || k === 34 || k === 32) { e.preventDefault(); go(1); }
+    else if (k === "ArrowLeft" || k === "ArrowUp" || k === "PageUp" || k === "AudioVolumeUp" || k === 37 || k === 33) { e.preventDefault(); go(-1); }
+  });
+  d.addEventListener("toggle", function () { layout(true); }, true);
+  var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { layout(true); }, 200); });
+  apply();
+})();
 `;
 
 /* ── 처음 화면 ── */
 function main() {
   fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(path.join(OUT, "e.css"), CSS);
+  fs.writeFileSync(path.join(OUT, "e.js"), JS);
   const learned = LEARN.map(buildLearn);   // 교실 먼저 (브리핑이 낱말에 이어 붙어요)
   const s = buildSisa(), a = buildAi(), d = buildDeal(), t = buildTools(), tr = buildTrends();
   const d0 = now;
@@ -423,6 +495,8 @@ ${li("trends/index.html", "트렌드", `${tr.n}개 나라 검색어·영상 순�
 <h2>교실</h2><ul class="list home">
 ${learned.map(l => li(`learn/${l.app}/index.html`, l.label, `${l.desc} · ${l.n}`)).join("\n")}
 </ul>
+<h2>보기 방식</h2>
+<p>맨 위 오른쪽 <b>스크롤 · 넘김</b>으로 바꿔요. 넘김은 책처럼 한 화면씩 끊어서, 화면 오른쪽을 누르면 다음, 왼쪽을 누르면 앞으로 가요(북스 옆 버튼을 '쪽 넘김 키'로 맞춰 두면 버튼으로도 넘어가요). 글 끝에서 더 넘기면 다음 글로 이어져요. 고른 방식은 이 기기에 기억해요.</p>
 <h2>이 판에 대해</h2>
 <p>뉴스는 로봇이 자료를 모을 때마다 다시 만들어져요. 퀴즈는 '정답 보기'를 눌러 확인하고, 만화는 대화 글로 바꿨어요.</p>
 <p>라디오·univ.·한 달 퀘스트·보관함·점수판·랜덤 카드처럼 움직이거나 이 기기 기록이 필요한 것은 뺐어요. 그런 건 <a href="../">원래 자판기</a>에서 보면 돼요.</p>`;

@@ -4,13 +4,15 @@
 <title>언어 모델 · 종이 자판기</title>
 <link rel="stylesheet" href="../../../e.css">
 </head><body>
-<header class="top"><a href="../../../index.html">종이 자판기</a> › <a href="../../../learn/ai/index.html">AI 교실</a></header>
-<nav class="pn"><span></span><a href="../../../learn/ai/index.html">교실 목차</a><span></span></nav>
-<main>
+<header class="top"><span class="cr"><a href="../../../index.html">종이 자판기</a> › <a href="../../../learn/ai/index.html">AI 교실</a></span><span class="md" hidden><a href="#" data-m="scroll">스크롤</a><a href="#" data-m="page">넘김</a></span></header>
+<nav class="pn pt"><span></span><a href="../../../learn/ai/index.html">교실 목차</a><span></span></nav>
+<main id="m">
 <h1>언어 모델</h1>
 <p class="sub">낱말 21개</p>
 <ul class="list terms"><li><a href="../../../learn/ai/t/llm.html">대형 언어 모델(LLM)</a> — 엄청난 양의 글로 '다음에 올 말'을 맞히도록 학습한 거대한 신경망. 챗GPT·제미나이·클로드의 두뇌.</li><li><a href="../../../learn/ai/t/nlp.html">자연어 처리</a> — 컴퓨터가 사람의 말과 글을 이해하고 만들게 하는 분야.</li><li><a href="../../../learn/ai/t/token.html">토큰</a> — 언어 모델이 글을 읽고 쓰는 단위. 단어 하나, 또는 단어의 조각.</li><li><a href="../../../learn/ai/t/tokenizer.html">토크나이저</a> — 글을 토큰으로 쪼개고 번호를 붙이는 도구.</li><li><a href="../../../learn/ai/t/embedding.html">임베딩</a> — 단어나 문장을 뜻이 가까울수록 가까운 자리에 놓이는 숫자 좌표로 바꾼 것.</li><li><a href="../../../learn/ai/t/transformer.html">트랜스포머</a> — 문장 속 모든 단어가 서로를 얼마나 봐야 하는지(어텐션)를 한꺼번에 계산하는 신경망 구조. 2017년 구글 논문에서 나왔어요.</li><li><a href="../../../learn/ai/t/attention.html">어텐션(주의 집중)</a> — 단어 하나를 이해할 때 문장의 다른 단어 중 어디를 얼마나 참고할지 정하는 계산.</li><li><a href="../../../learn/ai/t/gpt.html">GPT</a> — '미리 학습한, 글을 만들어 내는 트랜스포머'. 오픈AI 모델 시리즈의 이름이자 그 방식.</li><li><a href="../../../learn/ai/t/pretraining.html">사전 학습</a> — 인터넷 글 등 거대한 데이터로 '다음 단어 맞히기'를 하며 일반 지식과 언어 능력을 먼저 쌓는 단계.</li><li><a href="../../../learn/ai/t/foundation-model.html">기반 모델(파운데이션 모델)</a> — 큰 데이터로 미리 학습해 여러 일에 두루 바탕으로 쓸 수 있는 큰 모델.</li><li><a href="../../../learn/ai/t/fine-tuning.html">미세 조정(파인튜닝)</a> — 미리 학습한 모델을 특정 일에 맞게 적은 데이터로 한 번 더 가르치는 것.</li><li><a href="../../../learn/ai/t/rlhf.html">RLHF(사람 피드백 강화 학습)</a> — 사람이 'A 답이 B 답보다 낫다'고 고른 결과로 모델이 더 도움 되고 안전하게 답하도록 다듬는 방법.</li><li><a href="../../../learn/ai/t/context-window.html">컨텍스트 창</a> — 모델이 한 번에 읽고 기억할 수 있는 글의 최대 길이(토큰 수).</li><li><a href="../../../learn/ai/t/latency.html">지연 시간(레이턴시)</a> — 질문을 넣고 답이 나오기 시작할 때까지 걸리는 시간.</li><li><a href="../../../learn/ai/t/lora.html">로라(LoRA)</a> — 거대한 모델 전체를 고치지 않고, 작은 덧붙임 부품만 학습해 값싸게 미세 조정하는 방법.</li><li><a href="../../../learn/ai/t/temperature.html">온도(temperature)</a> — AI가 다음 말을 고를 때 얼마나 모험할지 정하는 값. 낮으면 뻔하고 안전하게, 높으면 다양하고 엉뚱하게.</li><li><a href="../../../learn/ai/t/scaling-law.html">스케일링 법칙</a> — 모델 크기, 데이터 양, 계산량을 늘릴수록 성능이 예측 가능하게 좋아진다는 경험적 법칙.</li><li><a href="../../../learn/ai/t/emergent.html">창발 능력</a> — 작은 모델에선 없다가 모델이 커지면 갑자기 나타나는 듯한 능력.</li><li><a href="../../../learn/ai/t/distillation.html">증류</a> — 큰 모델(선생)의 답을 작은 모델(학생)이 따라 배우게 해, 작지만 꽤 똑똑한 모델을 만드는 방법.</li><li><a href="../../../learn/ai/t/small-model.html">소형 언어 모델(SLM)</a> — 수십억 개 안팎의 파라미터로, 폰이나 노트북에서도 돌아가게 만든 작은 언어 모델.</li><li><a href="../../../learn/ai/t/on-device.html">온디바이스 AI</a> — 서버가 아니라 스마트폰·노트북 같은 내 기기 안에서 돌아가는 AI.</li></ul>
 </main>
-<nav class="pn"><span></span><a href="../../../learn/ai/index.html">교실 목차</a><span></span></nav>
+<div id="pi" hidden></div>
+<nav class="pn pb"><span></span><a href="../../../learn/ai/index.html">교실 목차</a><span></span></nav>
 <footer>종이 자판기</footer>
+<script src="../../../e.js"></script>
 </body></html>
