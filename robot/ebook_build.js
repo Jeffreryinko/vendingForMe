@@ -8,8 +8,9 @@
 const fs = require("fs"), path = require("path"), vm = require("vm"), crypto = require("crypto");
 const ver = s => crypto.createHash("md5").update(s).digest("hex").slice(0, 8);   // 모양·스크립트가 바뀌면 주소도 바뀌어 옛 저장본을 안 써요
 const ROOT = path.resolve(__dirname, ".."), OUT = path.join(ROOT, "ebook");
-const rd = p => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, p), "utf8")); } catch (e) { return null; } };
-const ls = p => { try { return fs.readdirSync(path.join(ROOT, p)).sort(); } catch (e) { return []; } };
+const abs = p => path.isAbsolute(p) ? p : path.join(ROOT, p);
+const rd = p => { try { return JSON.parse(fs.readFileSync(abs(p), "utf8")); } catch (e) { return null; } };
+const ls = p => { try { return fs.readdirSync(abs(p)).sort(); } catch (e) { return []; } };
 
 /* ── 글자 도구 ── */
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -491,6 +492,10 @@ function main() {
   fs.writeFileSync(path.join(OUT, "e.js"), JS);
   const learned = LEARN.map(buildLearn);   // 교실 먼저 (브리핑이 낱말에 이어 붙어요)
   const s = buildSisa(), a = buildAi(), d = buildDeal(), t = buildTools(), tr = buildTrends();
+  /* 다른 자판기(이야기·사람·뷰티게임) — robot/ebook_more.js. 저장소가 없으면 그 부분만 건너뛰어요 */
+  let more = [];
+  try { more = require("./ebook_more.js")({ ROOT, rd, ls, esc, inl, md, sec, ul, ext, host, when, krw, num, cc, page, paged, comic, toon, longRead, quizHtml, briefings, bgLinks, learnInfo, now }); }
+  catch (e) { console.warn("[ebook] 다른 자판기 건너뜀:", e.stack || e.message); }
   const d0 = now;
   const li = (href, name, desc) => `<li><a href="@${href}">${esc(name)}</a><br><small>${esc(desc)}</small></li>`;
   const body = `<p class="sub">${d0.getUTCMonth() + 1}월 ${d0.getUTCDate()}일 ${W[d0.getUTCDay()]}요일 · ${String(d0.getUTCHours()).padStart(2, "0")}:${String(d0.getUTCMinutes()).padStart(2, "0")}에 새로 만듦</p>
@@ -505,6 +510,7 @@ ${li("trends/index.html", "트렌드", `${tr.n}개 나라 검색어·영상 순�
 <h2>교실</h2><ul class="list home">
 ${learned.map(l => li(`learn/${l.app}/index.html`, l.label, `${l.desc} · ${l.n}`)).join("\n")}
 </ul>
+${more.map(g => `<h2>${esc(g.h)}</h2><ul class="list home">${g.items.map(x => li(x[0], x[1], x[2])).join("\n")}</ul>`).join("\n")}
 <h2>보기 방식</h2>
 <p>맨 위 오른쪽 <b>스크롤 · 넘김</b>으로 바꿔요. 넘김은 책처럼 한 화면씩 끊어서, 화면 오른쪽을 누르거나 왼쪽으로 밀면 다음, 왼쪽을 누르거나 오른쪽으로 밀면 앞으로 가요(북스 옆 버튼을 '쪽 넘김 키'로 맞춰 두면 버튼으로도 넘어가요). 글 끝에서 더 넘기면 다음 글로 이어져요. 고른 방식은 이 기기에 기억해요.</p>
 <h2>이 판에 대해</h2>
