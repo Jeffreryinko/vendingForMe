@@ -291,14 +291,17 @@ function buildAi() {
 }
 
 /* ── 딜 ── */
+/* 기업 이름은 늘 구글 검색 버튼으로 */
+const gq = name => name ? `<a class="gq" href="https://www.google.com/search?q=${encodeURIComponent(String(name).replace(/\s*\(.*?\)\s*/g, " ").trim())}">${esc(name)}</a>` : "";
 function buildDeal() {
   const br = briefings("deal", "data/deal/briefing", "deal", "딜", it => `<p class="tag">${esc([DK[it.kind] || it.kind, DST[it.st] || it.st, cc(it.cc)].filter(Boolean).join(" · "))}</p><p class="lead">${inl(it.one)}</p>` +
-    ((it.buyer || it.target || it.amt) ? `<table class="kv">${it.buyer ? `<tr><th>사는 쪽</th><td>${esc(it.buyer)}</td></tr>` : ""}${it.target ? `<tr><th>대상</th><td>${esc(it.target)}</td></tr>` : ""}${it.amt ? `<tr><th>금액</th><td>${krw(it.amt)}${it.amtNote ? ` <small>(${esc(it.amtNote)})</small>` : ""}</td></tr>` : ""}</table>` : "") +
-    sec("왜 했을까", md(it.why), "box") + sec("나오는 회사", ul(it.co, c => `<b>${esc(c[0])}</b> — ${inl(c[1])}`)) + sec("무슨 뜻이에요", md(it.mean)) + bgLinks(it.bg, "deal") +
+    ((it.buyer || it.target || it.amt) ? `<table class="kv">${it.buyer ? `<tr><th>사는 쪽</th><td>${gq(it.buyer)}</td></tr>` : ""}${it.target ? `<tr><th>대상</th><td>${gq(it.target)}</td></tr>` : ""}${it.amt ? `<tr><th>금액</th><td>${krw(it.amt)}${it.amtNote ? ` <small>(${esc(it.amtNote)})</small>` : ""}</td></tr>` : ""}</table>` : "") +
+    sec("왜 했을까", md(it.why), "box") + sec("나오는 회사", ul(it.co, c => `${gq(c[0])} — ${inl(c[1])}`)) + sec("무슨 뜻이에요", md(it.mean)) + bgLinks(it.bg, "deal") +
     (it.src ? `<p class="note">출처: ${esc(it.src)}</p>` : ""));
   const now = rd("data/deal/now.json") || {}, deals = now.deals || [], byId = new Map(deals.map(d => [d.id, d]));
   const C = [["deal/index.html", "딜"]];
-  const line = d => `${ext(d.url, d.ko || d.title)}<br><small>${[DK[d.kind] || d.kind, DST[d.st] || d.st, cc(d.cc), d.amtS ? `${d.amtS}${d.amt ? " (" + krw(d.amt) + ")" : ""}` : "", d.src, d.date].filter(Boolean).map(esc).join(" · ")}</small>${d.ksum ? `<br>${inl(String(d.ksum).slice(0, 200))}` : ""}`;
+  const cos = d => { const l = [d.co, d.tgt].concat(d.inv || []).filter(x => x && typeof x === "string" && x.length < 40); return l.length ? `<br>${[...new Set(l)].map(gq).join(" ")}` : ""; };
+  const line = d => `${ext(d.url, d.ko || d.title)}${cos(d)}<br><small>${[DK[d.kind] || d.kind, DST[d.st] || d.st, cc(d.cc), d.amtS ? `${d.amtS}${d.amt ? " (" + krw(d.amt) + ")" : ""}` : "", d.src, d.date].filter(Boolean).map(esc).join(" · ")}</small>${d.ksum ? `<br>${inl(String(d.ksum).slice(0, 200))}` : ""}`;
   const daily = ((now.daily && now.daily.items) || []).map(x => byId.get(Array.isArray(x) ? x[0] : x)).filter(Boolean);
   const links = [];
   if (daily.length) links.push([paged("deal/daily", now.daily.label ? `오늘의 딜 — ${now.daily.label}` : "오늘의 딜", C, daily, 12, line), "오늘의 딜", daily.length]);
@@ -405,6 +408,8 @@ table.kv th,table.kv td{border:1px solid #000;padding:.3em .6em;text-align:left;
 table.kv th{width:5em;white-space:nowrap}
 footer{margin-top:1.4em;padding-top:8px;border-top:2px solid #000}
 .home li{padding:.7em 0}
+a.gq{display:inline-block;border:1.5px solid #000;padding:0 .45em;margin:.1em .15em .1em 0;text-decoration:none;font-weight:700;font-size:.9em;white-space:nowrap}
+a.gq::after{content:" ↗";font-weight:400;font-size:.8em}
 .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .md{white-space:nowrap;display:flex}
 .md a{border:2px solid #000;padding:3px 9px;text-decoration:none;font-weight:700;font-size:.95em}
@@ -545,6 +550,39 @@ const JS = `/* 종이 자판기 보기 설정 — 스크롤/넘김, 전체화면
 })();
 `;
 
+/* ── 웹 글도 넘김으로: 책갈피(북마클릿) 안내 쪽 ── */
+function buildWeb() {
+  let min = ""; try { min = fs.readFileSync(path.join(__dirname, "ebook_webreader.min.js"), "utf8").trim(); } catch (e) { return null; }
+  const bm = "javascript:" + encodeURIComponent(min).replace(/'/g, "%27");
+  page("web.html", { title: "웹 글도 넘김으로", crumbs: [], up: ["index.html", "처음"],
+    sub: "종이 자판기에서 기사 원문으로 넘어가도 한 화면씩 넘겨 읽는 법",
+    body: `<p class="lead">책갈피 하나를 만들어 두면, 아무 웹 글에서나 그 책갈피를 누를 때 광고·메뉴를 빼고 본문만 흰 바탕·검은 글자로 다시 깔아 <b>넘김 방식</b>으로 보여 줘요.</p>
+<p>화면 오른쪽을 누르거나 왼쪽으로 밀면 다음, 왼쪽을 누르면 앞이에요. 음량·쪽 넘김 키도 되고, 위에 <b>가− 가+</b>(글자 크기), <b>전체화면</b>, <b>✕</b>(원래 화면)이 있어요.</p>
+<h2>1. 책갈피 주소 복사</h2>
+<p><a class="btn" href="#" id="cp">책갈피 주소 복사</a> <span id="cpok"></span></p>
+<details><summary>주소 직접 보기</summary><textarea id="bm" readonly rows="6" style="width:100%;font-size:12px">${esc(bm)}</textarea></details>
+<p class="note">지금 이 쪽에서 시험해 보려면: <a href="${esc(bm)}">넘김 보기 해 보기</a> (일부 브라우저는 여기서 바로 안 돼요. 책갈피로 만들면 돼요.)</p>
+<h2>2. 폰에서 책갈피 만들기</h2>
+<h3>크롬 모바일 (가장 잘 돼요)</h3>
+<ol><li>아무 쪽에서나 ☆(책갈피) 눌러 저장 → 책갈피 목록에서 그 책갈피 <b>수정</b></li>
+<li>이름을 <b>넘김</b>으로, 주소(URL) 칸을 지우고 복사한 주소 붙여넣기 → 저장</li>
+<li>크롬 설정 → 동기화에서 <b>북마크</b> 켜기 (이북리더기 크롬도 같은 구글 계정)</li></ol>
+<h3>파이어폭스</h3>
+<ol><li>아무 쪽에서 ⋮ → ☆ 책갈피 → <b>수정</b>, 이름 <b>넘김</b>, URL에 복사한 주소 붙여넣기 → 저장</li>
+<li>⋮ → 설정 → <b>동기화</b>(Firefox 계정)에서 북마크 켜기. 이북리더기 파이어폭스도 같은 계정으로 로그인하면 책갈피가 넘어와요.</li></ol>
+<h2>3. 이북리더기에서 쓰기</h2>
+<ol><li>읽을 글(종이 자판기의 '원문' 링크 등)을 연다</li>
+<li><b>주소창을 누르고 넘김 이라고 친다</b> → 아래 추천 목록에 뜬 ☆ <b>넘김</b> 책갈피를 누른다</li>
+<li>본문이 넘김 화면으로 바뀌어요. 다 읽고 ✕ 누르면 원래 화면</li></ol>
+<p class="note">책갈피 목록에서 바로 누르면 안 되는 브라우저가 많아요. 꼭 <b>주소창에 이름을 쳐서</b> 고르세요. 파이어폭스(안드로이드)는 버전에 따라 책갈피 실행이 막혀 있을 때가 있어요. 그러면 크롬이나 아래 EinkBro를 쓰세요.</p>
+<h2>더 편한 방법: EinkBro 브라우저</h2>
+<p>이북리더기 전용 무료 브라우저예요. 화면 가장자리 누르기나 음량(쪽 넘김) 키로 <b>모든 웹 쪽을 넘김</b>으로 보고, 읽기 모드·글자 크기·전체화면도 있어요. 책갈피 없이 늘 넘김이라 이북에서는 이게 가장 편해요.</p>
+<ul><li>받는 곳: ${ext("https://f-droid.org/packages/info.plateaukao.einkbro/", "F-Droid의 EinkBro")} 또는 ${ext("https://plateaukao.github.io/einkbro/download.html", "EinkBro 내려받기 쪽")}(arm64-v8a 고르기)</li>
+<li>북스는 설정에서 앱별로 쪽 넘김 버튼이 '한 화면만큼 스크롤'하게 바꿀 수도 있어요. 그러면 크롬·파이어폭스에서도 버튼으로 넘길 수 있어요.</li></ul>
+<script>(function(){var b=document.getElementById("cp"),t=document.getElementById("bm"),o=document.getElementById("cpok");if(!b)return;b.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();var v=t.value;function ok(){o.textContent=" 복사했어요";}function sel(){t.parentNode.open=true;t.focus();t.select();try{document.execCommand("copy");ok();}catch(x){o.textContent=" 위 칸을 길게 눌러 복사하세요";}}try{navigator.clipboard.writeText(v).then(ok,sel);}catch(x){sel();}},true);})();</script>` });
+  return "web.html";
+}
+
 /* ── 처음 화면 ── */
 function main() {
   if (process.env.EBOOK_ONLY === "hub") {   // 영업 허브 아티팩트에 넣을 종이판만 따로
@@ -560,7 +598,7 @@ function main() {
   /* 홈 화면에 추가하면 처음부터 전체화면으로 열려요 */
   fs.writeFileSync(path.join(OUT, "manifest.webmanifest"), JSON.stringify({ name: "종이 자판기", short_name: "종이 자판기", start_url: "./index.html", scope: "./", display: "fullscreen", background_color: "#ffffff", theme_color: "#ffffff", icons: [{ src: "../assets/icon-192.png", sizes: "192x192", type: "image/png" }] }));
   const learned = LEARN.map(buildLearn);   // 교실 먼저 (브리핑이 낱말에 이어 붙어요)
-  const s = buildSisa(), a = buildAi(), d = buildDeal(), t = buildTools(), tr = buildTrends();
+  const s = buildSisa(), a = buildAi(), d = buildDeal(), t = buildTools(), tr = buildTrends(), web = buildWeb();
   /* 다른 자판기(이야기·사람·뷰티게임) — robot/ebook_more.js. 저장소가 없으면 그 부분만 건너뛰어요 */
   let more = [];
   try { more = require("./ebook_more.js")({ ROOT, rd, ls, esc, inl, md, sec, ul, ext, host, when, krw, num, cc, page, paged, comic, toon, longRead, quizHtml, briefings, bgLinks, learnInfo, now }); }
@@ -580,6 +618,7 @@ ${li("trends/index.html", "트렌드", `${tr.n}개 나라 검색어·영상 순�
 ${learned.map(l => li(`learn/${l.app}/index.html`, l.label, `${l.desc} · ${l.n}`)).join("\n")}
 </ul>
 ${more.map(g => `<h2>${esc(g.h)}</h2><ul class="list home">${g.items.map(x => li(x[0], x[1], x[2])).join("\n")}</ul>`).join("\n")}
+${web ? `<h2>웹 글도 넘김으로</h2><ul class="list home">${li(web, "웹 글도 넘김으로 보기", "원문 기사로 넘어가도 넘김 방식으로 — 책갈피 하나로 크롬·파이어폭스, 또는 EinkBro")}</ul>` : ""}
 <h2>보기 방식</h2>
 <p><b>전체화면</b>: 맨 위 오른쪽 '전체화면'을 누르면 켜지고, '전체화면 끄기'를 누르면 일반 화면으로 돌아와요. 고른 것은 이 기기에 기억해요. 쪽을 넘기거나 링크를 눌러도 전체화면이 쭉 이어져요. 사이트를 처음 열었을 때만 브라우저 규칙상 한 번 눌러야 다시 켜져요(넘기기 한 번이면 돼요). 브라우저 메뉴 → <b>홈 화면에 추가</b>로 열면 처음부터 전체화면이에요.</p>
 <p>맨 위 오른쪽 <b>스크롤 · 넘김</b>으로 바꿔요. 넘김은 책처럼 한 화면씩 끊어서, 화면 오른쪽을 누르거나 왼쪽으로 밀면 다음, 왼쪽을 누르거나 오른쪽으로 밀면 앞으로 가요(북스 옆 버튼을 '쪽 넘김 키'로 맞춰 두면 버튼으로도 넘어가요). 글 끝에서 더 넘기면 다음 글로 이어져요. 고른 방식은 이 기기에 기억해요.</p>

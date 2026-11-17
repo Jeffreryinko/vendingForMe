@@ -54,6 +54,8 @@ table.kv th,table.kv td{border:1px solid #000;padding:.3em .6em;text-align:left;
 table.kv th{width:5em;white-space:nowrap}
 footer{margin-top:1.4em;padding-top:8px;border-top:2px solid #000}
 .home li{padding:.7em 0}
+a.gq{display:inline-block;border:1.5px solid #000;padding:0 .45em;margin:.1em .15em .1em 0;text-decoration:none;font-weight:700;font-size:.9em;white-space:nowrap}
+a.gq::after{content:" ↗";font-weight:400;font-size:.8em}
 .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .md{white-space:nowrap;display:flex}
 .md a{border:2px solid #000;padding:3px 9px;text-decoration:none;font-weight:700;font-size:.95em}
