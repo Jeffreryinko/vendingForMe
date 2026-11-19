@@ -1260,8 +1260,8 @@
   {
    "month": "2026-11",
    "file": "raw-2026-11.json",
-   "videos": 1614,
-   "comments": 7011,
+   "videos": 1740,
+   "comments": 7505,
    "checkedAt": "2026-11-10",
    "live": true
   },
@@ -1523,8 +1523,8 @@
   {
    "month": "2026-11",
    "file": "talk-2026-11.json",
-   "videos": 207,
-   "comments": 855,
+   "videos": 238,
+   "comments": 976,
    "checkedAt": "2026-11-11",
    "live": true
   },
