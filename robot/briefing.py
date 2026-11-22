@@ -298,6 +298,9 @@ def claude_days_left(now=None):
 
 
 def claude(prompt, model=None, max_tokens=24000):
+    # 2026-11-23 주현 요청: Anthropic 크레딧 사용 중단. 모든 로봇이 바로 무료 AI 로 넘어가요.
+    # 다시 쓰려면 GitHub 변수 CLAUDE_ON 을 1 로 두고 워크플로 env 에 CLAUDE_ON 을 넘기면 돼요.
+    if os.environ.get("CLAUDE_ON", "").strip() != "1": return None, "Claude 사용 중단 (주현 요청)"
     key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not key: return None, "열쇠 없음"
     cap = float(os.environ.get("CLAUDE_MONTHLY_USD") or 50)
